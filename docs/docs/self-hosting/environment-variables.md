@@ -134,7 +134,7 @@ The dashboard shows the active providers and routes without returning credential
 ## Image vulnerability scanning
 
 Set `worker.vulnerabilityScanning.enabled: true` to make image scanning
-available to Repositories. Each App must then opt in explicitly in its deployment
+available to Repositories. Each Service must then opt in explicitly in its deployment
 manifest:
 
 ```yaml title=".towbar/services/hello-towbar.service.yml" highlight={2}
@@ -144,13 +144,13 @@ environments:
   production: {}
 ```
 
-Towbar queues a scan of that App's immutable image digest after each successful
-production or Preview deployment. Changing only this App policy does not force
+Towbar queues a scan of that Service's immutable image digest after each successful
+production or Preview deployment. Changing only this Service policy does not force
 a redeployment, and Datastores are not scanned. Towbar reuses one result per
 workspace and image digest, stores only bounded normalized findings, and keeps
 scan failures separate from deployment health. The deployment detail page
 shows severity totals, actionable findings, scanner metadata, and stale or
-failed states. Disabling the App policy stops new scans without deleting prior
+failed states. Disabling the Service policy stops new scans without deleting prior
 results.
 
 `worker.vulnerabilityScanning.maxAgeHours` controls when completed results are

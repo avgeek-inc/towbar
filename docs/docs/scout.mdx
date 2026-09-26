@@ -57,7 +57,7 @@ Open **Monitor → Performance** in the secondary sidebar on a server, app, or r
 - Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.
 - Percentage charts include a red dotted reference line at 80% usage.
 - Charts default to **Last 15 minutes**. Choose **Last 15 minutes**, **Last 30 minutes**, or a longer relative range through 60 days, limited by the server's retention setting. Switch between **Average** and **Peak**, and hover to read exact values at the same time across charts.
-- App and resource history survives container replacements. Each line represents an individual container. Choose **Production** or **Previews**, then an instance when you need to isolate it.
+- Service and datastore history survives container replacements. Each line represents an individual container. Choose **Production** or **Previews**, then an instance when you need to isolate it.
 - Dotted connectors bridge periods with no measurements; they do not represent recorded values. Graph markers identify deployments (D) and container restarts (R). Hover or focus a marker for its status and time. The deployment and restart events table follows the selected duration and shows 10 events per page, newest first. Each query is capped at the latest 200 events; a notice appears if older events were omitted. Choose a shorter duration to inspect those periods. Tooltip timestamps include your local time zone.
 
 Drag horizontally across any performance chart to zoom all charts and the deployment/restart event list to that time range. Dragging either direction works; press **Escape** to cancel a selection. Choose **Custom range** for a keyboard-accessible start/end date-time picker, labeled with your local time zone. Select **Custom range** again to adjust an active custom window. Choose any relative preset in the dropdown to reset the zoom.
@@ -141,8 +141,8 @@ Use the normal API key authentication for management and history:
 | Install or update | `POST /v1/api/servers/{serverId}/monitoring/actions/install`   |
 | Uninstall         | `POST /v1/api/servers/{serverId}/monitoring/actions/uninstall` |
 | Host history      | `GET /v1/api/servers/{serverId}/metrics`                       |
-| App history       | `GET /v1/api/apps/{appId}/metrics`                             |
-| Resource history  | `GET /v1/api/resources/{resourceId}/metrics`                   |
+| Service history   | `GET /v1/api/apps/{appId}/metrics`                             |
+| Datastore history | `GET /v1/api/resources/{resourceId}/metrics`                   |
 
 Installation requires `{"acknowledge": true, "retentionDays": 15}`. Retention updates require `{"retentionDays": 15}`. Management requires an Edit key with Scout configuration permission. Admins and Members can grant that permission to their personal keys. Read-only keys can inspect monitoring within their workspace.
 

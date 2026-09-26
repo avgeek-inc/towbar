@@ -7,7 +7,7 @@ export function useDetailNavigation() {
   const search = useSearchParams();
   const router = useRouter();
   const match = pathname.match(
-    /^(\/(?:apps|resources)\/[^/]+\/deployments\/[^/]+|\/(?:apps|resources)\/[^/]+|\/repositories\/[^/]+\/syncs\/[^/]+|\/servers\/[^/]+|\/repositories\/[^/]+)(?:\/(.*))?$/,
+    /^(\/(?:services|datastores)\/[^/]+\/deployments\/[^/]+|\/(?:services|datastores)\/[^/]+|\/repositories\/[^/]+\/syncs\/[^/]+|\/servers\/[^/]+|\/repositories\/[^/]+)(?:\/(.*))?$/,
   );
   const base = match?.[1];
   const parts = match?.[2]?.split("/") ?? [];

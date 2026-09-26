@@ -77,7 +77,7 @@ also warns that filesystem copies of running datastores may be inconsistent.
 | `web` process               | Public Service with a declared container port and health check               |
 | Worker process              | Separate private Service using the same source and an explicit start command |
 | Scheduled command           | Service job with an explicit schedule and command                            |
-| Official datastore plugin   | Compatible managed database Resource                                         |
+| Official datastore plugin   | Compatible managed Datastore                                                 |
 | Mounted app storage         | Declared Service volume                                                      |
 
 Commit `towbar.yml` and one file per workload. A Procfile with several long-lived
@@ -99,7 +99,7 @@ and resource headroom.
 
 Use each Dokku datastore plugin's export command. For example, the official
 PostgreSQL plugin can create a logical export that you restore into a compatible
-Towbar PostgreSQL Resource. Match engine and major version before relying on a
+Towbar PostgreSQL Datastore. Match engine and major version before relying on a
 dump. Move persistent files only after stopping writers and preserve ownership
 and permissions.
 

@@ -31,7 +31,7 @@ Each `deployment` event contains the deployment, logs, and steps. Streams end af
 
 ## Roll back or cancel
 
-Read `/apps/{appId}/releases`, then `POST /apps/{appId}/actions/rollback` with an `Idempotency-Key` and body `{"releaseId":"RELEASE_UUID"}`. An empty object selects the previous release when available. Resource rollback follows the corresponding `/resources` route.
+Read `/apps/{appId}/releases`, then `POST /apps/{appId}/actions/rollback` with an `Idempotency-Key` and body `{"releaseId":"RELEASE_UUID"}`. An empty object selects the previous release when available. Datastore rollback follows the corresponding `/resources` route.
 
 `POST /deployments/{deploymentId}/actions/cancel` requests cancellation. Poll the deployment to see the final result. A retry uses `/deployments/{deploymentId}/actions/retry` and a fresh idempotency key for the new attempt.
 
@@ -43,7 +43,7 @@ Automatic deployment controls can be read or changed at `/sources/{sourceId}/aut
 
 ## Update secrets safely
 
-Read `/settings/secrets` for workspace bindings and their revisions. App and resource secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
+Read `/settings/secrets` for workspace bindings and their revisions. Service and datastore secret routes use the same model. Reads expose names and revision metadata, never plaintext values.
 
 ```bash
 curl -X PATCH 'https://YOUR_TOWBAR_HOST/v1/api/settings/secrets/production/deployment' \

@@ -1,21 +1,21 @@
 ---
 title: "Your first deployment"
-description: "Take a Dockerfile app from a GitHub repository to a verified deployment on your Ubuntu server."
+description: "Take a Dockerfile service from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one app through Repository sync, server setup, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own app.
+This guide takes one service through Repository sync, server setup, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own service.
 
 ## Before you begin
 
 You need a running Towbar installation with an Admin account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
 
-Use a domain you control for a public app. The examples use documentation-only IPs and hostnames; replace them with your own values.
+Use a domain you control for a public service. The examples use documentation-only IPs and hostnames; replace them with your own values.
 
-## 1. Create your app repository
+## 1. Create your service repository
 
 Create a GitHub repository and copy `server.mjs`, `Dockerfile`, and
 `.dockerignore` from the example directory into its root. Grant the connected
-GitHub App access to your repository. The app needs no dependencies or secrets.
+GitHub App access to your repository. The service needs no dependencies or secrets.
 Run it locally with Node.js 24 or newer:
 
 ```sh
@@ -57,7 +57,7 @@ environments:
       mode: direct
 ```
 
-Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
+Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your service. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
 Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
 
@@ -69,12 +69,12 @@ A successful sync imports **Hello Towbar** into the Repository's Services list. 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="2560" height="1440" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported app and resource inventories and latest sync time." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="2560" height="1440" loading="lazy" />
   </div>
-  <p>Repositories show their imported app and resource inventories and latest sync time.</p>
+  <p>Repositories show their imported service and datastore inventories and latest sync time.</p>
 </div>
 
 ## 3. Verify the server
@@ -114,9 +114,9 @@ Confirm all four conditions:
 - The Repository sync succeeded at the intended commit.
 - The target server is Ready.
 - The deployment reached Succeeded.
-- The configured HTTPS domain serves the expected app version.
+- The configured HTTPS domain serves the expected service version.
 
-For an app without a public domain, verify it through its intended private client instead.
+For a service without a public domain, verify it through its intended private client instead.
 
 ## Next steps
 
@@ -124,4 +124,4 @@ For your second deployment, edit the response in `server.mjs`, commit to the
 branch mapped to production, and deploy again. Reload the public page to verify that your new code is
 running.
 
-Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [database resource](/docs/datastores). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.
+Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [datastore](/docs/datastores). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.

@@ -112,7 +112,7 @@ Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer .
 
 `tools/list` returns the operations permitted by your key and current role. Read-only keys only list read tools. Administrative operations are omitted unless the key has administrative grants. Personal keys also follow the account holder's current team role. Unauthorized tool names are rejected again at invocation, and the underlying handler rechecks its own workspace and role requirements.
 
-The [tool catalogue](/docs/api/mcp-tools) documents every tool and its input schema. Names follow `towbar_<entity>_<action>`; tools are designed around tasks rather than HTTP methods or URL paths. App and resource actions share `kind` and `workloadId` inputs.
+The [tool catalogue](/docs/api/mcp-tools) documents every tool and its input schema. Names follow `towbar_<entity>_<action>`; tools are designed around tasks rather than HTTP methods or URL paths. Service and datastore actions share `kind` and `workloadId` inputs.
 
 ### Find, deploy, and verify
 

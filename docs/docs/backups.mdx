@@ -138,6 +138,6 @@ A completed upload is not proof that your application can recover. Follow the [r
 
 These features protect managed workload data. Back up Towbar's own PostgreSQL database and `/etc/towbar/towbar.yml` with your infrastructure tooling; the dashboard does not provide control-plane backup or restore operations.
 
-## App and Compose volumes
+## Service and Compose volumes
 
 Towbar lists app and Compose volumes on each app's **Storage** page, but it does not back up or restore their contents. Protect persistent application files with storage or infrastructure tooling appropriate for the server, and test that recovery process independently.

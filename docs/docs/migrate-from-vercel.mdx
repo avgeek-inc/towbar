@@ -44,7 +44,7 @@ changes before it can run in a container.
 - Vercel Functions, Edge Runtime, Middleware, ISR, and platform routing may need
   application changes before they work in a persistent container.
 - You operate capacity, security updates, host recovery, observability, and the
-  control plane. Towbar previews also do not clone database Datastores.
+  control plane. Towbar previews also do not clone Datastores.
 
 ### Vercel
 
@@ -78,13 +78,13 @@ Map every Vercel feature to an explicit destination before changing production:
 | Git-connected project                          | Repository environment and one or more Services                                 |
 | Static build output                            | `static` Service                                                                |
 | Framework or Node.js server                    | Containerized Service using a Dockerfile or supported source builder            |
-| Vercel Function                                | Route in a long-running App, or a separate private or public Service            |
+| Vercel Function                                | Route in a long-running Service, or a separate private or public Service        |
 | Edge Function or Middleware                    | Application or proxy logic after a runtime-compatibility review                 |
 | Preview deployment                             | Opt-in Towbar preview environment                                               |
 | Production, Preview, and Development variables | Production, preview, and local-development values kept in their intended scopes |
 | Cron job                                       | Service job                                                                     |
 | Custom domain                                  | Manifest domain with direct or Cloudflare-managed TLS                           |
-| Marketplace database                           | Compatible Towbar Resource or external service after an engine-aware migration  |
+| Marketplace database                           | Compatible Towbar Datastore or external service after an engine-aware migration |
 | Vercel Blob                                    | External object storage or another compatible service after copying objects     |
 
 Vercel's [runtime documentation](https://vercel.com/docs/functions/configuring-functions/runtime)
@@ -178,7 +178,7 @@ URLs with explicit application configuration where the code still needs them.
 
 Vercel's Git integration creates production deployments from the production
 branch and preview deployments from other branches and pull requests. Towbar
-previews are opt-in per App, deploy eligible same-repository pull requests, and
+previews are opt-in per Service, deploy eligible same-repository pull requests, and
 use separate preview secrets.
 
 ```yaml title=".towbar/services/web.service.yml" highlight={2-5}
@@ -229,7 +229,7 @@ Vercel Marketplace storage provisions third-party databases and injects their
 credentials into projects. Identify the actual provider, engine, version,
 extensions, region, connection mode, and export procedure behind each
 integration. Use an engine-native logical export, restore it to a compatible
-Towbar [database Resource](/docs/databases) or external service, then verify
+Towbar [Datastore](/docs/databases) or external service, then verify
 schema, indexes, row counts, encodings, extensions, and application migrations.
 
 For Vercel Blob, list and download every required object before cutover. The

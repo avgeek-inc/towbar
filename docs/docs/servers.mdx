@@ -201,7 +201,7 @@ Admins can remove a server from **Danger zone → Remove server**, including a s
 
 Removing a server stops Towbar management and scheduled checks, archives its assigned inventory, deletes its stored SSH and Cloudflare credentials, revokes its trusted host keys, and closes remaining Preview records. It does not terminate the cloud instance, stop services, or erase Docker data.
 
-When a later Repository sync finds the same IP in a manifest, Towbar restores the archived server automatically in **Server Setup Pending**. Configure credentials and verify host-key trust again before preparing it. During that first preparation, Towbar makes a best-effort attempt to remove old Towbar-managed app containers for the restored manifest inventory. Resource volumes and other data are not removed. Historical records and workload ownership remain available.
+When a later Repository sync finds the same IP in a manifest, Towbar restores the archived server automatically in **Server Setup Pending**. Configure credentials and verify host-key trust again before preparing it. During that first preparation, Towbar makes a best-effort attempt to remove old Towbar-managed app containers for the restored manifest inventory. Datastore volumes and other data are not removed. Historical records and workload ownership remain available.
 
 ## Scout Agent
 
