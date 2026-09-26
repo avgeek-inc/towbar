@@ -19,6 +19,12 @@ Towbar reads deployment configuration from the Git revision being deployed. The 
 
 Each guide includes a complete, validated entity example from `examples/platform-modes`. Builder images accepted by the manifest must be pinned to immutable digests. Choose the mode first, then configure shared [container and health](/docs/apps/configuration) fields.
 
+## Configure a source build
+
+Set the context and builder-specific options in `deployment`. [Dockerfile](/docs/apps/modes/dockerfile), [static site](/docs/apps/modes/static), [Railpack](/docs/apps/modes/railpack), [Nixpacks](/docs/apps/modes/nixpacks), and [Buildpacks](/docs/apps/modes/buildpack) each have a complete example. Dockerfile and static builds can receive protected build values; Railpack, Nixpacks, and Buildpacks reject build secrets. Cancellation removes staged source and unpromoted images.
+
+Build caches belong to a workload unless you configure an authorized shared `cache.scope`. Inactive cache scopes are reclaimed after 30 days, so keep the build reproducible after a cold cache.
+
 ## Prebuilt images
 
 Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar resolves a tag to an immutable digest before execution and fails if the digest changes. For private images, reference an enabled [OCI registry integration](/docs/integrations/oci-registry). See the [prebuilt image guide](/docs/apps/modes/image) for a complete manifest.
