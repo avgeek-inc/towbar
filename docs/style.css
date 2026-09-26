@@ -71,6 +71,14 @@
 ) {
   --towbar-doc-brand: url("/assets/integration-logos/github.svg");
 }
+.dark img[src="/assets/integration-logos/github.svg"],
+.dark
+  #content-area:has(
+    .towbar-doc-brand-logo[src="/assets/integration-logos/github.svg"]
+  )
+  #page-title::before {
+  filter: brightness(0) invert(1);
+}
 #content-area:has(
   .towbar-doc-brand-logo[src="/assets/integration-logos/gitlab.svg"]
 ) {

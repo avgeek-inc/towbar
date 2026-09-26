@@ -314,7 +314,7 @@
             ]
           },
           {
-            "group": "Services",
+            "group": "Apps",
             "pages": [
               {
                 "group": "Overview",
@@ -376,7 +376,7 @@
             ]
           },
           {
-            "group": "Datastores",
+            "group": "Resources",
             "pages": [
               {
                 "group": "Overview",

@@ -4,9 +4,6 @@ description: "Use a scoped Infisical machine identity to resolve deployment secr
 icon: "/assets/integration-logos/infisical.webp"
 ---
 
-<<<<<<< HEAD
-Towbar can load runtime secrets for an app, resource, or Compose project from an Infisical folder when a deployment runs. The machine identity credentials stay in `/etc/towbar/towbar.yml`. See [External secrets](/docs/secrets/external) for workload manifest examples and folder behavior.
-=======
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/infisical.webp"
@@ -14,8 +11,7 @@ Towbar can load runtime secrets for an app, resource, or Compose project from an
   aria-hidden="true"
 />
 
-Towbar can resolve app, resource, and Compose secret references from Infisical when a deployment runs. The machine identity credentials stay in `/etc/towbar/towbar.yml`; the manifest contains only the path or name of the secret to fetch.
->>>>>>> 5e81e804 (Polish service and datastore inventory and docs)
+Towbar can load runtime secrets for an service or datastore from an Infisical folder when a deployment runs. The machine identity credentials stay in `/etc/towbar/towbar.yml`. See [External secrets](/docs/secrets/external) for workload manifest examples and folder behavior.
 
 ## Prepare access
 
@@ -35,21 +31,7 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Infisi
 
 ## Verify access
 
-<<<<<<< HEAD
 Grant the machine identity read access to the intended project, environment, and path. Configure a non-production workload using the [external-secret source guide](/docs/secrets/external), then deploy it to verify remote authorization. The integration's configured indicator only verifies Towbar's local configuration.
-=======
-Declare the environment variable name as a key and the provider-specific secret location as a reference:
-
-```yaml title=".towbar/services/api.service.yml"
-externalSecrets:
-  API_TOKEN:
-    integration: infisical
-    secret: /production/api-token
-    use: runtime
-```
-
-The effective project and environment access comes from the configured machine identity. Runtime references are available to services, datastores, and Compose projects. Dockerfile and static apps can also use build-stage references through their protected build path; other builders reject build secrets. See [Secrets](/docs/secrets#external-secret-providers) for reference fields and value precedence.
->>>>>>> 5e81e804 (Polish service and datastore inventory and docs)
 
 If resolution fails, check the deployment's secret stage, path, identity permissions, network reachability, and secret version. Rotate the client secret in YAML, restart Towbar, and deploy a test reference before revoking the old credential.
 

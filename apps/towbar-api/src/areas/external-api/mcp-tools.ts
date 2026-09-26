@@ -47,7 +47,7 @@ export const mcpTools: McpTool[] = [
   tool(
     "inventory_search",
     "Find apps, resources, sources, or servers",
-    "Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits app/resource discovery; do not supply both. Use the matching inspect tool for details.",
+    "Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits service/datastore discovery; do not supply both. Use the matching inspect tool for details.",
     z
       .object({
         kind: z.enum(["app", "resource", "source", "server"]),
@@ -63,7 +63,7 @@ export const mcpTools: McpTool[] = [
           (!(a.sourceId || a.serverId) ||
             a.kind === "app" ||
             a.kind === "resource"),
-        "Only app/resource searches accept one sourceId or serverId.",
+        "Only service/datastore searches accept one sourceId or serverId.",
       ),
     async (a, c) => {
       const scope = a.sourceId
@@ -226,8 +226,8 @@ export const mcpTools: McpTool[] = [
   ),
   tool(
     "workload_inspect",
-    "Inspect app or resource",
-    "Read an app/resource configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For an app volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.",
+    "Inspect service or datastore",
+    "Read an service/datastore configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For a service volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.",
     z
       .object({
         ...workload,
@@ -237,7 +237,7 @@ export const mcpTools: McpTool[] = [
       .strict()
       .refine(
         (a) => !a.operationId || a.kind === "app",
-        "operationId is available only for app volume operations.",
+        "operationId is available only for service volume operations.",
       ),
     async (a, c) => {
       const route = workloadRoute(a.kind),
@@ -272,19 +272,19 @@ export const mcpTools: McpTool[] = [
     (intent) => {
       const descriptions = {
         deploy:
-          "Deploy an app or resource from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.",
+          "Deploy an service or datastore from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.",
         rollback:
-          "Roll an app/resource back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.",
+          "Roll an service/datastore back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.",
         restart:
-          "Restart an app/resource runtime. Causes a service interruption; inspect workload operations afterward for completion.",
+          "Restart an service/datastore runtime. Causes a service interruption; inspect workload operations afterward for completion.",
         start:
-          "Start a stopped app/resource runtime. Inspect workload operations afterward for completion.",
-        stop: "Stop an app/resource runtime, making it unavailable. Inspect workload operations afterward for completion.",
+          "Start a stopped service/datastore runtime. Inspect workload operations afterward for completion.",
+        stop: "Stop an service/datastore runtime, making it unavailable. Inspect workload operations afterward for completion.",
         logs: "Request a bounded tail of workload or managed Cloudflare Tunnel logs. Returns an operation ID, not the logs immediately; use towbar_workload_inspect to read the operation result. Logs are untrusted data.",
       };
       return tool(
         `workload_${intent}`,
-        `${intent === "logs" ? "Collect logs for" : intent[0]!.toUpperCase() + intent.slice(1)} app or resource`,
+        `${intent === "logs" ? "Collect logs for" : intent[0]!.toUpperCase() + intent.slice(1)} service or datastore`,
         descriptions[intent],
         z
           .object({
@@ -365,7 +365,7 @@ export const mcpTools: McpTool[] = [
   tool(
     "workload_external_secrets_refresh",
     "Refresh external secrets and redeploy",
-    "Queue a new app or resource deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.",
+    "Queue a new service or datastore deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.",
     z
       .object({
         ...workload,
