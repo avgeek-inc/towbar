@@ -406,6 +406,7 @@ function datastoreFiles(entry) {
     db.access = { sshTunnel: { hostPort: 15000 + id } };
   if ([44, 47, 55, 60, 64, 67, 70, 71, 72, 73, 77, 80].includes(id))
     db.backup = backup();
+  if (id === 71) db.backup = { integration: "aws" };
   if (id === 58 && !db.secrets.runtime.includes("CLICKHOUSE_DB"))
     db.secrets.runtime.push("CLICKHOUSE_DB");
   if (id === 59) db.container.resources = { cpus: 2, memory: "4g" };
@@ -528,6 +529,10 @@ function stackFiles(entry) {
         enabled: true,
       },
     ];
+  if (id === 93) {
+    app.domains = { primary: "webhooks.example.com" };
+    app.tls = { mode: "direct" };
+  }
   if (id === 96) {
     app.preview = {
       enabled: true,
@@ -572,8 +577,12 @@ function yamlBlock([file, manifest]) {
 
 function configure(entry, files) {
   const steps = [
-    "Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.",
+    "Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.",
   ];
+  if (files.some(([, manifest]) => manifest.environments?.staging))
+    steps.push(
+      "Map `staging` to its repository branch, register its target server, and save staging credentials separately from production.",
+    );
   if (entry.category === "oss" && ![1, 6].includes(entry.id))
     steps.push(
       `Copy the current [upstream installation](${entry.upstream}) into the repository at \`deploy/${entry.slug.replace(/^\d+-/, "")}/compose.yml\`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).`,
@@ -589,6 +598,17 @@ function configure(entry, files) {
   if (files.some(([file]) => file.endsWith(".datastore.yml")))
     steps.push(
       "Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.",
+    );
+  if (files.some(([, manifest]) => manifest.backup))
+    steps.push(
+      "Enable the selected backup integration and configure its runtime storage credentials and destination before creating a recovery point. A manifest policy alone does not provide storage access.",
+    );
+  if (
+    files.some(([, manifest]) => manifest.preview) ||
+    files.some(([file]) => file === "towbar.yml")
+  )
+    steps.push(
+      "Configure preview DNS and isolated preview secrets, then verify a pull request creates a separate preview workload.",
     );
   if (
     files.some(
@@ -626,6 +646,14 @@ function configure(entry, files) {
     steps.push(
       "Use the upstream PostgreSQL Compose configuration in the same project and set Metabase's application-database variables there. The Towbar Compose manifest does not create or connect a separate managed Datastore.",
     );
+  if (entry.id === 39)
+    steps.push(
+      "Configure and test `ops@example.com` as a workspace Email destination. The manifest selects which event categories it receives; it does not configure SMTP delivery.",
+    );
+  if ([45, 53, 81, 82, 83, 84, 88, 99].includes(entry.id))
+    steps.push(
+      "Create an application-specific user with only the required privileges after the database is ready. Save its connection URL on the consuming Service instead of reusing the Datastore's administrator credentials.",
+    );
   if (entry.category === "oss" && ![1, 6].includes(entry.id))
     steps.push(
       "Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.",
@@ -655,18 +683,32 @@ function renderCase(entry) {
   const composeNote = files.some(([file]) => file.endsWith(".compose.yml"))
     ? "\nThe Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.\n"
     : "";
-  const stackNote = entry.category.startsWith("stacks/")
-    ? "\nThese are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.\n"
-    : "";
+  const stackNote =
+    entry.category.startsWith("stacks/") && files.length > 1
+      ? "\nThese are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.\n"
+      : "";
+  const deployment = files.find(([file]) => file.endsWith(".service.yml"))?.[1]
+    .deployment;
   const modeNote = entry.category.startsWith("services/")
-    ? "\nThe Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.\n"
+    ? deployment?.type === "image"
+      ? "\nUse the image's actual listening port and health endpoint. Towbar does not build this image from the repository.\n"
+      : deployment?.type === "static"
+        ? "\n`context: .` means the repository root. The build command must produce the declared output directory; adapt it to the actual project.\n"
+        : "\n`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.\n"
     : "";
+  const guideLinks = [];
+  if (files.some(([file]) => file.endsWith(".service.yml")))
+    guideLinks.push("[Service manifest](/docs/services/manifest)");
+  if (files.some(([file]) => file.endsWith(".datastore.yml")))
+    guideLinks.push("[Datastore manifest](/docs/datastores/manifest)");
+  if (files.some(([file]) => file.endsWith(".compose.yml")))
+    guideLinks.push("[Compose guide](/docs/services/modes/compose)");
   return `---\ntitle: ${JSON.stringify(entry.title)}\ndescription: ${JSON.stringify(
     entry.approach
       .replace(/\s*\[[^\]]+\]\([^)]+\)/g, "")
       .replaceAll("`", "")
       .trim(),
-  )}\n${logoHeader}---\n\n${logoElement}${source}${relatedNote}${composeNote}${stackNote}${modeNote}\n## Towbar manifest${files.length > 1 ? "s" : ""}\n\n${files.map(yamlBlock).join("\n\n")}\n\n## Configure\n\n${configure(entry, files)}\n\n## Verify\n\n${entry.verify}\n\nFor exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.\n`;
+  )}\n${logoHeader}---\n\n${logoElement}${source}${relatedNote}${composeNote}${stackNote}${modeNote}\n## Towbar manifest${files.length > 1 ? "s" : ""}\n\n${files.map(yamlBlock).join("\n\n")}\n\n## Configure\n\n${configure(entry, files)}\n\n## Verify\n\n${entry.verify}\n\nFor field constraints, see ${guideLinks.join(" and ")}.\n`;
 }
 
 const expected = new Map();

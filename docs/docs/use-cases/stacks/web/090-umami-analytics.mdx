@@ -64,7 +64,7 @@ tls:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
 3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
 4. Set the Service's `DATABASE_URL` to `postgresql://<user>:<password>@umami-postgres:5432/<database>`, using the user, name, and password you configured on the Datastore. A Docker network does not copy those values. Change Umami's default administrator password after first login.
@@ -74,4 +74,4 @@ tls:
 
 Use current PostgreSQL guidance and verify the site after first login.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

@@ -51,6 +51,10 @@ environments:
 secrets:
   runtime:
     - CACHE_URL
+domains:
+  primary: webhooks.example.com
+tls:
+  mode: direct
 ```
 
 ```yaml title=".towbar/services/webhook-receiver-and-worker-worker.service.yml"
@@ -75,7 +79,7 @@ secrets:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
 3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
 4. Point each Service connection secret at `webhook-receiver-and-worker-redis` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
@@ -85,4 +89,4 @@ secrets:
 
 The worker has no public domain and failed work can be retried safely.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

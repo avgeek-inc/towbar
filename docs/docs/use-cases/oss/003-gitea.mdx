@@ -36,7 +36,7 @@ environments:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Copy the current [upstream installation](https://docs.gitea.com/next/installation/install-with-docker/) into the repository at `deploy/gitea/compose.yml`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).
 3. Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.
 4. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
@@ -45,4 +45,4 @@ environments:
 
 Preserve `/data`; web routing does not by itself expose Git-over-SSH.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Compose guide](/docs/services/modes/compose).

@@ -756,8 +756,8 @@
   {
     "id": 94,
     "category": "stacks/workers",
-    "slug": "094-static-frontend-and-private-api",
-    "title": "Static frontend and private API",
+    "slug": "094-static-frontend-and-routed-api",
+    "title": "Static frontend and routed API",
     "approach": "Deploy a static Service and a separately routed API Service.",
     "verify": "Browser requests use a reachable HTTPS API origin; private Docker DNS is not available to browsers."
   },

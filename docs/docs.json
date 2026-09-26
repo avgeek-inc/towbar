@@ -327,7 +327,7 @@
                   "docs/use-cases/stacks/workers/091-api-worker-and-redis",
                   "docs/use-cases/stacks/workers/092-api-with-a-daily-report",
                   "docs/use-cases/stacks/workers/093-webhook-receiver-and-worker",
-                  "docs/use-cases/stacks/workers/094-static-frontend-and-private-api",
+                  "docs/use-cases/stacks/workers/094-static-frontend-and-routed-api",
                   "docs/use-cases/stacks/workers/095-multi-process-repository",
                   "docs/use-cases/stacks/workers/096-pull-request-preview-for-web",
                   "docs/use-cases/stacks/workers/097-staging-and-production",

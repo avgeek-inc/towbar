@@ -5,7 +5,7 @@ description: "Use a pre-deploy hook and stage-specific secrets."
 
 **Related reading:** [Deployment hooks](/docs/deployments#deployment-hooks).
 
-The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
 
 ## Towbar manifest
 
@@ -33,11 +33,11 @@ hooks:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
 
 ## Verify
 
 The migration is safe to retry and compatible with rollback.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Service manifest](/docs/services/manifest).

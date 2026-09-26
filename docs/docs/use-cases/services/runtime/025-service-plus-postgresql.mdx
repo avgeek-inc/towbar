@@ -5,7 +5,7 @@ description: "Give both workloads container.network: application; use the Datast
 
 **Related reading:** [PostgreSQL](/docs/databases/postgresql).
 
-The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
 
 ## Towbar manifests
 
@@ -51,7 +51,7 @@ secrets:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
 3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
 4. Point each Service connection secret at `service-plus-postgresql-postgres` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
@@ -61,4 +61,4 @@ secrets:
 
 No credential is committed and the app can connect after database readiness.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

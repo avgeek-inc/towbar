@@ -36,7 +36,7 @@ environments:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Copy the current [upstream installation](https://jellyfin.org/docs/general/installation/container/) into the repository at `deploy/jellyfin/compose.yml`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).
 3. Add persistent configuration, cache, and media volumes in the upstream Compose file. This example covers HTTP access; DLNA, host networking, and hardware transcoding need capabilities outside this manifest.
 4. Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.
@@ -46,4 +46,4 @@ environments:
 
 The HTTP app listens on port 8096. DLNA, host networking, and hardware transcoding need separate platform capabilities.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Compose guide](/docs/services/modes/compose).

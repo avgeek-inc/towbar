@@ -39,7 +39,7 @@ access:
 
 ## Configure
 
-1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
 2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
 3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
 
@@ -47,4 +47,4 @@ access:
 
 An SSH-forwarded client connects; the server firewall does not expose `3306`.
 
-For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).
