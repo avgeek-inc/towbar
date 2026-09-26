@@ -3,7 +3,7 @@ title: "Runtime configuration"
 description: "Reference for Towbar's YAML configuration, including secrets, integrations, notifications, and worker settings."
 ---
 
-Use this reference when configuring the Towbar installation. Application secrets belong in the [Shared secrets editor](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
+Use this reference when configuring the Towbar installation. Workload secrets are described in [Secrets](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
 
 The installer creates `/etc/towbar/towbar.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 
@@ -146,7 +146,7 @@ environments:
 
 Towbar queues a scan of that App's immutable image digest after each successful
 production or Preview deployment. Changing only this App policy does not force
-a redeployment, and Resources are not scanned. Towbar reuses one result per
+a redeployment, and Datastores are not scanned. Towbar reuses one result per
 workspace and image digest, stores only bounded normalized findings, and keeps
 scan failures separate from deployment health. The deployment detail page
 shows severity totals, actionable findings, scanner metadata, and stale or

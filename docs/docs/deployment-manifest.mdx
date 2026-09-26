@@ -1,23 +1,15 @@
 ---
 title: "Deployment manifest"
-description: "Declare environments in towbar.yml and configure Services and Datastores in separate entity files."
+description: "Define environments in towbar.yml and keep each Service or Datastore in its own file."
 ---
 
-Towbar reads `towbar.yml`, then discovers Service, Compose, and Datastore files under
-`.towbar/`. Each file declares one workload. Branch mappings and credential
-values stay in Towbar instead of Git.
+Towbar reads `towbar.yml` at the repository root and discovers workload files under `.towbar/services` and `.towbar/datastores`. A successful sync validates the files together and updates the desired configuration for the mapped environment. It does not deploy the workloads by itself.
 
-Download the [root example](/examples/towbar.yaml) and
-[service example](/examples/hello-towbar.service.yaml). Editor schemas are available for
-[the root](/schemas/repository.v2.json), [Services](/schemas/app.v2.json),
-[Compose](/schemas/compose.v2.json), and [Datastores](/schemas/resource.v2.json).
+## Root configuration
 
-## Declare environments
+Declare the environment names in `towbar.yml`. Map each name to a branch in **Repository → Environments**. Preview eligibility belongs to an environment and is opt-in:
 
-The root file names the environments available to entity files. Enable previews
-only for environments that should accept eligible pull requests:
-
-```yaml title="towbar.yml" highlight={2-6}
+```yaml title="towbar.yml"
 version: 2
 environments:
   production: {}
@@ -26,273 +18,50 @@ environments:
       enabled: true
 ```
 
-Map each environment to a branch in **Repository → Environments**. Branch names,
-server addresses, and entity directories are not root fields.
+See [Repositories](/docs/repositories), [environment branches](/docs/repositories/environments), and [sync](/docs/repositories/sync) for the connection and validation flow. The [root JSON Schema](/schemas/repository.v2.json) lists the accepted fields.
 
-## Declare a Service
+## Services
 
-<span id="field-reference" />
+A Service builds source or pulls a prebuilt image. Each has a stable `id` and a `.service.yml` file:
 
-Common fields apply to every selected environment. Each entry under
-`environments` adds or overrides environment-specific values:
-
-```yaml title=".towbar/services/web.service.yml" highlight={1-4,14-20}
+```yaml title=".towbar/services/web.service.yml"
 id: web
 name: Web
 deployment:
   type: dockerfile
-  dockerfile: Dockerfile
   context: .
+  dockerfile: Dockerfile
 container:
   port: 3000
 health:
   path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Read the [Service manifest](/docs/services/manifest) for every field, [deployment modes](/docs/platform-deployments) for build choices, and [Compose](/docs/services/modes/compose) for multi-container projects. The [Service JSON Schema](/schemas/app.v2.json) defines the exact shape.
+
+## Datastores
+
+A Datastore uses one of Towbar's supported database or cache engines. Put each one in `.towbar/datastores`:
+
+```yaml title=".towbar/datastores/cache.datastore.yml"
+id: cache
+name: Cache
+type: redis
 secrets:
   runtime:
-    - DATABASE_URL
-environments:
-  production:
-    server: 192.0.2.10
-    domains:
-      primary: app.example.com
-  staging:
-    server: 192.0.2.11
-```
-
-Register both servers before syncing. Objects merge recursively; arrays replace
-the common array. `id`, `name`, `secrets`, `preview`, and resource `type` remain
-at entity level and cannot be overridden.
-
-An entity's `id` remains stable across file moves and display-name changes.
-Removing an entity or one of its environment entries archives that instance
-after a successful sync. A failed sync preserves the last valid configuration
-and saved secret values.
-
-## Route notifications for one service or datastore
-
-Workspace destinations in **Manage → Notifications** receive events across all
-services and datastores. Add `notifications` to an app, Compose workload, or resource
-file to send that entity's events to additional destinations. These subscriptions
-take effect when the environment sync succeeds; no deployment is needed.
-
-```yaml title=".towbar/services/web.service.yml"
-notifications:
-  email:
-    - address: web-ops@example.com
-      deployments: true
-      backupsAndRestores: false
-      alertsAndIncidents: true
-  slack:
-    - channelId: C12345678
-      deployments: true
-      backupsAndRestores: false
-      alertsAndIncidents: true
-  discord:
-    - webhookId: "123456789012345678"
-      deployments: false
-      backupsAndRestores: false
-      alertsAndIncidents: true
-  telegram:
-    - chatId: "-1001234567890"
-      messageThreadId: 42
-      deployments: true
-      backupsAndRestores: false
-      alertsAndIncidents: false
-```
-
-Each destination must enable at least one category. Deployments includes
-previews; Alerts & Incidents includes service health and Scout alerts. The same
-shape works in datastore files. Use `messageThreadId` only for a Telegram forum
-topic. Webhook push is available only as a workspace destination.
-
-Keep SMTP, Slack bot, Discord webhook token, and Telegram bot credentials in
-`/etc/towbar/towbar.yml`. A manifest destination sends only while its provider
-is configured there. For Discord, `webhookId` must match a runtime-configured
-webhook pair. The service or datastore **Monitor → Notifications** page shows the
-synced destinations and subscriptions without edit controls. Use **Manage →
-Notifications → Health → Deliveries** to inspect delivery history for all
-entities.
-
-## Deploy automatically
-
-Set `autoDeploy: true` to deploy whenever a mapped-branch commit changes the
-workload. Use `autoDeploy.inputs` to limit an app to relevant repository paths:
-
-```yaml title=".towbar/services/web.service.yml" highlight={3-7}
-id: web
-name: Web
-autoDeploy:
-  inputs:
-    - package.json
-    - pnpm-lock.yaml
-    - apps/web/**
-```
-
-Input paths are repository-relative. Include shared packages and build files
-that can change the result. Initial connection, branch changes, and **Sync now**
-import configuration without deploying it.
-
-## Declare secret names
-
-Commit the required key names, then enter their values in Towbar:
-
-```yaml title=".towbar/services/web.service.yml" highlight={3-10}
-id: web
-name: Web
-secrets:
-  build:
-    - PACKAGE_TOKEN
-  runtime:
-    - DATABASE_URL
-  preDeploy:
-    - MIGRATION_TOKEN
-  postDeploy: []
-```
-
-Resources accept only `secrets.runtime`. New keys sync as unset, retained keys
-keep their values, and removed declarations delete their stored values for the
-synced environment. A missing value blocks deployment rather than sync. See
-[Shared secrets](/docs/secrets) for references and reveal controls.
-
-## Join a private network
-
-Services and datastores can share a Docker network. Resource aliases default to the
-resource ID; an SSH tunnel binds only to server loopback:
-
-```yaml title=".towbar/datastores/postgres.datastore.yml" highlight={4-8}
-id: postgres
-name: PostgreSQL
-type: postgres
-container:
-  network: application
-  networkAlias: postgres
-access:
-  sshTunnel:
-    hostPort: 15432
+    - REDIS_PASSWORD
 environments:
   production:
     server: 192.0.2.10
 ```
 
-Use distinct aliases or networks when environments share a server. Towbar
-rejects alias and tunnel-port conflicts.
+Read the [Datastore manifest](/docs/datastores/manifest), then choose an [engine guide](/docs/databases) for required secrets, storage, health checks, and recovery. The [Datastore JSON Schema](/schemas/resource.v2.json) defines the exact shape. Use a [Service with an OCI image](/docs/services/modes/image) for images that are not supported datastore engines.
 
-## Enable previews
+## Secrets and environment overrides
 
-Enable previews in `towbar.yml`, then opt each app in with its base domain and
-optional expiry:
+Commit key names and configuration, but keep secret values outside Git. You can [save values in Towbar](/docs/secrets/towbar) or [import runtime values from Infisical or Doppler](/docs/secrets/external). A missing required value blocks deployment rather than repository sync.
 
-```yaml title=".towbar/services/web.service.yml" highlight={3-6}
-id: web
-name: Web
-preview:
-  enabled: true
-  domain: preview.example.com
-  ttlHours: 72
-environments:
-  staging:
-    server: 192.0.2.11
-```
-
-Eligible same-repository pull requests target the branch mapped to that
-environment and use the immutable PR head. Preview secrets are isolated under
-`preview:<environment>` and never fall back to persistent environment values.
-Resources do not create previews. See [Preview environments](/docs/previews).
-
-## Add domains and TLS
-
-Put domains in the environment that owns them. Keep `tls` common when all
-environments use the same certificate mode:
-
-```yaml title=".towbar/services/web.service.yml" highlight={3-4,7-8}
-id: web
-name: Web
-tls:
-  mode: direct
-environments:
-  production:
-    server: 192.0.2.10
-    domains:
-      primary: app.example.com
-```
-
-Towbar rejects a hostname already owned elsewhere in the workspace. See
-[Domains and TLS](/docs/domains-tls) for direct and Cloudflare validation.
-
-## Persistent app storage
-
-Declare Docker-managed named volumes under `container.volumes`. A persistent
-volume requires a recreate rollout because it has one writer:
-
-```yaml title=".towbar/services/files.service.yml" highlight={3-6,9-11}
-id: files
-name: File uploads
-rollout:
-  type: recreate
-  maintenanceMode: true
-  reason: The app uses a single-writer volume
-container:
-  port: 3000
-  volumes:
-    - name: uploads
-      mountPath: /app/uploads
-environments:
-  production:
-    server: 192.0.2.10
-```
-
-Create the mount directory in the image with ownership for its runtime user.
-Volumes survive restarts, redeployments, and image rollback. Environments and
-previews never share a volume, and environment overrides replace the entire
-volume list. Host-directory bind mounts are not accepted.
-
-When adding a volume to an app that already has data at its mount path, choose
-the initial source explicitly:
-
-```yaml title=".towbar/services/files.service.yml" highlight={5}
-container:
-  port: 3000
-  volumes:
-    - name: uploads
-      mountPath: /app/uploads
-      initialData: previous-container
-```
-
-`previous-container` imports the directory from the stopped previous container;
-`image` initializes it from the new image. The choice applies only to a new
-volume. A missing known volume blocks deployment instead of silently creating
-empty storage.
-
-Persistent storage remains on its server. Towbar blocks reassignment after an
-app has storage history and does not back up or copy app volumes. Use storage or
-infrastructure tooling appropriate for the server.
-
-## Schedule an application job
-
-Each job runs a command from the deployed app image with the app's runtime
-secrets, network, limits, and volumes:
-
-```yaml title=".towbar/services/web.service.yml" highlight={3-11}
-id: web
-name: Web
-jobs:
-  - name: daily-report
-    description: Generate the daily report
-    command: [node, scripts/report.js]
-    schedule:
-      cron: "0 2 * * *"
-      timezone: UTC
-    timeoutSeconds: 300
-    enabled: true
-```
-
-Schedules use UTC and have one-minute resolution. Environment overrides replace
-the whole `jobs` list; set `jobs: []` to disable jobs in one environment. See
-[Scheduled jobs](/docs/services/jobs) for execution and retry behavior.
-
-## Validate before syncing
-
-Associate the matching JSON Schema with each file in your editor. Schemas check
-file structure. Repository sync also validates the merged environment,
-registered servers, stable identity, provider availability, and cross-workload
-conflicts against an immutable commit.
+Common settings sit at the top level of each workload file. An entry under `environments` may override supported fields for that environment. Objects merge recursively; arrays replace the common array. Keep an entity's `id` stable when moving or renaming its file so Towbar can retain its history.

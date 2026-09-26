@@ -36,9 +36,10 @@ environments:
 ```yaml title=".towbar/services/hello-towbar.service.yml" highlight={4-18}
 id: hello-towbar
 name: Hello Towbar
-server: 192.0.2.10
-dockerfile: Dockerfile
-context: .
+deployment:
+  type: dockerfile
+  dockerfile: Dockerfile
+  context: .
 container:
   port: 3000
   resources:
@@ -49,10 +50,11 @@ health:
   timeoutSeconds: 60
 domains:
   primary: hello.example.com
-tls:
-  mode: direct
 environments:
-  production: {}
+  production:
+    server: 192.0.2.10
+    tls:
+      mode: direct
 ```
 
 Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your app. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
@@ -63,7 +65,7 @@ Commit these files to the branch you will map to production in Towbar. Automatic
 
 Open **Repositories → Add repository**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
 
-A successful sync imports **Hello Towbar** into the Repository's Apps list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the app is running.
+A successful sync imports **Hello Towbar** into the Repository's Services list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the service is running.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -77,21 +79,21 @@ A successful sync imports **Hello Towbar** into the Repository's Apps list. If i
 
 ## 3. Verify the server
 
-Open the target under **Servers → Settings → Credentials** and select a stored [SSH key](/docs/ssh-keys). You can choose **Add private key** inside the dropdown to generate or import one. Install its public key on the server before verifying access. Choose **Save**, compare the discovered host fingerprint with the server console through an independent channel, and trust it only if it matches. Towbar attaches the selected key after SSH authentication succeeds.
+Open the target under **Servers → Settings → Configuration** and select a stored [SSH key](/docs/ssh-keys). You can choose **Add private key** inside the dropdown to generate or import one. Install its public key on the server before verifying access. Choose **Save**, compare the discovered host fingerprint with the server console through an independent channel, and trust it only if it matches. Towbar attaches the selected key after SSH authentication succeeds.
 
 Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
 
 ## 4. Save application secrets
 
-If your app needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production app instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a workspace value, set the app variable to `{{globals.KEY}}`. Shared values are not injected automatically.
+If your service needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production service instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a workspace value, set the service variable to `{{globals.KEY}}`. Shared values are not injected automatically.
 
 The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
 
-Saved values are hidden until an Admin reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Shared secrets](/docs/secrets) for references and rotation.
+Saved values are hidden until an Admin reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Secrets in Towbar](/docs/secrets/towbar) for references and rotation.
 
 ## 5. Deploy
 
-Open the app and choose **Deploy**. Follow the operation as Towbar fetches the commit, builds on the server, starts a candidate, checks health, and promotes the release.
+Open the service and choose **Deploy**. Follow the operation as Towbar fetches the commit, builds on the server, starts a candidate, checks health, and promotes the release.
 
 If a stage fails, open its output and correct that failure before retrying. The [troubleshooting guide](/docs/troubleshooting) maps common symptoms to the next check.
 

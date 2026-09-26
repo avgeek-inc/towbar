@@ -4,8 +4,8 @@ description:
   "Required permissions: workload.read. Personal keys are capped by the current member
   role; team keys use explicit grants."
 url:
-  "{{baseUrl}}/apps?q=&view=all&sourceId=&environment=&serverIp=&resourceType=image&running=runn\
-  ing&health=healthy"
+  "{{baseUrl}}/apps?q=&view=all&sourceId=&environment=&serverIp=&resourceType=postgres&running=r\
+  unning&health=healthy"
 method: GET
 headers:
   Accept: application/json
@@ -21,7 +21,7 @@ queryParams:
   - key: serverIp
     value: ""
   - key: resourceType
-    value: image
+    value: postgres
   - key: running
     value: running
   - key: health

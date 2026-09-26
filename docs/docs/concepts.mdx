@@ -7,18 +7,18 @@ Towbar connects the configuration in Git to the services running on your servers
 
 ## The objects you work with
 
-| Concept          | What it represents                                                  | Where you configure it                               |
-| ---------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
-| Team / workspace | The boundary for members, servers, shared secrets, and integrations | Towbar                                               |
-| Repository       | A connected GitHub repository                                       | Towbar                                               |
-| Environment      | A named deployment target, such as production or staging            | Declare in `towbar.yml`; map its branch in Towbar    |
-| Server           | One Ubuntu host identified by its IP address                        | Towbar                                               |
-| Service          | A source build, prebuilt OCI image, or Compose workload             | `.towbar/services/**/*.service.yml`                  |
-| Datastore        | A managed database or cache engine                                  | `.towbar/datastores/**/*.datastore.yml`              |
-| Instance         | A Service or Datastore in one connected environment                 | Shared entity settings plus environment overrides    |
-| Deployment       | One attempt to build or pull, start, check, and promote an instance | Queued manually or by policy                         |
-| Release          | A retained result identifying the deployed image and configuration  | Recorded by Towbar                                   |
-| Preview          | A Service instance associated with a pull request                   | Enable for the target environment and opt in per app |
+| Concept          | What it represents                                                  | Where you configure it                                   |
+| ---------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
+| Team / workspace | The boundary for members, servers, shared secrets, and integrations | Towbar                                                   |
+| Repository       | A connected GitHub repository                                       | Towbar                                                   |
+| Environment      | A named deployment target, such as production or staging            | Declare in `towbar.yml`; map its branch in Towbar        |
+| Server           | One Ubuntu host identified by its IP address                        | Towbar                                                   |
+| Service          | A source build, prebuilt OCI image, or Compose workload             | `.towbar/services/**/*.service.yml`                      |
+| Datastore        | A managed database or cache engine                                  | `.towbar/datastores/**/*.datastore.yml`                  |
+| Instance         | A Service or Datastore in one connected environment                 | Shared entity settings plus environment overrides        |
+| Deployment       | One attempt to build or pull, start, check, and promote an instance | Queued manually or by policy                             |
+| Release          | A retained result identifying the deployed image and configuration  | Recorded by Towbar                                       |
+| Preview          | A Service instance associated with a pull request                   | Enable for the target environment and opt in per service |
 
 A server can run instances from several Repositories and environments. Register the physical host once, then reference its IP address in entity files. Production and staging can use different servers or share a host while keeping separate containers, volumes, and secret values.
 

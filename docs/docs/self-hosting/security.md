@@ -27,7 +27,7 @@ should pin a reviewed release and subscribe to repository security advisories.
 
 - Branches mapped to connected environments are trusted deployment input and
   are protected by the repository owner.
-- Same-repository branches are trusted executable input for Apps with Preview
+- Same-repository branches are trusted executable input for Services with Preview
   enabled. Preview deployments use separate, least-privilege, non-production
   credentials. Fork pull requests are not Preview input.
 - Public HTTP services are behind TLS. PostgreSQL, Temporal, Temporal UI, and

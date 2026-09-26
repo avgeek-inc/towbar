@@ -3,7 +3,7 @@ title: "Automation and previews"
 description: "Opt a Service into automatic deployment, PR previews, notification routing, and scanning."
 ---
 
-Repository sync does not by itself deploy an app. Opt in with `autoDeploy`, then list the repository paths that can change the built result:
+Repository sync does not by itself deploy a service. Opt in with `autoDeploy`, then list the repository paths that can change the built result:
 
 ```yaml title=".towbar/services/web.service.yml"
 id: web
@@ -39,8 +39,8 @@ environments:
     server: 192.0.2.11
 ```
 
-Eligible pull requests target the branch mapped to `staging`. Preview secrets are isolated from persistent environment values; resources do not create previews. Read [Preview environments](/docs/previews) for expiry and cleanup.
+Eligible pull requests target the branch mapped to `staging`. Preview secrets are isolated from persistent environment values; datastores do not create previews. Read [Preview environments](/docs/previews) for expiry and cleanup.
 
 ## Other automation
 
-Use `notifications` to route an Service's events to additional workspace-configured destinations. It takes effect after a successful environment sync without a deployment. `vulnerabilityScanning` controls image scanning, while `jobs` runs scheduled commands from the deployed image. Follow [Notifications](/docs/integrations/notifications), [Vulnerability scanning](/docs/vulnerability-scanning), and [Scheduled jobs](/docs/services/jobs) for their separate configuration and execution rules.
+Use `notifications` to route a Service's events to additional workspace-configured destinations. It takes effect after a successful environment sync without a deployment. `vulnerabilityScanning` controls image scanning, while `jobs` runs scheduled commands from the deployed image. Follow [Notifications](/docs/integrations/notifications), [Vulnerability scanning](/docs/vulnerability-scanning), and [Scheduled jobs](/docs/services/jobs) for their separate configuration and execution rules.

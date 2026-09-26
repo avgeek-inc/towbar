@@ -28,7 +28,7 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 
 Use the row's test action to send a sample notification. If Slack rejects it, verify the bot token, app installation, posting permission, channel ID, and channel membership. A private channel must include the bot. Use [delivery history](/docs/integrations/notifications#delivery-history) for the provider-safe error and retry state. A successful response proves Slack accepted the post, not that someone saw it.
 
-For a single workload, additional Slack channel IDs can be declared in its [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Those appear read-only under the entity's **Monitor → Notifications** page after sync. Keep the bot token in YAML, never in the manifest. Rotate it by applying new YAML, restarting Towbar, and testing a destination before revoking the old token.
+For a single workload, additional Slack channel IDs can be declared in its [manifest notification routing](/docs/integrations/notifications#route-events-for-one-workload). Those appear read-only under the entity's **Monitor → Notifications** page after sync. Keep the bot token in YAML, never in the manifest. Rotate it by applying new YAML, restarting Towbar, and testing a destination before revoking the old token.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

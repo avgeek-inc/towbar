@@ -18,7 +18,7 @@ A Dokploy installation cannot be imported directly into Towbar. Recreate the des
 
 #### ✅ Pros
 
-- Apps, Resources, environments, domains, jobs, and deployment policy live in
+- Services, Datastores, environments, domains, jobs, and deployment policy live in
   reviewed Git files and resolve from an immutable source revision.
 - Preview secrets stay separate from production, and repository sync,
   deployment history, Scout monitoring, vulnerability results, and recovery
@@ -86,7 +86,7 @@ Create a `towbar.yml` root file and one entity file for each Service or Datastor
 | Nixpacks or Buildpacks application | Corresponding Towbar source builder after a compatibility test |
 | Docker Compose application         | Compose project after policy validation                        |
 | Supported standalone database      | Managed Datastore with a compatible engine and major version   |
-| Other containerized service        | Image Service or Compose project                               |
+| Other containerized service        | Service with a prebuilt image or Compose project               |
 
 Towbar's [Compose policy](/docs/platform-deployments#compose-projects) is stricter than a general Dokploy Compose project. Remove unsupported host bindings, Docker socket access, privileged mode, remote includes, explicit public host ports, and external namespaces, or keep that workload outside Towbar.
 

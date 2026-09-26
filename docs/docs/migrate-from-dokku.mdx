@@ -27,7 +27,7 @@ copy.
   roles built into the product.
 - Workload declarations are validated in Git and deployments retain immutable
   source and image identities.
-- Apps, databases, backups, restores, notifications, and audit history use one
+- Services, databases, backups, restores, notifications, and audit history use one
   model instead of a collection of unrelated plugins.
 
 #### ⚠️ Cons
@@ -71,17 +71,17 @@ also warns that filesystem copies of running datastores may be inconsistent.
 
 ## 2. Map the runtime model
 
-| Dokku concept               | Towbar destination                                                       |
-| --------------------------- | ------------------------------------------------------------------------ |
-| Buildpack or Dockerfile app | Towbar App using a supported source builder or Dockerfile                |
-| `web` process               | Public App with a declared container port and health check               |
-| Worker process              | Separate private App using the same source and an explicit start command |
-| Scheduled command           | App job with an explicit schedule and command                            |
-| Official datastore plugin   | Compatible managed database Resource                                     |
-| Mounted app storage         | Declared App volume                                                      |
+| Dokku concept               | Towbar destination                                                           |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Buildpack or Dockerfile app | Towbar Service using a supported source builder or Dockerfile                |
+| `web` process               | Public Service with a declared container port and health check               |
+| Worker process              | Separate private Service using the same source and an explicit start command |
+| Scheduled command           | Service job with an explicit schedule and command                            |
+| Official datastore plugin   | Compatible managed database Resource                                         |
+| Mounted app storage         | Declared Service volume                                                      |
 
 Commit `towbar.yml` and one file per workload. A Procfile with several long-lived
-process types usually becomes several Apps so each process can have independent
+process types usually becomes several Services so each process can have independent
 health, scaling, limits, and operational history.
 
 ## 3. Move config and integrations

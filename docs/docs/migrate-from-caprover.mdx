@@ -71,13 +71,13 @@ cutover tests.
 
 ## 2. Translate workloads to Git
 
-| CapRover source                          | Towbar destination                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| Dockerfile or `captain-definition` build | Dockerfile App with explicit context, port, health, and limits          |
-| Prebuilt private image                   | Image Service or Datastore with the OCI registry integration            |
-| One-click application                    | Reviewed App, Resource, or Compose project committed to your repository |
-| Database one-click app                   | Compatible managed database Resource after a tested logical restore     |
-| Persistent application directory         | Declared App volume with a planned file transfer                        |
+| CapRover source                          | Towbar destination                                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| Dockerfile or `captain-definition` build | Dockerfile App with explicit context, port, health, and limits               |
+| Prebuilt private image                   | Service with a prebuilt image or Datastore with the OCI registry integration |
+| One-click application                    | Reviewed App, Resource, or Compose project committed to your repository      |
+| Database one-click app                   | Compatible managed database Resource after a tested logical restore          |
+| Persistent application directory         | Declared App volume with a planned file transfer                             |
 
 Create `towbar.yml`, add one entity file per workload, and map production and
 staging to their source branches. Do not copy generated CapRover state into the
@@ -107,5 +107,5 @@ notifications, and a manual Towbar backup. Retain the stopped CapRover instance
 for the agreed rollback window and account for any writes accepted by Towbar
 before reversing traffic.
 
-Continue with [Your first deployment](/docs/getting-started), [Resources](/docs/datastores),
+Continue with [Your first deployment](/docs/getting-started), [Datastores](/docs/datastores),
 and [Database restores](/docs/restores).

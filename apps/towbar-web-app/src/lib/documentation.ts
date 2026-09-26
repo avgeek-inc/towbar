@@ -453,7 +453,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "The container image and source configuration selected for this service.",
   ),
   "container configuration": guide(
-    "deployment-manifest#field-reference",
+    "services/manifest#field-map",
     "Ports, network, CPU, memory, and storage settings declared for the container.",
   ),
   "deployment configuration": guide(

@@ -42,19 +42,16 @@ Managed engines have reviewed digest-pinned defaults. Custom managed images must
 
 ## Add a database
 
-```yaml title="towbar.yml" highlight={2-5}
+```yaml title="towbar.yml"
 version: 2
 environments:
-  production:
-    previews:
-      enabled: true
+  production: {}
 ```
 
-```yaml title=".towbar/datastores/database.datastore.yml" highlight={3,6-18,20}
+```yaml title=".towbar/datastores/database.datastore.yml"
 id: database
 name: Primary database
 type: postgres
-server: 192.0.2.10
 container:
   network: app-network
   resources:

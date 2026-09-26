@@ -28,7 +28,7 @@ container:
   network: application
 ```
 
-For a PostgreSQL resource with alias `postgres`, the Service can connect to `postgres:5432`. Put the credential-bearing URL in an [service runtime secret](/docs/secrets), not in the manifest. A Docker network on one host does not connect containers across different servers.
+For a PostgreSQL datastore with alias `postgres`, the Service can connect to `postgres:5432`. Put the credential-bearing URL in a [service runtime secret](/docs/secrets), not in the manifest. A Docker network on one host does not connect containers across different servers.
 
 ## Persistent storage
 
@@ -38,7 +38,7 @@ Use a Docker-managed named volume when a process must retain files across replac
 rollout:
   type: recreate
   maintenanceMode: true
-  reason: The app uses a single-writer volume
+  reason: The service uses a single-writer volume
 container:
   port: 3000
   volumes:
@@ -47,4 +47,4 @@ container:
       initialData: image
 ```
 
-Create the mount directory in the image with ownership for its runtime user. Volumes survive redeployments and image rollback, remain on their server, and are not backed up by Towbar. `initialData` applies only when adding a new volume: `previous-container` imports from the stopped container, while `image` initializes from the new image. See the [manifest storage guide](/docs/deployment-manifest#persistent-app-storage) for missing-volume and environment behavior.
+Create the mount directory in the image with ownership for its runtime user. Volumes survive redeployments and image rollback, remain on their server, and are not backed up by Towbar. `initialData` applies only when adding a new volume: `previous-container` imports from the stopped container, while `image` initializes from the new image. Environment overrides replace the common volume list. Host-directory bind mounts are not accepted; keep backups of important files outside Towbar.

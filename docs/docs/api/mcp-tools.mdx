@@ -1180,7 +1180,7 @@ Read-only operation. Required permissions: `repository.read`.
 
 `towbar_workload_inspect`
 
-Read an service/datastore configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For a service volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.
+Read a service/datastore configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For a service volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.
 
 Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
@@ -1231,7 +1231,7 @@ Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
 `towbar_workload_deploy`
 
-Deploy an service or datastore from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
+Deploy a service or datastore from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
 
 Edit access required. Required permissions: `deployment.create`.
 
@@ -1270,7 +1270,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 `towbar_workload_rollback`
 
-Roll an service/datastore back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
+Roll a service/datastore back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
 
 Edit access required. Required permissions: `deployment.create`.
 
@@ -1315,7 +1315,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 `towbar_workload_restart`
 
-Restart an service/datastore runtime. Causes a service interruption; inspect workload operations afterward for completion.
+Restart a service/datastore runtime. Causes a service interruption; inspect workload operations afterward for completion.
 
 Edit access required. Required permissions: `workload.operate`.
 
@@ -1405,7 +1405,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 `towbar_workload_stop`
 
-Stop an service/datastore runtime, making it unavailable. Inspect workload operations afterward for completion.
+Stop a service/datastore runtime, making it unavailable. Inspect workload operations afterward for completion.
 
 Edit access required. Required permissions: `workload.operate`.
 

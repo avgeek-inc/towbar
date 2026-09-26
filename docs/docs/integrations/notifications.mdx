@@ -15,7 +15,27 @@ Towbar records provider-neutral events and sends each matching event to its subs
 
 ## Decide who receives an event
 
-Workspace destinations receive matching events from all services and datastores. A service or datastore manifest can add read-only Email, Slack, Discord, or Telegram destinations for that entity; see [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Webhook push remains workspace-only.
+Workspace destinations receive matching events from all services and datastores. A service or datastore manifest can add read-only Email, Slack, Discord, or Telegram destinations for that entity. Webhook push remains workspace-only.
+
+### Route events for one workload
+
+Add destinations under `notifications` in a Service or Datastore manifest. For example:
+
+```yaml title=".towbar/services/web.service.yml"
+notifications:
+  email:
+    - address: web-ops@example.com
+      deployments: true
+      backupsAndRestores: false
+      alertsAndIncidents: true
+  slack:
+    - channelId: C12345678
+      deployments: true
+      backupsAndRestores: false
+      alertsAndIncidents: true
+```
+
+Each destination must enable at least one category. These subscriptions take effect after a successful environment sync; no deployment is needed. Keep provider credentials in `/etc/towbar/towbar.yml`. The workload's **Monitor → Notifications** page shows synced destinations and subscriptions without edit controls.
 
 Each destination can subscribe to **Deployments**, **Backup & Restore**, and **Alerts & Incidents**. Preview events follow Deployments; service health and Scout incidents follow Alerts & Incidents. New runtime-managed Discord and webhook destinations start with no subscriptions, so select at least one category before expecting routine events.
 

@@ -56,7 +56,7 @@ Open **Manage → System health** to see the latest control-plane checks, their 
 
 ## Server and workload health
 
-The server's Checks view records connectivity and runtime observations. Its Apps and Resources sidebar items separate the workloads assigned to the host. Health indicators and tooltips identify healthy, unhealthy, starting, and unavailable observations.
+The server's Checks view records connectivity and runtime observations. Its Services and Datastores sidebar items separate the workloads assigned to the host. Health indicators and tooltips identify healthy, unhealthy, starting, and unavailable observations.
 
 A deployment can succeed and later become unhealthy. Check the latest runtime state and logs instead of relying only on deployment history.
 
@@ -70,7 +70,7 @@ On **Servers → All servers**, the CPU and memory capacity columns describe eac
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/server-workloads-light.jpg"
-      alt="A server’s Apps page compares observed usage with allocated CPU and memory."
+      alt="A server’s Services page compares observed usage with allocated CPU and memory."
       width="2560"
       height="1440"
       loading="lazy"
@@ -79,14 +79,15 @@ On **Servers → All servers**, the CPU and memory capacity columns describe eac
   <div className="towbar-product-dark">
     <img
       src="/assets/release-v2/server-workloads-dark.jpg"
-      alt="A server’s Apps page compares observed usage with allocated CPU and memory."
+      alt="A server’s Services page compares observed usage with allocated CPU and memory."
       width="2560"
       height="1440"
       loading="lazy"
     />
   </div>
   <p>
-    A server’s Apps page compares observed usage with allocated CPU and memory.
+    A server’s Services page compares observed usage with allocated CPU and
+    memory.
   </p>
 </div>
 
@@ -105,4 +106,4 @@ Configure [notifications](/docs/integrations/notifications) for events that need
 
 ## Scout Agent
 
-[Scout Agent](/docs/scout) adds continuous performance history for servers, apps, and resources. Install it from **Server → Settings → Scout Agent** to receive updates every 30 seconds and keep up to 60 days of history. Read the [Scout Agent guide](/docs/scout) for installation, charts, retention, and troubleshooting.
+[Scout Agent](/docs/scout) adds continuous performance history for servers, services, and datastores. Install it from **Server → Settings → Scout Agent** to receive updates every 30 seconds and keep up to 60 days of history. Read the [Scout Agent guide](/docs/scout) for installation, charts, retention, and troubleshooting.
