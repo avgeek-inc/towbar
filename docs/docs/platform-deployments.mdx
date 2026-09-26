@@ -1,6 +1,6 @@
 ---
 title: "Deployment modes"
-description: "Choose how Towbar builds or obtains an app image, then set build-server and rollout behavior."
+description: "Choose how Towbar builds or obtains a service image, then set build-server and rollout behavior."
 ---
 
 Towbar reads deployment configuration from the Git revision being deployed. The dashboard validates and operates that declaration without maintaining a second workload configuration.
@@ -31,7 +31,7 @@ Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar
 
 ## Build servers
 
-Set `buildServer` in `towbar.yml` to use one prepared server for every app in an
+Set `buildServer` in `towbar.yml` to use one prepared server for every service in an
 environment. `direct` streams the verified image archive to the runtime server:
 
 ```yaml title="towbar.yml" highlight={2-5}
@@ -44,7 +44,7 @@ environments:
   production: {}
 ```
 
-An environment or app can override the default. Use `null` when one app should
+An environment or service can override the default. Use `null` when one service should
 build on its runtime server:
 
 ```yaml title=".towbar/services/worker.service.yml" highlight={3}
@@ -72,7 +72,7 @@ the service graph as one project.
 
 ## Rolling and recreate strategies
 
-Stateless apps default to health-gated rolling replacement. Configure only the
+Stateless services default to health-gated rolling replacement. Configure only the
 limits that differ from the defaults:
 
 ```yaml title=".towbar/services/api.service.yml" highlight={3-8}
@@ -100,7 +100,7 @@ name: Files
 rollout:
   type: recreate
   maintenanceMode: true
-  reason: The app uses a single-writer volume
+  reason: The service uses a single-writer volume
 container:
   port: 3000
 environments:

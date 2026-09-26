@@ -33,8 +33,8 @@ environments:
 
 ## Configure it
 
-The example uses an amd64 builder, a bounded context, and a workload cache. Keep the approved `builder` digest or choose another from the [app schema](/schemas/app.v2.json). `packImage` is a separate, digest-pinned pack CLI image. Validate the resulting image's process and health behavior before adding public routing.
+The example uses an amd64 builder, a bounded context, and a workload cache. Keep the reviewed `builder` digest or choose another from the [Service schema](https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/app.v2.json). `packImage` is a separate, digest-pinned pack CLI image. Validate the resulting image's process and health behavior before adding public routing.
 
 Buildpacks reject build secrets. If the build needs credentials, use a Dockerfile and a protected BuildKit secret mount instead.
 
-Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Service manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

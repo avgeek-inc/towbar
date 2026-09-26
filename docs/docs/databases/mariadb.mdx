@@ -13,7 +13,8 @@ icon: "/assets/database-logos/mariadb.webp"
 
 Towbar's `mariadb` preset runs the reviewed MariaDB 11.8 image on amd64 or
 arm64. It listens on port `3306`, stores data in `/var/lib/mysql`, and verifies
-readiness with an authenticated `mariadb-admin ping`.
+readiness with `mariadb-admin ping`. Treat it as a server availability check,
+not proof that the saved password can run a query.
 
 ## Declare the datastore
 

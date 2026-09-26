@@ -120,5 +120,5 @@
   },
   "required": ["version", "environments"],
   "additionalProperties": false,
-  "$id": "https://www.towbar.dev/schemas/repository.v2.json"
+  "$id": "https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/repository.v2.json"
 }

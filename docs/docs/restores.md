@@ -3,7 +3,7 @@ title: "Database restores"
 description: "Validate a retained database backup, restore it in isolation, and promote it with rollback protection."
 ---
 
-Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse resources. Retained backups may use the enabled AWS S3, Cloudflare R2, generic S3-compatible, Google Cloud Storage (GCS) runtime integration. Restores are never started automatically.
+Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse datastores. Retained backups may use an enabled AWS S3, Cloudflare R2, generic S3-compatible, or Google Cloud Storage (GCS) runtime integration. Restores are never started automatically.
 
 ## Dedicated restore page
 
@@ -67,7 +67,7 @@ If a restore fails, review the final phase and error message before retrying. Co
 
 ## Verify recovery
 
-After the restore reaches its final state, check the resource's runtime health and connect with an application or database client to verify the expected recovery point. Review the retained previous volume and its cleanup deadline. Record the outcome in your recovery procedure before resuming normal writes or dependent operations.
+After the restore reaches its final state, check the datastore's runtime health and connect with an application or database client to verify the expected recovery point. Review the retained previous volume and its cleanup deadline. Record the outcome in your recovery procedure before resuming normal writes or dependent operations.
 
 Restores accept only the same engine and reviewed major version recorded by the backup. Towbar does not use restore as an automatic database upgrade or as a cross-engine conversion path. See the [managed database compatibility matrix](/docs/databases) for the supported versions and native tools.
 

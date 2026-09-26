@@ -1,7 +1,7 @@
 export const referenceCategories = [
   "Repositories",
-  "Apps",
-  "Resources",
+  "Services",
+  "Datastores",
   "Servers",
   "Deployments",
   "Previews",
@@ -12,8 +12,8 @@ export const referenceCategories = [
 const categoryByRoot: Record<string, string> = {
   monitoring: "Workspace",
   sources: "Repositories",
-  apps: "Apps",
-  resources: "Resources",
+  apps: "Services",
+  resources: "Datastores",
   servers: "Servers",
   deployments: "Deployments",
   workloads: "Deployments",

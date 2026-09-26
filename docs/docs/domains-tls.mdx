@@ -12,11 +12,11 @@ Towbar uses Caddy on the target server to route public HTTP traffic. Domain sett
 | `direct`         | Point public DNS at the target and allow ACME validation to reach Caddy           | No Cloudflare token                            |
 | `cloudflare-dns` | Use a Cloudflare zone; Towbar manages its owned records and validates through DNS | Scoped Account API token in the Towbar runtime |
 
-Set the primary hostname without a scheme or path. A TLS declaration requires a primary domain. A publicly routed resource also needs a container port and an HTTP health check.
+Set the primary hostname without a scheme or path. A TLS declaration requires a primary domain. A publicly routed workload also needs a container port and an HTTP health check.
 
 ## Direct TLS
 
-Add the following fields to an app, replacing the example domain:
+Add the following fields to a service, replacing the example domain:
 
 ```yaml title=".towbar/services/web.service.yml"
 domains:
@@ -55,7 +55,7 @@ For proxied nested hostnames, check Cloudflare's certificate coverage as well as
 
 ## Cloudflare Tunnel ingress
 
-Use `ingress.type: cloudflare-tunnel` when the workload server should not expose a public inbound application port. Create a named Cloudflare integration with a scoped account API token, account ID, optional zone ID, and Towbar's reviewed cloudflared image digest. Reference its slug and optionally a dedicated tunnel name in the app or Compose service manifest.
+Use `ingress.type: cloudflare-tunnel` when the workload server should not expose a public inbound application port. Create a named Cloudflare integration with a scoped account API token, account ID, optional zone ID, and Towbar's reviewed cloudflared image digest. Reference its slug and optionally a dedicated tunnel name in the Service or Compose service manifest.
 
 Towbar creates or attaches only resources carrying its ownership identity, writes generated tunnel credentials to root-owned transient storage, starts cloudflared without a Docker socket or published administration port, and verifies the route before promotion. DNS and tunnel routes are reconciled on redeploy. Preview and removed routes are cleaned only when ownership matches; an uncertain provider response leaves a visible cleanup warning for later reconciliation.
 

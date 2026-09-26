@@ -8,7 +8,7 @@ Delete a Repository only after reviewing its services, datastores, environments,
 ## Before deletion
 
 1. Record any environment branch mappings or manifest IDs you may need later.
-2. Allow active deployments and resource operations to finish.
+2. Allow active deployments and datastore operations to finish.
 3. Arrange separate protection for persistent data. Repository deletion is not a database restore or volume-backup operation.
 
 After deletion, open each affected server and run **Check server**. Under **Settings → Cleanup**, review leftover containers, images, and volumes. Towbar checks ownership and current references again before removing selected objects. Volume removal is a separate permanent choice; it never happens automatically as a side effect of deleting a repository.

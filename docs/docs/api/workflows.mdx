@@ -1,13 +1,13 @@
 ---
 title: Automation workflows
-description: Deploy and roll back apps, reconcile repositories, manage secrets, and follow asynchronous Towbar operations.
+description: Deploy and roll back services, reconcile repositories, manage secrets, and follow asynchronous Towbar operations.
 ---
 
 All examples use your own Towbar host and a Bearer API key. Use an Edit key for permitted mutations. Deployment and infrastructure operations require administrative grants. Personal keys remain bounded by the owner’s current team role; team keys retain their explicit service grants.
 
-## Deploy an app
+## Deploy a service
 
-List `/apps` to find an app UUID, then request a deployment:
+List `/apps` to find a service UUID, then request a deployment:
 
 ```bash
 curl -X POST "https://YOUR_TOWBAR_HOST/v1/api/apps/$APP_ID/actions/deploy" \
@@ -64,7 +64,7 @@ The local `secret-change.json` contains:
 
 Use `null` only when creating a previously empty secret slot. For an existing slot, send its current revision UUID. A stale revision returns `409`; read the latest metadata and reconcile changes. A request changes 1–200 keys, and cannot set and delete the same key. Keep real secret files outside source control.
 
-Workspace values use the `production` storage path and are shared across environments when explicitly referenced. For app and resource values, use the connected environment name, such as `production` or `staging`. Preview scopes use `preview:<environment>`, such as `preview:staging`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server Cloudflare tokens use `/servers/{serverId}/credentials`. Select an existing stored SSH key with `/servers/{serverId}/credentials/actions/verify-private-key`, passing `privateKeyId` and `expectedRevision`. Creating or revealing private keys requires the Admin dashboard.
+Workspace values use the `production` storage path and are shared across environments when explicitly referenced. For Service and Datastore values, use the connected environment name, such as `production` or `staging`. Preview scopes use `preview:<environment>`, such as `preview:staging`. API stages are `build`, `deployment` (runtime), `pre_deploy`, and `post_deploy`. Configure the Cloudflare provider token in `/etc/towbar/config.yml`, not through the server credentials endpoint. Select an existing stored SSH key with `/servers/{serverId}/credentials/actions/verify-private-key`, passing `privateKeyId` and `expectedRevision`. Creating or revealing private keys requires the Admin dashboard.
 
 ## Servers, backups, and previews
 

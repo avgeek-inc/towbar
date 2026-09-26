@@ -13,7 +13,7 @@ Pushes to a mapped branch start reconciliation through the source-control webhoo
 
 ## Enable automatic deployment deliberately
 
-Auto-deploy is opt-in on each workload. For an app, limit triggering changes to files that can affect its build:
+Auto-deploy is opt-in on each workload. For a Service, limit triggering changes to files that can affect its build:
 
 ```yaml title=".towbar/services/web.service.yml"
 id: web
@@ -25,6 +25,6 @@ autoDeploy:
     - apps/web/**
 ```
 
-The paths are relative to the repository root. Include shared packages and build files, not only the app directory. The Repository's automation controls can pause automatic work during maintenance; manual deployment remains a separate action. A manifest change can therefore sync successfully without changing the running release.
+The paths are relative to the repository root. Include shared packages and build files, not only the Service directory. The Repository's automation controls can pause automatic work during maintenance; manual deployment remains a separate action. A manifest change can therefore sync successfully without changing the running release.
 
 See [Deployments and releases](/docs/deployments) for queueing and promotion, and [environment branches](/docs/repositories/environments) for branch changes.

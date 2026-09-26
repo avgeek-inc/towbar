@@ -45,7 +45,7 @@ The dashboard calls Git connections Repositories and workloads Services or Datas
 
 Services and datastores are defined in your Git manifest. To create or change them, update the manifest and sync its repository. The API does not invent a separate configuration model. Read the sync result to inspect validation issues and imported changes.
 
-All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, provider webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, profile editing, password changes, browser-session management, GitHub installation, and GitLab OAuth handoff are available only in the control plane. Provider credentials and notification routes come only from the API process environment. `GET /identity` identifies the current actor and team.
+All documented paths are relative to `/v1/api`. Browser-only login, logout, initial setup, provider webhooks, and signed worker endpoints are separate protocols. They are not exposed as MCP tools. API key management, profile editing, password changes, browser-session management, GitHub installation, and GitLab OAuth handoff are available only in the control plane. Provider credentials and notification routes come from the control-plane runtime configuration. `GET /identity` identifies the current actor and team.
 
 REST provides individual routes; MCP offers a separate [task-oriented tool catalogue](/docs/api/mcp-tools), including combined inspections and shared service/datastore actions.
 

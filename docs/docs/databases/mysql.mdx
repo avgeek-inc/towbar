@@ -13,7 +13,8 @@ icon: "/assets/database-logos/mysql.webp"
 
 Towbar's `mysql` preset runs the reviewed MySQL 8.4 image on amd64 or arm64. It
 listens on port `3306`, stores data in `/var/lib/mysql`, and verifies readiness
-with an authenticated `mysqladmin ping`.
+with `mysqladmin ping`. That probe checks whether the server is running; it can
+succeed even when the saved password is wrong.
 
 ## Declare the datastore
 

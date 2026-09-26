@@ -14,7 +14,7 @@ Enable the storage provider in `/etc/towbar/config.yml`, validate and restart To
   [Cloudflare R2](/docs/integrations/r2) for other S3 API destinations.
 - [Google Cloud](/docs/integrations/gcp) for Google Cloud Storage.
 
-Deploy a healthy database resource, choose storage buckets, and keep permissions scoped to the declared paths. Backup schedules remain paused if a declared destination lacks credentials (indicated by a warning indicator in the secondary sidebar).
+Deploy a healthy datastore, choose storage buckets, and keep permissions scoped to the declared paths. Backup schedules remain paused if a declared destination lacks credentials (indicated by a warning indicator in the secondary sidebar).
 
 ## Runtime provider configuration
 
@@ -34,7 +34,7 @@ Database backup execution revalidates that the runtime provider is still enabled
 
 ## Multiple storage destinations
 
-Use explicit destination blocks when the same recovery point should be stored in more than one location. A resource must declare at least one destination:
+Use explicit destination blocks when the same recovery point should be stored in more than one location. A datastore must declare at least one destination:
 
 - **AWS S3 (`s3`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), optional `region` (defaults to the runtime AWS integration region), and optional `encryption` (`AES256` or `aws:kms`). When using `encryption: aws:kms`, supply `kmsKeyId`.
 - **Google Cloud Storage (`gcs`)**: Declare `bucket`, optional `prefix` (defaults to `towbar`), and optional `region`. Encryption uses Google-managed keys or Cloud KMS keys (CMEK) configured on the bucket.
@@ -49,7 +49,7 @@ A retained recovery point keeps its original storage provider and location. Chan
 
 ## Define a database policy
 
-This complete manifest creates a PostgreSQL resource with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
+This complete manifest creates a PostgreSQL datastore with daily backups at 03:00 UTC, retains the latest 14 recovery points, and replicates backups to AWS S3 and Google Cloud Storage:
 
 ```yaml title="towbar.yml" highlight={2-5}
 version: 2
@@ -84,7 +84,7 @@ environments:
   production: {}
 ```
 
-Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Repository and open **Datastore → Settings → Backup**.
+Replace the host and storage values, then save `POSTGRES_PASSWORD` in the Datastore's runtime secrets. Sync the Repository and open **Datastore → Settings → Backup**.
 
 Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual.
 
@@ -140,4 +140,4 @@ These features protect managed workload data. Back up Towbar's own PostgreSQL da
 
 ## Service and Compose volumes
 
-Towbar lists app and Compose volumes on each app's **Storage** page, but it does not back up or restore their contents. Protect persistent application files with storage or infrastructure tooling appropriate for the server, and test that recovery process independently.
+Towbar lists Service and Compose volumes on each Service's **Storage** page, but it does not back up or restore their contents. Protect persistent application files with storage or infrastructure tooling appropriate for the server, and test that recovery process independently.

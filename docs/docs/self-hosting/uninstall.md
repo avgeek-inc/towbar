@@ -3,7 +3,7 @@ title: "Uninstall Towbar"
 description: "Stop or remove the control plane while keeping workload and database deletion explicit."
 ---
 
-The Towbar control plane and the apps deployed to target servers have separate lifecycles. Removing the control plane leaves deployed containers, app files, resource databases, and host services in place. You can keep those workloads running, migrate them elsewhere, or remove them separately.
+The Towbar control plane and workloads deployed to target servers have separate lifecycles. Removing the control plane leaves deployed containers, service files, datastore data, and host services in place. You can keep those workloads running, migrate them elsewhere, or remove them separately.
 
 ## Before stopping Towbar
 

@@ -3,7 +3,7 @@ title: "Runtime configuration"
 description: "Reference for Towbar's YAML configuration, including secrets, integrations, notifications, and worker settings."
 ---
 
-Use this reference when configuring the Towbar installation. Workload secrets are described in [Secrets](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
+Use this reference when configuring the Towbar installation. Workload secrets are described in [Secrets](/docs/secrets), and workload behavior belongs in the [deployment manifest](/docs/deployment-manifest).
 
 The installer creates `/etc/towbar/config.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 

@@ -13,13 +13,13 @@ The workspace **Monitor** section contains **Incidents** and **Vulnerabilities**
 
 ## Performance history
 
-Open a server, app, or resource and select **Monitor → Performance**. Use the time range and chart controls to inspect CPU, memory, disk, and network measurements. Workload views also offer environment and container selection. The URL retains the chart filters, so a shared link opens the same view.
+Open a server, service, or datastore and select **Monitor → Performance**. Use the time range and chart controls to inspect CPU, memory, disk, and network measurements. Workload views also offer environment and container selection. The URL retains the chart filters, so a shared link opens the same view.
 
 Deployment and restart markers connect changes in usage to operational events. Drag across a chart to zoom, or choose a custom time range. Missing measurements appear as gaps. See [Scout Agent](/docs/scout) for collection and retention, and [Deployment comparisons](/docs/deployment-comparisons) for comparing releases over equal windows.
 
 ## Alerts, incidents, and vulnerabilities
 
-Use workspace **Incidents** to review active or resolved conditions across every server, app, and resource. Filter the list by severity. Configure and inspect alert rules from the relevant entity page; [Scout Alerts](/docs/scout-alerts) covers rules and notification destinations. **Vulnerabilities** provides a separate view of known package findings from app image scans; see [Vulnerability scanning](/docs/vulnerability-scanning).
+Use workspace **Incidents** to review active or resolved conditions across every server, service, and datastore. Filter the list by severity. Configure and inspect alert rules from the relevant entity page; [Scout Alerts](/docs/scout-alerts) covers rules and notification destinations. **Vulnerabilities** provides a separate view of known package findings from Service image scans; see [Vulnerability scanning](/docs/vulnerability-scanning).
 
 ## System health
 
@@ -64,7 +64,7 @@ A deployment can succeed and later become unhealthy. Check the latest runtime st
 
 Allocation is the limit declared for a workload. Usage is the latest observed consumption relative to that allocation. CPU percentages account for the number of allocated CPUs; memory percentages use the configured memory limit.
 
-On **Servers → All servers**, the CPU and memory capacity columns describe each host's maximum capacity, not an app's allocation. When Scout has measured usage, each capacity has a **% used** line below it; hover or focus that line to see when the sample was recorded. These columns are also available on mobile through the horizontally scrollable table. Missing measurements display as **Not measured**, rather than zero.
+On **Servers → All servers**, the CPU and memory capacity columns describe each host's maximum capacity, not a workload's allocation. When Scout has measured usage, each capacity has a **% used** line below it; hover or focus that line to see when the sample was recorded. These columns are also available on mobile through the horizontally scrollable table. Missing measurements display as **Not measured**, rather than zero.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

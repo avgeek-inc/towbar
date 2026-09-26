@@ -20,7 +20,7 @@ The HTTP health path should respond without interactive authentication. A succes
 
 ## Private connectivity
 
-Set the same `container.network` on a Service and resource on the same server. A resource's ID is its network alias unless the resource sets `networkAlias`:
+Set the same `container.network` on a Service and Datastore on the same server. A Datastore's ID is its network alias unless it sets `networkAlias`:
 
 ```yaml title=".towbar/services/web.service.yml"
 container:

@@ -11,7 +11,7 @@ Use the [Datastore manifest](/docs/datastores/manifest) to review every declarat
 
 | Type                           | Use it for            | Towbar behavior                                                                             |
 | ------------------------------ | --------------------- | ------------------------------------------------------------------------------------------- |
-| `postgres`, `mysql`, `mariadb` | Relational databases  | Authenticated health checks, persistent data volume, native backup and fresh-target restore |
+| `postgres`, `mysql`, `mariadb` | Relational databases  | Readiness checks, persistent data volume, native backup and fresh-target restore            |
 | `mongodb`                      | Document databases    | Authenticated health checks, persistent data volume, native backup and fresh-target restore |
 | `redis`, `dragonfly`, `keydb`  | Redis-compatible data | Password protection, persistent snapshot, backup and fresh-target restore                   |
 | `clickhouse`                   | Analytical databases  | Authenticated checks, persistent data, native backup and restore                            |

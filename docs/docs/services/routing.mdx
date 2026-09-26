@@ -21,4 +21,4 @@ Register and prepare the server first. Towbar rejects a hostname already owned e
 
 For a Cloudflare DNS-validated certificate, select that mode in the Service manifest and configure the Cloudflare runtime integration in `/etc/towbar/config.yml`. A deployment requesting Cloudflare DNS TLS is rejected before queueing if that integration is absent. The target server's Caddy DNS module is prepared when a workload needs it; this is not a server-wide TLS toggle.
 
-See [Domains and TLS](/docs/domains-tls) for direct validation, Cloudflare validation, DNS prerequisites, and failure handling. `ingress` policy and exact field shapes are in the [app JSON Schema](/schemas/app.v2.json).
+See [Domains and TLS](/docs/domains-tls) for direct validation, Cloudflare validation, DNS prerequisites, and failure handling. `ingress` policy and exact field shapes are in the [Service JSON Schema](https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/app.v2.json).

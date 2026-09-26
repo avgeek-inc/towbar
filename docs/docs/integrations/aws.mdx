@@ -1,6 +1,6 @@
 ---
 title: "AWS"
-description: "Enable one runtime AWS identity for resource backups and restores."
+description: "Enable one runtime AWS identity for datastore backups and restores."
 icon: "/assets/integration-logos/aws.svg"
 ---
 
@@ -11,11 +11,11 @@ icon: "/assets/integration-logos/aws.svg"
   aria-hidden="true"
 />
 
-AWS is optional. Enable it only when a resource backup policy uses AWS S3.
+AWS is optional. Enable it only when a datastore backup policy uses AWS S3.
 
 ## Prepare AWS access
 
-Create a bucket and an IAM identity for Towbar's backup work. Scope object listing, upload, read, and deletion to the buckets and prefixes in your resource policies; include object-version and KMS permissions when those features are used. Record the bucket's region. Towbar uses a static access-key pair in its protected runtime configuration; temporary AWS sessions are not supported.
+Create a bucket and an IAM identity for Towbar's backup work. Scope object listing, upload, read, and deletion to the buckets and prefixes in your datastore policies; include object-version and KMS permissions when those features are used. Record the bucket's region. Towbar uses a static access-key pair in its protected runtime configuration; temporary AWS sessions are not supported.
 
 ```yaml title="/etc/towbar/config.yml"
 integrations:
@@ -57,6 +57,6 @@ Towbar shows AWS only when all enabled values pass startup validation and never 
 
 ## Verify backup and restore
 
-Set a managed resource's [backup policy](/docs/backups) to use `aws`, create a backup, and inspect the saved object's verification state. Perform a [fresh-target restore](/docs/restores) before treating the destination as recovery-ready. A **Configured** chip means YAML validation succeeded; it does not prove S3 or KMS access.
+Set a managed Datastore's [backup policy](/docs/backups) to use `aws`, create a backup, and inspect the saved object's verification state. Perform a [fresh-target restore](/docs/restores) before treating the destination as recovery-ready. A **Configured** chip means YAML validation succeeded; it does not prove S3 or KMS access.
 
 If a run fails, check its final stage, region, bucket and prefix, key permissions, object versioning, and KMS policy. Rotate the key in `config.yml`, restart Towbar, verify a backup and restore path, and then retire the old key.

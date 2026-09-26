@@ -83,7 +83,7 @@ Open the target under **Servers → Settings → Configuration** and select a st
 
 Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
 
-## 4. Save application secrets
+## 4. Save service secrets
 
 If your service needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production service instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a workspace value, set the service variable to `{{globals.KEY}}`. Shared values are not injected automatically.
 

@@ -1,6 +1,6 @@
 ---
 title: "Scout Agent"
-description: "Meet Scout Agent, Towbar’s monitoring agent. Track server, app, and resource performance with updates every 30 seconds."
+description: "Meet Scout Agent, Towbar’s monitoring agent. Track server, Service, and Datastore performance with updates every 30 seconds."
 ---
 
 <div className="towbar-scout-intro">
@@ -12,8 +12,8 @@ description: "Meet Scout Agent, Towbar’s monitoring agent. Track server, app, 
   />
   <p>
     Scout Agent is Towbar’s monitoring agent. Install it on a server to follow
-    CPU, memory, disk, and network usage over time, including the apps and
-    resources running there.
+    CPU, memory, disk, and network usage over time, including the Services and
+    Datastores running there.
   </p>
 </div>
 
@@ -51,7 +51,7 @@ Scout Agent runs as two small systemd services: a local collector and an HTTPS s
 
 The **Scout Agent** column on the Servers list shows CPU (top) and memory (bottom) trends for the last 30 minutes while the agent is online. Graphs are green, with readings above 80% in red, and refresh every 30 seconds. Hover a graph to identify the metric, or select the cell to open performance history. Missing measurements leave gaps. Agents that are disabled or not online show **Inactive** without charts.
 
-Open **Monitor → Performance** in the secondary sidebar on a server, app, or resource to view performance history. The page stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
+Open **Monitor → Performance** in the secondary sidebar on a server, Service, or Datastore to view performance history. The page stays available when monitoring is off, with links to the server's Scout Agent settings and this guide.
 
 - Server metrics include CPU usage, CPU count, load, memory, swap, root/Docker filesystem capacity, disk I/O, network traffic, and uptime.
 - Container metrics include CPU consumption and its limit, memory consumption and its limit, network and block I/O, restart count, state, and health when Docker provides it.

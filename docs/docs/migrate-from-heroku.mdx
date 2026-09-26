@@ -74,7 +74,7 @@ Map the app before provisioning replacements:
 | Web dyno        | Public Service with an explicit start command, port, and health check      |
 | Worker dyno     | Separate private Service using the same source                             |
 | Scheduler task  | Service job                                                                |
-| Config var      | Shared or workload environment secret                                      |
+| Config var      | Service environment secret in Towbar or an external provider               |
 | Heroku Postgres | Compatible PostgreSQL Datastore after logical restore                      |
 | Redis add-on    | Compatible Redis, Dragonfly, or KeyDB Datastore after compatibility review |
 

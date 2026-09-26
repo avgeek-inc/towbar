@@ -88,6 +88,22 @@ async function checkLink(href, from) {
     }
     return;
   }
+  if (
+    !route.startsWith("/assets/") ||
+    ![
+      ".avif",
+      ".gif",
+      ".ico",
+      ".jpeg",
+      ".jpg",
+      ".png",
+      ".svg",
+      ".webp",
+    ].includes(path.extname(route))
+  ) {
+    failures.push(`${from}: unpublished asset route ${href}`);
+    return;
+  }
   try {
     const asset = await stat(path.join(root, route));
     if (!asset.isFile()) throw new Error("not a file");

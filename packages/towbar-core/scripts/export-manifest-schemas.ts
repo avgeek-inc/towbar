@@ -79,7 +79,7 @@ for (const [name, schema] of Object.entries(schemas)) {
   const output = await format(
     JSON.stringify({
       ...schema,
-      $id: `https://www.towbar.dev/schemas/${name}.json`,
+      $id: `https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/${name}.json`,
     }),
     { ...(await resolveConfig(file)), parser: "json" },
   );

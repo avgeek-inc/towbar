@@ -27,7 +27,7 @@ For example, `base64 < service-account.json | tr -d '\n'` produces a single-line
 
 ## Verify recovery
 
-Set a managed resource's [backup policy](/docs/backups) to use `gcs`, create a recovery point, and check the stored object's verification result. Perform a [fresh-target restore](/docs/restores) to confirm read and compatibility permissions. If a run fails, check project ID, bucket and prefix, service-account scope, object availability, and the bucket's encryption policy. Rotate by updating `config.yml`, restarting Towbar, verifying a backup and restore path, and then revoking the old key.
+Set a managed datastore's [backup policy](/docs/backups) to use `gcs`, create a recovery point, and check the stored object's verification result. Perform a [fresh-target restore](/docs/restores) to confirm read and compatibility permissions. If a run fails, check project ID, bucket and prefix, service-account scope, object availability, and the bucket's encryption policy. Rotate by updating `config.yml`, restarting Towbar, verifying a backup and restore path, and then revoking the old key.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

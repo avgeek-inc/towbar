@@ -11,7 +11,7 @@ A Repository is a connection to one GitHub or GitLab project. Towbar reads its c
 2. Register every target IP named by the manifest under [Servers](/docs/servers). A server can be prepared later, but it must exist before the first sync.
 3. Commit `towbar.yml` and at least one entity file on the branch you plan to map. Start with the [manifest guide](/docs/deployment-manifest).
 
-For example, the root file declares environment names, while the app file declares a workload:
+For example, the root file declares environment names, while the Service file declares a workload:
 
 ```yaml title="towbar.yml"
 version: 2

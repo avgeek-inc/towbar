@@ -64,15 +64,15 @@ group, secret file, domain, health check, disk, PostgreSQL database, Key Value
 instance, and outbound provider dependency. If you use a Blueprint, keep it as
 an inventory input rather than assuming it maps directly to a Towbar manifest.
 
-| Render concept         | Towbar destination                                           |
-| ---------------------- | ------------------------------------------------------------ |
-| Web or private service | Public or private Service                                    |
-| Background worker      | Separate private Service                                     |
-| Cron job               | Service job                                                  |
-| Environment group      | Shared secrets scoped to the intended environment            |
-| Persistent disk        | Declared Service or Datastore volume                         |
-| Render Postgres        | Compatible PostgreSQL Datastore after logical restore        |
-| Key Value              | Compatible Redis-family Datastore after compatibility review |
+| Render concept         | Towbar destination                                             |
+| ---------------------- | -------------------------------------------------------------- |
+| Web or private service | Public or private Service                                      |
+| Background worker      | Separate private Service                                       |
+| Cron job               | Service job                                                    |
+| Environment group      | Service secrets; share values when multiple services need them |
+| Persistent disk        | Declared Service or Datastore volume                           |
+| Render Postgres        | Compatible PostgreSQL Datastore after logical restore          |
+| Key Value              | Compatible Redis-family Datastore after compatibility review   |
 
 ## 2. Recreate configuration in Git
 

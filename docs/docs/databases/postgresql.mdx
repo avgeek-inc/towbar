@@ -13,7 +13,8 @@ icon: "/assets/database-logos/postgresql.webp"
 
 Towbar's `postgres` preset runs the reviewed PostgreSQL 17 Alpine image on amd64
 or arm64. It listens on port `5432`, stores data in a managed volume at
-`/var/lib/postgresql/data`, and uses `pg_isready` for authenticated readiness.
+`/var/lib/postgresql/data`, and uses `pg_isready` to check whether the server
+accepts connections. That probe does not validate the saved password.
 
 ## Declare the datastore
 
@@ -45,11 +46,11 @@ Save all three values under **Datastore → Settings → Secrets** for productio
 `POSTGRES_DB` makes the application role and initial database explicit instead
 of relying on the image defaults of `postgres`.
 
-| Variable            | Purpose                                                       |
-| ------------------- | ------------------------------------------------------------- |
-| `POSTGRES_USER`     | Superuser created when the data volume is initialized         |
-| `POSTGRES_DB`       | Initial database and the target used by Towbar's health check |
-| `POSTGRES_PASSWORD` | Password required for initialization and managed operations   |
+| Variable            | Purpose                                                     |
+| ------------------- | ----------------------------------------------------------- |
+| `POSTGRES_USER`     | Superuser created when the data volume is initialized       |
+| `POSTGRES_DB`       | Initial database named in Towbar's readiness probe          |
+| `POSTGRES_PASSWORD` | Password required for initialization and managed operations |
 
 ## Connect from a service
 

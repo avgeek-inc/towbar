@@ -10,10 +10,10 @@ Towbar connects the configuration in Git to the services running on your servers
 | Concept          | What it represents                                                  | Where you configure it                                   |
 | ---------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
 | Team / workspace | The boundary for members, servers, shared secrets, and integrations | Towbar                                                   |
-| Repository       | A connected GitHub repository                                       | Towbar                                                   |
+| Repository       | A connected GitHub repository or GitLab project                     | Towbar                                                   |
 | Environment      | A named deployment target, such as production or staging            | Declare in `towbar.yml`; map its branch in Towbar        |
 | Server           | One Ubuntu host identified by its IP address                        | Towbar                                                   |
-| Service          | A source build, prebuilt OCI image, or Compose workload             | `.towbar/services/**/*.service.yml`                      |
+| Service          | A source build, prebuilt OCI image, or Compose workload             | `.towbar/services/**/*.service.yml` or `*.compose.yml`   |
 | Datastore        | A managed database or cache engine                                  | `.towbar/datastores/**/*.datastore.yml`                  |
 | Instance         | A Service or Datastore in one connected environment                 | Shared entity settings plus environment overrides        |
 | Deployment       | One attempt to build or pull, start, check, and promote an instance | Queued manually or by policy                             |
@@ -43,7 +43,7 @@ flowchart LR
 
 **Towbar stores workspace state and workload secrets.** Environment-to-branch mappings, SSH credentials and trust, concurrency, and encrypted workload secret values belong in Towbar. Saving a secret does not deploy it.
 
-**The installation environment configures the control plane and integrations.** Database credentials, service origins, internal authentication, provider credentials, notification routes, and static integration settings are configured on the host running Towbar. The dashboard lists only integrations whose complete environment configuration passed startup validation. GitHub installations and GitLab OAuth grants remain workspace state because they are created by provider authorization flows.
+**The host configuration controls Towbar and its integrations.** Database credentials, public origins, internal authentication, provider credentials, and notification routes live in `/etc/towbar/config.yml` on the control-plane host. The dashboard lists only integrations whose complete configuration passed startup validation. GitHub installations and GitLab OAuth grants remain workspace state because they are created by provider authorization flows.
 
 ## A sync is different from a deployment
 
