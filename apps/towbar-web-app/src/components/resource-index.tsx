@@ -46,12 +46,10 @@ export function SourceIndex() {
   const filtered = useInventoryQuery("sources").includes("?");
   const query = useApiQuery<{ sources: Source[]; counts: InventoryCounts }>(
     useInventoryQuery("sources"),
-    5_000,
   );
-  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps");
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
-    5_000,
   );
   const github = useApiQuery<{
     connection: { suspendedAt: string | null } | null;
@@ -84,7 +82,6 @@ export function SourceIndex() {
     router.prefetch(href);
     return prefetchApiQueries([
       `/v1/core/sources/${source.id}`,
-      `/v1/core/sources/${source.id}/manifest`,
       `/v1/core/sources/${source.id}/syncs`,
       `/v1/core/sources/${source.id}/apps`,
       `/v1/core/sources/${source.id}/resources`,
