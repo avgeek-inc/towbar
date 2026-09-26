@@ -14,7 +14,7 @@ Towbar manages deployment secrets without requiring an external secrets account.
 | Resource → Settings → Secrets   | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
 | Server → Settings → Credentials | Select a stored SSH key                                                                |
 
-Shared secrets are available for reference; they are not automatically added to Repositories, apps, or resources. Configure each variable where it is needed:
+Shared secrets are available for reference; they are not automatically added to apps or resources. Configure each variable where it is needed:
 
 ```text
 API_TOKEN={{globals.API_TOKEN}}
@@ -37,9 +37,9 @@ secret keys remain editable in Towbar.
 
 ## Form and File modes
 
-For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy in the secondary sidebar. These workspace values are shared across environments when explicitly referenced. On an app, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. The mode switch is hidden when no keys are declared. Members can update values in Form mode without revealing existing values. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
+For workspace Shared secrets, choose Build, Runtime, Pre-deploy, or Post-deploy in the secondary sidebar. These workspace values are shared across environments when explicitly referenced. On an app, both environment and stage stay inside the page. Use the **Form** and **File** tabs inside the secrets widget. The mode switch is hidden when no keys are declared. In-page environment and stage selectors use dropdowns on mobile and tabs on larger screens.
 
-**Form** edits one key and value at a time. Configured values show a masked placeholder; use the eye icon to reveal or hide one value. Valid shared-reference expressions are highlighted in yellow.
+**Form** edits one key and value at a time. Configured values show a masked placeholder and cannot be edited until an authorized Admin reveals them with the eye icon. New values can be entered directly. Valid shared-reference expressions are highlighted in yellow.
 
 **File** is available to Admins because it fetches and reveals the stored values for the selected scope, environment, and stage in a text editor. Edit one `KEY=value` assignment per line. Quoted values, multiline quoted strings, comments, and optional `export` prefixes are supported. Quote values containing `#` to keep it as part of the value. Duplicate keys and invalid syntax must be corrected before saving or switching back to Form. Comments and formatting are not stored.
 
@@ -53,7 +53,7 @@ Removing a line deletes that key when saved; `KEY=` saves an empty string. Uncha
 
 ## Save and deploy
 
-The editor shows locally configured keys. Click the eye icon to reveal a stored value, then click it again to hide it. Revealing a value does not change it. References are shown as the stored expression so they remain editable; deployment resolves them to the referenced value. Leaving a replacement input untouched preserves the value. Replacing it with an empty string explicitly saves an empty value. Concurrent edits are rejected; refresh and reapply the intended changes.
+The editor shows locally configured keys. Click the eye icon to reveal a stored value before editing it, then click it again to hide it. Revealing a value does not change it. References are shown as the stored expression when revealed; deployment resolves them to the referenced value. Leaving a revealed input untouched preserves the value. Replacing it with an empty string explicitly saves an empty value. Concurrent edits are rejected; refresh and reapply the intended changes.
 
 **Save** stores changes for the next execution. It does not restart containers or enqueue deployment. Deploy the affected app or resource separately when you are ready. Build changes require rebuilding the image. Runtime changes require a replacement deployment. Image rollback uses current secrets and does not restore revoked credentials.
 

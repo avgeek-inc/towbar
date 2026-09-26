@@ -870,7 +870,7 @@ function SecretValueInput({
   reveal?: () => Promise<string>;
   onChange: (value: string) => void;
 }) {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(!configured);
   const [stored, setStored] = useState<string>();
   const [loading, setLoading] = useState(false);
   const request = useRef({ generation: 0 });
@@ -917,16 +917,10 @@ function SecretValueInput({
       if (request.current.generation === current) setLoading(false);
     }
   }
-  const displayedValue = configured
-    ? visible && reveal
-      ? (stored ?? "")
-      : ""
-    : value;
+  const displayedValue = visible ? (configured ? (stored ?? "") : value) : "";
   const hasReference =
     visible &&
-    /\{\{\s*(?:globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
-      displayedValue,
-    );
+    /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
   return (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
@@ -937,19 +931,28 @@ function SecretValueInput({
         className={
           hasReference ? "text-yellow-600 dark:text-yellow-400" : undefined
         }
-        type={visible ? "text" : "password"}
+        type="text"
         autoComplete="off"
         data-lpignore="true"
         data-1p-ignore
         spellCheck={false}
         placeholder={
-          configured ? (visible ? "" : "••••••••") : "Value or reference"
+          visible
+            ? configured
+              ? ""
+              : "Value or reference"
+            : configured || value
+              ? "••••••••"
+              : "Reveal to enter a value"
         }
         value={displayedValue}
         disabled={disabled || loading}
+        readOnly={!visible}
         onChange={(event) => {
+          if (!visible) return;
+          const nextValue = event.currentTarget.value;
           setStored(undefined);
-          onChange(event.currentTarget.value);
+          onChange(nextValue);
         }}
       />
       <InputGroup.Suffix>
