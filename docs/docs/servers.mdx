@@ -14,10 +14,12 @@ Preparation installs or validates Docker Engine 29 or newer with Buildx per-buil
 ## Register and trust the host
 
 1. Open **Servers → Add server**. Enter the canonical IP, SSH connection, and concurrency settings.
-2. Open **Settings → Credentials** and select a stored [SSH key](/docs/ssh-keys). Choose **Add private key** inside the dropdown to create one without leaving the server.
+2. Open **Settings → Configuration** and select a stored [SSH key](/docs/ssh-keys). Choose **Add private key** inside the dropdown to create one without leaving the server.
 3. Install the public key in the SSH user's `~/.ssh/authorized_keys`, then choose **Save**. Towbar checks the connection and discovers the server's host key.
 4. Compare its fingerprint with the server console or another independent, trusted channel before accepting it.
 5. Towbar attaches the selected private key only after SSH authentication succeeds. The **Host verified** badge appears in the credentials widget; hover or focus it to see when trust was recorded.
+
+After registering a server, use **Settings → Configuration → Server info** to give it an optional name. Towbar shows the name in the server list and navigation while keeping its canonical IP in a separate column. Renaming does not change the SSH connection or require server preparation.
 
 <Warning>
   Docker access is root-equivalent. Do not share the deployment account with
@@ -29,7 +31,7 @@ Preparation installs or validates Docker Engine 29 or newer with Buildx per-buil
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/server-credentials-light.jpg"
-      alt="Select a stored SSH key under Credentials. Host verified records the server identity check."
+      alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
       width="2560"
       height="1440"
       loading="lazy"
@@ -38,15 +40,15 @@ Preparation installs or validates Docker Engine 29 or newer with Buildx per-buil
   <div className="towbar-product-dark">
     <img
       src="/assets/release-v2/server-credentials-dark.jpg"
-      alt="Select a stored SSH key under Credentials. Host verified records the server identity check."
+      alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
       width="2560"
       height="1440"
       loading="lazy"
     />
   </div>
   <p>
-    Select a stored SSH key under Credentials. Host verified records the server
-    identity check.
+    Select a stored SSH key under Configuration. Host verified records the
+    server identity check.
   </p>
 </div>
 
@@ -91,8 +93,8 @@ If the server presents a different host key, Towbar pauses the connection and as
 
 Admins can open **Terminal** in a server's sidebar and choose **Connect**. Towbar
 uses the SSH username, port, private key and trusted host keys configured under
-Credentials. The server does not need to be prepared first. If no verified key
-is connected, the page links to Credentials.
+Configuration. The server does not need to be prepared first. If no verified key
+is connected, the page links to Configuration.
 
 The shell has the same permissions as that SSH user. Commands run directly on
 the host and can change running workloads outside the deployment scheduler.
@@ -103,7 +105,7 @@ A recent sign-in is required. Terminal access is unavailable to Members,
 Viewers, personal API keys, team API keys and MCP. Connection tickets expire
 after 30 seconds, work once, and are bound to the issuing browser session.
 Private keys remain on the API. A changed or untrusted host identity prevents
-connection; resolve it through Credentials.
+connection; resolve it through Configuration.
 
 Connections close when you disconnect, leave the page, lose the browser
 connection, reach one hour, or provide no input for 15 minutes. Towbar rechecks
@@ -133,7 +135,7 @@ Also account for the installation-wide [worker activity limit](/docs/self-hostin
 
 ## Read capacity and health
 
-The Servers table shows hardware capacity. A server's Apps and Resources sidebar items show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the IP. When only the provider is known, its logo appears beside observed CPU and memory capacity. If metadata is unavailable, Towbar shows hardware capacity or **Unknown Instance Type**.
+The Servers table shows each server's name (or IP if unnamed), IP, and hardware capacity. A server's Apps and Resources sidebar items show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the server label. When only the provider is known, its logo appears beside observed CPU and memory capacity. If metadata is unavailable, Towbar shows hardware capacity or **Unknown Instance Type**.
 
 ### Automatic cloud detection
 

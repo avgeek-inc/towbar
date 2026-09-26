@@ -315,6 +315,7 @@ function DeployableInventoryTable({
       cell: (item) => (
         <ServerIpLink
           ip={item.serverIp}
+          name={serversByIp.get(item.serverIp)?.name}
           serverId={serversByIp.get(item.serverIp)?.id}
           hardware={serversByIp.get(item.serverIp)?.hardware}
         />
@@ -419,15 +420,26 @@ function ServerInventory({
       cell: (server) => (
         <ServerIpLink
           ip={server.canonicalIp}
+          name={server.name}
           description={
             server.setupStatus === "pending" ? "Pending Setup" : undefined
           }
           hardware={server.hardware}
         />
       ),
-      className: "w-full min-w-52 tabular-nums",
+      className: "w-full min-w-52",
       header: "Server",
       key: "server",
+    },
+    {
+      cell: (server) => (
+        <span className="whitespace-nowrap tabular-nums">
+          {server.canonicalIp}
+        </span>
+      ),
+      className: "min-w-40",
+      header: "IP",
+      key: "ip",
     },
     {
       cell: (server) => <ScoutServerSummary server={server} />,

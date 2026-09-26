@@ -117,6 +117,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ],
   ],
   servers: [
+    ["Overview", /\/name$/],
     ["Scout Alerts", /\/scout-alerts(?:\/|$)/],
     ["Scout Agent", /\/(monitoring|metrics)(?:\/|$)/],
     ["Credentials & trust", /\/(credentials|host-keys)(?:\/|$)/],

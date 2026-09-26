@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Stable release tag, for example v2.0.12
+        description: Stable release tag, for example v2.0.13
         required: true
         type: string
 

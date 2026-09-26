@@ -113,6 +113,7 @@ void test("servers preserve unknown health and treat disabled Scout separately f
   const items = [
     {
       canonicalIp: "192.0.2.10",
+      name: "Production database",
       setupStatus: "ready",
       healthStatus: "healthy",
       scout: { enabled: false, status: "offline" },
@@ -146,6 +147,11 @@ void test("servers preserve unknown health and treat disabled Scout separately f
     filterServers(items, serverFilters.parse({ setup: "failed", q: ".12" }))
       .counts,
     { all: 3, attention: 2 },
+  );
+  assert.deepEqual(
+    filterServers(items, serverFilters.parse({ q: "production database" }))
+      .items,
+    [items[0]],
   );
 });
 void test("source filters use latest sync outcomes and deployment pause independently", () => {

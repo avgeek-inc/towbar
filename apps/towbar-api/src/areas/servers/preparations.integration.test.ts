@@ -41,6 +41,7 @@ void test(
       await import("../secrets/store.js");
     const { getServerPreparationExecutionContext, listServerPreparations } =
       await import("./preparations.js");
+    const { updateServerName } = await import("./lifecycle.js");
     const { internalServerPreparationRoutes } =
       await import("../../routes/v1/internal/server-preparations.js");
     const { HttpError } = await import("../../http/errors.js");
@@ -104,6 +105,14 @@ void test(
         status: "running",
         steps,
       });
+      const renamed = await updateServerName({
+        name: "Build host",
+        serverId,
+        workspaceId,
+      });
+      assert.equal(renamed.name, "Build host");
+      assert.equal(renamed.setupStatus, "preparing");
+      assert.equal(renamed.canonicalIp, config.ip);
       const execution =
         await getServerPreparationExecutionContext(preparationId);
       assert.equal(execution.privateKeyName, key.name);
@@ -144,6 +153,12 @@ void test(
       );
       persisted = (await listServerPreparations(serverId, workspaceId))[0]!;
       assert.equal(persisted.status, "failed");
+      const renamedAfterFailure = await updateServerName({
+        name: "Fallback host",
+        serverId,
+        workspaceId,
+      });
+      assert.equal(renamedAfterFailure.setupStatus, "failed");
       assert.equal(persisted.steps[1]!.log, steps[1]!.log);
       assert.doesNotMatch(JSON.stringify(persisted), /BEGIN .*PRIVATE KEY/);
       await assert.rejects(

@@ -27,7 +27,7 @@ import {
 
 import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { serverSelection, toPublicServer } from "./service.js";
+import { getServer, serverSelection, toPublicServer } from "./service.js";
 
 import type { NormalizedServer } from "@workspace/towbar-core";
 
@@ -151,6 +151,26 @@ export async function updateServer(input: {
     }
     return toPublicServer(server);
   });
+}
+
+export async function updateServerName(input: {
+  name: string | null;
+  serverId: string;
+  workspaceId: string;
+}) {
+  const [server] = await getTowbarDatabase()
+    .update(servers)
+    .set({ name: input.name, updatedAt: new Date() })
+    .where(
+      and(
+        eq(servers.id, input.serverId),
+        eq(servers.workspaceId, input.workspaceId),
+        isNull(servers.archivedAt),
+      ),
+    )
+    .returning({ id: servers.id });
+  if (!server) throw notFound("Server");
+  return getServer(server.id, input.workspaceId);
 }
 
 export async function removeServer(input: {

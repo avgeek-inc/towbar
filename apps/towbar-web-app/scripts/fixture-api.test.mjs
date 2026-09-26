@@ -70,6 +70,38 @@ test("terminal preparation state replaces a stale preparing server state", () =>
   assert.equal(reconcileServerSetupStatus("pending", "succeeded"), "pending");
 });
 
+test("renaming a server preserves its IP and preparation state", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const url = `http://127.0.0.1:${address.port}/v1/core/servers/${fixtureIds.server}`;
+  try {
+    const original = (await (await fetch(url)).json()).server;
+    const response = await fetch(`${url}/name`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "  Production database  " }),
+    });
+    assert.equal(response.status, 200);
+    const renamed = (await response.json()).server;
+    assert.equal(renamed.name, "Production database");
+    assert.equal(renamed.canonicalIp, original.canonicalIp);
+    assert.equal(renamed.setupStatus, original.setupStatus);
+    assert.deepEqual(renamed.config, original.config);
+    const cleared = await fetch(`${url}/name`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: null }),
+    });
+    assert.equal((await cleared.json()).server.name, null);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("email destinations are editable while provider credentials remain runtime-owned", async () => {
   const server = createFixtureApiServer({
     smtpConfigured: true,

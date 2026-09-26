@@ -331,6 +331,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
     "sync-history": "sync",
     notifications: "notifications",
     credentials: "credentials",
+    configuration: "credentials",
     "cloudflare-tls": "tls",
     "scout-agent": "scout",
     "monitoring-agent": "scout",

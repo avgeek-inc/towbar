@@ -380,6 +380,7 @@
                   "api-reference/post_servers",
                   "api-reference/get_servers_by_id",
                   "api-reference/patch_servers_by_id",
+                  "api-reference/patch_servers_by_id_name",
                   "api-reference/delete_servers_by_id"
                 ]
               },

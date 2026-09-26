@@ -174,6 +174,7 @@ export type Server = {
   hardware?: import("@workspace/towbar-core").ServerHardware | null;
   archivedAt: string | null;
   canonicalIp: string;
+  name: string | null;
   config: {
     buildConcurrency?: number;
     previewBuildConcurrency?: number;

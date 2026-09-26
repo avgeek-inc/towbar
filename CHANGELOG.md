@@ -5,6 +5,35 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.13] - 2026-09-26
+
+### Added
+
+- Servers can have an optional name, shown in navigation and inventory alongside
+  a separate IP column. Naming a server leaves its connection and deployment
+  configuration unchanged.
+- App and Resource manifests can route Deployments, Backup & Restore, and
+  Alerts & Incidents to additional Email, Slack, Discord, and Telegram
+  destinations. Subscriptions take effect after a successful environment sync,
+  while provider credentials remain in runtime configuration.
+
+### Changed
+
+- Notification deliveries share one global history with entity and resource
+  filters. App and Resource notification pages show their synced destinations
+  together in one table.
+- Preview settings live in App configuration, and preview rows link directly to
+  their deployments. Secret targets distinguish mainline from previews, while
+  the App sidebar shows the current preview count.
+- App and Resource navigation groups deployment work under Ship and moves
+  Notifications into Settings. Desktop tables size columns to their content.
+
+### Fixed
+
+- Switching App or Resource environments preserves the current view while the
+  next environment loads. Server setup shows a live countdown before returning
+  to Overview.
+
 ## [2.0.12] - 2026-09-24
 
 ### Added
@@ -297,7 +326,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.13...HEAD
+[2.0.13]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...v2.0.13
 [2.0.12]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...v2.0.12
 [2.0.11]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...v2.0.11
 [2.0.10]: https://github.com/avgeek-inc/towbar/compare/v2.0.9...v2.0.10

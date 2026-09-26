@@ -57,6 +57,7 @@ function appColumns(
       cell: (app) => (
         <ServerIpLink
           ip={app.serverIp}
+          name={serversByIp.get(app.serverIp)?.name}
           serverId={serversByIp.get(app.serverIp)?.id}
           hardware={serversByIp.get(app.serverIp)?.hardware}
         />
@@ -139,6 +140,7 @@ function resourceColumns(
       cell: (resource) => (
         <ServerIpLink
           ip={resource.serverIp}
+          name={serversByIp.get(resource.serverIp)?.name}
           serverId={serversByIp.get(resource.serverIp)?.id}
           hardware={serversByIp.get(resource.serverIp)?.hardware}
         />
@@ -268,11 +270,13 @@ export function SourceResources({
 
 export function ServerIpLink({
   ip,
+  name,
   description,
   hardware,
   serverId,
 }: {
   ip: string;
+  name?: string | null;
   description?: string;
   hardware?: Server["hardware"];
   serverId?: string;
@@ -285,7 +289,7 @@ export function ServerIpLink({
           className="size-4 shrink-0 text-muted"
           icon={ServerStack01Icon}
         />
-        <span>{ip}</span>
+        <span>{name ?? ip}</span>
       </span>
       <TableCellDescription>
         {description ?? <ServerHardwareDescription hardware={hardware} />}

@@ -13,6 +13,7 @@ import {
   createServer,
   removeServer,
   updateServer,
+  updateServerName,
 } from "../../../areas/servers/lifecycle.js";
 import {
   getServer,
@@ -73,6 +74,9 @@ const cleanupSchema = z
       .min(1)
       .max(100),
   })
+  .strict();
+const serverNameSchema = z
+  .object({ name: z.string().trim().min(1).max(120).nullable() })
   .strict();
 
 export const serverRoutes = new Hono<TowbarHonoEnvironment>();
@@ -163,6 +167,27 @@ serverRoutes.patch(
         config,
         serverId: context.req.param("serverId"),
         workspaceId: user.workspaceId,
+      }),
+    });
+  },
+);
+serverRoutes.patch(
+  "/:serverId/name",
+  operation({
+    permissions: ["server.update"],
+    responseSchema: 'servers.ts:patch:"/:serverId/name"',
+    summary: "Update server name",
+    body: serverNameSchema,
+    response: "JSON object containing server.",
+    status: 200,
+  }),
+  async (context) => {
+    const input = await readJson(context, serverNameSchema);
+    return context.json({
+      server: await updateServerName({
+        name: input.name,
+        serverId: context.req.param("serverId"),
+        workspaceId: context.get("user").workspaceId,
       }),
     });
   },

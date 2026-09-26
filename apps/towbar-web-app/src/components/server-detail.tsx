@@ -98,7 +98,7 @@ export function ServerDetail() {
     "danger",
   ].includes(requestedSettings ?? "")
     ? requestedSettings!
-    : "credentials";
+    : "configuration";
   const { serverId } = useParams<{
     serverId: string;
   }>();
@@ -114,7 +114,7 @@ export function ServerDetail() {
   );
   const settingsTab =
     requestedSettingsTab === "cloudflare-tls" && !cloudflareConfigured
-      ? "credentials"
+      ? "configuration"
       : requestedSettingsTab;
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
@@ -276,14 +276,14 @@ export function ServerDetail() {
       header: "Category",
       cell: (check) =>
         check.errorCode === "HOST_KEY_NOT_TRUSTED" ? (
-          <InlineLink href={`/servers/${serverId}/settings/credentials`}>
-            Credentials
+          <InlineLink href={`/servers/${serverId}/settings/configuration`}>
+            Configuration
           </InlineLink>
         ) : check.errorCode === "TEMPORAL_UNAVAILABLE" ? (
           "Control plane"
         ) : check.errorMessage ? (
-          <InlineLink href={`/servers/${serverId}/settings/credentials`}>
-            Credentials
+          <InlineLink href={`/servers/${serverId}/settings/configuration`}>
+            Configuration
           </InlineLink>
         ) : (
           "Environment"
@@ -400,7 +400,7 @@ export function ServerDetail() {
       }
       breadcrumbAncestors={serversBreadcrumb}
       breadcrumbSwitcher={{ id: serverId, kind: "servers" }}
-      title={item.canonicalIp}
+      title={item.name ?? item.canonicalIp}
       titleIcon={providerIcon}
     >
       <div className="content-grid">
@@ -628,11 +628,11 @@ export function ServerDetail() {
                   key={settingsTab}
                   tabs={[
                     {
-                      value: "credentials",
-                      label: "Credentials",
+                      value: "configuration",
+                      label: "Configuration",
                       badge: credentialsPending ? (
                         <span
-                          aria-label="Credentials require attention"
+                          aria-label="Configuration requires attention"
                           className="inline-flex text-warning-soft-foreground [&_svg]:size-4"
                           role="img"
                         >

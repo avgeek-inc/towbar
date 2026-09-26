@@ -126,6 +126,7 @@ export function NotificationDeliveries() {
         name: app.name,
         kind: "App",
         environment: app.environment?.name,
+        detail: undefined,
         icon: (
           <AppLogo
             key={app.config.domains?.primary ?? "no-domain"}
@@ -142,6 +143,7 @@ export function NotificationDeliveries() {
         name: resource.name,
         kind: "Resource",
         environment: resource.environment?.name,
+        detail: undefined,
         icon: (
           <ResourceLogo
             brand={resourceImageBrand(resource.kind, resource.config.image)}
@@ -151,9 +153,10 @@ export function NotificationDeliveries() {
       })),
       ...(servers.data?.servers ?? []).map((server) => ({
         id: server.id,
-        name: server.canonicalIp,
+        name: server.name ?? server.canonicalIp,
         kind: "Server",
         environment: null,
+        detail: server.name ? server.canonicalIp : undefined,
         icon: server.hardware?.instance ? (
           <CloudProviderLogo
             provider={server.hardware.instance.provider}
@@ -215,9 +218,9 @@ export function NotificationDeliveries() {
               <span className="break-words">
                 {entity?.name ?? item.entityName}
               </span>
-              {entity?.environment ? (
+              {entity?.environment || entity?.detail ? (
                 <TableCellDescription>
-                  {entity.environment}
+                  {entity.environment ?? entity.detail}
                 </TableCellDescription>
               ) : null}
             </TableCellStack>
@@ -299,10 +302,20 @@ export function NotificationDeliveries() {
             options={entities.map((entity) => ({
               id: entity.id,
               label: entity.name,
-              ariaLabel: [entity.name, entity.kind, entity.environment]
+              ariaLabel: [
+                entity.name,
+                entity.kind,
+                entity.environment,
+                entity.detail,
+              ]
                 .filter(Boolean)
                 .join(", "),
-              searchText: [entity.name, entity.kind, entity.environment]
+              searchText: [
+                entity.name,
+                entity.kind,
+                entity.environment,
+                entity.detail,
+              ]
                 .filter(Boolean)
                 .join(" "),
               icon: entity.icon,
@@ -312,6 +325,10 @@ export function NotificationDeliveries() {
                   showIcon={false}
                   showTooltip={false}
                 />
+              ) : entity.detail ? (
+                <span className="shrink-0 text-xs text-muted">
+                  {entity.detail}
+                </span>
               ) : undefined,
             }))}
             searchPlaceholder="Search apps, resources or servers"

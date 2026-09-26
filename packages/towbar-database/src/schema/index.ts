@@ -1316,6 +1316,7 @@ export const servers = pgTable(
       { onDelete: "restrict" },
     ),
     canonicalIp: varchar("canonical_ip", { length: 64 }).notNull(),
+    name: varchar("name", { length: 120 }),
     config: jsonb("config").$type<NormalizedServer>().notNull(),
     configDigest: varchar("config_digest", { length: 64 }).notNull(),
     preparedAt: timestamp("prepared_at", { withTimezone: true }),

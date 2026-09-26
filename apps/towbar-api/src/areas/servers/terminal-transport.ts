@@ -188,8 +188,8 @@ export function attachServerTerminal(server: Server) {
             ssh.on("error", () =>
               close(
                 hostMismatch
-                  ? "Server identity changed. Verify its host key in Credentials."
-                  : "SSH connection failed. Check server Credentials and network access.",
+                  ? "Server identity changed. Verify its host key in Configuration."
+                  : "SSH connection failed. Check server Configuration and network access.",
               ),
             );
             ssh.on("close", () => close("SSH session ended."));
@@ -264,7 +264,7 @@ export function attachServerTerminal(server: Server) {
             connection.privateKey = "";
           })().catch(() =>
             close(
-              "Unable to open this terminal. Check your session and server Credentials, then connect again.",
+              "Unable to open this terminal. Check your session and server Configuration, then connect again.",
             ),
           );
           return;

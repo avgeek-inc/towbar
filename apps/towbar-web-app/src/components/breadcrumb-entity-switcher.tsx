@@ -37,6 +37,7 @@ const entityIcons = {
 
 type SwitchOption = {
   archived: boolean;
+  detail?: string;
   id: string;
   identity?:
     | { kind: "app"; domain: string | undefined }
@@ -94,7 +95,8 @@ export function BreadcrumbEntitySwitcher({
               }
             : undefined,
           instanceIds: [server.id],
-          label: server.canonicalIp,
+          label: server.name ?? server.canonicalIp,
+          detail: server.name ? server.canonicalIp : undefined,
         }))
       : kind === "apps"
         ? deployableOptions(query.data?.apps ?? [], (app) => ({
@@ -182,7 +184,9 @@ export function BreadcrumbEntitySwitcher({
               <ListBox.Item
                 id={option.id}
                 key={option.id}
-                textValue={option.label}
+                textValue={[option.label, option.detail]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {option.identity?.kind === "app" ? (
                   <AppLogo domain={option.identity.domain} size="compact" />
@@ -201,7 +205,14 @@ export function BreadcrumbEntitySwitcher({
                     icon={icon}
                   />
                 )}
-                <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{option.label}</span>
+                  {option.detail ? (
+                    <span className="block truncate text-xs text-muted">
+                      {option.detail}
+                    </span>
+                  ) : null}
+                </span>
                 {option.archived ? (
                   <span className="text-xs text-muted">Archived</span>
                 ) : null}

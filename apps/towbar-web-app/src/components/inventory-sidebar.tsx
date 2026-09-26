@@ -81,7 +81,7 @@ export function InventorySidebar({
   const controls: Array<{
     key: string;
     label: string;
-    options: Array<{ id: string; label: string }>;
+    options: Array<{ id: string; label: string; detail?: string }>;
   }> = [];
   const options = (values: string[]) =>
     values.map((id) => ({ id, label: id[0]!.toUpperCase() + id.slice(1) }));
@@ -105,7 +105,8 @@ export function InventorySidebar({
         label: "Server",
         options: servers.map((s) => ({
           id: s.canonicalIp,
-          label: s.canonicalIp,
+          label: s.name ?? s.canonicalIp,
+          detail: s.name ? s.canonicalIp : undefined,
         })),
       },
       ...(kind === "resources"
@@ -248,7 +249,9 @@ export function InventorySidebar({
         className="w-full max-w-sm"
         aria-label={`Search ${kindLabel}`}
         placeholder={
-          kind === "servers" ? "Search IP address…" : `Search ${kindLabel}…`
+          kind === "servers"
+            ? "Search server name or IP…"
+            : `Search ${kindLabel}…`
         }
         value={search.get("q") ?? ""}
         maxLength={200}
