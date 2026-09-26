@@ -120,12 +120,12 @@ export default function CodeEditor({
               overflow: "hidden",
             },
             "&.cm-focused": {
-              outline: embedded ? "none" : "2px solid var(--focus)",
-              outlineOffset: "2px",
+              outline: embedded ? "none" : "1px solid var(--border)",
+              outlineOffset: "1px",
             },
             ".cm-scroller": {
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "16px",
+              fontSize: language === "env" ? "14px" : "16px",
               lineHeight: "1.6",
               overflow: "auto",
               minHeight: "240px",
@@ -142,6 +142,7 @@ export default function CodeEditor({
                 : "var(--surface-secondary)",
               color: "var(--muted)",
               border: "none",
+              paddingLeft: embedded ? "0" : "8px",
             },
             ".cm-activeLine": { backgroundColor: "var(--surface-tertiary)" },
             ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {

@@ -23,6 +23,7 @@ import {
 
 import dynamic from "next/dynamic";
 import { ResponsiveChoice } from "./responsive-choice";
+import { SecretVariableTooltip } from "./secret-variable-tooltip";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import {
   managedSecretKeyError,
@@ -542,26 +543,26 @@ function SecretVariablesEditor({
               <Tabs.List aria-label="Secret editing mode">
                 <Tabs.Tab
                   id="form"
-                  className="h-8 min-w-0 gap-1.5 px-3 text-xs"
+                  className="min-w-0 gap-2 px-3"
                   isDisabled={busy}
                 >
                   <HugeiconsIcon
                     aria-hidden="true"
                     icon={Menu01Icon}
-                    size={14}
+                    size={16}
                   />
                   Form
                   <Tabs.Indicator />
                 </Tabs.Tab>
                 <Tabs.Tab
                   id="file"
-                  className="h-8 min-w-0 gap-1.5 px-3 text-xs"
+                  className="min-w-0 gap-2 px-3"
                   isDisabled={busy || !canManage}
                 >
                   <HugeiconsIcon
                     aria-hidden="true"
                     icon={SourceCodeIcon}
-                    size={14}
+                    size={16}
                   />
                   Editor
                   <Tabs.Indicator />
@@ -619,98 +620,102 @@ function SecretVariablesEditor({
               {!fileMode &&
               (visibleKeys.length > 0 || newEntries.length > 0) ? (
                 <div className="grid gap-2 sm:gap-1">
-                  {visibleKeys.map((key) => (
-                    <div
-                      key={key}
-                      className="grid min-w-0 sm:gap-2 sm:grid-cols-2"
-                    >
-                      <div className="flex min-h-10 min-w-0 items-center gap-2">
-                        <span className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="break-all font-mono text-sm">
-                            {key}
+                  {visibleKeys.map((key) => {
+                    const configured =
+                      !Object.hasOwn(replacements, key) &&
+                      !binding.missingKeys?.includes(key);
+                    const reveal = canReveal
+                      ? async () => {
+                          const result = await api.post<{
+                            value: string;
+                            revision: string | null;
+                          }>(
+                            `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
+                            { key },
+                          );
+                          if (result.revision !== binding.revision)
+                            throw new Error(
+                              "This secret changed. Refresh before viewing it.",
+                            );
+                          return result.value;
+                        }
+                      : undefined;
+                    return (
+                      <div
+                        key={key}
+                        className="grid min-w-0 sm:gap-2 sm:grid-cols-2"
+                      >
+                        <div className="flex min-h-10 min-w-0 items-center gap-2">
+                          <span className="flex min-w-0 flex-wrap items-center gap-2">
+                            <SecretVariableTooltip
+                              name={key}
+                              value={replacements[key] ?? ""}
+                              configured={configured}
+                              reveal={reveal}
+                            />
+                            {binding.inheritedOrigins[key] ? (
+                              <Chip
+                                size="small"
+                                tooltip={`This value comes from ${binding.inheritedOrigins[key]} and can be overridden here.`}
+                                variant="secondary"
+                              >
+                                Inherited from {binding.inheritedOrigins[key]}
+                              </Chip>
+                            ) : binding.missingKeys?.includes(key) ? (
+                              <Chip
+                                size="small"
+                                tooltip="This declared key does not have a saved value in the selected environment and stage."
+                                variant="warning"
+                              >
+                                Missing
+                              </Chip>
+                            ) : null}
                           </span>
-                          {binding.inheritedOrigins[key] ? (
-                            <Chip
-                              size="small"
-                              tooltip={`This value comes from ${binding.inheritedOrigins[key]} and can be overridden here.`}
-                              variant="secondary"
-                            >
-                              Inherited from {binding.inheritedOrigins[key]}
-                            </Chip>
-                          ) : binding.missingKeys?.includes(key) ? (
-                            <Chip
-                              size="small"
-                              tooltip="This declared key does not have a saved value in the selected environment and stage."
-                              variant="warning"
-                            >
-                              Missing
-                            </Chip>
+                          {canManageKeys ? (
+                            <SecretRowDeleteButton
+                              className="sm:hidden"
+                              label={`Remove ${key}`}
+                              disabled={!canManage || busy}
+                              onPress={() =>
+                                setDeletedKeys((current) => [...current, key])
+                              }
+                            />
                           ) : null}
-                        </span>
-                        {canManageKeys ? (
-                          <SecretRowDeleteButton
-                            className="sm:hidden"
-                            label={`Remove ${key}`}
-                            disabled={!canManage || busy}
-                            onPress={() =>
-                              setDeletedKeys((current) => [...current, key])
-                            }
-                          />
-                        ) : null}
-                        <span
-                          aria-hidden="true"
-                          className="hidden min-w-0 flex-1 border-t border-dashed border-muted/50 lg:block"
-                        />
-                      </div>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="min-w-0 flex-1">
-                          <SecretValueInput
-                            label={`Value for ${key}`}
-                            value={replacements[key] ?? ""}
-                            configured={
-                              !Object.hasOwn(replacements, key) &&
-                              !binding.missingKeys?.includes(key)
-                            }
-                            disabled={!canManage || busy}
-                            reveal={
-                              canReveal
-                                ? async () => {
-                                    const result = await api.post<{
-                                      value: string;
-                                      revision: string | null;
-                                    }>(
-                                      `${endpoint}/${binding.environment}/${binding.stage}/reveal`,
-                                      { key },
-                                    );
-                                    if (result.revision !== binding.revision)
-                                      throw new Error(
-                                        "This secret changed. Refresh before viewing it.",
-                                      );
-                                    return result.value;
-                                  }
-                                : undefined
-                            }
-                            onChange={(value) =>
-                              setReplacements((current) => ({
-                                ...current,
-                                [key]: value,
-                              }))
-                            }
+                          <span
+                            aria-hidden="true"
+                            className="hidden min-w-0 flex-1 border-t border-dashed border-muted/50 lg:block"
                           />
                         </div>
-                        {canManageKeys ? (
-                          <SecretRowDeleteButton
-                            className="hidden sm:inline-flex"
-                            label={`Remove ${key}`}
-                            disabled={!canManage || busy}
-                            onPress={() =>
-                              setDeletedKeys((current) => [...current, key])
-                            }
-                          />
-                        ) : null}
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <SecretValueInput
+                              label={`Value for ${key}`}
+                              value={replacements[key] ?? ""}
+                              configured={configured}
+                              disabled={!canManage || busy}
+                              reveal={reveal}
+                              onChange={(value) =>
+                                setReplacements((current) => ({
+                                  ...current,
+                                  [key]: value,
+                                }))
+                              }
+                            />
+                          </div>
+                          {canManageKeys ? (
+                            <SecretRowDeleteButton
+                              className="hidden sm:inline-flex"
+                              label={`Remove ${key}`}
+                              disabled={!canManage || busy}
+                              onPress={() =>
+                                setDeletedKeys((current) => [...current, key])
+                              }
+                            />
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {newEntries.map((entry) => (
                     <div
                       key={entry.id}
@@ -919,7 +924,9 @@ function SecretValueInput({
     : value;
   const hasReference =
     visible &&
-    /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
+    /\{\{\s*(?:globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
+      displayedValue,
+    );
   return (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
