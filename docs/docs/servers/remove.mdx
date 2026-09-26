@@ -3,7 +3,7 @@ title: "Remove a server"
 description: "Understand the control-plane and host effects before removing a managed server."
 ---
 
-Admins can use **Danger zone → Remove server** after active checks, preparations, deployments, resource operations, and vulnerability scans finish. The server can still be named in an app or resource manifest, so inspect assigned workloads first.
+Admins can use **Danger zone → Remove server** after active checks, preparations, deployments, resource operations, and vulnerability scans finish. The server can still be named in an service or datastore manifest, so inspect assigned workloads first.
 
 Removing a server stops Towbar management and scheduled checks, archives assigned inventory, deletes stored SSH and Cloudflare credentials, revokes trusted host keys, and closes remaining preview records. It does **not** terminate the cloud instance, stop the host's running services, or erase Docker data.
 

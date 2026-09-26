@@ -1,13 +1,21 @@
 ---
 title: "MongoDB"
-description: "Declare a MongoDB 8.0 resource with root credentials, private access, and archive-based recovery."
+description: "Declare a MongoDB 8.0 datastore with root credentials, private access, and archive-based recovery."
+icon: "/assets/database-logos/mongodb.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mongodb.webp"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar's `mongodb` preset runs the reviewed MongoDB 8.0 image on amd64 or arm64.
 It listens on port `27017`, stores data in `/data/db`, and authenticates against
 the `admin` database for health checks and managed operations.
 
-## Declare the resource
+## Declare the datastore
 
 ```yaml title=".towbar/datastores/mongodb.datastore.yml" highlight={3,14-17,19}
 id: mongodb
@@ -40,12 +48,12 @@ empty data volume.
 | `MONGO_INITDB_ROOT_PASSWORD` | Root password used by health, backup, and restore |
 
 Create application-specific databases and users after MongoDB is ready. Keep
-those credentials with the consuming app rather than reusing the root account.
+those credentials with the consuming service rather than reusing the root account.
 
-## Connect from an app
+## Connect from a service
 
 Containers on the `application` network can reach `mongodb:27017`. Include the
-appropriate authentication database in the app's secret connection string. The
+appropriate authentication database in the service's secret connection string. The
 optional tunnel binds `17017` only to server loopback for access over SSH.
 
 ## Initialization and credential changes

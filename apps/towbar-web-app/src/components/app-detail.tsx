@@ -201,10 +201,10 @@ export function AppDetail() {
             ) : null}
             <ActionButton
               confirm={{
-                title: "Deploy this app?",
+                title: "Deploy this service?",
                 description:
-                  "Queue a new app deployment. A successful deployment will replace the running release.",
-                actionLabel: "Deploy app",
+                  "Queue a new service deployment. A successful deployment will replace the running release.",
+                actionLabel: "Deploy service",
               }}
               action={() =>
                 api.post<{ deployment: Deployment }>(
@@ -451,7 +451,7 @@ export function AppDetail() {
               <DeploymentTable
                 deployableName={item.name}
                 deployments={orderedDeployments}
-                emptyDescription="Use Deploy when this app is ready."
+                emptyDescription="Use Deploy when this service is ready."
               />
             ),
           },

@@ -68,10 +68,10 @@ Removing an entity or one of its environment entries archives that instance
 after a successful sync. A failed sync preserves the last valid configuration
 and saved secret values.
 
-## Route notifications for one app or resource
+## Route notifications for one service or datastore
 
 Workspace destinations in **Manage → Notifications** receive events across all
-apps and resources. Add `notifications` to an app, Compose workload, or resource
+services and datastores. Add `notifications` to an app, Compose workload, or resource
 file to send that entity's events to additional destinations. These subscriptions
 take effect when the environment sync succeeds; no deployment is needed.
 
@@ -102,13 +102,13 @@ notifications:
 
 Each destination must enable at least one category. Deployments includes
 previews; Alerts & Incidents includes service health and Scout alerts. The same
-shape works in resource files. Use `messageThreadId` only for a Telegram forum
+shape works in datastore files. Use `messageThreadId` only for a Telegram forum
 topic. Webhook push is available only as a workspace destination.
 
 Keep SMTP, Slack bot, Discord webhook token, and Telegram bot credentials in
 `/etc/towbar/towbar.yml`. A manifest destination sends only while its provider
 is configured there. For Discord, `webhookId` must match a runtime-configured
-webhook pair. The app or resource **Monitor → Notifications** page shows the
+webhook pair. The service or datastore **Monitor → Notifications** page shows the
 synced destinations and subscriptions without edit controls. Use **Manage →
 Notifications → Health → Deliveries** to inspect delivery history for all
 entities.
@@ -156,7 +156,7 @@ synced environment. A missing value blocks deployment rather than sync. See
 
 ## Join a private network
 
-Apps and resources can share a Docker network. Resource aliases default to the
+Services and datastores can share a Docker network. Resource aliases default to the
 resource ID; an SSH tunnel binds only to server loopback:
 
 ```yaml title=".towbar/datastores/postgres.datastore.yml" highlight={4-8}

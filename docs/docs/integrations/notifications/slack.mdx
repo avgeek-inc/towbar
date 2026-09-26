@@ -1,7 +1,15 @@
 ---
 title: "Slack"
 description: "Connect a Slack bot, add channel IDs, and verify notification delivery."
+icon: "/assets/integration-logos/slack.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/slack.svg"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar posts operational notifications through one Slack bot token. Create a Slack app with a bot allowed to post messages, install it in the intended workspace, and invite the bot to each target channel. Copy the channel ID rather than the display name so channel renames do not change routing.
 
@@ -20,7 +28,7 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 
 Use the row's test action to send a sample notification. If Slack rejects it, verify the bot token, app installation, posting permission, channel ID, and channel membership. A private channel must include the bot. Use [delivery history](/docs/integrations/notifications#delivery-history) for the provider-safe error and retry state. A successful response proves Slack accepted the post, not that someone saw it.
 
-For a single workload, additional Slack channel IDs can be declared in its [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Those appear read-only under the entity's **Monitor → Notifications** page after sync. Keep the bot token in YAML, never in the manifest. Rotate it by applying new YAML, restarting Towbar, and testing a destination before revoking the old token.
+For a single workload, additional Slack channel IDs can be declared in its [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Those appear read-only under the entity's **Monitor → Notifications** page after sync. Keep the bot token in YAML, never in the manifest. Rotate it by applying new YAML, restarting Towbar, and testing a destination before revoking the old token.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

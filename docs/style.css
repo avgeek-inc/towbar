@@ -5,9 +5,121 @@
   --towbar-on-yellow: oklch(1 0 0);
 }
 .dark {
-  --towbar-yellow: oklch(0.68 0.15 85);
+  --towbar-yellow: oklch(0.71 0.12 78);
   --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
   --towbar-on-yellow: oklch(0.23 0.01 85);
+}
+/* The page icon and title form one heading; the same asset appears in navigation. */
+#content-area:has(.towbar-doc-brand-logo) #page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#content-area:has(.towbar-doc-brand-logo) #page-title::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  background: var(--towbar-doc-brand) center / contain no-repeat;
+}
+.towbar-doc-brand-logo {
+  display: none;
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/postgresql.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/postgresql.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mysql.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mysql.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mariadb.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mariadb.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mongodb.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mongodb.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/redis.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/redis.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/dragonfly.svg"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/dragonfly.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/keydb.svg"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/keydb.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/clickhouse.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/clickhouse.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/github.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/github.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/gitlab.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/gitlab.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/docker.webp"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/docker.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/aws.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/aws.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/gcp.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/gcp.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/cloudflare.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/cloudflare.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/infisical.webp"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/infisical.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/doppler.ico"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/doppler.ico");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/slack.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/slack.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/discord.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/discord.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/telegram.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/telegram.svg");
 }
 #navbar a:has(> .bg-primary-dark) > .bg-primary-dark {
   background-color: var(--towbar-yellow);

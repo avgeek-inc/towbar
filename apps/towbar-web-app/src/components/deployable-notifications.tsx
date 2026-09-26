@@ -113,8 +113,8 @@ export function DeployableNotifications({
         <EmptyState.Header>
           <EmptyState.Title>No notification destinations</EmptyState.Title>
           <EmptyState.Description>
-            Add destinations to this app or resource manifest, then sync the
-            repository to receive its notifications here.
+            Add destinations to this service or datastore manifest, then sync
+            the repository to receive its notifications here.
           </EmptyState.Description>
         </EmptyState.Header>
       </EmptyState>

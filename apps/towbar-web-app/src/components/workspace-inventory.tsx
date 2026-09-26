@@ -64,6 +64,7 @@ import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerIpLink } from "./source-inventory";
 import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { serviceTypeLabel } from "./service-type";
 
 const inventoryLayouts = ["grouped", "unified"] as const;
 
@@ -303,6 +304,17 @@ function DeployableInventoryTable({
       header: kind === "app" ? "Service" : "Datastore",
       key: "name",
     },
+    ...(kind === "app"
+      ? [
+          {
+            cell: (item: App | Resource) =>
+              isApp(item) ? serviceTypeLabel(item) : null,
+            className: "min-w-28 whitespace-nowrap",
+            header: "Type",
+            key: "type",
+          },
+        ]
+      : []),
     {
       cell: (item) => (
         <InstanceEnvironmentLabel environment={item.environment} />
@@ -486,9 +498,9 @@ function ServerInventory({
         return (
           <span className="inline-flex items-center gap-5 whitespace-nowrap">
             <TooltipText
-              aria-label={formatCount(appCount, "app")}
+              aria-label={formatCount(appCount, "service")}
               className="inline-flex items-center gap-1.5"
-              tooltip={formatCount(appCount, "app")}
+              tooltip={formatCount(appCount, "service")}
             >
               <HugeiconsIcon
                 aria-hidden="true"
@@ -498,9 +510,9 @@ function ServerInventory({
               <span className="tabular-nums">{appCount}</span>
             </TooltipText>
             <TooltipText
-              aria-label={formatCount(resourceCount, "resource")}
+              aria-label={formatCount(resourceCount, "datastore")}
               className="inline-flex items-center gap-1.5"
-              tooltip={formatCount(resourceCount, "resource")}
+              tooltip={formatCount(resourceCount, "datastore")}
             >
               <HugeiconsIcon
                 aria-hidden="true"

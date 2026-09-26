@@ -7,7 +7,7 @@ Towbar supports manual restores with validation and rollback protection for mani
 
 ## Dedicated restore page
 
-Restore workflows are managed on a dedicated page under **Resource → Settings → Restore** in the secondary sidebar:
+Restore workflows are managed on a dedicated page under **Datastore → Settings → Restore** in the secondary sidebar:
 
 - **Restore source card**: Highlights the authoritative storage provider configuration and its exact object location.
 - **Restorable backups table**: Displays all retained backups from the authoritative provider along with their size, engine, format, and restore-assurance status.
@@ -45,7 +45,7 @@ The target Server must be prepared, have a healthy current Resource release, use
 
 ## Restore flow
 
-1. Open **Resource → Settings → Restore**.
+1. Open **Datastore → Settings → Restore**.
 2. Select a restore-ready retained backup from the table and choose **Restore**.
 3. In the confirmation dialog, enter an operator reason (at least 10 characters) and type the Resource name exactly.
 4. Towbar serializes the restore operation with active deployments, backups, cleanups, and other work on the target Server.

@@ -313,7 +313,7 @@ function SyncChanges({
     <ResourceTable
       ariaLabel="Repository sync changes"
       columns={changeColumns}
-      emptyDescription="The manifest matched the current apps, resources, and servers."
+      emptyDescription="The manifest matched the current services, datastores, and servers."
       emptyTitle="No inventory changes"
       getRowKey={(change) => `${change.kind}:${change.id}:${change.action}`}
       items={changes}

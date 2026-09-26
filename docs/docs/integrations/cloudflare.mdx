@@ -1,7 +1,15 @@
 ---
 title: "Cloudflare"
 description: "Connect Cloudflare DNS and tunnels for workload ingress and TLS."
+icon: "/assets/integration-logos/cloudflare.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/cloudflare.svg"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar uses one installation-wide Cloudflare integration for owned DNS records, DNS-validated TLS, and tunnel ingress. Create a scoped account API token under Cloudflare's **Manage Account → Account API Tokens** with **Zone → Zone → Read**, **Zone → DNS → Edit**, and **Zone → Zone Settings → Read** for the intended zones. Zone Settings Read lets Towbar verify Full (strict) SSL/TLS mode. The token stays in the root-owned control-plane YAML file; workloads choose their routing policy in the manifest.
 

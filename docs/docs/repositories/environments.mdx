@@ -20,7 +20,7 @@ Choose **Edit branch** on the environment row, search the available branches, an
 
 If the branch is unreadable, missing the selected environment, or contains invalid configuration, the sync fails and Towbar retains the last valid inventory and saved secret values. Review the sync issue, correct the branch, and retry.
 
-An app or resource can override its server and other allowed fields per environment:
+A service or datastore can override its server and other allowed fields per environment:
 
 ```yaml title=".towbar/services/web.service.yml"
 id: web

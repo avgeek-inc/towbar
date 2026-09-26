@@ -22,6 +22,7 @@ import { DeployableInventoryTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerHardwareDescription } from "./server-hardware";
+import { serviceTypeLabel } from "./service-type";
 import { InlineLink } from "@/components/page-parts";
 import {
   getActiveDeploymentStates,
@@ -46,6 +47,12 @@ function appColumns(
       className: "min-w-64",
       header: "Service",
       key: "name",
+    },
+    {
+      cell: (app) => serviceTypeLabel(app),
+      className: "min-w-28 whitespace-nowrap",
+      header: "Type",
+      key: "type",
     },
     {
       cell: (app) => <InstanceEnvironmentLabel environment={app.environment} />,

@@ -7,7 +7,7 @@ A sync validates an immutable repository commit and updates Towbar's inventory. 
 
 ## Review a sync
 
-Open a Repository's **Environments** page and inspect the latest sync for its commit, outcome, and issues. A successful sync can add or update apps and resources, archive removed IDs, and update notification subscriptions. Invalid configuration fails atomically; the last valid configuration remains active.
+Open a Repository's **Environments** page and inspect the latest sync for its commit, outcome, and issues. A successful sync can add or update services and datastores, archive removed IDs, and update notification subscriptions. Invalid configuration fails atomically; the last valid configuration remains active.
 
 Pushes to a mapped branch start reconciliation through the source-control webhook. Use **Sync now** when you need to inspect the current branch state immediately. If no update arrives, check the integration's repository access and webhook delivery before retrying.
 

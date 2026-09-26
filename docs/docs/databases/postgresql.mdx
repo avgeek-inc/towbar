@@ -1,13 +1,21 @@
 ---
 title: "PostgreSQL"
-description: "Declare a PostgreSQL 17 resource, its initialization variables, networking, persistence, and recovery policy."
+description: "Declare a PostgreSQL 17 datastore, its initialization variables, networking, persistence, and recovery policy."
+icon: "/assets/database-logos/postgresql.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/postgresql.webp"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar's `postgres` preset runs the reviewed PostgreSQL 17 Alpine image on amd64
 or arm64. It listens on port `5432`, stores data in a managed volume at
 `/var/lib/postgresql/data`, and uses `pg_isready` for authenticated readiness.
 
-## Declare the resource
+## Declare the datastore
 
 ```yaml title=".towbar/datastores/postgres.datastore.yml" highlight={3,14-18,20}
 id: postgres
@@ -32,7 +40,7 @@ environments:
     server: 192.0.2.10
 ```
 
-Save all three values under **Resource → Settings → Secrets** for production.
+Save all three values under **Datastore → Settings → Secrets** for production.
 `POSTGRES_PASSWORD` is required by Towbar. Declaring `POSTGRES_USER` and
 `POSTGRES_DB` makes the application role and initial database explicit instead
 of relying on the image defaults of `postgres`.
@@ -43,10 +51,10 @@ of relying on the image defaults of `postgres`.
 | `POSTGRES_DB`       | Initial database and the target used by Towbar's health check |
 | `POSTGRES_PASSWORD` | Password required for initialization and managed operations   |
 
-## Connect from an app
+## Connect from a service
 
-An app on the `application` network can connect to `postgres:5432`. Store its
-connection URL as an app runtime secret, for example
+A service on the `application` network can connect to `postgres:5432`. Store its
+connection URL as an service runtime secret, for example
 `postgresql://USER:PASSWORD@postgres:5432/DATABASE`. Do not commit the URL or
 password to either manifest.
 

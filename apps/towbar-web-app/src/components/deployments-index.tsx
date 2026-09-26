@@ -297,7 +297,7 @@ export function DeploymentsIndex() {
             emptyDescription={
               params.size
                 ? "Try changing or clearing the filters."
-                : "Deploy an app or resource to see its deployment history here."
+                : "Deploy a service or datastore to see its deployment history here."
             }
             getRowHref={deploymentHref}
             getRowKey={(item) => item.id}

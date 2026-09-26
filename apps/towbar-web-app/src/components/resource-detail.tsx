@@ -366,7 +366,7 @@ export function ResourceDetail() {
         <DeploymentTable
           deployableName={item.name}
           deployments={orderedDeployments}
-          emptyDescription="Use Deploy when this resource is ready."
+          emptyDescription="Use Deploy when this datastore is ready."
         />
       ),
     },
@@ -475,10 +475,10 @@ export function ResourceDetail() {
             ) : null}
             <ActionButton
               confirm={{
-                title: "Deploy this resource?",
+                title: "Deploy this datastore?",
                 description:
-                  "Queue a new resource deployment. This may replace its running container and briefly interrupt connections.",
-                actionLabel: "Deploy resource",
+                  "Queue a new datastore deployment. This may replace its running container and briefly interrupt connections.",
+                actionLabel: "Deploy datastore",
               }}
               action={() =>
                 api.post<{ deployment: Deployment }>(

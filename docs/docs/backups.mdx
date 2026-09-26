@@ -84,13 +84,13 @@ environments:
   production: {}
 ```
 
-Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Repository and open **Resource → Settings → Backup**.
+Replace the host and storage values, then save `POSTGRES_PASSWORD` in the resource's runtime secrets. Sync the Repository and open **Datastore → Settings → Backup**.
 
 Schedules use five-field UTC cron expressions and cannot run more frequently than hourly. Retention accepts 1–100 backups and defaults to 7. Omitting `schedule` leaves backups manual.
 
 ## Backup management UI
 
-In the secondary sidebar under **Resource → Settings → Backup**, Towbar provides an operational dashboard for your database backups:
+In the secondary sidebar under **Datastore → Settings → Backup**, Towbar provides an operational dashboard for your database backups:
 
 1. **Credentials & health alert**: Displays an immediate warning if a manifest destination is not enabled by the Towbar YAML configuration.
 2. **Provider destination tabs**: Each configured destination (`AWS S3`, `Cloudflare R2`, generic S3-compatible storage, `Google Cloud Storage`) appears with its provider identity and exact object location.

@@ -35,7 +35,7 @@ For a public installation, remove its DNS record and firewall rules separately i
 
 ## Permanently remove control-plane data
 
-Do this only after verifying the retained backup and deciding that this installation's database is no longer needed. The database volume also holds Temporal history. It does not hold app or resource volumes on deployment targets.
+Do this only after verifying the retained backup and deciding that this installation's database is no longer needed. The database volume also holds Temporal history. It does not hold service or datastore volumes on deployment targets.
 
 Use the CLI so the command targets the installed release and configuration:
 

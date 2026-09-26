@@ -9,7 +9,7 @@
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#A16207" },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#C99539" },
   "appearance": { "default": "system" },
   "icons": { "library": "lucide" },
   "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
@@ -124,6 +124,7 @@
               "docs/databases/index",
               {
                 "group": "Engines",
+                "icon": "database",
                 "pages": [
                   "docs/databases/postgresql",
                   "docs/databases/mysql",
@@ -195,14 +196,17 @@
           { "group": "Overview", "pages": ["docs/integrations/index"] },
           {
             "group": "Source control",
+            "icon": "git-branch",
             "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
           },
           {
             "group": "Container registries",
+            "icon": "container",
             "pages": ["docs/integrations/oci-registry"]
           },
           {
             "group": "Backup providers",
+            "icon": "cloud-upload",
             "pages": [
               "docs/integrations/backup-providers",
               "docs/integrations/aws",
@@ -213,6 +217,7 @@
           },
           {
             "group": "External secrets",
+            "icon": "key-round",
             "pages": [
               "docs/integrations/infisical",
               "docs/integrations/doppler"
@@ -220,6 +225,7 @@
           },
           {
             "group": "Platform services",
+            "icon": "cloud",
             "pages": [
               "docs/integrations/platform-services",
               "docs/integrations/cloudflare"
@@ -227,6 +233,7 @@
           },
           {
             "group": "Notifications",
+            "icon": "bell",
             "pages": [
               "docs/integrations/notifications",
               "docs/integrations/notifications/email",

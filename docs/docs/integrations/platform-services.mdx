@@ -3,6 +3,6 @@ title: "Platform services"
 description: "Connect services that support workload routing and infrastructure operations."
 ---
 
-[Cloudflare](/docs/integrations/cloudflare) is Towbar's platform-service integration for DNS, DNS-validated TLS, and tunnel ingress. Configure its account identity and token in the root-owned control-plane YAML file, then select the desired routing behavior in each app or resource manifest.
+[Cloudflare](/docs/integrations/cloudflare) is Towbar's platform-service integration for DNS, DNS-validated TLS, and tunnel ingress. Configure its account identity and token in the root-owned control-plane YAML file, then select the desired routing behavior in each service or datastore manifest.
 
 The integration's **Configured** state means its required values passed local validation. A route deployment tests whether its token can actually reach and modify the intended zone. Follow the [Cloudflare setup guide](/docs/integrations/cloudflare), then [Domains and TLS](/docs/domains-tls) for ownership, certificate, and ingress behavior.

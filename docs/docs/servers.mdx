@@ -197,7 +197,7 @@ Container and image cleanup is separate from permanent volume deletion. Towbar c
 
 ## Remove a server
 
-Admins can remove a server from **Danger zone → Remove server**, including a server still referenced by app and resource manifests. Active checks, preparations, deployments, resource operations, and vulnerability scans must finish first.
+Admins can remove a server from **Danger zone → Remove server**, including a server still referenced by service and datastore manifests. Active checks, preparations, deployments, resource operations, and vulnerability scans must finish first.
 
 Removing a server stops Towbar management and scheduled checks, archives its assigned inventory, deletes its stored SSH and Cloudflare credentials, revokes its trusted host keys, and closes remaining Preview records. It does not terminate the cloud instance, stop services, or erase Docker data.
 

@@ -28,7 +28,7 @@ container:
   network: application
 ```
 
-For a PostgreSQL resource with alias `postgres`, the Service can connect to `postgres:5432`. Put the credential-bearing URL in an [app runtime secret](/docs/secrets), not in the manifest. A Docker network on one host does not connect containers across different servers.
+For a PostgreSQL resource with alias `postgres`, the Service can connect to `postgres:5432`. Put the credential-bearing URL in an [service runtime secret](/docs/secrets), not in the manifest. A Docker network on one host does not connect containers across different servers.
 
 ## Persistent storage
 

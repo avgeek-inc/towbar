@@ -1,13 +1,21 @@
 ---
 title: "ClickHouse"
-description: "Declare a ClickHouse 25.8 resource with an explicit user, database, private access, and native recovery."
+description: "Declare a ClickHouse 25.8 datastore with an explicit user, database, private access, and native recovery."
+icon: "/assets/database-logos/clickhouse.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/clickhouse.webp"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar's `clickhouse` preset runs ClickHouse 25.8 Alpine on amd64 or arm64. It
 uses HTTP port `8123`, stores data in `/var/lib/clickhouse`, and performs
 authenticated checks with `clickhouse-client`.
 
-## Declare the resource
+## Declare the datastore
 
 ```yaml title=".towbar/datastores/clickhouse.datastore.yml" highlight={3,14-18,20}
 id: clickhouse
@@ -41,10 +49,10 @@ makes the initial application database explicit.
 | `CLICKHOUSE_PASSWORD` | Credential used by health, backup, and restore operations |
 | `CLICKHOUSE_DB`       | Initial application database                              |
 
-## Connect from an app
+## Connect from a service
 
 Containers on the `application` network can use the ClickHouse HTTP interface at
-`clickhouse:8123`. Save credentials and the final connection URL in the app's
+`clickhouse:8123`. Save credentials and the final connection URL in the service's
 runtime secrets. The optional tunnel binds `18123` only to server loopback.
 
 ## Initialization and credential changes

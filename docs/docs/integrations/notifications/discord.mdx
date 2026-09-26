@@ -1,7 +1,15 @@
 ---
 title: "Discord"
 description: "Register one or more Discord webhooks and choose events for each."
+icon: "/assets/integration-logos/discord.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/discord.svg"
+  alt=""
+  aria-hidden="true"
+/>
 
 Create an incoming webhook for each Discord channel or use case that needs separate subscriptions. Discord gives each webhook an ID and token in a URL shaped like `https://discord.com/api/webhooks/<id>/<token>`. Store those two parts separately in Towbar's protected YAML file; the token is not shown in the dashboard.
 
@@ -23,7 +31,7 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 
 Use **Test** to send a sample notification after confirmation. Check the intended Discord channel and the [delivery result](/docs/integrations/notifications#delivery-history). If delivery fails, check that the webhook still exists, its ID and token remain paired, and the target channel permits webhook posts. Adding or removing a pair requires editing YAML, validating, and restarting Towbar. Rotate an exposed webhook in Discord and update its token in Towbar; preserve the ID only when Discord preserves it.
 
-Additional Discord destinations for one app or resource can be declared in its [manifest](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Do not put webhook tokens in that manifest.
+Additional Discord destinations for one service or datastore can be declared in its [manifest](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Do not put webhook tokens in that manifest.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

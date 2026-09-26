@@ -1,13 +1,21 @@
 ---
 title: "MySQL"
-description: "Declare a MySQL 8.4 resource with explicit database credentials, private networking, and recovery settings."
+description: "Declare a MySQL 8.4 datastore with explicit database credentials, private networking, and recovery settings."
+icon: "/assets/database-logos/mysql.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mysql.webp"
+  alt=""
+  aria-hidden="true"
+/>
 
 Towbar's `mysql` preset runs the reviewed MySQL 8.4 image on amd64 or arm64. It
 listens on port `3306`, stores data in `/var/lib/mysql`, and verifies readiness
 with an authenticated `mysqladmin ping`.
 
-## Declare the resource
+## Declare the datastore
 
 ```yaml title=".towbar/datastores/mysql.datastore.yml" highlight={3,14-19,21}
 id: mysql
@@ -46,10 +54,10 @@ initialization.
 
 Use different values for the root and application passwords.
 
-## Connect from an app
+## Connect from a service
 
 Containers on the `application` network can reach `mysql:3306`. Store the
-application connection URL or individual fields in the app's runtime secrets.
+application connection URL or individual fields in the service's runtime secrets.
 The optional tunnel exposes server-local port `13306` only through SSH.
 
 ## Initialization and credential changes
