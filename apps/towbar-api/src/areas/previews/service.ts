@@ -385,6 +385,7 @@ async function reconcilePreviewPullRequest(event: PreviewPullRequestEvent) {
   for (const candidate of relevant) {
     await assertRequiredInstanceSecrets({
       appId: candidate.appId,
+      config: candidate.config,
       sourceId: event.sourceId,
       workspaceId: source.workspaceId,
       preview: true,

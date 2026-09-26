@@ -22,6 +22,8 @@
           },
           "provider": {
             "anyOf": [
+              { "type": "string", "const": "infisical" },
+              { "type": "string", "const": "doppler" },
               { "type": "string", "const": "github" },
               { "type": "string", "const": "gitlab" },
               { "type": "string", "const": "cloudflare" },
@@ -29,9 +31,7 @@
               { "type": "string", "const": "s3" },
               { "type": "string", "const": "r2" },
               { "type": "string", "const": "gcs" },
-              { "type": "string", "const": "aws" },
-              { "type": "string", "const": "infisical" },
-              { "type": "string", "const": "doppler" }
+              { "type": "string", "const": "aws" }
             ]
           }
         },
@@ -1840,8 +1840,8 @@
           },
           "stage": {
             "anyOf": [
-              { "type": "string", "const": "build" },
               { "type": "string", "const": "deployment" },
+              { "type": "string", "const": "build" },
               { "type": "string", "const": "pre_deploy" },
               { "type": "string", "const": "post_deploy" }
             ]
@@ -2124,9 +2124,6 @@
                 { "type": "string", "const": "server.remove" },
                 { "type": "string", "const": "server.terminal" },
                 { "type": "string", "const": "integration.manage" },
-                { "type": "string", "const": "secret.update" },
-                { "type": "string", "const": "secret.list" },
-                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "system.read" },
                 { "type": "string", "const": "system.manage" },
                 { "type": "string", "const": "repository.update" },
@@ -2142,6 +2139,9 @@
                 { "type": "string", "const": "resource.read" },
                 { "type": "string", "const": "resource.backup" },
                 { "type": "string", "const": "resource.restore" },
+                { "type": "string", "const": "secret.update" },
+                { "type": "string", "const": "secret.list" },
+                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "sharedSecret.update" },
                 { "type": "string", "const": "sharedSecret.list" },
                 { "type": "string", "const": "sharedSecret.reveal" },
@@ -2233,9 +2233,6 @@
                 { "type": "string", "const": "server.remove" },
                 { "type": "string", "const": "server.terminal" },
                 { "type": "string", "const": "integration.manage" },
-                { "type": "string", "const": "secret.update" },
-                { "type": "string", "const": "secret.list" },
-                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "system.read" },
                 { "type": "string", "const": "system.manage" },
                 { "type": "string", "const": "repository.update" },
@@ -2251,6 +2248,9 @@
                 { "type": "string", "const": "resource.read" },
                 { "type": "string", "const": "resource.backup" },
                 { "type": "string", "const": "resource.restore" },
+                { "type": "string", "const": "secret.update" },
+                { "type": "string", "const": "secret.list" },
+                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "sharedSecret.update" },
                 { "type": "string", "const": "sharedSecret.list" },
                 { "type": "string", "const": "sharedSecret.reveal" },
@@ -2846,25 +2846,24 @@
         },
         "required": ["domain", "enabled", "ttlHours"]
       },
+      "Response_159": {
+        "type": "object",
+        "properties": {
+          "integration": { "type": "string", "const": "infisical" },
+          "project": { "type": "string" },
+          "environmentSlug": { "type": "string" },
+          "secretPath": { "type": "string" }
+        },
+        "required": ["integration", "project"]
+      },
       "Response_160": {
         "type": "object",
         "properties": {
-          "integration": { "type": "string" },
-          "secret": { "type": "string" },
-          "use": {
-            "anyOf": [
-              { "type": "string", "const": "build" },
-              { "type": "string", "const": "runtime" }
-            ]
-          },
-          "field": { "type": "string" },
-          "version": { "type": "string" }
+          "integration": { "type": "string", "const": "doppler" },
+          "project": { "type": "string" },
+          "config": { "type": "string" }
         },
-        "required": ["integration", "secret", "use"]
-      },
-      "Record_159": {
-        "type": "object",
-        "additionalProperties": { "$ref": "#/components/schemas/Response_160" }
+        "required": ["integration", "project"]
       },
       "Response_161": {
         "type": "object",
@@ -2964,7 +2963,12 @@
           "id": { "type": "string" },
           "name": { "type": "string" },
           "preview": { "$ref": "#/components/schemas/Response_158" },
-          "externalSecrets": { "$ref": "#/components/schemas/Record_159" },
+          "externalSecrets": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/Response_159" },
+              { "$ref": "#/components/schemas/Response_160" }
+            ]
+          },
           "ingress": {
             "anyOf": [
               { "$ref": "#/components/schemas/Response_161" },
@@ -3109,25 +3113,24 @@
           }
         }
       },
+      "Response_176": {
+        "type": "object",
+        "properties": {
+          "integration": { "type": "string", "const": "infisical" },
+          "project": { "type": "string" },
+          "environmentSlug": { "type": "string" },
+          "secretPath": { "type": "string" }
+        },
+        "required": ["integration", "project"]
+      },
       "Response_177": {
         "type": "object",
         "properties": {
-          "integration": { "type": "string" },
-          "secret": { "type": "string" },
-          "use": {
-            "anyOf": [
-              { "type": "string", "const": "build" },
-              { "type": "string", "const": "runtime" }
-            ]
-          },
-          "field": { "type": "string" },
-          "version": { "type": "string" }
+          "integration": { "type": "string", "const": "doppler" },
+          "project": { "type": "string" },
+          "config": { "type": "string" }
         },
-        "required": ["integration", "secret", "use"]
-      },
-      "Record_176": {
-        "type": "object",
-        "additionalProperties": { "$ref": "#/components/schemas/Response_177" }
+        "required": ["integration", "project"]
       },
       "Response_179": {
         "type": "object",
@@ -3167,7 +3170,12 @@
           },
           "notifications": { "$ref": "#/components/schemas/Response_171" },
           "description": { "type": "string" },
-          "externalSecrets": { "$ref": "#/components/schemas/Record_176" },
+          "externalSecrets": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/Response_176" },
+              { "$ref": "#/components/schemas/Response_177" }
+            ]
+          },
           "container": { "$ref": "#/components/schemas/Response_178" },
           "context": { "type": "string" },
           "deployment": {},
@@ -3349,7 +3357,12 @@
         "type": "object",
         "properties": {
           "notifications": { "$ref": "#/components/schemas/Response_126" },
-          "externalSecrets": { "$ref": "#/components/schemas/Record_159" },
+          "externalSecrets": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/Response_159" },
+              { "$ref": "#/components/schemas/Response_160" }
+            ]
+          },
           "ingress": {
             "anyOf": [
               { "$ref": "#/components/schemas/Response_161" },
@@ -5661,9 +5674,6 @@
                 { "type": "string", "const": "server.remove" },
                 { "type": "string", "const": "server.terminal" },
                 { "type": "string", "const": "integration.manage" },
-                { "type": "string", "const": "secret.update" },
-                { "type": "string", "const": "secret.list" },
-                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "system.read" },
                 { "type": "string", "const": "system.manage" },
                 { "type": "string", "const": "repository.update" },
@@ -5679,6 +5689,9 @@
                 { "type": "string", "const": "resource.read" },
                 { "type": "string", "const": "resource.backup" },
                 { "type": "string", "const": "resource.restore" },
+                { "type": "string", "const": "secret.update" },
+                { "type": "string", "const": "secret.list" },
+                { "type": "string", "const": "secret.reveal" },
                 { "type": "string", "const": "sharedSecret.update" },
                 { "type": "string", "const": "sharedSecret.list" },
                 { "type": "string", "const": "sharedSecret.reveal" },

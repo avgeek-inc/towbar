@@ -193,6 +193,12 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
+apps[2]!.config.externalSecrets = {
+  integration: "infisical",
+  project: "00000000-0000-4000-8000-000000000001",
+  environmentSlug: "prod",
+  secretPath: "example-admin",
+};
 apps[1]!.config.notifications = {
   email: [
     {
@@ -300,6 +306,11 @@ const resources: FixtureResource[] = [
     servers[1]!,
   ),
 ];
+resources[2]!.config.externalSecrets = {
+  integration: "doppler",
+  project: "example-analytics",
+  config: "prd",
+};
 resources[0]!.config.notifications = {
   email: [
     {
@@ -448,6 +459,7 @@ const fixtureSecretKeys = new Map<string, string[]>();
 const fixtureSecretVersions = new Map<string, string>();
 const fixtureSecretValues = new Map<string, Record<string, string>>();
 for (const app of apps) {
+  if (app.id === apps[2]!.id) continue;
   fixtureSecretKeys.set(`${app.id}:production:deployment`, [
     "DATABASE_URL",
     "SESSION_SECRET",

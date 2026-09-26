@@ -562,7 +562,12 @@ function ResourceSettings({
     {
       value: "secrets",
       label: "Secrets",
-      content: <ResourceSecrets resourceId={resourceId} />,
+      content: (
+        <ResourceSecrets
+          resourceId={resourceId}
+          externalSource={item.config.externalSecrets}
+        />
+      ),
     },
     {
       value: "notifications",

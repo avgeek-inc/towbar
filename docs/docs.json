@@ -141,13 +141,16 @@
             ]
           },
           {
-            "group": "Deployments and access",
+            "group": "Secrets",
             "pages": [
-              "docs/deployments",
-              "docs/previews",
-              "docs/domains-tls",
-              "docs/secrets"
+              "docs/secrets",
+              "docs/secrets/towbar",
+              "docs/secrets/external"
             ]
+          },
+          {
+            "group": "Deployments and access",
+            "pages": ["docs/deployments", "docs/previews", "docs/domains-tls"]
           }
         ]
       },
@@ -212,7 +215,6 @@
           {
             "group": "External secrets",
             "pages": [
-              "docs/integrations/external-secrets",
               "docs/integrations/infisical",
               "docs/integrations/doppler"
             ]

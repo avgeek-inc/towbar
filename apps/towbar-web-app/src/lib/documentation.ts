@@ -137,7 +137,7 @@ export const documentationTopics = {
     "Configure one OCI registry in the Towbar environment for private images and build transfers.",
   ),
   externalSecrets: guide(
-    "integrations/external-secrets",
+    "secrets/external",
     "Reference secrets from a configured Infisical or Doppler provider without storing their values in manifests.",
   ),
   infisical: guide(

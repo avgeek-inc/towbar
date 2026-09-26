@@ -25,7 +25,7 @@ import {
   appDeploymentSchema,
   buildServerSelectionSchema,
   composeWorkloadSchema,
-  externalSecretReferenceSchema,
+  externalSecretsSchema,
   ingressSchema,
   integrationReferenceSchema,
   rolloutStrategySchema,
@@ -505,9 +505,7 @@ export const appSchema = z
     context: repositoryPathSchema.optional(),
     buildServer: buildServerSelectionSchema.nullable().optional(),
     rollout: rolloutStrategySchema.optional(),
-    externalSecrets: z
-      .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
-      .optional(),
+    externalSecrets: externalSecretsSchema.optional(),
     ingress: ingressSchema.optional(),
     container: z
       .object({
@@ -581,26 +579,6 @@ export const appSchema = z
         path: ["buildServer"],
         message: "Prebuilt image deployments do not use a build server",
       });
-    }
-    const externalBuildSecrets = Object.entries(
-      app.externalSecrets ?? {},
-    ).filter(([, reference]) => reference.use === "build");
-    const buildSecretsSupported =
-      !app.deployment ||
-      app.deployment.type === "dockerfile" ||
-      app.deployment.type === "static";
-    if (externalBuildSecrets.length > 0 && !buildSecretsSupported) {
-      const deploymentType = app.deployment?.type ?? "unknown";
-      for (const [name] of externalBuildSecrets) {
-        context.addIssue({
-          code: "custom",
-          path: ["externalSecrets", name, "use"],
-          message:
-            deploymentType === "image"
-              ? "Prebuilt image deployments do not run a build and cannot use build secrets"
-              : `${deploymentType} builds do not support secret-safe build mounts; use runtime or a Dockerfile/static build`,
-        });
-      }
     }
     findDuplicates((app.jobs ?? []).map((job) => job.name)).forEach((name) =>
       context.addIssue({
@@ -874,9 +852,7 @@ export const resourceSchema = z
     autoDeploy: z.boolean().optional(),
     backup: resourceBackupSchema.optional(),
     notifications: manifestNotificationsSchema.optional(),
-    externalSecrets: z
-      .record(z.string().trim().min(1).max(256), externalSecretReferenceSchema)
-      .optional(),
+    externalSecrets: externalSecretsSchema.optional(),
     ingress: ingressSchema.optional(),
     id: z.string().trim().regex(appIdPattern),
     name: z.string().trim().min(1).max(120),
@@ -914,18 +890,6 @@ export const resourceSchema = z
     validateManagedResourceImage(resource, context);
     validateResourceConnectivity(resource, context);
     validateResourceBackupSupport(resource, context);
-    for (const [name, reference] of Object.entries(
-      resource.externalSecrets ?? {},
-    )) {
-      if (reference.use === "build") {
-        context.addIssue({
-          code: "custom",
-          message:
-            "Resources do not run source builds and only support runtime external secrets",
-          path: ["externalSecrets", name, "use"],
-        });
-      }
-    }
     const volumes = resource.container?.volumes ?? [];
     findDuplicates(volumes.map((volume) => volume.name)).forEach((name) =>
       context.addIssue({
@@ -1212,10 +1176,7 @@ export type NormalizedApp = {
     enabled: true;
     ttlHours: number;
   };
-  externalSecrets?: Record<
-    string,
-    z.infer<typeof externalSecretReferenceSchema>
-  >;
+  externalSecrets?: z.infer<typeof externalSecretsSchema>;
   ingress?: z.infer<typeof ingressSchema>;
   rollout?: z.infer<typeof rolloutStrategySchema>;
   server: string;
@@ -1225,10 +1186,7 @@ export type NormalizedApp = {
 
 export type NormalizedResource = {
   notifications?: ManifestNotifications;
-  externalSecrets?: Record<
-    string,
-    z.infer<typeof externalSecretReferenceSchema>
-  >;
+  externalSecrets?: z.infer<typeof externalSecretsSchema>;
   ingress?: z.infer<typeof ingressSchema>;
   access?: {
     sshTunnel: { hostPort: number };

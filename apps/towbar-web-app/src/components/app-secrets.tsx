@@ -23,7 +23,8 @@ import {
 
 import dynamic from "next/dynamic";
 import { ResponsiveChoice } from "./responsive-choice";
-import { SecretVariableTooltip } from "./secret-variable-tooltip";
+import { SecretReferenceTooltip } from "./secret-reference-tooltip";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
 import {
   managedSecretKeyError,
@@ -40,10 +41,12 @@ import {
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
+  App,
   AppSecretBinding,
   AppSecretStage,
   AppSecretsResponse,
 } from "@workspace/towbar-web-client";
+import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
@@ -54,6 +57,7 @@ import {
   FieldError,
 } from "@workspace/web-design-system/forms/field";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -78,11 +82,15 @@ const stageLabels: Record<AppSecretStage, string> = {
   post_deploy: "Post-deploy",
 };
 
+type ExternalSecretSource = NonNullable<App["config"]["externalSecrets"]>;
+
 export function AppSecrets({
   appId,
+  externalSource,
   previewsEnabled,
 }: {
   appId: string;
+  externalSource?: ExternalSecretSource;
   previewsEnabled: boolean;
 }) {
   const active = useDetailNavigation().section === "settings";
@@ -90,19 +98,30 @@ export function AppSecrets({
     <EnvironmentSecretSettings
       active={active}
       endpoint={`/v1/core/apps/${appId}/secrets`}
+      externalSource={externalSource}
       previewsEnabled={previewsEnabled}
     />
   );
 }
 
-export function ResourceSecrets({ resourceId }: { resourceId: string }) {
+export function ResourceSecrets({
+  resourceId,
+  externalSource,
+}: {
+  resourceId: string;
+  externalSource?: ExternalSecretSource;
+}) {
   const active = useDetailNavigation().section === "settings";
   const endpoint = `/v1/core/resources/${resourceId}/secrets`;
   const query = useApiQuery<AppSecretsResponse>(active ? endpoint : null);
   if (!active) return null;
   return (
     <div className="w-full">
-      <EnvironmentEditors endpoint={endpoint} query={query} />
+      <EnvironmentEditors
+        endpoint={endpoint}
+        externalSource={externalSource}
+        query={query}
+      />
     </div>
   );
 }
@@ -155,10 +174,12 @@ export function GlobalSecrets() {
 function EnvironmentSecretSettings({
   active,
   endpoint,
+  externalSource,
   previewsEnabled,
 }: {
   active: boolean;
   endpoint: string;
+  externalSource?: ExternalSecretSource;
   previewsEnabled: boolean;
 }) {
   const { search, update } = usePageQuery();
@@ -181,6 +202,7 @@ function EnvironmentSecretSettings({
       <EnvironmentEditors
         key={environment}
         endpoint={endpoint}
+        externalSource={externalSource}
         query={query}
         environment={environment}
         environments={environments}
@@ -207,12 +229,14 @@ function EnvironmentEditors({
   query,
   endpoint,
   environment,
+  externalSource,
   onEnvironmentChange,
   environments = [],
 }: {
   query: Query;
   endpoint: string;
   environment?: string;
+  externalSource?: ExternalSecretSource;
   environments?: string[];
   onEnvironmentChange?: (value: string) => void;
 }) {
@@ -269,11 +293,19 @@ function EnvironmentEditors({
           </div>
         ) : null}
       </div>
+      {binding?.stage === "deployment" && externalSource ? (
+        <ExternalSecretSourceCard source={externalSource} />
+      ) : null}
       {query.error ? (
         <QueryError message={query.error} />
       ) : !data ? (
         <QueryLoading />
-      ) : binding ? (
+      ) : binding &&
+        !(
+          externalSource &&
+          binding.stage === "deployment" &&
+          !binding.keys.length
+        ) ? (
         <SecretVariablesEditor
           key={`${endpoint}:${binding.environment}:${binding.stage}:${binding.revision}:${binding.inheritedRevisions.global}`}
           endpoint={endpoint}
@@ -283,6 +315,52 @@ function EnvironmentEditors({
         />
       ) : null}
     </div>
+  );
+}
+
+function ExternalSecretSourceCard({
+  source,
+}: {
+  source: ExternalSecretSource;
+}) {
+  const provider = source.integration;
+  return (
+    <Attributes
+      icon={<IntegrationProviderLogo provider={provider} />}
+      columns={2}
+      title="External secret source"
+      variant="card"
+    >
+      <Attributes.Item label="Provider">
+        {provider === "infisical" ? "Infisical" : "Doppler"}
+      </Attributes.Item>
+      <Attributes.Item label="Project">
+        <TypographyCode className="break-all">{source.project}</TypographyCode>
+      </Attributes.Item>
+      {source.integration === "infisical" ? (
+        <>
+          <Attributes.Item label="Environment slug">
+            <TypographyCode>{source.environmentSlug ?? "prod"}</TypographyCode>
+          </Attributes.Item>
+          <Attributes.Item label="Secret path">
+            <TypographyCode className="break-all">
+              {source.secretPath ?? "/"}
+            </TypographyCode>
+          </Attributes.Item>
+        </>
+      ) : (
+        <Attributes.Item label="Config">
+          {source.config ? (
+            <TypographyCode>{source.config}</TypographyCode>
+          ) : (
+            "Service token scope"
+          )}
+        </Attributes.Item>
+      )}
+      <Attributes.Item className="col-span-full" label="Runtime values">
+        Fetched at deployment; never displayed here
+      </Attributes.Item>
+    </Attributes>
   );
 }
 
@@ -647,12 +725,9 @@ function SecretVariablesEditor({
                       >
                         <div className="flex min-h-10 min-w-0 items-center gap-2">
                           <span className="flex min-w-0 flex-wrap items-center gap-2">
-                            <SecretVariableTooltip
-                              name={key}
-                              value={replacements[key] ?? ""}
-                              configured={configured}
-                              reveal={reveal}
-                            />
+                            <span className="break-all font-mono text-sm">
+                              {key}
+                            </span>
                             {binding.inheritedOrigins[key] ? (
                               <Chip
                                 size="small"
@@ -694,6 +769,19 @@ function SecretVariablesEditor({
                               configured={configured}
                               disabled={!canManage || busy}
                               reveal={reveal}
+                              revealReference={
+                                can("sharedSecret.reveal")
+                                  ? async (referenceKey) => {
+                                      const result = await api.post<{
+                                        value: string;
+                                      }>(
+                                        `/v1/core/settings/secrets/production/${binding.stage}/reveal`,
+                                        { key: referenceKey },
+                                      );
+                                      return result.value;
+                                    }
+                                  : undefined
+                              }
                               onChange={(value) =>
                                 setReplacements((current) => ({
                                   ...current,
@@ -861,6 +949,7 @@ function SecretValueInput({
   configured = false,
   disabled,
   reveal,
+  revealReference,
   onChange,
 }: {
   label: string;
@@ -868,6 +957,7 @@ function SecretValueInput({
   configured?: boolean;
   disabled: boolean;
   reveal?: () => Promise<string>;
+  revealReference?: (key: string) => Promise<string>;
   onChange: (value: string) => void;
 }) {
   const [visible, setVisible] = useState(!configured);
@@ -921,7 +1011,14 @@ function SecretValueInput({
   const hasReference =
     visible &&
     /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
-  return (
+  const references = [
+    ...displayedValue.matchAll(
+      /\{\{\s*globals\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/gu,
+    ),
+  ];
+  const referenceKey =
+    visible && references.length === 1 ? references[0]?.[1] : undefined;
+  const input = (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
         <HugeiconsIcon aria-hidden="true" icon={LockIcon} size={16} />
@@ -975,5 +1072,16 @@ function SecretValueInput({
         ) : null}
       </InputGroup.Suffix>
     </InputGroup>
+  );
+  return referenceKey ? (
+    <SecretReferenceTooltip
+      key={referenceKey}
+      reference={references[0]?.[0] ?? ""}
+      reveal={revealReference ? () => revealReference(referenceKey) : undefined}
+    >
+      {input}
+    </SecretReferenceTooltip>
+  ) : (
+    input
   );
 }

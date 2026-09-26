@@ -546,6 +546,7 @@ function AppSettings({ appId, item }: { appId: string; item: AppRecord }) {
       content: (
         <AppSecrets
           appId={appId}
+          externalSource={item.config.externalSecrets}
           previewsEnabled={item.config.preview?.enabled === true}
         />
       ),

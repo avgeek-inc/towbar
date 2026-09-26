@@ -100,17 +100,22 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
           },
           database,
         );
+        Object.assign(revisions, result.revisions);
+        return result.values;
+      }
+      function assertRequired(
+        stage: SecretStage,
+        values: Record<string, string>,
+      ) {
         const missing = requiredKeysForStage(
           deployment.requiredSecrets,
           stage,
-        ).filter((key) => !Object.hasOwn(result.values, key));
+        ).filter((key) => !Object.hasOwn(values, key));
         if (missing.length)
           throw unprocessable(
             `Required secrets missing for deployment (${stage}): ${missing.join(", ")}`,
             "REQUIRED_SECRETS_MISSING",
           );
-        Object.assign(revisions, result.revisions);
-        return result.values;
       }
       const runtime = await stage("deployment", true);
       const environment = await instanceSecretEnvironment(
@@ -133,6 +138,7 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
       rejectSecretCollisions(runtime, externalRuntime.values, "runtime");
       Object.assign(runtime, externalRuntime.values);
       Object.assign(revisions, externalRuntime.revisions);
+      assertRequired("deployment", runtime);
       requireResourcePasswords(resource ? app.kind : undefined, runtime);
       const build = await stage(
         "build",
@@ -150,6 +156,8 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
         Object.assign(build, externalBuild.values);
         Object.assign(revisions, externalBuild.revisions);
       }
+      if (!resource && deployment.kind === "deploy")
+        assertRequired("build", build);
       const hooks = {
         preDeploy: await stage(
           "pre_deploy",
@@ -164,6 +172,10 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
             Boolean(app.hooks.postDeploy),
         ),
       };
+      if (!resource && deployment.kind === "deploy" && app.hooks.preDeploy)
+        assertRequired("pre_deploy", hooks.preDeploy);
+      if (!resource && deployment.kind === "deploy" && app.hooks.postDeploy)
+        assertRequired("post_deploy", hooks.postDeploy);
       const cloudflare = cloudflareDnsCredential(app);
       const currentTunnelPolicy = tunnelPolicy(app);
       const tunnelIngress = currentTunnelPolicy?.ingress ?? null;

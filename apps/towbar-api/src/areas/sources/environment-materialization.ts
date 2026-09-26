@@ -310,12 +310,12 @@ function collectIntegrationReferences(
       ["registry"],
       `${entity.id}.deployment.registry`,
     );
-  for (const [name, secret] of Object.entries(entity.externalSecrets ?? {}))
+  if (entity.externalSecrets)
     add(
-      secret.integration,
+      entity.externalSecrets.integration,
       "secret",
       ["infisical", "doppler"],
-      `${entity.id}.externalSecrets.${name}.integration`,
+      `${entity.id}.externalSecrets.integration`,
     );
   if (entity.kind === "compose") {
     for (const [service, policy] of Object.entries(entity.services)) {
