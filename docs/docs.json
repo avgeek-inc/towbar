@@ -9,7 +9,7 @@
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#C99539" },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#B9872C" },
   "appearance": { "default": "system" },
   "icons": { "library": "lucide" },
   "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
