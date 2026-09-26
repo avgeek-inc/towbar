@@ -920,9 +920,7 @@ function SecretValueInput({
   const displayedValue = visible ? (configured ? (stored ?? "") : value) : "";
   const hasReference =
     visible &&
-    /\{\{\s*(?:globals|source)\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(
-      displayedValue,
-    );
+    /\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/u.test(displayedValue);
   return (
     <InputGroup fullWidth variant="secondary">
       <InputGroup.Prefix>
@@ -933,7 +931,7 @@ function SecretValueInput({
         className={
           hasReference ? "text-yellow-600 dark:text-yellow-400" : undefined
         }
-        type={visible ? "text" : "password"}
+        type="text"
         autoComplete="off"
         data-lpignore="true"
         data-1p-ignore

@@ -45,9 +45,8 @@ external and are not deleted by Source removal.
 Apps and Resources share the deployment ledger but remain separate API and UI
 entities. Resources support versioned images plus PostgreSQL and Redis presets.
 Editor-owned secrets are stored separately from immutable deployable snapshots.
-Matching-environment defaults resolve from Shared secrets to the Source and
-then the app or resource at execution time. Preview stages never use Production
-values.
+Apps and resources can explicitly reference workspace Shared secrets at
+execution time. Preview stages never use Production workload values.
 Successful release commits also persist the Docker image content digest and
 platform reported by the target host. Existing source, manifest, configuration,
 and selected-input digests remain the rest of the provenance record.

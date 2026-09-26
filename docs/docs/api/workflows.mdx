@@ -64,7 +64,7 @@ The local `secret-change.json` contains:
 
 Use `null` only when creating a previously empty secret slot. For an existing slot, send its current revision UUID. A stale revision returns `409`; read the latest metadata and reconcile changes. A request changes 1–200 keys, and cannot set and delete the same key. Keep real secret files outside source control.
 
-Workspace values use the `production` storage path and are shared across environments when explicitly referenced. For repository and workload values, use the connected environment name, such as `production` or `staging`. Preview scopes use `preview:<environment>`, such as `preview:staging`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server Cloudflare tokens use `/servers/{serverId}/credentials`. Select an existing stored SSH key with `/servers/{serverId}/credentials/actions/verify-private-key`, passing `privateKeyId` and `expectedRevision`. Creating or revealing private keys requires the Admin dashboard.
+Workspace values use the `production` storage path and are shared across environments when explicitly referenced. For app and resource values, use the connected environment name, such as `production` or `staging`. Preview scopes use `preview:<environment>`, such as `preview:staging`. Stages are `build`, `deployment`, `pre_deploy`, and `post_deploy`. Server Cloudflare tokens use `/servers/{serverId}/credentials`. Select an existing stored SSH key with `/servers/{serverId}/credentials/actions/verify-private-key`, passing `privateKeyId` and `expectedRevision`. Creating or revealing private keys requires the Admin dashboard.
 
 ## Servers, backups, and previews
 
