@@ -5,16 +5,24 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.14] - 2026-09-26
+
 ### Changed
 
 - Cloudflare DNS TLS is selected by each App or Resource manifest instead of a
   server setting. Towbar prepares the target server's Caddy DNS module when a
   deployment needs it.
+- Resource image names use the full width of their configuration row. Secrets
+  editing shows referenced values on hover and requires revealing a masked
+  value before editing it in Form view.
 
 ### Fixed
 
 - Deployments and previews requesting Cloudflare DNS TLS are rejected before
   queuing when the Cloudflare runtime integration is not configured.
+- Repository rows no longer prefetch a removed manifest route, and the
+  repository list no longer polls its inventory every five seconds.
+- Obsolete source-level secret references are removed from the editor and docs.
 
 ## [2.0.13] - 2026-09-26
 
