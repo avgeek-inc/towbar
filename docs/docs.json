@@ -79,7 +79,7 @@
       },
       {
         "dropdown": "Build & run",
-        "icon": "boxes",
+        "icon": "rocket",
         "groups": [
           {
             "group": "Repositories",
@@ -162,6 +162,100 @@
           {
             "group": "Deployments and access",
             "pages": ["docs/deployments", "docs/previews", "docs/domains-tls"]
+          }
+        ]
+      },
+      {
+        "dropdown": "Operate",
+        "icon": "activity",
+        "groups": [
+          {
+            "group": "Start here",
+            "pages": ["docs/operate/index", "docs/monitoring"]
+          },
+          {
+            "group": "Measure",
+            "pages": [
+              "docs/operate/health",
+              "docs/operate/performance",
+              "docs/deployment-comparisons"
+            ]
+          },
+          {
+            "group": "Respond",
+            "pages": [
+              "docs/scout-alerts",
+              "docs/operate/incidents",
+              "docs/vulnerability-scanning",
+              "docs/troubleshooting"
+            ]
+          },
+          {
+            "group": "Workspace",
+            "pages": [
+              "docs/team-settings",
+              "docs/personal-settings",
+              "docs/ssh-keys"
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Integrations",
+        "icon": "plug",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["docs/integrations/index"]
+          },
+          {
+            "group": "Source control",
+            "icon": "git-branch",
+            "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
+          },
+          {
+            "group": "Container registries",
+            "icon": "container",
+            "pages": ["docs/integrations/oci-registry"]
+          },
+          {
+            "group": "Backup providers",
+            "icon": "cloud-upload",
+            "pages": [
+              "docs/integrations/backup-providers",
+              "docs/integrations/aws",
+              "docs/integrations/gcp",
+              "docs/integrations/s3-compatible",
+              "docs/integrations/r2"
+            ]
+          },
+          {
+            "group": "External secrets",
+            "icon": "key-round",
+            "pages": [
+              "docs/integrations/infisical",
+              "docs/integrations/doppler"
+            ]
+          },
+          {
+            "group": "Platform services",
+            "icon": "cloud",
+            "pages": [
+              "docs/integrations/platform-services",
+              "docs/integrations/cloudflare"
+            ]
+          },
+          {
+            "group": "Notifications",
+            "icon": "bell",
+            "pages": [
+              "docs/integrations/notifications",
+              "docs/integrations/notifications/email",
+              "docs/integrations/notifications/slack",
+              "docs/integrations/notifications/discord",
+              "docs/integrations/notifications/telegram",
+              "docs/integrations/notifications/webhook"
+            ]
           }
         ]
       },
@@ -336,100 +430,6 @@
                   "docs/use-cases/stacks/workers/100-independent-stacks-on-separate-servers"
                 ]
               }
-            ]
-          }
-        ]
-      },
-      {
-        "dropdown": "Operate",
-        "icon": "activity",
-        "groups": [
-          {
-            "group": "Start here",
-            "pages": ["docs/operate/index", "docs/monitoring"]
-          },
-          {
-            "group": "Measure",
-            "pages": [
-              "docs/operate/health",
-              "docs/operate/performance",
-              "docs/deployment-comparisons"
-            ]
-          },
-          {
-            "group": "Respond",
-            "pages": [
-              "docs/scout-alerts",
-              "docs/operate/incidents",
-              "docs/vulnerability-scanning",
-              "docs/troubleshooting"
-            ]
-          },
-          {
-            "group": "Workspace",
-            "pages": [
-              "docs/team-settings",
-              "docs/personal-settings",
-              "docs/ssh-keys"
-            ]
-          }
-        ]
-      },
-      {
-        "dropdown": "Integrations",
-        "icon": "plug",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": ["docs/integrations/index"]
-          },
-          {
-            "group": "Source control",
-            "icon": "git-branch",
-            "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
-          },
-          {
-            "group": "Container registries",
-            "icon": "container",
-            "pages": ["docs/integrations/oci-registry"]
-          },
-          {
-            "group": "Backup providers",
-            "icon": "cloud-upload",
-            "pages": [
-              "docs/integrations/backup-providers",
-              "docs/integrations/aws",
-              "docs/integrations/gcp",
-              "docs/integrations/s3-compatible",
-              "docs/integrations/r2"
-            ]
-          },
-          {
-            "group": "External secrets",
-            "icon": "key-round",
-            "pages": [
-              "docs/integrations/infisical",
-              "docs/integrations/doppler"
-            ]
-          },
-          {
-            "group": "Platform services",
-            "icon": "cloud",
-            "pages": [
-              "docs/integrations/platform-services",
-              "docs/integrations/cloudflare"
-            ]
-          },
-          {
-            "group": "Notifications",
-            "icon": "bell",
-            "pages": [
-              "docs/integrations/notifications",
-              "docs/integrations/notifications/email",
-              "docs/integrations/notifications/slack",
-              "docs/integrations/notifications/discord",
-              "docs/integrations/notifications/telegram",
-              "docs/integrations/notifications/webhook"
             ]
           }
         ]
