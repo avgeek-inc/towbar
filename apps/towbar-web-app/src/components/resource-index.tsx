@@ -46,12 +46,10 @@ export function SourceIndex() {
   const filtered = useInventoryQuery("sources").includes("?");
   const query = useApiQuery<{ sources: Source[]; counts: InventoryCounts }>(
     useInventoryQuery("sources"),
-    5_000,
   );
-  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 5_000);
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps");
   const resources = useApiQuery<{ resources: Resource[] }>(
     "/v1/core/resources",
-    5_000,
   );
   const github = useApiQuery<{
     connection: { suspendedAt: string | null } | null;

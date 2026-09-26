@@ -34,7 +34,7 @@ import {
 } from "@workspace/web-design-system/pickers/autocomplete";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
-import { useApiQuery } from "@/hooks/use-api-query";
+import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { SourceBranchSelect } from "./source-branch-select";
 
@@ -347,6 +347,7 @@ function SourceCreate({
               description: "Open the environment to retry its initial sync.",
             });
           } else toast.success("Repository connected");
+          refreshApiQueries();
           onClose();
           router.push(`/repositories/${result.source.id}`);
         } catch (caught) {
