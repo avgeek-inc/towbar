@@ -27,7 +27,6 @@ integrations:
     appId: "12345"
     appSlug: towbar
     privateKeyBase64: "..."
-    webhookSecret: "..."
 ```
 
 Optional provider objects can be added under `integrations` and `notifications`. Keep identifiers and secrets quoted when they contain only digits or YAML-special characters. Unknown settings and duplicate YAML keys are rejected.
@@ -79,10 +78,12 @@ Set secret values directly. Towbar does not support external file references. En
 
 | Provider     | Required YAML settings                                                                                   | Optional settings                |
 | ------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| GitHub App   | `integrations.github.enabled`, `appId`, `appSlug`, `privateKeyBase64`, `webhookSecret`                   | `apiUrl`                         |
+| GitHub App   | `integrations.github.enabled`, `appId`, `appSlug`, `privateKeyBase64`                                    | `apiUrl`, `webhookSecret`        |
 | GitLab OAuth | `integrations.gitlab.enabled`, `oauthClientId`, `oauthClientSecret`, `oauthRedirectUri`, `webhookSecret` | `baseUrl`, `allowPrivateNetwork` |
 
 GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the protected YAML file.
+
+When `integrations.github.webhookSecret` is set, Towbar requires a valid signature on GitHub webhooks. If omitted, GitHub webhook delivery remains available without signature verification.
 
 ### Registries, storage, secrets, and platform services
 

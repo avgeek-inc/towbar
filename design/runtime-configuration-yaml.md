@@ -45,7 +45,7 @@ integrations:
     appId: "12345"
     appSlug: towbar
     privateKeyBase64: "..."
-    webhookSecret: "..."
+    # webhookSecret: "..."  # Optional; enables GitHub webhook signature checks.
   # GitLab, registry, AWS, S3, R2, GCS, Infisical, Doppler,
   # and Cloudflare follow the same provider-shaped pattern.
 

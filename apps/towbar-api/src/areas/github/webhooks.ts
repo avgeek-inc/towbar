@@ -53,7 +53,7 @@ export async function processGitHubWebhook(input: {
   signature: string | undefined;
   targetId: string | undefined;
 }) {
-  if (!input.deliveryId || !input.eventName || !input.signature) {
+  if (!input.deliveryId || !input.eventName) {
     throw badRequest("Required GitHub webhook headers are missing");
   }
   let payload: unknown;
@@ -237,11 +237,15 @@ function isDeletedPush(push: z.infer<typeof pushSchema>) {
   return push.deleted || /^0{40}$/u.test(push.after);
 }
 
-function verifyWebhookSignature(
+export function verifyWebhookSignature(
   body: string,
-  supplied: string,
-  webhookSecret: string,
+  supplied: string | undefined,
+  webhookSecret: string | undefined,
 ) {
+  if (!webhookSecret) return;
+  if (!supplied) {
+    throw badRequest("Required GitHub webhook signature is missing");
+  }
   const expected = `sha256=${createHmac("sha256", webhookSecret)
     .update(body)
     .digest("hex")}`;
