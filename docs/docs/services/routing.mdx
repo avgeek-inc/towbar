@@ -1,0 +1,24 @@
+---
+title: "Routing and TLS"
+description: "Give a Service a domain and select how its certificate is validated."
+---
+
+A Service can run privately without `domains` or `tls`. Add a domain to an environment when it should receive public traffic, then point DNS at that environment's server:
+
+```yaml title=".towbar/services/web.service.yml"
+id: web
+name: Web
+tls:
+  mode: direct
+environments:
+  production:
+    server: 192.0.2.10
+    domains:
+      primary: app.example.com
+```
+
+Register and prepare the server first. Towbar rejects a hostname already owned elsewhere in the workspace. Keep separate production and staging names rather than pointing both environments at the same hostname.
+
+For a Cloudflare DNS-validated certificate, select that mode in the Service manifest and configure the Cloudflare runtime integration in `/etc/towbar/towbar.yml`. A deployment requesting Cloudflare DNS TLS is rejected before queueing if that integration is absent. The target server's Caddy DNS module is prepared when a workload needs it; this is not a server-wide TLS toggle.
+
+See [Domains and TLS](/docs/domains-tls) for direct validation, Cloudflare validation, DNS prerequisites, and failure handling. `ingress` policy and exact field shapes are in the [app JSON Schema](/schemas/app.v2.json).

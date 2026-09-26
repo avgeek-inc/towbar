@@ -53,7 +53,7 @@ export function routePermission(pathname: string): Action | null {
   }
   if (pathname.startsWith("/repositories/") && section === "danger")
     return "repository.disconnect";
-  if (pathname.startsWith("/resources/") && section === "restore")
+  if (pathname.startsWith("/datastores/") && section === "restore")
     return "resource.restore";
   return null;
 }

@@ -76,7 +76,7 @@ Dokploy supports project-, environment-, and service-level [variables](https://d
 
 ## 2. Convert configuration to Git
 
-Create a `towbar.yml` root file and one entity file for each app or resource. Map Dokploy environments to Towbar environments and branches. Store configuration in the manifest and values in Towbar's encrypted secret stores.
+Create a `towbar.yml` root file and one entity file for each Service or Datastore. Map Dokploy environments to Towbar environments and branches. Store configuration in the manifest and values in Towbar's encrypted secret stores.
 
 | Dokploy workload                   | Towbar destination                                             |
 | ---------------------------------- | -------------------------------------------------------------- |
@@ -85,8 +85,8 @@ Create a `towbar.yml` root file and one entity file for each app or resource. Ma
 | Registry image                     | `image` app with a non-`latest` tag or digest                  |
 | Nixpacks or Buildpacks application | Corresponding Towbar source builder after a compatibility test |
 | Docker Compose application         | Compose project after policy validation                        |
-| Supported standalone database      | Managed Resource with a compatible engine and major version    |
-| Other containerized service        | Image Resource or Compose project                              |
+| Supported standalone database      | Managed Datastore with a compatible engine and major version   |
+| Other containerized service        | Image Service or Compose project                               |
 
 Towbar's [Compose policy](/docs/platform-deployments#compose-projects) is stricter than a general Dokploy Compose project. Remove unsupported host bindings, Docker socket access, privileged mode, remote includes, explicit public host ports, and external namespaces, or keep that workload outside Towbar.
 

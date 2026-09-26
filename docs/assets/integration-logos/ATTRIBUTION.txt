@@ -1,0 +1,3 @@
+# Integration logos
+
+These assets are bundled for documentation navigation and page titles. Their source files are in the dashboard's `public/integration-logos`, `public/cloud-providers`, and `public/resource-logos` directories. See the README and source catalog in those directories for per-file attribution and upstream versions. Devicon artwork is MIT-licensed; Dashboard Icons artwork is Apache-2.0. The collection licenses are included here. Other marks remain the property of their owners and identify integrations without implying endorsement.

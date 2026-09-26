@@ -1,7 +1,10 @@
 ---
 title: "GitHub"
 description: "Configure a GitHub App in Towbar's YAML configuration, install it, and connect repositories."
+icon: "/assets/integration-logos/github.svg"
 ---
+
+<img className="towbar-doc-brand-logo" src="/assets/integration-logos/github.svg" alt="GitHub logo" aria-hidden="true" />
 
 Towbar uses one GitHub App per installation. The App identity and secrets live in `/etc/towbar/towbar.yml`. PostgreSQL stores the selected installation and account metadata, never the App private key or webhook secret.
 

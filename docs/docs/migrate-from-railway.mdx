@@ -66,19 +66,19 @@ health checks, replicas, cron jobs, volumes, databases, and provider dependencie
 Record values that Railway injects automatically and decide which ones your app
 actually needs outside Railway.
 
-| Railway concept            | Towbar destination                                        |
-| -------------------------- | --------------------------------------------------------- |
-| Repository service         | App using a supported builder or Dockerfile               |
-| Image service              | Image App or Resource                                     |
-| Environment                | Towbar repository environment mapped to a branch          |
-| Shared or service variable | Shared or workload environment secret                     |
-| Volume                     | Declared App or Resource volume with a file-transfer plan |
-| Database template          | Compatible managed database Resource                      |
-| Cron service               | App job                                                   |
+| Railway concept            | Towbar destination                                             |
+| -------------------------- | -------------------------------------------------------------- |
+| Repository service         | Service using a supported builder or Dockerfile                |
+| Image service              | Image Service                                                  |
+| Environment                | Towbar repository environment mapped to a branch               |
+| Shared or service variable | Shared or workload environment secret                          |
+| Volume                     | Declared Service or Datastore volume with a file-transfer plan |
+| Database template          | Compatible managed Datastore                                   |
+| Cron service               | Service job                                                    |
 
 ## 2. Declare and test the workloads
 
-Create the root manifest and one file per App or Resource. Declare ports,
+Create the root manifest and one file per Service or Datastore. Declare ports,
 health checks, storage, networking, resource limits, domains, and jobs explicitly.
 Recreate provider credentials through Towbar integrations and move protected
 application values into Towbar's encrypted secret stores.
@@ -106,5 +106,5 @@ and file copies, restore and verify them, then move the domains. Confirm TLS,
 health, logs, alerts, backups, and server capacity before closing the rollback
 window.
 
-Continue with [Servers](/docs/servers), [Resources](/docs/resources), and
+Continue with [Servers](/docs/servers), [Resources](/docs/datastores), and
 [Monitoring](/docs/monitoring).

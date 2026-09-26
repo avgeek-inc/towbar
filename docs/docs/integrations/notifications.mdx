@@ -15,7 +15,7 @@ Towbar records provider-neutral events and sends each matching event to its subs
 
 ## Decide who receives an event
 
-Workspace destinations receive matching events from all apps and resources. An app or resource manifest can add read-only Email, Slack, Discord, or Telegram destinations for that entity; see [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Webhook push remains workspace-only.
+Workspace destinations receive matching events from all services and datastores. A service or datastore manifest can add read-only Email, Slack, Discord, or Telegram destinations for that entity; see [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Webhook push remains workspace-only.
 
 Each destination can subscribe to **Deployments**, **Backup & Restore**, and **Alerts & Incidents**. Preview events follow Deployments; service health and Scout incidents follow Alerts & Incidents. New runtime-managed Discord and webhook destinations start with no subscriptions, so select at least one category before expecting routine events.
 
@@ -27,4 +27,4 @@ Set `notifications.enabled: true` and add the relevant provider under `notificat
 
 Open **Manage → Notifications → Health → Deliveries** to filter persisted attempts by provider, category, or entity. The list includes workspace and manifest destinations. Inspect an attempt's status, timestamps, safe provider error, and retries before changing a route. A succeeded delivery means the provider accepted it; it does not prove a recipient read it.
 
-Towbar resolves credentials when a delivery runs, retries transient failures with bounded backoff, and keeps history after a destination is removed. Authentication failures call for correcting YAML and restarting; a wrong subscription calls for changing the destination's category in the dashboard. Repeated rate limits pause the affected destination rather than blocking the underlying app or resource operation.
+Towbar resolves credentials when a delivery runs, retries transient failures with bounded backoff, and keeps history after a destination is removed. Authentication failures call for correcting YAML and restarting; a wrong subscription calls for changing the destination's category in the dashboard. Repeated rate limits pause the affected destination rather than blocking the underlying service or datastore operation.

@@ -1,15 +1,23 @@
 ---
 title: "MariaDB"
-description: "Declare a MariaDB 11.8 resource with explicit initialization variables and native recovery."
+description: "Declare a MariaDB 11.8 datastore with explicit initialization variables and native recovery."
+icon: "/assets/database-logos/mariadb.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mariadb.webp"
+  alt="MariaDB logo"
+  aria-hidden="true"
+/>
 
 Towbar's `mariadb` preset runs the reviewed MariaDB 11.8 image on amd64 or
 arm64. It listens on port `3306`, stores data in `/var/lib/mysql`, and verifies
 readiness with an authenticated `mariadb-admin ping`.
 
-## Declare the resource
+## Declare the datastore
 
-```yaml title=".towbar/resources/mariadb.resource.yml" highlight={3,14-19,21}
+```yaml title=".towbar/datastores/mariadb.datastore.yml" highlight={3,14-19,21}
 id: mariadb
 name: MariaDB
 type: mariadb
@@ -44,10 +52,10 @@ first initialization.
 | `MYSQL_USER`          | Non-root application user                                 |
 | `MYSQL_PASSWORD`      | Password for the application user                         |
 
-## Connect from an app
+## Connect from a service
 
 Containers on the same network can reach `mariadb:3306`. Save application
-credentials and its connection URL with the app, not in the resource manifest.
+credentials and its connection URL with the service, not in the datastore manifest.
 The optional tunnel binds port `13307` to server loopback for access over SSH.
 
 ## Initialization and credential changes

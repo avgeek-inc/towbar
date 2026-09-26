@@ -58,11 +58,11 @@ export const sourcesBreadcrumb = [
 ] as BreadcrumbAncestors;
 export const appsBreadcrumb = [
   ...appBreadcrumb,
-  { href: "/apps", label: "Apps" },
+  { href: "/services", label: "Services" },
 ] as BreadcrumbAncestors;
 export const resourcesBreadcrumb = [
   ...appBreadcrumb,
-  { href: "/resources", label: "Resources" },
+  { href: "/datastores", label: "Datastores" },
 ] as BreadcrumbAncestors;
 export const serversBreadcrumb = [
   ...appBreadcrumb,

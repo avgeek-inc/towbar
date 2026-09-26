@@ -1,7 +1,15 @@
 ---
 title: "S3-compatible storage"
 description: "Configure an S3-compatible endpoint for managed database backups and restores."
+icon: "/assets/integration-logos/aws.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/aws.svg"
+  alt="S3-compatible storage logo"
+  aria-hidden="true"
+/>
 
 Use the `s3` integration for an S3-compatible object store other than AWS S3 or Cloudflare R2. Create a bucket and credentials scoped to the intended objects, versions, and prefix. The endpoint must be reachable from the Towbar installation; keep credentials in the root-owned control-plane YAML file.
 

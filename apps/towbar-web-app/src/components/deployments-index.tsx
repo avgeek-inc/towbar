@@ -55,14 +55,15 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   },
   {
     key: "deployable",
-    header: "App / Resource",
+    header: "Service / Datastore",
     cell: (item) => {
       const subtitle =
-        deploymentSubtitle(item, item.deployableDomain ?? undefined) ?? "App";
+        deploymentSubtitle(item, item.deployableDomain ?? undefined) ??
+        "Service";
       return (
         <InlineLink
           className="inline-flex min-w-0 items-center gap-2"
-          href={`/${item.deployableKind === "app" ? "apps" : "resources"}/${item.appId}`}
+          href={`/${item.deployableKind === "app" || item.deployableKind === "compose" ? "services" : "datastores"}/${item.appId}`}
         >
           {item.deployableKind === "app" ||
           item.deployableKind === "compose" ? (
@@ -189,8 +190,8 @@ export function DeploymentsIndex() {
             onChange={(v) => setFilter("type", v)}
             options={[
               { id: "all", label: "All workloads" },
-              { id: "app", label: "Apps" },
-              { id: "resource", label: "Resources" },
+              { id: "app", label: "Services" },
+              { id: "resource", label: "Datastores" },
             ]}
           />
           <ScoutSelect
@@ -296,7 +297,7 @@ export function DeploymentsIndex() {
             emptyDescription={
               params.size
                 ? "Try changing or clearing the filters."
-                : "Deploy an app or resource to see its deployment history here."
+                : "Deploy a service or datastore to see its deployment history here."
             }
             getRowHref={deploymentHref}
             getRowKey={(item) => item.id}

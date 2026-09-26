@@ -95,7 +95,7 @@ Towbar treats Git as the workload contract while keeping server credentials and 
 2. The API starts or signals a durable source workflow in Temporal.
 3. A worker activity calls the signed internal source-sync route.
 4. The API fetches one immutable commit from the configured Git provider.
-5. [`manifest-v2.ts`](https://github.com/avgeek-inc/towbar/blob/main/packages/towbar-core/src/manifest-v2.ts) parses `towbar.yml` plus `.towbar/apps`, `.towbar/resources`, and `.towbar/compose` files with strict schemas.
+5. [`manifest-v2.ts`](https://github.com/avgeek-inc/towbar/blob/main/packages/towbar-core/src/manifest-v2.ts) parses `towbar.yml` plus `.towbar/services`, `.towbar/datastores`, and `.towbar/services` files with strict schemas.
 6. [`reconciliation.ts`](https://github.com/avgeek-inc/towbar/blob/main/packages/towbar-core/src/reconciliation.ts) compares the accepted manifest with the current inventory.
 7. The API applies the result transactionally. Invalid input leaves the previous inventory and secret slots intact.
 

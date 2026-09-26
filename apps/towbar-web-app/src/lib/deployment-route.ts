@@ -18,7 +18,11 @@ export function deploymentHref(
   deployment: DeploymentRouteTarget,
   section?: string,
 ) {
-  const collection = deployment.deployableKind === "app" ? "apps" : "resources";
+  const collection =
+    deployment.deployableKind === "app" ||
+    deployment.deployableKind === "compose"
+      ? "services"
+      : "datastores";
   const destination =
     section ??
     (deployment.state && !terminalStates.has(deployment.state)

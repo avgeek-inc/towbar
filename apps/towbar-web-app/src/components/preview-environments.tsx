@@ -195,7 +195,7 @@ export function PreviewEnvironments({
     <ResourceTable
       ariaLabel="Preview deployments"
       columns={columns}
-      emptyDescription="Enable Preview for an app, then open a same-repository pull request targeting the Repository branch."
+      emptyDescription="Enable Preview for a service, then open a same-repository pull request targeting the Repository branch."
       emptyTitle="No Preview deployments"
       getRowKey={(preview) => preview.id}
       items={previews}

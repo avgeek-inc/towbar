@@ -24,12 +24,13 @@ test("migration journal keeps the baseline and notification destinations", async
     "0007_military_darkhawk.sql",
     "0008_remove_observability_integrations.sql",
     "0009_server_names.sql",
+    "0010_services_datastores.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 9);
+  assert.equal(journal.entries.length, 10);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -42,6 +43,7 @@ test("migration journal keeps the baseline and notification destinations", async
     "0008_remove_observability_integrations",
   );
   assert.equal(journal.entries[8].tag, "0009_server_names");
+  assert.equal(journal.entries[9].tag, "0010_services_datastores");
   assert.match(
     await readFile(`${migrationsFolder}/0009_server_names.sql`, "utf8"),
     /ADD COLUMN "name" varchar\(120\)/u,
@@ -170,7 +172,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 9);
+      assert.equal(count, 10);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(

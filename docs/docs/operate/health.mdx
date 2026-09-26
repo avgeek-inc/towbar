@@ -1,9 +1,9 @@
 ---
 title: "System and workload health"
-description: "Distinguish control-plane checks from server checks and app or resource readiness."
+description: "Distinguish control-plane checks from server checks and service or datastore readiness."
 ---
 
-Health is scoped. **Manage → System health** checks Towbar's API/database, Temporal, and worker/maintenance processes. A server check tests SSH reachability and records host and workload observations. An app or resource health result describes its runtime at the time of that observation. One green result cannot substitute for the others.
+Health is scoped. **Manage → System health** checks Towbar's API/database, Temporal, and worker/maintenance processes. A server check tests SSH reachability and records host and workload observations. A service or datastore health result describes its runtime at the time of that observation. One green result cannot substitute for the others.
 
 ## Check the control plane
 
@@ -25,6 +25,6 @@ Open its **Checks** page and choose **Check server** when the latest result is o
 
 ## Check a workload
 
-Read the app or resource's current state, health, and last checked time. Then inspect its latest deployment and runtime logs. A build can succeed while health fails because the process listens on the wrong interface or port, starts too slowly, lacks a runtime secret, or returns an unhealthy response. Compare `container.port` and `health` in the [app manifest](/docs/apps/configuration) or [resource manifest](/docs/resources/manifest) with the actual process.
+Read the service or datastore's current state, health, and last checked time. Then inspect its latest deployment and runtime logs. A build can succeed while health fails because the process listens on the wrong interface or port, starts too slowly, lacks a runtime secret, or returns an unhealthy response. Compare `container.port` and `health` in the [service manifest](/docs/services/configuration) or [datastore manifest](/docs/datastores/manifest) with the actual process.
 
 Missing or stale observations should be investigated as missing data. They do not establish recovery or zero utilization. [Scout Agent](/docs/scout) adds continuous metrics and report-age alerts, while [alert rules](/docs/scout-alerts) decide when observations become incidents.

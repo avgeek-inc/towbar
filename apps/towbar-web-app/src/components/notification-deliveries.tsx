@@ -15,7 +15,7 @@ import {
   notificationHistoryCategories,
 } from "./notification-categories";
 import { NotificationProviderIcon } from "./notification-provider-icon";
-import { AppLogo, ResourceLogo } from "./deployable-identity";
+import { ResourceLogo, ServiceLogo } from "./deployable-identity";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { EnvironmentChip } from "./environment-chip";
 import { resourceImageBrand } from "./resource-image-brand";
@@ -124,24 +124,15 @@ export function NotificationDeliveries() {
       ...(apps.data?.apps ?? []).map((app) => ({
         id: app.id,
         name: app.name,
-        kind: "App",
+        kind: "Service",
         environment: app.environment?.name,
         detail: undefined,
-        icon: (
-          <AppLogo
-            key={app.config.domains?.primary ?? "no-domain"}
-            domain={
-              app.config.domains?.primary ??
-              app.config.domains?.redirects[0]?.host
-            }
-            size="compact"
-          />
-        ),
+        icon: <ServiceLogo app={app} size="compact" />,
       })),
       ...(resources.data?.resources ?? []).map((resource) => ({
         id: resource.id,
         name: resource.name,
-        kind: "Resource",
+        kind: "Datastore",
         environment: resource.environment?.name,
         detail: undefined,
         icon: (
@@ -296,7 +287,7 @@ export function NotificationDeliveries() {
             onChange={(value) => history.setFilter("category", value)}
           />
           <HistoryFilter
-            label="Resources"
+            label="Datastores"
             value={history.filters.entityId}
             allIcon={<ScoutIcon name="all" />}
             options={entities.map((entity) => ({

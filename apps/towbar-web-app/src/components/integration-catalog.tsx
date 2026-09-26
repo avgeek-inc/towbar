@@ -92,7 +92,7 @@ export function getProviderIcon(value: string, className?: string) {
 const environmentProviders = {
   aws: {
     description:
-      "AWS S3 is available to resource backup and restore workflows.",
+      "AWS S3 is available to datastore backup and restore workflows.",
     documentation: documentationTopics.aws.href,
   },
   cloudflare: {
@@ -106,7 +106,7 @@ const environmentProviders = {
   },
   gcp: {
     description:
-      "Google Cloud Storage is available to resource backup and restore workflows.",
+      "Google Cloud Storage is available to datastore backup and restore workflows.",
     documentation: documentationTopics.gcp.href,
   },
   infisical: {
@@ -115,7 +115,7 @@ const environmentProviders = {
   },
   r2: {
     description:
-      "Cloudflare R2 is available to resource backup and restore workflows.",
+      "Cloudflare R2 is available to datastore backup and restore workflows.",
     documentation: documentationTopics.backups.href,
   },
   registry: {
@@ -125,7 +125,7 @@ const environmentProviders = {
   },
   s3: {
     description:
-      "S3-compatible storage is available to resource backup and restore workflows.",
+      "S3-compatible storage is available to datastore backup and restore workflows.",
     documentation: documentationTopics.backups.href,
   },
 } as const;

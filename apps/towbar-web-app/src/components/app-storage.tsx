@@ -29,11 +29,11 @@ export function AppStorage({ appId }: { appId: string }) {
   const { volumes, serverIp, serverId, checkedAt } = storage.data;
   return (
     <ResourceTable
-      ariaLabel="App persistent storage"
+      ariaLabel="Service persistent storage"
       items={volumes}
       getRowKey={(volume) => volume.name}
       emptyTitle="No persistent storage"
-      emptyDescription="Declare container.volumes in the app manifest to keep uploads and other files across deployments."
+      emptyDescription="Declare container.volumes in the service manifest to keep uploads and other files across deployments."
       columns={[
         { key: "name", header: "Volume", cell: (volume) => volume.name },
         {

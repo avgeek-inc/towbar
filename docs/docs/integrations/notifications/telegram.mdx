@@ -1,7 +1,15 @@
 ---
 title: "Telegram"
 description: "Connect a Telegram bot and route events to chats or forum topics."
+icon: "/assets/integration-logos/telegram.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/telegram.svg"
+  alt="Telegram logo"
+  aria-hidden="true"
+/>
 
 Create a bot in Telegram and keep its bot token in Towbar's protected YAML file. Add the bot to each target chat and grant it permission to post. A destination uses a numeric chat ID and, for a forum topic, an optional numeric Topic ID. One chat can have separate rows for different topics.
 
@@ -20,7 +28,7 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → N
 
 Use **Test** and confirm that the sample appears in the right chat or topic. If it fails, check the bot token, the numeric IDs, bot membership, and posting permissions. A topic ID used for a different chat cannot route the message. Inspect the [delivery result](/docs/integrations/notifications#delivery-history) for provider errors and retry status.
 
-App and resource manifests can declare extra Telegram chat/topic destinations without storing the bot token. See [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-app-or-resource). Rotate the bot token in YAML, restart, and test before discarding the old token.
+Service and datastore manifests can declare extra Telegram chat/topic destinations without storing the bot token. See [manifest notification routing](/docs/deployment-manifest#route-notifications-for-one-service-or-datastore). Rotate the bot token in YAML, restart, and test before discarding the old token.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">

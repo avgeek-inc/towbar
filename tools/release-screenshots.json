@@ -25,8 +25,8 @@
     },
     {
       "name": "app-overview",
-      "route": "/apps/31111111-1111-4111-8111-555555555555/overview",
-      "guides": ["docs/docs/apps.mdx", "docs/index.mdx"],
+      "route": "/services/31111111-1111-4111-8111-555555555555/overview",
+      "guides": ["docs/docs/services.mdx", "docs/index.mdx"],
       "themes": [
         {
           "theme": "light",
@@ -83,7 +83,7 @@
     },
     {
       "name": "backups",
-      "route": "/resources/41111111-1111-4111-8111-111111111111/backup",
+      "route": "/datastores/41111111-1111-4111-8111-111111111111/backup",
       "guides": ["docs/docs/backups.mdx"],
       "themes": [
         {
@@ -121,7 +121,7 @@
     },
     {
       "name": "deployment-comparison",
-      "route": "/apps/31111111-1111-4111-8111-222222222222/compare-deployments",
+      "route": "/services/31111111-1111-4111-8111-222222222222/compare-deployments",
       "guides": ["docs/docs/deployment-comparisons.mdx"],
       "themes": [
         {
@@ -140,7 +140,7 @@
     },
     {
       "name": "deployment-vulnerabilities",
-      "route": "/apps/31111111-1111-4111-8111-222222222222/deployments/51111111-1111-4111-8111-000000000013/vulnerabilities",
+      "route": "/services/31111111-1111-4111-8111-222222222222/deployments/51111111-1111-4111-8111-000000000013/vulnerabilities",
       "guides": ["docs/docs/vulnerability-scanning.mdx"],
       "themes": [
         {
@@ -391,7 +391,7 @@
     },
     {
       "name": "previews",
-      "route": "/apps/31111111-1111-4111-8111-222222222222/previews",
+      "route": "/services/31111111-1111-4111-8111-222222222222/previews",
       "guides": [
         "docs/docs/domains-tls.mdx",
         "docs/docs/previews.md",
@@ -496,8 +496,8 @@
     },
     {
       "name": "resource-overview",
-      "route": "/resources/41111111-1111-4111-8111-111111111111/overview",
-      "guides": ["docs/docs/resources.mdx", "docs/index.mdx"],
+      "route": "/datastores/41111111-1111-4111-8111-111111111111/overview",
+      "guides": ["docs/docs/datastores.mdx", "docs/index.mdx"],
       "themes": [
         {
           "theme": "light",
@@ -535,7 +535,7 @@
     },
     {
       "name": "restore-source",
-      "route": "/resources/41111111-1111-4111-8111-111111111111/restore",
+      "route": "/datastores/41111111-1111-4111-8111-111111111111/restore",
       "guides": ["docs/docs/restores.md"],
       "themes": [
         {

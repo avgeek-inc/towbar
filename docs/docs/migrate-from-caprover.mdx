@@ -74,7 +74,7 @@ cutover tests.
 | CapRover source                          | Towbar destination                                                      |
 | ---------------------------------------- | ----------------------------------------------------------------------- |
 | Dockerfile or `captain-definition` build | Dockerfile App with explicit context, port, health, and limits          |
-| Prebuilt private image                   | Image App or Resource with the OCI registry integration                 |
+| Prebuilt private image                   | Image Service or Datastore with the OCI registry integration            |
 | One-click application                    | Reviewed App, Resource, or Compose project committed to your repository |
 | Database one-click app                   | Compatible managed database Resource after a tested logical restore     |
 | Persistent application directory         | Declared App volume with a planned file transfer                        |
@@ -107,5 +107,5 @@ notifications, and a manual Towbar backup. Retain the stopped CapRover instance
 for the agreed rollback window and account for any writes accepted by Towbar
 before reversing traffic.
 
-Continue with [Your first deployment](/docs/getting-started), [Resources](/docs/resources),
+Continue with [Your first deployment](/docs/getting-started), [Resources](/docs/datastores),
 and [Database restores](/docs/restores).

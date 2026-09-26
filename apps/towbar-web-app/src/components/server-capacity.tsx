@@ -135,7 +135,7 @@ export function ServerDeployableTable({
   const runtimeById = new Map(
     capacity.runtimes.map((runtime) => [runtime.id, runtime]),
   );
-  const label = kind === "app" ? "App" : "Resource";
+  const label = kind === "app" ? "Service" : "Datastore";
   if (!items.length) {
     return (
       <EmptyState>

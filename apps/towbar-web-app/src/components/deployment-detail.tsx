@@ -168,7 +168,7 @@ export function DeploymentDetail() {
         title="Deployment"
       >
         <QueryError
-          message={`This Deployment does not belong to the selected ${routeDeployableKind === "resource" ? "Resource" : "App"}.`}
+          message={`This Deployment does not belong to the selected ${routeDeployableKind === "resource" ? "Datastore" : "Service"}.`}
           retryable={false}
         />
       </DashboardPage>
@@ -390,19 +390,26 @@ export function DeploymentDetail() {
                       icon={
                         <HugeiconsIcon
                           icon={
-                            item.deployableKind === "app"
+                            item.deployableKind === "app" ||
+                            item.deployableKind === "compose"
                               ? DashboardCircleIcon
                               : CubeIcon
                           }
                         />
                       }
-                      label={item.deployableKind === "app" ? "App" : "Resource"}
+                      label={
+                        item.deployableKind === "app" ||
+                        item.deployableKind === "compose"
+                          ? "Service"
+                          : "Datastore"
+                      }
                     >
                       <InlineLink
                         href={
-                          item.deployableKind === "app"
-                            ? `/apps/${item.appId}`
-                            : `/resources/${item.appId}`
+                          item.deployableKind === "app" ||
+                          item.deployableKind === "compose"
+                            ? `/services/${item.appId}`
+                            : `/datastores/${item.appId}`
                         }
                       >
                         {deployableName ?? (

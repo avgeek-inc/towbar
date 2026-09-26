@@ -137,7 +137,7 @@ Set `worker.vulnerabilityScanning.enabled: true` to make image scanning
 available to Repositories. Each App must then opt in explicitly in its deployment
 manifest:
 
-```yaml title=".towbar/apps/hello-towbar.app.yml" highlight={2}
+```yaml title=".towbar/services/hello-towbar.service.yml" highlight={2}
 id: hello-towbar
 vulnerabilityScanning: true
 environments:

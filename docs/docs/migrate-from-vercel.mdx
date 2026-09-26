@@ -130,7 +130,7 @@ use a fixed internal port, and expose an unauthenticated health endpoint.
 This example declares a Dockerfile build, the runtime port, a health check, and
 the production server:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-6,8-11,14-15}
+```yaml title=".towbar/services/web.service.yml" highlight={3-6,8-11,14-15}
 id: web
 name: Web
 deployment:
@@ -161,7 +161,7 @@ that separation instead of copying every value into one shared set.
 
 Declare only the names the App needs in Git:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 secrets:
   build:
     - PACKAGE_TOKEN
@@ -181,7 +181,7 @@ branch and preview deployments from other branches and pull requests. Towbar
 previews are opt-in per App, deploy eligible same-repository pull requests, and
 use separate preview secrets.
 
-```yaml title=".towbar/apps/web.app.yml" highlight={2-5}
+```yaml title=".towbar/services/web.service.yml" highlight={2-5}
 id: web
 preview:
   enabled: true
@@ -206,7 +206,7 @@ should run as private Apps rather than being started by an HTTP request.
 Vercel Cron invokes an HTTP function on a schedule. In Towbar, declare the
 command that should run against the deployed App image:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 jobs:
   - name: daily-report
     description: Generate the daily report

@@ -31,10 +31,11 @@ export function FirstDeployment({
 }) {
   const router = useRouter();
   const plural = type === "app" ? "apps" : "resources";
+  const label = type === "app" ? "service" : "datastore";
   const readiness = useApiQuery<InstanceSecretReadiness>(
     `/v1/core/${plural}/${deployableId}/secrets/readiness`,
   );
-  const settingsHref = `/${plural}/${deployableId}/settings/secrets`;
+  const settingsHref = `/${type === "app" ? "services" : "datastores"}/${deployableId}/settings/secrets`;
 
   return (
     <Widget className="min-w-0">
@@ -43,7 +44,7 @@ export function FirstDeployment({
           Deployment Status
         </Widget.Title>
       </Widget.Header>
-      <Widget.Content className="flex min-h-36 items-center">
+      <Widget.Content className="flex items-center">
         {!readiness.data ? (
           <div className="grid gap-1">
             <p>
@@ -74,7 +75,7 @@ export function FirstDeployment({
             <div className="min-w-48 flex-1">
               <p>All secrets are configured</p>
               <p className="text-sm text-muted">
-                This {type} is ready for its first deployment.
+                This {label} is ready for its first deployment.
               </p>
             </div>
             {canDeploy ? (
@@ -87,12 +88,12 @@ export function FirstDeployment({
                   )
                 }
                 confirm={{
-                  title: `Deploy this ${type}?`,
+                  title: `Deploy this ${label}?`,
                   description:
                     type === "app"
-                      ? "Queue the first app deployment."
-                      : "Queue the first resource deployment. This will create its managed container.",
-                  actionLabel: `Deploy ${type}`,
+                      ? "Queue the first service deployment."
+                      : "Queue the first datastore deployment. This will create its managed container.",
+                  actionLabel: `Deploy ${label}`,
                 }}
                 onSuccess={(result) =>
                   router.push(deploymentHref(result.deployment))

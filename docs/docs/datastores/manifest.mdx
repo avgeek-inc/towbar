@@ -1,0 +1,43 @@
+---
+title: "Datastore manifest"
+description: "Configure supported database and cache engines with reviewed, environment-specific declarations."
+---
+
+A datastore lives under `.towbar/datastores/*.datastore.yml`. Set `type` to one of the supported database or cache engines. Use a [Service](/docs/services/modes/image) for a general OCI image. The file is Git-reviewed; saved secret values remain in Towbar.
+
+```yaml title=".towbar/datastores/cache.datastore.yml"
+id: cache
+name: Cache
+type: redis
+container:
+  network: application
+  networkAlias: cache
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Register the server, save each declared secret value under **Datastore → Settings → Secrets**, and sync the mapped branch before deploying. Review the [Redis guide](/docs/databases/redis) for its required credentials and engine behavior.
+
+## Field map
+
+| Field                           | Purpose                                                                     | Guide                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `id`, `name`, `description`     | Stable identity and display text. Keep `id` when renaming or moving a file. | [Datastores](/docs/datastores)                                                                    |
+| `type`, `image`                 | Supported engine and optional reviewed image.                               | [Database catalog](/docs/databases)                                                               |
+| `server`, `environments`        | Target host and allowed environment overrides.                              | [Environment branches](/docs/repositories/environments)                                           |
+| `container`, `health`, `access` | Limits, network, storage, readiness, and optional private access.           | [Datastores](/docs/datastores#connect-privately)                                                  |
+| `secrets`, `externalSecrets`    | Runtime key names and an external-secret source.                            | [Towbar secrets](/docs/secrets/towbar), [external secrets](/docs/secrets/external)                |
+| `backup`                        | Schedule, destinations, and retention for managed databases.                | [Backups](/docs/backups)                                                                          |
+| `autoDeploy`, `notifications`   | Deployment automation and extra event destinations.                         | [Sync and automation](/docs/repositories/sync), [Notifications](/docs/integrations/notifications) |
+| `domains`, `ingress`, `tls`     | Routing for Datastores that expose a public endpoint.                       | [Domains and TLS](/docs/domains-tls)                                                              |
+
+The [datastore JSON Schema](/schemas/resource.v2.json) describes exact shapes and constraints. Repository sync validates the merged environment and cross-workload conflicts, while deployment checks runtime readiness and required secret values.
+
+Objects merge recursively across common and environment settings; arrays replace. Identity, `type`, and secret declarations stay at entity level. A successful sync can change a datastore's desired configuration without replacing its running container until a deployment occurs.

@@ -88,7 +88,7 @@ environments:
     unexpected = [];
   const entries = [
     ["towbar.yml", "1".repeat(40), root],
-    [".towbar/apps/website.app.yml", "2".repeat(40), app],
+    [".towbar/services/website.service.yml", "2".repeat(40), app],
   ];
   setFetch(async (input, init) => {
     const url = new URL(String(input));

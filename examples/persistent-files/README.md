@@ -3,7 +3,7 @@
 This small app demonstrates storing files on a Towbar app volume. It has no
 user authentication; run it on a private test server only.
 
-Copy `files.app.yml` to `.towbar/apps/files.app.yml` in this repository, replace
+Copy `files.service.yml` to `.towbar/services/files.service.yml` in this repository, replace
 the example server IP, and connect its production environment. Keep the app's
 Dockerfile and server under `examples/persistent-files`.
 

@@ -158,11 +158,7 @@ export async function executeEnvironmentSync(
               : entity.kind !== "app" && entity.kind !== "compose",
         );
         const directory =
-          kind === "app"
-            ? ".towbar/apps"
-            : kind === "compose"
-              ? ".towbar/compose"
-              : ".towbar/resources";
+          kind === "resource" ? ".towbar/datastores" : ".towbar/services";
         if (hasExisting && !snapshot.directories.includes(directory)) {
           throw conflict(
             `${directory} is missing; existing configuration was preserved`,

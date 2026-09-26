@@ -80,7 +80,6 @@ export const fixtureIds = {
   deployment: "61111111-1111-4111-8111-111111111111",
   preview: "b1111111-1111-4111-8111-111111111111",
   previewDeployment: "61111111-1111-4111-8111-444444444444",
-  imageResource: "41111111-1111-4111-8111-444444444444",
   resource: "41111111-1111-4111-8111-111111111111",
   secondaryPostgres: "41111111-1111-4111-8111-333333333333",
   secondaryServer: "21111111-1111-4111-8111-222222222222",
@@ -254,13 +253,6 @@ const resources: FixtureResource[] = [
     "Analytics Postgres",
     "analytics-postgres",
     "postgres",
-    servers[1]!,
-  ),
-  createResourceFixture(
-    fixtureIds.imageResource,
-    "Mailpit",
-    "mailpit",
-    "image",
     servers[1]!,
   ),
   createResourceFixture(
@@ -3450,12 +3442,7 @@ function getFixturePayload(
               ]
             : isApp
               ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
-              : [
-                  `type: ${item.kind}`,
-                  ...(item.kind === "image"
-                    ? ["image: axllent/mailpit:v1.27"]
-                    : []),
-                ]),
+              : [`type: ${item.kind}`]),
           "environments:",
           ...members.flatMap((member) => [
             `  ${member.environment!.name}:`,
@@ -3463,8 +3450,8 @@ function getFixturePayload(
           ]),
           "",
         ].join("\n");
-        const directory = isCompose ? "compose" : isApp ? "apps" : "resources";
-        const suffix = isCompose ? "compose" : isApp ? "app" : "resource";
+        const directory = isApp || isCompose ? "services" : "datastores";
+        const suffix = isCompose ? "compose" : isApp ? "service" : "datastore";
         return {
           path: `.towbar/${directory}/${item.manifestId}.${suffix}.yml`,
           content,

@@ -3,7 +3,7 @@ title: "Deployments and releases"
 description: "Understand triggers, deployment stages, health-based promotion, and rollback."
 ---
 
-A deployment is one attempt to put an app or resource into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Repository sync history.
+A deployment is one attempt to put an service or datastore into service. Towbar records its trigger, immutable inputs, progress, duration, and final result separately from Repository sync history.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -37,7 +37,7 @@ On mobile, open **Page menu** to access the filters.
 
 ## Deploy manually
 
-Open an app or resource and choose **Deploy**. The server must be prepared and trusted, and required credentials must be configured. Follow the queued operation through its recorded stages; a queued request is not a completed deployment.
+Open an service or datastore and choose **Deploy**. The server must be prepared and trusted, and required credentials must be configured. Follow the queued operation through its recorded stages; a queued request is not a completed deployment.
 
 ```mermaid
 flowchart LR
@@ -51,9 +51,9 @@ The details vary by workload and configured hooks. Use the operation's actual st
 
 ## Automatic deployments
 
-Apps and resources are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with repository globs:
+Services and datastores are manual unless `autoDeploy` is enabled. `autoDeploy: true` treats commits as deployment inputs. Apps can narrow their inputs with repository globs:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={2-6}
+```yaml title=".towbar/services/web.service.yml" highlight={2-6}
 id: web
 autoDeploy:
   inputs:
@@ -72,7 +72,7 @@ Use the Repository's pause controls to stop automatic deployment during maintena
 
 App hooks run commands around deployment. Add hook configuration under the app:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 hooks:
   preDeploy:
     command: ["node", "scripts/migrate.js"]

@@ -1,15 +1,23 @@
 ---
 title: "Dragonfly"
-description: "Declare a Dragonfly 1.33 resource with Redis-compatible access and verified snapshot recovery."
+description: "Declare a Dragonfly 1.33 datastore with Redis-compatible access and verified snapshot recovery."
+icon: "/assets/database-logos/dragonfly.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/dragonfly.svg"
+  alt="Dragonfly logo"
+  aria-hidden="true"
+/>
 
 Towbar's `dragonfly` preset runs Dragonfly 1.33 on amd64 or arm64. It listens on
 port `6379`, stores snapshots in `/data`, and exposes the Redis protocol with
 password authentication.
 
-## Declare the resource
+## Declare the datastore
 
-```yaml title=".towbar/resources/dragonfly.resource.yml" highlight={3,14-16,18}
+```yaml title=".towbar/datastores/dragonfly.datastore.yml" highlight={3,14-16,18}
 id: dragonfly
 name: Dragonfly
 type: dragonfly
@@ -33,10 +41,10 @@ environments:
 Towbar requires `REDIS_PASSWORD`, passes it to Dragonfly as `requirepass`, and
 uses it for health, backup, and restore operations.
 
-## Connect from an app
+## Connect from a service
 
 Use a Redis-compatible client and connect to `dragonfly:6379` from containers on
-the `application` network. Store the connection URL in the app's runtime
+the `application` network. Store the connection URL in the service's runtime
 secrets. The optional tunnel binds `16380` only to server loopback.
 
 ## Operational boundary

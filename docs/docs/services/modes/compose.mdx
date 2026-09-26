@@ -1,0 +1,38 @@
+---
+title: "Compose project"
+description: "Deploy a multi-service project from repository-owned Compose files."
+---
+
+Choose a Compose workload when several services must be deployed as one project. Place its entity under `.towbar/services` and point `file` and optional `overrides` at Compose files in the same immutable checkout.
+
+## Example manifest
+
+This is the validated example from the Towbar `examples/platform-modes` project. Replace the documentation IP, domain, and image choices with values for your environment.
+
+```yaml title=".towbar/services/storefront.compose.yml"
+id: compose-example
+name: Compose example
+file: examples/platform-modes/compose/compose.yml
+overrides:
+  - examples/platform-modes/compose/compose.production.yml
+profiles: [production]
+strategy: maintenance
+services:
+  web:
+    port: 3000
+    domains: [compose.example.com]
+    ingress:
+      type: proxy
+  cache: {}
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure it
+
+The example gives the `web` service a public proxy route and keeps `cache` internal. Towbar validates the resolved Compose project before Docker opens it. Compose builds run on the runtime server because the service graph is resolved as one project.
+
+Remote includes, privileged containers, Docker socket mounts, host bind mounts, devices, public host ports, and external or explicitly named Docker resources are rejected. Compose replacement uses `recreate` or `maintenance`; rolling replacement is not supported.
+
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

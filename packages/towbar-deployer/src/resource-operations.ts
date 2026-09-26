@@ -366,9 +366,6 @@ async function createBackup(input: {
   if (!backup || !release) {
     throw new Error("A current release is required for this operation");
   }
-  if (input.deployable.kind === "image") {
-    throw new Error("Managed backups require a managed database resource");
-  }
   const engine: BackupEngine = input.deployable.kind;
 
   const { availableStorages, configuredProviders } = resolveBackupStorages(

@@ -97,7 +97,6 @@ export const releaseStatusEnum = pgEnum("towbar_release_status", [
 export const deployableKindEnum = pgEnum("towbar_deployable_kind", [
   "app",
   "compose",
-  "image",
   "postgres",
   "mysql",
   "mariadb",
@@ -733,7 +732,6 @@ export const sourceEntities = pgTable(
       .notNull(),
     manifestId: varchar("manifest_id", { length: 63 }).notNull(),
     resourceType: varchar("resource_type", { length: 16 }).$type<
-      | "image"
       | "postgres"
       | "mysql"
       | "mariadb"
@@ -756,7 +754,7 @@ export const sourceEntities = pgTable(
     unique("uq_towbar_source_entities_owner").on(table.id, table.sourceId),
     check(
       "towbar_source_entity_kind",
-      sql`(${table.entityType} IN ('app','compose') AND ${table.resourceType} IS NULL) OR (${table.entityType} = 'resource' AND ${table.resourceType} IN ('image','postgres','mysql','mariadb','mongodb','redis','dragonfly','keydb','clickhouse'))`,
+      sql`(${table.entityType} IN ('app','compose') AND ${table.resourceType} IS NULL) OR (${table.entityType} = 'resource' AND ${table.resourceType} IN ('postgres','mysql','mariadb','mongodb','redis','dragonfly','keydb','clickhouse'))`,
     ),
   ],
 );

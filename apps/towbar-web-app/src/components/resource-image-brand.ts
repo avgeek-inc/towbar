@@ -13,15 +13,15 @@ const fallback: ResourceBrand = {
   label: "Image",
   logo: "/resource-types/image.png",
 };
-const managed: Record<Exclude<ResourceType, "image">, ResourceBrand> = {
-  clickhouse: { label: "ClickHouse", logo: "/resource-types/image.png" },
-  dragonfly: { label: "Dragonfly", logo: "/resource-types/redis.png" },
-  keydb: { label: "KeyDB", logo: "/resource-types/redis.png" },
-  mariadb: { label: "MariaDB", logo: "/resource-types/image.png" },
-  mongodb: { label: "MongoDB", logo: "/resource-types/image.png" },
-  mysql: { label: "MySQL", logo: "/resource-types/image.png" },
-  postgres: { label: "PostgreSQL", logo: "/resource-types/postgres.png" },
-  redis: { label: "Redis", logo: "/resource-types/redis.png" },
+const managed: Record<ResourceType, ResourceBrand> = {
+  clickhouse: { label: "ClickHouse", logo: "/resource-logos/clickhouse.webp" },
+  dragonfly: { label: "Dragonfly", logo: "/resource-logos/dragonfly.svg" },
+  keydb: { label: "KeyDB", logo: "/resource-logos/keydb.svg" },
+  mariadb: { label: "MariaDB", logo: "/resource-logos/mariadb.webp" },
+  mongodb: { label: "MongoDB", logo: "/resource-logos/mongodb.webp" },
+  mysql: { label: "MySQL", logo: "/resource-logos/mysql.webp" },
+  postgres: { label: "PostgreSQL", logo: "/resource-logos/postgresql.webp" },
+  redis: { label: "Redis", logo: "/resource-logos/redis.webp" },
 };
 
 /** Match repository identities, never arbitrary suffixes or product substrings. */
@@ -72,7 +72,7 @@ const byRepository = new Map(
 );
 
 export function resourceImageBrand(
-  kind: ResourceType,
+  kind: ResourceType | "image",
   image: string,
 ): ResourceBrand {
   if (kind !== "image") return managed[kind];

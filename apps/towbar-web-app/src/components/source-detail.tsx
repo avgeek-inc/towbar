@@ -309,8 +309,8 @@ export function SourceDetail() {
             ),
           },
           {
-            value: "apps",
-            label: "Apps",
+            value: "services",
+            label: "Services",
             icon: <HugeiconsIcon icon={DashboardCircleIcon} />,
             indicator: apps.data
               ? {
@@ -336,8 +336,8 @@ export function SourceDetail() {
             ),
           },
           {
-            value: "resources",
-            label: "Resources",
+            value: "datastores",
+            label: "Datastores",
             icon: <HugeiconsIcon icon={CubeIcon} />,
             indicator: resources.data
               ? {
@@ -468,7 +468,7 @@ function SourceSettings({
                         confirm={{
                           actionLabel: "Delete Repository permanently",
                           description:
-                            "This permanently deletes the Repository, sync history, Apps, Resources, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. Running services and Docker data are not deleted. Check each server afterward to find leftovers in Cleanup. This cannot be undone.",
+                            "This permanently deletes the Repository, sync history, Services, Datastores, Deployments, Releases, backup metadata, and runtime operations. Workspace integrations, servers, their credentials, checks, and trust records remain available. Running services and Docker data are not deleted. Check each server afterward to find leftovers in Cleanup. This cannot be undone.",
                           title: "Delete this Repository and its inventory?",
                         }}
                         onSuccess={onDelete}

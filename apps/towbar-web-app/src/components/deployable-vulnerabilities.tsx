@@ -126,7 +126,7 @@ export function DeployableVulnerabilities({
     <div className="grid min-w-0 gap-5">
       <VulnerabilitySeverityWidgets totals={query.data.summary} />
       <ResourceTable
-        ariaLabel="App vulnerability findings"
+        ariaLabel="Service vulnerability findings"
         columns={columns}
         getRowKey={(finding) => finding.id}
         items={query.data.findings}

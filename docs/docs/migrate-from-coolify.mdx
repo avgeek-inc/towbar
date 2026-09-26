@@ -82,19 +82,19 @@ For every database, record its engine, major version, database names, users, ext
 
 Choose a Towbar deployment mode for every application:
 
-| Coolify workload                    | Towbar destination                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| Git repository with a Dockerfile    | `dockerfile` app                                                                     |
-| Static build output                 | `static` app                                                                         |
-| Prebuilt container image            | `image` app with a non-`latest` tag or digest                                        |
-| Nixpacks or Buildpacks source build | `nixpacks`, `railpack`, or `buildpack` app after a compatibility test                |
-| Git-managed Compose project         | Compose project after reviewing Towbar's restrictions                                |
-| Standalone supported database       | Managed Resource with the same supported engine and major version                    |
-| Other stateful service              | Image Resource or Compose project after validating persistence, health, and recovery |
+| Coolify workload                    | Towbar destination                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| Git repository with a Dockerfile    | `dockerfile` app                                                                    |
+| Static build output                 | `static` app                                                                        |
+| Prebuilt container image            | `image` app with a non-`latest` tag or digest                                       |
+| Nixpacks or Buildpacks source build | `nixpacks`, `railpack`, or `buildpack` app after a compatibility test               |
+| Git-managed Compose project         | Compose project after reviewing Towbar's restrictions                               |
+| Standalone supported database       | Managed Datastore with the same supported engine and major version                  |
+| Other stateful service              | Image Service or Compose project after validating persistence, health, and recovery |
 
 Read [Deployment modes](/docs/platform-deployments) before moving Compose. Towbar rejects privileged containers, Docker socket mounts, host bind mounts, fixed public host ports, remote includes, external namespaces, and several other patterns that a general Compose installation may permit.
 
-Create `towbar.yml` and one entity file per app or resource. Run schema validation in the repository before connecting it, then connect each environment to its branch. Keep automatic deployments disabled during migration.
+Create `towbar.yml` and one entity file per Service or Datastore. Run schema validation in the repository before connecting it, then connect each environment to its branch. Keep automatic deployments disabled during migration.
 
 ## 3. Recreate credentials and integrations
 

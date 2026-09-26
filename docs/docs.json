@@ -2,14 +2,14 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own.",
+  "description": "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own.",
   "logo": {
     "light": "/assets/towbar-logo.png",
     "dark": "/assets/towbar-logo.png",
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#A16207" },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#B9872C" },
   "appearance": { "default": "system" },
   "icons": { "library": "lucide" },
   "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
@@ -93,38 +93,38 @@
             ]
           },
           {
-            "group": "Applications",
+            "group": "Services",
             "pages": [
-              "docs/apps",
-              "docs/apps/manifest",
-              "docs/apps/configuration",
-              "docs/apps/routing",
-              "docs/apps/automation",
-              "docs/apps/jobs",
+              "docs/services",
+              "docs/services/manifest",
+              "docs/services/configuration",
+              "docs/services/routing",
+              "docs/services/automation",
+              "docs/services/jobs",
               "docs/platform-deployments",
               {
                 "group": "Deployment modes",
                 "pages": [
-                  "docs/apps/modes/dockerfile",
-                  "docs/apps/modes/static",
-                  "docs/apps/modes/image",
-                  "docs/apps/modes/railpack",
-                  "docs/apps/modes/nixpacks",
-                  "docs/apps/modes/buildpack",
-                  "docs/apps/modes/compose"
+                  "docs/services/modes/dockerfile",
+                  "docs/services/modes/static",
+                  "docs/services/modes/image",
+                  "docs/services/modes/railpack",
+                  "docs/services/modes/nixpacks",
+                  "docs/services/modes/buildpack",
+                  "docs/services/modes/compose"
                 ]
               }
             ]
           },
           {
-            "group": "Resources",
+            "group": "Datastores",
             "pages": [
-              "docs/resources",
-              "docs/resources/manifest",
-              "docs/resources/image",
+              "docs/datastores",
+              "docs/datastores/manifest",
               "docs/databases/index",
               {
-                "group": "Managed databases",
+                "group": "Engines",
+                "icon": "database",
                 "pages": [
                   "docs/databases/postgresql",
                   "docs/databases/mysql",
@@ -196,14 +196,17 @@
           { "group": "Overview", "pages": ["docs/integrations/index"] },
           {
             "group": "Source control",
+            "icon": "git-branch",
             "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
           },
           {
             "group": "Container registries",
+            "icon": "container",
             "pages": ["docs/integrations/oci-registry"]
           },
           {
             "group": "Backup providers",
+            "icon": "cloud-upload",
             "pages": [
               "docs/integrations/backup-providers",
               "docs/integrations/aws",
@@ -214,6 +217,7 @@
           },
           {
             "group": "External secrets",
+            "icon": "key-round",
             "pages": [
               "docs/integrations/infisical",
               "docs/integrations/doppler"
@@ -221,6 +225,7 @@
           },
           {
             "group": "Platform services",
+            "icon": "cloud",
             "pages": [
               "docs/integrations/platform-services",
               "docs/integrations/cloudflare"
@@ -228,6 +233,7 @@
           },
           {
             "group": "Notifications",
+            "icon": "bell",
             "pages": [
               "docs/integrations/notifications",
               "docs/integrations/notifications/email",

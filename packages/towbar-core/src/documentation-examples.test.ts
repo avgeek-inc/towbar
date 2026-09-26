@@ -39,7 +39,7 @@ void test("published YAML examples match the v2 repository parser", () => {
           }
           const kind = header.includes(".compose.yml")
             ? "compose"
-            : header.includes(".resource.yml") || value.type || value.backup
+            : header.includes(".datastore.yml") || value.type || value.backup
               ? "resource"
               : "app";
           const container: Record<string, unknown> =
@@ -89,7 +89,10 @@ void test("published YAML examples match the v2 repository parser", () => {
               branch: "main",
               files: [
                 {
-                  path: `.towbar/${kind === "compose" ? "compose" : `${kind}s`}/example.${kind}.yml`,
+                  path:
+                    kind === "resource"
+                      ? ".towbar/datastores/example.datastore.yml"
+                      : `.towbar/services/example.${kind === "compose" ? "compose" : "service"}.yml`,
                   content: stringify(entity),
                 },
               ],

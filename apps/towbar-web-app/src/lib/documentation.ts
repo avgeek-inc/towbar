@@ -26,19 +26,19 @@ export const documentationTopics = {
   ),
   repositories: guide(
     "repositories",
-    "Connect GitHub repositories, map environments to branches, and sync the apps and resources declared in Git.",
+    "Connect GitHub repositories, map environments to branches, and sync the services and datastores declared in Git.",
   ),
   sync: guide(
     "repositories#change-configuration",
     "Review the commit, imported inventory, changes, and validation issues from one repository sync.",
   ),
   apps: guide(
-    "apps",
-    "Apps build a Dockerfile from your repository and run on a prepared server. Choose an environment to view its current state.",
+    "services",
+    "Services build from source or run a prebuilt image on a prepared server. Choose an environment to view its current state.",
   ),
   resources: guide(
-    "resources",
-    "Resources run container images, including managed PostgreSQL and Redis databases, on your servers.",
+    "datastores",
+    "Datastores run managed database and cache engines on your servers.",
   ),
   deployments: guide(
     "deployments",
@@ -54,11 +54,11 @@ export const documentationTopics = {
   ),
   previews: guide(
     "previews",
-    "Run isolated app instances for eligible pull requests, with separate preview secrets and automatic cleanup.",
+    "Run isolated service instances for eligible pull requests, with separate preview secrets and automatic cleanup.",
   ),
   servers: guide(
     "servers",
-    "Register an Ubuntu server, configure trusted SSH access, and prepare it to run apps and resources.",
+    "Register an Ubuntu server, configure trusted SSH access, and prepare it to run services and datastores.",
   ),
   preparation: guide(
     "servers/setup",
@@ -166,7 +166,7 @@ export const documentationTopics = {
   ),
   r2: guide(
     "integrations/r2",
-    "Configure Cloudflare R2 object storage and verify a managed-resource backup and restore.",
+    "Configure Cloudflare R2 object storage and verify a datastore backup and restore.",
   ),
   notifications: guide(
     "integrations/notifications",
@@ -352,8 +352,8 @@ export function documentationTopic(pathname: string): Topic | undefined {
     restore: "restores",
   };
   if (section && sections[section]) return sections[section];
-  if (parts.includes("apps")) return "apps";
-  if (parts.includes("resources")) return "resources";
+  if (parts.includes("services")) return "apps";
+  if (parts.includes("datastores")) return "resources";
   if (parts[0] === "servers") return "servers";
   if (parts[0] === "repositories") return "repositories";
   return undefined;
@@ -445,12 +445,12 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
   "environment automation": documentationTopics.automation,
   "preview configuration": documentationTopics.previews,
   "build configuration": guide(
-    "apps/manifest",
-    "The Dockerfile, build context, source revision, and build settings read from the app manifest.",
+    "services/manifest",
+    "The Dockerfile, build context, source revision, and build settings read from the service manifest.",
   ),
   "image configuration": guide(
-    "resources#supported-types",
-    "The container image, resource type, and source configuration selected for this resource.",
+    "services/modes/image",
+    "The container image and source configuration selected for this service.",
   ),
   "container configuration": guide(
     "deployment-manifest#field-reference",
@@ -461,7 +461,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "Health checks and deployment hooks control when a candidate is ready and which commands run around promotion.",
   ),
   "connection details": guide(
-    "resources#connect-privately",
+    "datastores#connect-privately",
     "Use the container network for private workload traffic or an SSH tunnel for local database access.",
   ),
   deployment: documentationTopics.deployments,
@@ -555,7 +555,7 @@ export function headingDocumentation(
     return documentationTopics[topic];
   if (name === "current state")
     return guide(
-      topic === "resources" ? "resources" : "apps",
+      topic === "resources" ? "datastores" : "services",
       "Lifecycle, runtime health, and configuration drift describe different parts of this workload's state. Check each before deploying.",
     );
   if (name === "danger zone")

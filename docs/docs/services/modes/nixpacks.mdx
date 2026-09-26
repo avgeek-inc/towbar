@@ -1,0 +1,40 @@
+---
+title: "Nixpacks"
+description: "Build an existing Nixpacks project with a pinned compatible builder."
+---
+
+Choose `nixpacks` for projects that already rely on Nixpacks configuration. The declaration pins its version and image, chooses a repository context, and can point at `nixpacks.toml`.
+
+## Example manifest
+
+This is the validated example from the Towbar `examples/platform-modes` project. Replace the documentation IP, domain, and image choices with values for your environment.
+
+```yaml title=".towbar/services/nixpacks.service.yml"
+id: nixpacks-example
+name: Nixpacks compatibility example
+deployment:
+  type: nixpacks
+  context: examples/platform-modes/node-app
+  version: 1.41.0
+  image: ghcr.io/railwayapp/nixpacks@sha256:9fc9a803373dfdde5b0bab48f26e4d9104f721865d108316eb655ee0214c3e91
+  configFile: nixpacks.toml
+  architecture: amd64
+  cache:
+    enabled: true
+    scope: platform-nixpacks-example
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure it
+
+The example makes the builder architecture explicit and enables workload-scoped caching. After the first deployment, inspect the built image and health check instead of assuming that source detection chose the expected start command.
+
+Nixpacks builds reject build secrets. For private build-time dependencies, switch to a Dockerfile with a protected BuildKit secret mount.
+
+Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Application manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.

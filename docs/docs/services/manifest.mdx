@@ -1,0 +1,44 @@
+---
+title: "Service manifest"
+description: "Read every top-level Service field and follow focused configuration guides."
+---
+
+A Service is one workload declared under `.towbar/services/*.service.yml`. Its file defines common settings and an `environments` map; `towbar.yml` declares which environment names exist. Towbar reads the committed file at the mapped branch and validates the effective configuration before deploying.
+
+```yaml title=".towbar/services/web.service.yml"
+id: web
+name: Web
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Register the example IP under [Servers](/docs/servers) and map `production` to a branch before syncing.
+
+## Field map
+
+| Field                                                             | Purpose                                                                            | Guide                                                                                         |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `id`, `name`, `description`                                       | Durable identity and display text. Keep `id` stable across file moves and renames. | [Services](/docs/services)                                                                    |
+| `deployment`                                                      | Dockerfile, static, OCI image, Railpack, Nixpacks, or Buildpacks.                  | [Deployment modes](/docs/platform-deployments)                                                |
+| `server`, `environments`                                          | Target server and per-environment overrides.                                       | [Environment branches](/docs/repositories/environments)                                       |
+| `container`, `health`                                             | Process port, resources, networking, storage, and readiness.                       | [Container and health](/docs/services/configuration)                                          |
+| `domains`, `ingress`, `tls`                                       | Public routing and certificate policy.                                             | [Routing and TLS](/docs/services/routing)                                                     |
+| `secrets`, `externalSecrets`                                      | Required keys and an external-secret source; values stay outside Git.              | [Towbar secrets](/docs/secrets/towbar), [external secrets](/docs/secrets/external)            |
+| `autoDeploy`, `preview`, `notifications`, `vulnerabilityScanning` | Automation, previews, subscriptions, and scanning.                                 | [Automation and previews](/docs/services/automation)                                          |
+| `jobs`, `hooks`                                                   | Scheduled commands and deployment-stage commands.                                  | [Scheduled jobs](/docs/services/jobs), [deployment hooks](/docs/deployments#deployment-hooks) |
+| `rollout`, `buildServer`                                          | Replacement strategy and optional separate builder host.                           | [Deployment modes](/docs/platform-deployments)                                                |
+
+Put build settings under `deployment`. The exact accepted shapes and constraints are in the [service JSON Schema](/schemas/app.v2.json). Repository sync also checks cross-workload conditions such as server registration and conflicting network aliases.
+
+## Common and environment values
+
+Put shared settings at the top level and override allowed fields under an environment. Objects merge recursively, while an environment array replaces the common array. Identity, secret declarations, and preview configuration stay at entity level. A failed sync does not partially replace the last valid Service configuration or its stored secret values.

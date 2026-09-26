@@ -12310,7 +12310,6 @@
             { "type": "null" },
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -12826,7 +12825,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15035,7 +15033,6 @@
         "image": { "type": "string" },
         "kind": {
           "anyOf": [
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15110,7 +15107,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15223,7 +15219,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15905,7 +15900,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16284,7 +16278,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16438,7 +16431,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16677,7 +16669,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -17738,7 +17729,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -17848,7 +17838,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -19003,7 +18992,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },

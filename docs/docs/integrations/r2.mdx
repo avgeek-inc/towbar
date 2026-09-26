@@ -1,9 +1,17 @@
 ---
 title: "Cloudflare R2"
 description: "Configure R2 object storage for managed database backups and restores."
+icon: "/assets/integration-logos/cloudflare.svg"
 ---
 
-Create an R2 bucket and access-key pair with permissions for the objects and prefix Towbar will manage. Use the account's R2 S3 API endpoint, not a public bucket URL. The credentials stay in `/etc/towbar/towbar.yml`; resource manifests choose the backup destination and policy.
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/cloudflare.svg"
+  alt="Cloudflare R2 logo"
+  aria-hidden="true"
+/>
+
+Create an R2 bucket and access-key pair with permissions for the objects and prefix Towbar will manage. Use the account's R2 S3 API endpoint, not a public bucket URL. The credentials stay in `/etc/towbar/towbar.yml`; datastore manifests choose the backup destination and policy.
 
 ```yaml title="/etc/towbar/towbar.yml"
 integrations:

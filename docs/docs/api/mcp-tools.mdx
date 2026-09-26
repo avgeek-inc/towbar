@@ -689,7 +689,7 @@ Edit access required. Required permissions: `system.manage`.
 
 `towbar_inventory_search`
 
-Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits app/resource discovery; do not supply both. Use the matching inspect tool for details.
+Find entity UUIDs by name, repository, or IP before taking action. Returns a compact page and nextOffset. An optional sourceId or serverId limits service/datastore discovery; do not supply both. Use the matching inspect tool for details.
 
 Read-only operation. Required permissions: `repository.read`, `workload.read`, `resource.read`, `server.read`.
 
@@ -1173,14 +1173,14 @@ Read-only operation. Required permissions: `repository.read`.
 
 </AccordionGroup>
 
-## Apps and resources
+## Services and datastores
 
 <AccordionGroup>
-<Accordion title="Inspect app or resource">
+<Accordion title="Inspect service or datastore">
 
 `towbar_workload_inspect`
 
-Read an app/resource configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For an app volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.
+Read an service/datastore configuration, effective auto-deploy controls, releases, deployments, and runtime operations together. For a service volume operation, supply operationId to include its progress events. Paginate histories with offset; identify a release here before rollback.
 
 Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
@@ -1227,11 +1227,11 @@ Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
 </Accordion>
 
-<Accordion title="Deploy app or resource">
+<Accordion title="Deploy service or datastore">
 
 `towbar_workload_deploy`
 
-Deploy an app or resource from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
+Deploy an service or datastore from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
 
 Edit access required. Required permissions: `deployment.create`.
 
@@ -1266,11 +1266,11 @@ Edit access required. Required permissions: `deployment.create`.
 
 </Accordion>
 
-<Accordion title="Rollback app or resource">
+<Accordion title="Rollback service or datastore">
 
 `towbar_workload_rollback`
 
-Roll an app/resource back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
+Roll an service/datastore back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
 
 Edit access required. Required permissions: `deployment.create`.
 
@@ -1311,11 +1311,11 @@ Edit access required. Required permissions: `deployment.create`.
 
 </Accordion>
 
-<Accordion title="Restart app or resource">
+<Accordion title="Restart service or datastore">
 
 `towbar_workload_restart`
 
-Restart an app/resource runtime. Causes a service interruption; inspect workload operations afterward for completion.
+Restart an service/datastore runtime. Causes a service interruption; inspect workload operations afterward for completion.
 
 Edit access required. Required permissions: `workload.operate`.
 
@@ -1356,11 +1356,11 @@ Edit access required. Required permissions: `workload.operate`.
 
 </Accordion>
 
-<Accordion title="Start app or resource">
+<Accordion title="Start service or datastore">
 
 `towbar_workload_start`
 
-Start a stopped app/resource runtime. Inspect workload operations afterward for completion.
+Start a stopped service/datastore runtime. Inspect workload operations afterward for completion.
 
 Edit access required. Required permissions: `workload.operate`.
 
@@ -1401,11 +1401,11 @@ Edit access required. Required permissions: `workload.operate`.
 
 </Accordion>
 
-<Accordion title="Stop app or resource">
+<Accordion title="Stop service or datastore">
 
 `towbar_workload_stop`
 
-Stop an app/resource runtime, making it unavailable. Inspect workload operations afterward for completion.
+Stop an service/datastore runtime, making it unavailable. Inspect workload operations afterward for completion.
 
 Edit access required. Required permissions: `workload.operate`.
 
@@ -1446,7 +1446,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 </Accordion>
 
-<Accordion title="Collect logs for app or resource">
+<Accordion title="Collect logs for service or datastore">
 
 `towbar_workload_logs`
 
@@ -1508,7 +1508,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 `towbar_workload_external_secrets_refresh`
 
-Queue a new app or resource deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.
+Queue a new service or datastore deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.
 
 Edit access required. Required permissions: `deployment.create`.
 

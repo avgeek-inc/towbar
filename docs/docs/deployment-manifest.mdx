@@ -1,16 +1,16 @@
 ---
 title: "Deployment manifest"
-description: "Declare environments in towbar.yml and configure apps and resources in separate entity files."
+description: "Declare environments in towbar.yml and configure Services and Datastores in separate entity files."
 ---
 
-Towbar reads `towbar.yml`, then discovers app, Compose, and resource files under
+Towbar reads `towbar.yml`, then discovers Service, Compose, and Datastore files under
 `.towbar/`. Each file declares one workload. Branch mappings and credential
 values stay in Towbar instead of Git.
 
 Download the [root example](/examples/towbar.yaml) and
-[app example](/examples/hello-towbar.app.yaml). Editor schemas are available for
-[the root](/schemas/repository.v2.json), [apps](/schemas/app.v2.json),
-[Compose](/schemas/compose.v2.json), and [resources](/schemas/resource.v2.json).
+[service example](/examples/hello-towbar.service.yaml). Editor schemas are available for
+[the root](/schemas/repository.v2.json), [Services](/schemas/app.v2.json),
+[Compose](/schemas/compose.v2.json), and [Datastores](/schemas/resource.v2.json).
 
 ## Declare environments
 
@@ -29,14 +29,14 @@ environments:
 Map each environment to a branch in **Repository → Environments**. Branch names,
 server addresses, and entity directories are not root fields.
 
-## Declare an app
+## Declare a Service
 
 <span id="field-reference" />
 
 Common fields apply to every selected environment. Each entry under
 `environments` adds or overrides environment-specific values:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={1-4,14-20}
+```yaml title=".towbar/services/web.service.yml" highlight={1-4,14-20}
 id: web
 name: Web
 deployment:
@@ -68,14 +68,14 @@ Removing an entity or one of its environment entries archives that instance
 after a successful sync. A failed sync preserves the last valid configuration
 and saved secret values.
 
-## Route notifications for one app or resource
+## Route notifications for one service or datastore
 
 Workspace destinations in **Manage → Notifications** receive events across all
-apps and resources. Add `notifications` to an app, Compose workload, or resource
+services and datastores. Add `notifications` to an app, Compose workload, or resource
 file to send that entity's events to additional destinations. These subscriptions
 take effect when the environment sync succeeds; no deployment is needed.
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 notifications:
   email:
     - address: web-ops@example.com
@@ -102,13 +102,13 @@ notifications:
 
 Each destination must enable at least one category. Deployments includes
 previews; Alerts & Incidents includes service health and Scout alerts. The same
-shape works in resource files. Use `messageThreadId` only for a Telegram forum
+shape works in datastore files. Use `messageThreadId` only for a Telegram forum
 topic. Webhook push is available only as a workspace destination.
 
 Keep SMTP, Slack bot, Discord webhook token, and Telegram bot credentials in
 `/etc/towbar/towbar.yml`. A manifest destination sends only while its provider
 is configured there. For Discord, `webhookId` must match a runtime-configured
-webhook pair. The app or resource **Monitor → Notifications** page shows the
+webhook pair. The service or datastore **Monitor → Notifications** page shows the
 synced destinations and subscriptions without edit controls. Use **Manage →
 Notifications → Health → Deliveries** to inspect delivery history for all
 entities.
@@ -118,7 +118,7 @@ entities.
 Set `autoDeploy: true` to deploy whenever a mapped-branch commit changes the
 workload. Use `autoDeploy.inputs` to limit an app to relevant repository paths:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-7}
+```yaml title=".towbar/services/web.service.yml" highlight={3-7}
 id: web
 name: Web
 autoDeploy:
@@ -136,7 +136,7 @@ import configuration without deploying it.
 
 Commit the required key names, then enter their values in Towbar:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-10}
+```yaml title=".towbar/services/web.service.yml" highlight={3-10}
 id: web
 name: Web
 secrets:
@@ -156,10 +156,10 @@ synced environment. A missing value blocks deployment rather than sync. See
 
 ## Join a private network
 
-Apps and resources can share a Docker network. Resource aliases default to the
+Services and datastores can share a Docker network. Resource aliases default to the
 resource ID; an SSH tunnel binds only to server loopback:
 
-```yaml title=".towbar/resources/postgres.resource.yml" highlight={4-8}
+```yaml title=".towbar/datastores/postgres.datastore.yml" highlight={4-8}
 id: postgres
 name: PostgreSQL
 type: postgres
@@ -182,7 +182,7 @@ rejects alias and tunnel-port conflicts.
 Enable previews in `towbar.yml`, then opt each app in with its base domain and
 optional expiry:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-6}
+```yaml title=".towbar/services/web.service.yml" highlight={3-6}
 id: web
 name: Web
 preview:
@@ -204,7 +204,7 @@ Resources do not create previews. See [Preview environments](/docs/previews).
 Put domains in the environment that owns them. Keep `tls` common when all
 environments use the same certificate mode:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-4,7-8}
+```yaml title=".towbar/services/web.service.yml" highlight={3-4,7-8}
 id: web
 name: Web
 tls:
@@ -224,7 +224,7 @@ Towbar rejects a hostname already owned elsewhere in the workspace. See
 Declare Docker-managed named volumes under `container.volumes`. A persistent
 volume requires a recreate rollout because it has one writer:
 
-```yaml title=".towbar/apps/files.app.yml" highlight={3-6,9-11}
+```yaml title=".towbar/services/files.service.yml" highlight={3-6,9-11}
 id: files
 name: File uploads
 rollout:
@@ -249,7 +249,7 @@ volume list. Host-directory bind mounts are not accepted.
 When adding a volume to an app that already has data at its mount path, choose
 the initial source explicitly:
 
-```yaml title=".towbar/apps/files.app.yml" highlight={5}
+```yaml title=".towbar/services/files.service.yml" highlight={5}
 container:
   port: 3000
   volumes:
@@ -272,7 +272,7 @@ infrastructure tooling appropriate for the server.
 Each job runs a command from the deployed app image with the app's runtime
 secrets, network, limits, and volumes:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-11}
+```yaml title=".towbar/services/web.service.yml" highlight={3-11}
 id: web
 name: Web
 jobs:
@@ -288,7 +288,7 @@ jobs:
 
 Schedules use UTC and have one-minute resolution. Environment overrides replace
 the whole `jobs` list; set `jobs: []` to disable jobs in one environment. See
-[Scheduled jobs](/docs/apps/jobs) for execution and retry behavior.
+[Scheduled jobs](/docs/services/jobs) for execution and retry behavior.
 
 ## Validate before syncing
 

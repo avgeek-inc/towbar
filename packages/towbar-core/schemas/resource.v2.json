@@ -246,7 +246,6 @@
     "type": {
       "type": "string",
       "enum": [
-        "image",
         "postgres",
         "mysql",
         "mariadb",
@@ -268,12 +267,6 @@
     "container": {
       "type": "object",
       "properties": {
-        "command": {
-          "minItems": 1,
-          "maxItems": 64,
-          "type": "array",
-          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
-        },
         "network": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
@@ -685,12 +678,6 @@
           "container": {
             "type": "object",
             "properties": {
-              "command": {
-                "minItems": 1,
-                "maxItems": 64,
-                "type": "array",
-                "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
-              },
               "network": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
