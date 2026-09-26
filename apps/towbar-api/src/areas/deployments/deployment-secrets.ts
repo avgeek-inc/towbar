@@ -172,9 +172,9 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
             Boolean(app.hooks.postDeploy),
         ),
       };
-      if (!resource && app.hooks.preDeploy)
+      if (!resource && deployment.kind === "deploy" && app.hooks.preDeploy)
         assertRequired("pre_deploy", hooks.preDeploy);
-      if (!resource && app.hooks.postDeploy)
+      if (!resource && deployment.kind === "deploy" && app.hooks.postDeploy)
         assertRequired("post_deploy", hooks.postDeploy);
       const cloudflare = cloudflareDnsCredential(app);
       const currentTunnelPolicy = tunnelPolicy(app);

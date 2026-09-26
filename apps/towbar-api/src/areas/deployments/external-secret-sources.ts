@@ -5,6 +5,7 @@ import type {
   NormalizedDeployable,
 } from "@workspace/towbar-core";
 import {
+  externalSecretsSchema,
   isExternalSecretSource,
   parseCredentialsMasterKey,
 } from "@workspace/towbar-core";
@@ -29,11 +30,14 @@ export async function resolveExternalSecretSnapshot(input: {
 }) {
   const values: Record<string, string> = {};
   const revisions: Record<string, string> = {};
-  if (isExternalSecretSource(input.deployable.externalSecrets)) {
-    if (input.stage === "build") return { revisions, values };
-    return resolveExternalSecretSource(input);
-  }
-  return { revisions, values };
+  const source = input.deployable.externalSecrets;
+  if (!source) return { revisions, values };
+  if (!externalSecretsSchema.safeParse(source).success)
+    throw unprocessable(
+      "Stored external secret source is unsupported; sync the repository with the current manifest format",
+    );
+  if (input.stage === "build") return { revisions, values };
+  return resolveExternalSecretSource(input);
 }
 
 async function resolveExternalSecretSource(input: {
