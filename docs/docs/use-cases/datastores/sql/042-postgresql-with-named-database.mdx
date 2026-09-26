@@ -1,0 +1,46 @@
+---
+title: "PostgreSQL with named database"
+description: "Declare POSTGRES_USER and POSTGRES_DB alongside the password."
+icon: "/assets/database-logos/postgresql.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/postgresql.webp"
+  alt="PostgreSQL with named database logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/postgresql-with-named-database.datastore.yml"
+id: postgresql-with-named-database
+name: PostgreSQL with named database
+type: postgres
+container:
+  network: application
+  networkAlias: postgresql-with-named-database
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Set values before first initialization; changing them later does not rename an existing role or database.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

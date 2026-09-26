@@ -1,0 +1,47 @@
+---
+title: "Single-page app"
+description: "In static mode, set spaFallback: true."
+---
+
+**Related reading:** [Example](/docs/services/modes/static).
+
+The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/single-page-app.service.yml"
+id: single-page-app
+name: Single-page app
+deployment:
+  type: static
+  context: .
+  output: dist
+  buildCommand:
+    - npm
+    - run
+    - build
+  nodeImage: node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81
+  runtimeImage: nginxinc/nginx-unprivileged@sha256:27985295bdb22a1ef8f712863210bd5877c0f3006494a593e86b3fe0fa55467e
+  spaFallback: true
+  headers:
+    Cache-Control: public, max-age=300
+    X-Content-Type-Options: nosniff
+container:
+  port: 8080
+health:
+  path: /
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Direct navigation to a client-side route returns the entry page.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

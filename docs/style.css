@@ -646,3 +646,65 @@ body:has(.towbar-home) {
     gap: 16px;
   }
 }
+
+/* Use-case product marks shown beside page titles. */
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/umami.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/umami.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/grafana.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/grafana.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/gitea.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/gitea.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/forgejo.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/forgejo.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/vaultwarden.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/vaultwarden.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/uptimekuma.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/uptimekuma.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/metabase.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/metabase.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/paperlessngx.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/paperlessngx.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/meilisearch.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/meilisearch.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/jellyfin.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/jellyfin.svg");
+}
+.dark img[src^="/assets/use-case-logos/"],
+.dark
+  #content-area:has(.towbar-doc-brand-logo[src^="/assets/use-case-logos/"])
+  #page-title::before {
+  filter: invert(1);
+}
+a[href^="/docs/use-cases/"] img[src^="/assets/use-case-logos/"] {
+  object-fit: contain;
+  padding: 1px;
+}

@@ -1,0 +1,812 @@
+[
+  {
+    "id": 1,
+    "category": "oss",
+    "slug": "001-umami",
+    "title": "Umami",
+    "approach": "Image Service plus a PostgreSQL Datastore on the same private network.",
+    "verify": "Current Umami requires PostgreSQL and a runtime `DATABASE_URL`; do not use an older MySQL recipe.",
+    "upstream": "https://docs.umami.is/docs/install"
+  },
+  {
+    "id": 2,
+    "category": "oss",
+    "slug": "002-grafana",
+    "title": "Grafana",
+    "approach": "Adapt Grafana's upstream Compose setup, with persistent storage for `/var/lib/grafana`.",
+    "verify": "Choose the current `grafana/grafana` OSS image and back up the Service volume separately.",
+    "upstream": "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/"
+  },
+  {
+    "id": 3,
+    "category": "oss",
+    "slug": "003-gitea",
+    "title": "Gitea",
+    "approach": "Adapt the upstream Compose project, preserving its persistent data volume.",
+    "verify": "Preserve `/data`; web routing does not by itself expose Git-over-SSH.",
+    "upstream": "https://docs.gitea.com/next/installation/install-with-docker/"
+  },
+  {
+    "id": 4,
+    "category": "oss",
+    "slug": "004-forgejo",
+    "title": "Forgejo",
+    "approach": "Adapt its upstream container installation to a Compose project.",
+    "verify": "Preserve `/data` and plan SSH access separately from HTTP routing.",
+    "upstream": "https://forgejo.org/docs/latest/admin/installation/docker/"
+  },
+  {
+    "id": 5,
+    "category": "oss",
+    "slug": "005-vaultwarden",
+    "title": "Vaultwarden",
+    "approach": "Adapt the upstream Compose setup with a persistent volume at `/data`.",
+    "verify": "Set the public `DOMAIN` through a runtime value and verify TLS before creating accounts.",
+    "upstream": "https://github.com/dani-garcia/vaultwarden/blob/main/README.md"
+  },
+  {
+    "id": 6,
+    "category": "oss",
+    "slug": "006-uptime-kuma",
+    "title": "Uptime Kuma",
+    "approach": "Image Service with a named volume at `/app/data`.",
+    "verify": "Use local storage with POSIX file locking; keep a separate copy of the Service volume.",
+    "upstream": "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install"
+  },
+  {
+    "id": 7,
+    "category": "oss",
+    "slug": "007-metabase",
+    "title": "Metabase",
+    "approach": "Adapt the upstream Compose setup with a PostgreSQL application database in the same Compose project.",
+    "verify": "Configure the application database per upstream guidance; its embedded default is a quick start, not the production plan.",
+    "upstream": "https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker"
+  },
+  {
+    "id": 8,
+    "category": "oss",
+    "slug": "008-paperless-ngx",
+    "title": "Paperless-ngx",
+    "approach": "Adapt the upstream PostgreSQL Compose variant, including its own database service.",
+    "verify": "Its Compose setup has multiple dependencies and persistent directories; replace unsupported bind mounts with permitted volumes or use another deployment method.",
+    "upstream": "https://docs.paperless-ngx.com/setup/"
+  },
+  {
+    "id": 9,
+    "category": "oss",
+    "slug": "009-meilisearch",
+    "title": "Meilisearch",
+    "approach": "Adapt the upstream Compose setup with a persistent data volume.",
+    "verify": "Set its production master key as a runtime secret and verify the image's data path and health endpoint for the chosen release.",
+    "upstream": "https://www.meilisearch.com/integrations/docker"
+  },
+  {
+    "id": 10,
+    "category": "oss",
+    "slug": "010-jellyfin",
+    "title": "Jellyfin",
+    "approach": "Adapt the upstream container setup for HTTP streaming with persistent configuration, cache, and media storage.",
+    "verify": "The HTTP app listens on port 8096. DLNA, host networking, and hardware transcoding need separate platform capabilities.",
+    "upstream": "https://jellyfin.org/docs/general/installation/container/"
+  },
+  {
+    "id": 11,
+    "category": "services/build",
+    "slug": "011-existing-dockerfile",
+    "title": "Existing Dockerfile",
+    "approach": "Use `deployment.type: dockerfile`, `context`, and `dockerfile`. [Example](/docs/services/modes/dockerfile)",
+    "verify": "The Dockerfile is inside the committed repository context."
+  },
+  {
+    "id": 12,
+    "category": "services/build",
+    "slug": "012-multi-stage-dockerfile",
+    "title": "Multi-stage Dockerfile",
+    "approach": "Add `deployment.target` to select the runtime stage. [Example](/docs/services/modes/dockerfile)",
+    "verify": "The selected stage contains the executable and listens on `container.port`."
+  },
+  {
+    "id": 13,
+    "category": "services/build",
+    "slug": "013-private-package-at-build-time",
+    "title": "Private package at build time",
+    "approach": "Declare `secrets.build` and mount it through BuildKit in a Dockerfile. [Secrets](/docs/secrets/towbar)",
+    "verify": "The credential is not copied into an image layer or browser bundle."
+  },
+  {
+    "id": 14,
+    "category": "services/build",
+    "slug": "014-separate-build-server",
+    "title": "Separate build server",
+    "approach": "Set `buildServer` for a source-build Service. [Modes](/docs/platform-deployments)",
+    "verify": "The builder is registered and has capacity; the runtime server remains the environment target."
+  },
+  {
+    "id": 15,
+    "category": "services/build",
+    "slug": "015-static-site",
+    "title": "Static site",
+    "approach": "Use `deployment.type: static`, `buildCommand`, and `output`. [Example](/docs/services/modes/static)",
+    "verify": "The output directory exists and the runtime listens on the declared port."
+  },
+  {
+    "id": 16,
+    "category": "services/build",
+    "slug": "016-single-page-app",
+    "title": "Single-page app",
+    "approach": "In static mode, set `spaFallback: true`. [Example](/docs/services/modes/static)",
+    "verify": "Direct navigation to a client-side route returns the entry page."
+  },
+  {
+    "id": 17,
+    "category": "services/build",
+    "slug": "017-railpack-detected-project",
+    "title": "Railpack-detected project",
+    "approach": "Use the pinned `railpack` version and frontend image from its guide. [Example](/docs/services/modes/railpack)",
+    "verify": "Inspect the detected build and start process; this mode cannot use build secrets."
+  },
+  {
+    "id": 18,
+    "category": "services/build",
+    "slug": "018-existing-nixpacks-project",
+    "title": "Existing Nixpacks project",
+    "approach": "Use the pinned `nixpacks` builder and optional `configFile`. [Example](/docs/services/modes/nixpacks)",
+    "verify": "Its generated image starts correctly; this mode cannot use build secrets."
+  },
+  {
+    "id": 19,
+    "category": "services/build",
+    "slug": "019-buildpack-project",
+    "title": "Buildpack project",
+    "approach": "Pin `packImage` and a reviewed `builder`. [Example](/docs/services/modes/buildpack)",
+    "verify": "An arbitrary builder digest is rejected; this mode cannot use build secrets."
+  },
+  {
+    "id": 20,
+    "category": "services/build",
+    "slug": "020-prebuilt-oci-image",
+    "title": "Prebuilt OCI image",
+    "approach": "Run a reviewed OCI image with an explicit digest. [Image deployment](/docs/services/modes/image)",
+    "verify": "`latest` is rejected; pin a reviewed tag or digest and verify the image listens on the declared port."
+  },
+  {
+    "id": 21,
+    "category": "services/runtime",
+    "slug": "021-http-api",
+    "title": "HTTP API",
+    "approach": "Set `container.port` and `health.path`. [Container and health](/docs/services/configuration)",
+    "verify": "The process listens on the container interface and the path answers without login."
+  },
+  {
+    "id": 22,
+    "category": "services/runtime",
+    "slug": "022-slow-startup",
+    "title": "Slow startup",
+    "approach": "Increase `health.timeoutSeconds` only to a measured startup bound. [Container and health](/docs/services/configuration)",
+    "verify": "A candidate still fails when it never becomes ready."
+  },
+  {
+    "id": 23,
+    "category": "services/runtime",
+    "slug": "023-cpu-bound-process",
+    "title": "CPU-bound process",
+    "approach": "Set `container.resources.cpus` and `memory`. [Container and health](/docs/services/configuration)",
+    "verify": "The target server has capacity for the new and old copies during rollout."
+  },
+  {
+    "id": 24,
+    "category": "services/runtime",
+    "slug": "024-private-api",
+    "title": "Private API",
+    "approach": "Set `container.network` and omit public `domains`. [Private connectivity](/docs/services/configuration#private-connectivity)",
+    "verify": "A peer on the same server and network can resolve the alias."
+  },
+  {
+    "id": 25,
+    "category": "services/runtime",
+    "slug": "025-service-plus-postgresql",
+    "title": "Service plus PostgreSQL",
+    "approach": "Give both workloads `container.network: application`; use the Datastore alias and port in a secret URL. [PostgreSQL](/docs/databases/postgresql)",
+    "verify": "No credential is committed and the app can connect after database readiness."
+  },
+  {
+    "id": 26,
+    "category": "services/runtime",
+    "slug": "026-service-plus-redis",
+    "title": "Service plus Redis",
+    "approach": "Share a private network and save an authenticated Redis URL as a runtime secret. [Redis](/docs/databases/redis)",
+    "verify": "The app uses the declared Redis password and the datastore is healthy."
+  },
+  {
+    "id": 27,
+    "category": "services/runtime",
+    "slug": "027-persistent-uploaded-files",
+    "title": "Persistent uploaded files",
+    "approach": "Add a named `container.volumes` mount and a `recreate` rollout. [Storage](/docs/services/configuration#persistent-storage)",
+    "verify": "The runtime user can write the mount and files survive a redeploy."
+  },
+  {
+    "id": 28,
+    "category": "services/runtime",
+    "slug": "028-public-https",
+    "title": "Public HTTPS",
+    "approach": "Set `domains.primary` and a supported `tls.mode`. [Routing and TLS](/docs/services/routing)",
+    "verify": "DNS, ingress, and certificate prerequisites are ready before traffic changes."
+  },
+  {
+    "id": 29,
+    "category": "services/runtime",
+    "slug": "029-alternate-domain",
+    "title": "Alternate domain",
+    "approach": "Add a domain alias according to [routing](/docs/services/routing).",
+    "verify": "Both hostnames resolve and route to the intended Service."
+  },
+  {
+    "id": 30,
+    "category": "services/runtime",
+    "slug": "030-single-writer-data",
+    "title": "Single-writer data",
+    "approach": "Use `rollout.type: recreate` with `maintenanceMode: true` and a reason. [Storage](/docs/services/configuration#persistent-storage)",
+    "verify": "A second process never writes the same volume concurrently."
+  },
+  {
+    "id": 31,
+    "category": "services/operations",
+    "slug": "031-required-runtime-credential",
+    "title": "Required runtime credential",
+    "approach": "List its key under `secrets.runtime`, then save the value in **Settings → Secrets**. [Towbar secrets](/docs/secrets/towbar)",
+    "verify": "Deployment blocks until the selected environment has the value."
+  },
+  {
+    "id": 32,
+    "category": "services/operations",
+    "slug": "032-private-build-dependency",
+    "title": "Private build dependency",
+    "approach": "Declare a build-stage key and use a Dockerfile BuildKit secret mount. [Towbar secrets](/docs/secrets/towbar)",
+    "verify": "The value does not appear in the committed file or final image."
+  },
+  {
+    "id": 33,
+    "category": "services/operations",
+    "slug": "033-infisical-folder",
+    "title": "Infisical folder",
+    "approach": "Set `externalSecrets.integration: infisical`, project, and optional `environmentSlug` or `secretPath`. [External secrets](/docs/secrets/external)",
+    "verify": "The selected folder returns the required runtime keys."
+  },
+  {
+    "id": 34,
+    "category": "services/operations",
+    "slug": "034-doppler-config",
+    "title": "Doppler config",
+    "approach": "Set `externalSecrets.integration: doppler`, project, and optional config. [External secrets](/docs/secrets/external)",
+    "verify": "The runtime token can read that config at deployment time."
+  },
+  {
+    "id": 35,
+    "category": "services/operations",
+    "slug": "035-monorepo-auto-deploy",
+    "title": "Monorepo auto-deploy",
+    "approach": "List relevant paths in `autoDeploy.inputs`. [Automation](/docs/services/automation)",
+    "verify": "Shared packages and lockfiles are included, not only the app directory."
+  },
+  {
+    "id": 36,
+    "category": "services/operations",
+    "slug": "036-pull-request-preview",
+    "title": "Pull-request preview",
+    "approach": "Enable previews in root `towbar.yml`, then set the Service `preview` block. [Previews](/docs/previews)",
+    "verify": "Preview secrets are isolated and the preview domain resolves."
+  },
+  {
+    "id": 37,
+    "category": "services/operations",
+    "slug": "037-daily-report",
+    "title": "Daily report",
+    "approach": "Add a `jobs` entry with an argument-array command and five-field cron. [Jobs](/docs/services/jobs)",
+    "verify": "It runs from the deployed image and does not overlap itself."
+  },
+  {
+    "id": 38,
+    "category": "services/operations",
+    "slug": "038-pre-deploy-migration",
+    "title": "Pre-deploy migration",
+    "approach": "Use a pre-deploy hook and stage-specific secrets. [Deployment hooks](/docs/deployments#deployment-hooks)",
+    "verify": "The migration is safe to retry and compatible with rollback."
+  },
+  {
+    "id": 39,
+    "category": "services/operations",
+    "slug": "039-event-notifications",
+    "title": "Event notifications",
+    "approach": "Add `notifications` to select workspace-configured destinations. [Notifications](/docs/integrations/notifications)",
+    "verify": "The destination is enabled and has a tested delivery route."
+  },
+  {
+    "id": 40,
+    "category": "services/operations",
+    "slug": "040-image-vulnerability-scan",
+    "title": "Image vulnerability scan",
+    "approach": "Set `vulnerabilityScanning` and review the result before release. [Scanning](/docs/vulnerability-scanning)",
+    "verify": "Findings are assessed for the exact image digest being deployed."
+  },
+  {
+    "id": 41,
+    "category": "datastores/sql",
+    "slug": "041-postgresql-for-one-service",
+    "title": "PostgreSQL for one Service",
+    "approach": "Set `type: postgres`, a private network, and the required `POSTGRES_PASSWORD`.",
+    "verify": "The Service uses the declared private network alias on port 5432 and its own secret connection URL."
+  },
+  {
+    "id": 42,
+    "category": "datastores/sql",
+    "slug": "042-postgresql-with-named-database",
+    "title": "PostgreSQL with named database",
+    "approach": "Declare `POSTGRES_USER` and `POSTGRES_DB` alongside the password.",
+    "verify": "Set values before first initialization; changing them later does not rename an existing role or database."
+  },
+  {
+    "id": 43,
+    "category": "datastores/sql",
+    "slug": "043-postgresql-for-an-operator-laptop",
+    "title": "PostgreSQL for an operator laptop",
+    "approach": "Add `access.sshTunnel.hostPort` to the Datastore.",
+    "verify": "Reach the loopback-bound port through SSH; do not publish the database port publicly."
+  },
+  {
+    "id": 44,
+    "category": "datastores/sql",
+    "slug": "044-postgresql-with-daily-backups",
+    "title": "PostgreSQL with daily backups",
+    "approach": "Add a [backup policy](/docs/backups) with an enabled provider, daily cron, and retention.",
+    "verify": "Create and restore-test a representative recovery point."
+  },
+  {
+    "id": 45,
+    "category": "datastores/sql",
+    "slug": "045-mysql-for-an-api",
+    "title": "MySQL for an API",
+    "approach": "Use `type: mysql`, a private network, and `MYSQL_ROOT_PASSWORD`.",
+    "verify": "The app uses port `3306` with an application user, not Towbar's root credential."
+  },
+  {
+    "id": 46,
+    "category": "datastores/sql",
+    "slug": "046-mysql-application-schema",
+    "title": "MySQL application schema",
+    "approach": "Declare `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD` before first deployment.",
+    "verify": "Check the user and schema actually exist after initialization."
+  },
+  {
+    "id": 47,
+    "category": "datastores/sql",
+    "slug": "047-mysql-with-off-host-copies",
+    "title": "MySQL with off-host copies",
+    "approach": "Add a backup destination and retention policy.",
+    "verify": "The provider credentials are enabled and a restore into a fresh target succeeds."
+  },
+  {
+    "id": 48,
+    "category": "datastores/sql",
+    "slug": "048-mariadb-for-a-cms",
+    "title": "MariaDB for a CMS",
+    "approach": "Use `type: mariadb`, private networking, and `MYSQL_ROOT_PASSWORD`.",
+    "verify": "The CMS image's client and schema are compatible with this MariaDB major version."
+  },
+  {
+    "id": 49,
+    "category": "datastores/sql",
+    "slug": "049-mariadb-application-role",
+    "title": "MariaDB application role",
+    "approach": "Declare `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD` at creation.",
+    "verify": "Do not assume changing the saved values rotates an existing role."
+  },
+  {
+    "id": 50,
+    "category": "datastores/sql",
+    "slug": "050-mariadb-with-ssh-access",
+    "title": "MariaDB with SSH access",
+    "approach": "Add a loopback-only SSH tunnel port and keep regular app traffic private.",
+    "verify": "An SSH-forwarded client connects; the server firewall does not expose `3306`."
+  },
+  {
+    "id": 51,
+    "category": "datastores/document-analytics",
+    "slug": "051-mongodb-for-a-private-api",
+    "title": "MongoDB for a private API",
+    "approach": "Use `type: mongodb` and the same `container.network` as the API.",
+    "verify": "The API reaches the Datastore alias on port `27017`."
+  },
+  {
+    "id": 52,
+    "category": "datastores/document-analytics",
+    "slug": "052-mongodb-root-initialization",
+    "title": "MongoDB root initialization",
+    "approach": "Declare `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD`.",
+    "verify": "Set them before the data volume is initialized."
+  },
+  {
+    "id": 53,
+    "category": "datastores/document-analytics",
+    "slug": "053-mongodb-app-specific-user",
+    "title": "MongoDB app-specific user",
+    "approach": "Create a least-privilege database user after initialization.",
+    "verify": "The Service uses that user; Towbar's managed root credential stays separate."
+  },
+  {
+    "id": 54,
+    "category": "datastores/document-analytics",
+    "slug": "054-mongodb-operator-access",
+    "title": "MongoDB operator access",
+    "approach": "Add `access.sshTunnel.hostPort` without public database routing.",
+    "verify": "The client authenticates to the correct database through SSH."
+  },
+  {
+    "id": 55,
+    "category": "datastores/document-analytics",
+    "slug": "055-mongodb-recovery",
+    "title": "MongoDB recovery",
+    "approach": "Schedule a provider-backed backup and practice a fresh-target restore.",
+    "verify": "The archive can be read by an application after restore."
+  },
+  {
+    "id": 56,
+    "category": "datastores/document-analytics",
+    "slug": "056-clickhouse-for-event-analytics",
+    "title": "ClickHouse for event analytics",
+    "approach": "Use `type: clickhouse` on the analytics Service's private network.",
+    "verify": "The Service reaches the preset's HTTP port `8123`."
+  },
+  {
+    "id": 57,
+    "category": "datastores/document-analytics",
+    "slug": "057-clickhouse-credentials",
+    "title": "ClickHouse credentials",
+    "approach": "Declare `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD`.",
+    "verify": "The values are saved in the selected environment before deployment."
+  },
+  {
+    "id": 58,
+    "category": "datastores/document-analytics",
+    "slug": "058-clickhouse-database-selection",
+    "title": "ClickHouse database selection",
+    "approach": "Optionally declare `CLICKHOUSE_DB` before initial deployment.",
+    "verify": "The intended database exists and the client is pointed at it."
+  },
+  {
+    "id": 59,
+    "category": "datastores/document-analytics",
+    "slug": "059-clickhouse-resource-sizing",
+    "title": "ClickHouse resource sizing",
+    "approach": "Set `container.resources` for measured ingest and query load.",
+    "verify": "The target server has enough CPU, memory, and disk headroom."
+  },
+  {
+    "id": 60,
+    "category": "datastores/document-analytics",
+    "slug": "060-clickhouse-recovery",
+    "title": "ClickHouse recovery",
+    "approach": "Add a supported backup provider and test a fresh-target archive restore.",
+    "verify": "Query representative data on the restored Datastore."
+  },
+  {
+    "id": 61,
+    "category": "datastores/cache",
+    "slug": "061-redis-for-sessions",
+    "title": "Redis for sessions",
+    "approach": "Use `type: redis`, a private network, and `REDIS_PASSWORD`.",
+    "verify": "The Service uses an authenticated URL on port `6379`."
+  },
+  {
+    "id": 62,
+    "category": "datastores/cache",
+    "slug": "062-redis-for-a-queue",
+    "title": "Redis for a queue",
+    "approach": "Give the producer and worker the same private network and secret URL.",
+    "verify": "Both clients handle reconnection and use the intended database or key prefix."
+  },
+  {
+    "id": 63,
+    "category": "datastores/cache",
+    "slug": "063-redis-with-operator-tunnel",
+    "title": "Redis with operator tunnel",
+    "approach": "Add `access.sshTunnel.hostPort`.",
+    "verify": "The loopback port is reached only over SSH; no public cache port is needed."
+  },
+  {
+    "id": 64,
+    "category": "datastores/cache",
+    "slug": "064-redis-recovery",
+    "title": "Redis recovery",
+    "approach": "Run a backup and verify a fresh-target RDB restore.",
+    "verify": "The restored data supports the application and append-only persistence resumes."
+  },
+  {
+    "id": 65,
+    "category": "datastores/cache",
+    "slug": "065-dragonfly-for-a-redis-protocol-client",
+    "title": "Dragonfly for a Redis-protocol client",
+    "approach": "Use `type: dragonfly` and `REDIS_PASSWORD`.",
+    "verify": "Test the application's actual commands against Dragonfly, not just connection establishment."
+  },
+  {
+    "id": 66,
+    "category": "datastores/cache",
+    "slug": "066-dragonfly-private-endpoint",
+    "title": "Dragonfly private endpoint",
+    "approach": "Share `container.network` with the consuming Service.",
+    "verify": "The Service reaches the Dragonfly alias on port `6379`."
+  },
+  {
+    "id": 67,
+    "category": "datastores/cache",
+    "slug": "067-dragonfly-recovery",
+    "title": "Dragonfly recovery",
+    "approach": "Test a verified snapshot and a same-engine restore.",
+    "verify": "The restored dataset is readable before traffic moves."
+  },
+  {
+    "id": 68,
+    "category": "datastores/cache",
+    "slug": "068-keydb-on-an-amd64-server",
+    "title": "KeyDB on an amd64 server",
+    "approach": "Use `type: keydb` and `REDIS_PASSWORD`.",
+    "verify": "KeyDB's reviewed image is amd64-only; admission rejects arm64."
+  },
+  {
+    "id": 69,
+    "category": "datastores/cache",
+    "slug": "069-keydb-private-endpoint",
+    "title": "KeyDB private endpoint",
+    "approach": "Share a network with the consuming Service and keep the port private.",
+    "verify": "An authenticated client can use port `6379`."
+  },
+  {
+    "id": 70,
+    "category": "datastores/cache",
+    "slug": "070-keydb-recovery",
+    "title": "KeyDB recovery",
+    "approach": "Back up and restore into a fresh KeyDB target.",
+    "verify": "The target uses the supported KeyDB major version."
+  },
+  {
+    "id": 71,
+    "category": "datastores/recovery",
+    "slug": "071-manual-backup-before-a-change",
+    "title": "Manual backup before a change",
+    "approach": "Configure an enabled storage provider and choose **Back up now**.",
+    "verify": "The stored copy passes Towbar's restore-readiness check."
+  },
+  {
+    "id": 72,
+    "category": "datastores/recovery",
+    "slug": "072-daily-retention",
+    "title": "Daily retention",
+    "approach": "Add `backup.schedule` with UTC cron and `retention.keepLast`.",
+    "verify": "The schedule is at least hourly and old copies are eventually removed."
+  },
+  {
+    "id": 73,
+    "category": "datastores/recovery",
+    "slug": "073-aws-s3-destination",
+    "title": "AWS S3 destination",
+    "approach": "Use `backup.integration: aws` with the runtime AWS provider enabled.",
+    "verify": "The runtime identity can write, read, and delete under the intended location."
+  },
+  {
+    "id": 74,
+    "category": "datastores/recovery",
+    "slug": "074-s3-compatible-destination",
+    "title": "S3-compatible destination",
+    "approach": "Select an enabled `s3` or `r2` provider as appropriate.",
+    "verify": "Endpoint, bucket, encryption, and credentials match the runtime integration."
+  },
+  {
+    "id": 75,
+    "category": "datastores/recovery",
+    "slug": "075-google-cloud-destination",
+    "title": "Google Cloud destination",
+    "approach": "Select an enabled `gcs` provider.",
+    "verify": "The runtime identity can write and read the designated bucket."
+  },
+  {
+    "id": 76,
+    "category": "datastores/recovery",
+    "slug": "076-two-cloud-copies",
+    "title": "Two cloud copies",
+    "approach": "Declare both `s3` and `gcs` destinations and set `restoreFrom`.",
+    "verify": "Both copies verify; the chosen restore source remains accessible."
+  },
+  {
+    "id": 77,
+    "category": "datastores/recovery",
+    "slug": "077-restore-drill",
+    "title": "Restore drill",
+    "approach": "Restore a known recovery point into a fresh target.",
+    "verify": "Query representative data through an application client before promotion."
+  },
+  {
+    "id": 78,
+    "category": "datastores/recovery",
+    "slug": "078-new-server-placement",
+    "title": "New server placement",
+    "approach": "Override the Datastore's server in another environment.",
+    "verify": "Save that environment's secrets and confirm its server supports the engine architecture."
+  },
+  {
+    "id": 79,
+    "category": "datastores/recovery",
+    "slug": "079-database-password-rotation",
+    "title": "Database password rotation",
+    "approach": "Change the user inside the database first, then update Towbar's saved value.",
+    "verify": "Health, application connections, backup, and restore operations all authenticate."
+  },
+  {
+    "id": 80,
+    "category": "datastores/recovery",
+    "slug": "080-incident-investigation",
+    "title": "Incident investigation",
+    "approach": "Inspect recovery-point freshness and operation events.",
+    "verify": "Distinguish a late backup from an unreadable or incompatible one."
+  },
+  {
+    "id": 81,
+    "category": "stacks/web",
+    "slug": "081-api-with-postgresql",
+    "title": "API with PostgreSQL",
+    "approach": "Dockerfile Service + scoped PostgreSQL Datastore; the secret URL uses the Datastore's declared network alias on port 5432. [PostgreSQL](/docs/databases/postgresql)",
+    "verify": "The app can query using a non-root application role."
+  },
+  {
+    "id": 82,
+    "category": "stacks/web",
+    "slug": "082-api-with-mysql",
+    "title": "API with MySQL",
+    "approach": "Dockerfile Service + scoped MySQL Datastore; the secret URL uses the Datastore's declared network alias on port 3306. [MySQL](/docs/databases/mysql)",
+    "verify": "The chosen client and schema match MySQL 8.4."
+  },
+  {
+    "id": 83,
+    "category": "stacks/web",
+    "slug": "083-cms-with-mariadb",
+    "title": "CMS with MariaDB",
+    "approach": "CMS Service + `mariadb` Datastore; share a network and use an app user. [MariaDB](/docs/databases/mariadb)",
+    "verify": "The CMS release supports the managed MariaDB version."
+  },
+  {
+    "id": 84,
+    "category": "stacks/web",
+    "slug": "084-api-with-mongodb",
+    "title": "API with MongoDB",
+    "approach": "API Service + `mongodb` Datastore; create an app user apart from Towbar's root user. [MongoDB](/docs/databases/mongodb)",
+    "verify": "The URL selects the correct authentication database."
+  },
+  {
+    "id": 85,
+    "category": "stacks/web",
+    "slug": "085-web-sessions-with-redis",
+    "title": "Web sessions with Redis",
+    "approach": "Web Service + `redis` Datastore; use a secret authenticated URL. [Redis](/docs/databases/redis)",
+    "verify": "Session behavior remains correct after a Redis restart."
+  },
+  {
+    "id": 86,
+    "category": "stacks/web",
+    "slug": "086-queue-client-with-dragonfly",
+    "title": "Queue client with Dragonfly",
+    "approach": "Producer Service + worker Service + `dragonfly` Datastore. [Dragonfly](/docs/databases/dragonfly)",
+    "verify": "The queue library's actual commands work with Dragonfly."
+  },
+  {
+    "id": 87,
+    "category": "stacks/web",
+    "slug": "087-search-backed-api",
+    "title": "Search-backed API",
+    "approach": "API Service with `SEARCH_URL` and `SEARCH_KEY` for an existing Meilisearch endpoint. [Meilisearch upstream](https://www.meilisearch.com/integrations/docker)",
+    "verify": "The API can reach the configured search endpoint. Keep the master key in runtime secrets and back up Meilisearch separately."
+  },
+  {
+    "id": 88,
+    "category": "stacks/web",
+    "slug": "088-event-analytics",
+    "title": "Event analytics",
+    "approach": "Ingest Service + `clickhouse` Datastore on one private network. [ClickHouse](/docs/databases/clickhouse)",
+    "verify": "Measure ingest, query, and disk usage before sizing the server."
+  },
+  {
+    "id": 89,
+    "category": "stacks/web",
+    "slug": "089-internal-metabase",
+    "title": "Internal Metabase",
+    "approach": "Metabase and its PostgreSQL application database in one adapted Compose project. [Metabase upstream](https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker)",
+    "verify": "Configure Metabase's application database per upstream guidance."
+  },
+  {
+    "id": 90,
+    "category": "stacks/web",
+    "slug": "090-umami-analytics",
+    "title": "Umami analytics",
+    "approach": "Umami image Service + `postgres` Datastore; `DATABASE_URL` is a runtime secret. [Umami upstream](https://docs.umami.is/docs/install)",
+    "verify": "Use current PostgreSQL guidance and verify the site after first login."
+  },
+  {
+    "id": 91,
+    "category": "stacks/workers",
+    "slug": "091-api-worker-and-redis",
+    "title": "API, worker, and Redis",
+    "approach": "Deploy `redis`, then private API and worker Services on its network.",
+    "verify": "Both Services use authenticated runtime URLs and handle reconnects."
+  },
+  {
+    "id": 92,
+    "category": "stacks/workers",
+    "slug": "092-api-with-a-daily-report",
+    "title": "API with a daily report",
+    "approach": "Declare a [job](/docs/services/jobs) on the API's deployed image.",
+    "verify": "The command is present, bounded, and safe to rerun."
+  },
+  {
+    "id": 93,
+    "category": "stacks/workers",
+    "slug": "093-webhook-receiver-and-worker",
+    "title": "Webhook receiver and worker",
+    "approach": "Keep the receiver public, worker private, and share a cache or database on one server.",
+    "verify": "The worker has no public domain and failed work can be retried safely."
+  },
+  {
+    "id": 94,
+    "category": "stacks/workers",
+    "slug": "094-static-frontend-and-private-api",
+    "title": "Static frontend and private API",
+    "approach": "Deploy a static Service and a separately routed API Service.",
+    "verify": "Browser requests use a reachable HTTPS API origin; private Docker DNS is not available to browsers."
+  },
+  {
+    "id": 95,
+    "category": "stacks/workers",
+    "slug": "095-multi-process-repository",
+    "title": "Multi-process repository",
+    "approach": "Use a `.compose.yml` project when components must be deployed together. [Compose](/docs/services/modes/compose)",
+    "verify": "Commit and validate the Compose file; no forbidden host mounts or public host ports remain."
+  },
+  {
+    "id": 96,
+    "category": "stacks/workers",
+    "slug": "096-pull-request-preview-for-web",
+    "title": "Pull-request preview for web",
+    "approach": "Enable root environment previews and Service preview settings. [Previews](/docs/previews)",
+    "verify": "Preview secrets are isolated; do not assume a Datastore is cloned for each PR."
+  },
+  {
+    "id": 97,
+    "category": "stacks/workers",
+    "slug": "097-staging-and-production",
+    "title": "Staging and production",
+    "approach": "Map each environment to its branch and server. [Environment branches](/docs/repositories/environments)",
+    "verify": "Credentials, domains, and capacities are separately set for each environment."
+  },
+  {
+    "id": 98,
+    "category": "stacks/workers",
+    "slug": "098-stateful-web-app",
+    "title": "Stateful web app",
+    "approach": "Use a single-writer Service volume with `recreate` rollout plus a Datastore.",
+    "verify": "Back up the Service volume separately from Towbar-managed Datastore backups."
+  },
+  {
+    "id": 99,
+    "category": "stacks/workers",
+    "slug": "099-two-services-and-one-database",
+    "title": "Two Services and one database",
+    "approach": "Deploy the database, save a separate URL in each Service, then deploy them.",
+    "verify": "The least-privilege roles and connection limits fit both clients."
+  },
+  {
+    "id": 100,
+    "category": "stacks/workers",
+    "slug": "100-independent-stacks-on-separate-servers",
+    "title": "Independent stacks on separate servers",
+    "approach": "Place each Service and its Datastore on one server, with a second independent pair on another server.",
+    "verify": "Each Service reaches only its local Datastore; a same-name Docker network on two servers does **not** connect them."
+  }
+]

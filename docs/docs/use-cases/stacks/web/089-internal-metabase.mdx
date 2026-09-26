@@ -1,0 +1,50 @@
+---
+title: "Internal Metabase"
+description: "Metabase and its PostgreSQL application database in one adapted Compose project."
+icon: "/assets/use-case-logos/metabase.svg"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/metabase.svg"
+  alt="Internal Metabase logo"
+  aria-hidden="true"
+/>
+
+**Related reading:** [Metabase upstream](https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker).
+
+The Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.
+
+These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/metabase.compose.yml"
+id: metabase
+name: Internal Metabase
+file: deploy/metabase/compose.yml
+strategy: maintenance
+services:
+  metabase:
+    port: 3000
+    domains:
+      - metabase.example.com
+    ingress:
+      type: proxy
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Commit a Compose file at `deploy/metabase/compose.yml` with the declared service name and port. Adapt it to [Towbar's Compose restrictions](/docs/services/modes/compose) before syncing.
+3. Use the upstream PostgreSQL Compose configuration in the same project and set Metabase's application-database variables there. The Towbar Compose manifest does not create or connect a separate managed Datastore.
+4. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Configure Metabase's application database per upstream guidance.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

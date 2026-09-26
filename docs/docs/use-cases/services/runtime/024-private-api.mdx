@@ -1,0 +1,38 @@
+---
+title: "Private API"
+description: "Set container.network and omit public domains."
+---
+
+**Related reading:** [Private connectivity](/docs/services/configuration#private-connectivity).
+
+The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/private-api.service.yml"
+id: private-api
+name: Private API
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+A peer on the same server and network can resolve the alias.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

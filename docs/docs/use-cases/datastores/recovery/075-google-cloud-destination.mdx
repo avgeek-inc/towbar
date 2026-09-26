@@ -1,0 +1,53 @@
+---
+title: "Google Cloud destination"
+description: "Select an enabled gcs provider."
+icon: "/assets/database-logos/postgresql.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/postgresql.webp"
+  alt="Google Cloud destination logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/google-cloud-destination.datastore.yml"
+id: google-cloud-destination
+name: Google Cloud destination
+type: postgres
+container:
+  network: application
+  networkAlias: google-cloud-destination
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+backup:
+  integration: gcs
+  schedule:
+    cron: 0 3 * * *
+    timezone: UTC
+  retention:
+    keepLast: 14
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The runtime identity can write and read the designated bucket.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

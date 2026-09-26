@@ -1,0 +1,48 @@
+---
+title: "Grafana"
+description: "Adapt Grafana's upstream Compose setup, with persistent storage for /var/lib/grafana."
+icon: "/assets/use-case-logos/grafana.svg"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/grafana.svg"
+  alt="Grafana logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/).
+
+The Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/grafana.compose.yml"
+id: grafana
+name: Grafana
+file: deploy/grafana/compose.yml
+strategy: maintenance
+services:
+  grafana:
+    port: 3000
+    domains:
+      - grafana.example.com
+    ingress:
+      type: proxy
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Copy the current [upstream installation](https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/) into the repository at `deploy/grafana/compose.yml`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).
+3. Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.
+4. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Choose the current `grafana/grafana` OSS image and back up the Service volume separately.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

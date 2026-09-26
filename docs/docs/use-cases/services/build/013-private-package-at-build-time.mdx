@@ -1,0 +1,49 @@
+---
+title: "Private package at build time"
+description: "Declare secrets.build and mount it through BuildKit in a Dockerfile."
+icon: "/assets/integration-logos/docker.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/docker.webp"
+  alt="Private package at build time logo"
+  aria-hidden="true"
+/>
+
+**Related reading:** [Secrets](/docs/secrets/towbar).
+
+The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/private-package-at-build-time.service.yml"
+id: private-package-at-build-time
+name: Private package at build time
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  build:
+    - PACKAGE_TOKEN
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The credential is not copied into an image layer or browser bundle.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

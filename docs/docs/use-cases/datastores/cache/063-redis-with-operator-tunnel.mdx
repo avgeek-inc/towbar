@@ -1,0 +1,47 @@
+---
+title: "Redis with operator tunnel"
+description: "Add access.sshTunnel.hostPort."
+icon: "/assets/database-logos/redis.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/redis.webp"
+  alt="Redis with operator tunnel logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/redis-with-operator-tunnel.datastore.yml"
+id: redis-with-operator-tunnel
+name: Redis with operator tunnel
+type: redis
+container:
+  network: application
+  networkAlias: redis-with-operator-tunnel
+  resources:
+    cpus: 0.5
+    memory: 512m
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+access:
+  sshTunnel:
+    hostPort: 15063
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The loopback port is reached only over SSH; no public cache port is needed.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

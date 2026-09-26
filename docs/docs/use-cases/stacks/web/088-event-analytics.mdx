@@ -1,0 +1,72 @@
+---
+title: "Event analytics"
+description: "Ingest Service + clickhouse Datastore on one private network."
+icon: "/assets/database-logos/clickhouse.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/clickhouse.webp"
+  alt="Event analytics logo"
+  aria-hidden="true"
+/>
+
+**Related reading:** [ClickHouse](/docs/databases/clickhouse).
+
+These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
+
+## Towbar manifests
+
+```yaml title=".towbar/datastores/event-analytics-clickhouse.datastore.yml"
+id: event-analytics-clickhouse
+name: Event analytics ClickHouse
+type: clickhouse
+container:
+  network: application
+  networkAlias: event-analytics-clickhouse
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - CLICKHOUSE_USER
+    - CLICKHOUSE_PASSWORD
+    - CLICKHOUSE_DB
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/event-analytics-api.service.yml"
+id: event-analytics-api
+name: Event analytics
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - DATABASE_URL
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+4. Point each Service connection secret at `event-analytics-clickhouse` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
+5. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Measure ingest, query, and disk usage before sizing the server.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

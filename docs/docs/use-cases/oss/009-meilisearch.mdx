@@ -1,0 +1,48 @@
+---
+title: "Meilisearch"
+description: "Adapt the upstream Compose setup with a persistent data volume."
+icon: "/assets/use-case-logos/meilisearch.svg"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/meilisearch.svg"
+  alt="Meilisearch logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://www.meilisearch.com/integrations/docker).
+
+The Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/meilisearch.compose.yml"
+id: meilisearch
+name: Meilisearch
+file: deploy/meilisearch/compose.yml
+strategy: maintenance
+services:
+  meilisearch:
+    port: 7700
+    domains:
+      - meilisearch.example.com
+    ingress:
+      type: proxy
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Copy the current [upstream installation](https://www.meilisearch.com/integrations/docker) into the repository at `deploy/meilisearch/compose.yml`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).
+3. Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.
+4. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Set its production master key as a runtime secret and verify the image's data path and health endpoint for the chosen release.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

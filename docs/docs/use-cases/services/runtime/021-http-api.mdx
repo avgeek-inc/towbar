@@ -1,0 +1,37 @@
+---
+title: "HTTP API"
+description: "Set container.port and health.path."
+---
+
+**Related reading:** [Container and health](/docs/services/configuration).
+
+The Dockerfile, build output, command, and health endpoint referenced by this manifest must exist in your repository or chosen image. `context: .` means the repository root. Adapt ports and commands to the actual workload.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/http-api.service.yml"
+id: http-api
+name: HTTP API
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The process listens on the container interface and the path answers without login.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

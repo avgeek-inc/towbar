@@ -1,0 +1,50 @@
+---
+title: "MariaDB with SSH access"
+description: "Add a loopback-only SSH tunnel port and keep regular app traffic private."
+icon: "/assets/database-logos/mariadb.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mariadb.webp"
+  alt="MariaDB with SSH access logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/mariadb-with-ssh-access.datastore.yml"
+id: mariadb-with-ssh-access
+name: MariaDB with SSH access
+type: mariadb
+container:
+  network: application
+  networkAlias: mariadb-with-ssh-access
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+access:
+  sshTunnel:
+    hostPort: 15050
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+An SSH-forwarded client connects; the server firewall does not expose `3306`.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

@@ -1,0 +1,49 @@
+---
+title: "PostgreSQL for an operator laptop"
+description: "Add access.sshTunnel.hostPort to the Datastore."
+icon: "/assets/database-logos/postgresql.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/postgresql.webp"
+  alt="PostgreSQL for an operator laptop logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/postgresql-for-an-operator-laptop.datastore.yml"
+id: postgresql-for-an-operator-laptop
+name: PostgreSQL for an operator laptop
+type: postgres
+container:
+  network: application
+  networkAlias: postgresql-for-an-operator-laptop
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+access:
+  sshTunnel:
+    hostPort: 15043
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Reach the loopback-bound port through SSH; do not publish the database port publicly.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.

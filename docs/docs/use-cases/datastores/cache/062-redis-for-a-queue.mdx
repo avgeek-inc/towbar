@@ -1,0 +1,86 @@
+---
+title: "Redis for a queue"
+description: "Give the producer and worker the same private network and secret URL."
+icon: "/assets/database-logos/redis.webp"
+---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/redis.webp"
+  alt="Redis for a queue logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifests
+
+```yaml title=".towbar/datastores/redis-for-a-queue.datastore.yml"
+id: redis-for-a-queue
+name: Redis for a queue
+type: redis
+container:
+  network: application
+  networkAlias: redis-for-a-queue
+  resources:
+    cpus: 0.5
+    memory: 512m
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/redis-for-a-queue-producer.service.yml"
+id: redis-for-a-queue-producer
+name: Redis for a queue producer
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - QUEUE_URL
+```
+
+```yaml title=".towbar/services/redis-for-a-queue-worker.service.yml"
+id: redis-for-a-queue-worker
+name: Redis for a queue worker
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - QUEUE_URL
+```
+
+## Configure
+
+1. Register and prepare the example server, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+4. Point each Service connection secret at `redis-for-a-queue` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
+5. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Both clients handle reconnection and use the intended database or key prefix.
+
+For exact field constraints, consult the [Service manifest](/docs/services/manifest), [Datastore manifest](/docs/datastores/manifest), or [Compose guide](/docs/services/modes/compose) that applies to this example.
