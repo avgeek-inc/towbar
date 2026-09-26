@@ -33,7 +33,6 @@ import {
 } from "./server-preparation";
 
 import { ServerEditor } from "./server-editor";
-import { ServerTlsSettings } from "./credential-editor";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { ServerHardwareDescription } from "./server-hardware";
 
@@ -91,12 +90,9 @@ const SERVER_CHECK_PAGE_SIZE = 10;
 export function ServerDetail() {
   const detailNavigation = useDetailNavigation();
   const requestedSettings = detailNavigation.settings;
-  const requestedSettingsTab = [
-    "cloudflare-tls",
-    "monitoring",
-    "cleanup",
-    "danger",
-  ].includes(requestedSettings ?? "")
+  const requestedSettingsTab = ["monitoring", "cleanup", "danger"].includes(
+    requestedSettings ?? "",
+  )
     ? requestedSettings!
     : "configuration";
   const { serverId } = useParams<{
@@ -104,18 +100,6 @@ export function ServerDetail() {
   }>();
   const router = useRouter();
   const { can } = useAccess();
-  const integrations = useApiQuery<{
-    integrations: Array<{ provider: string }>;
-  }>(can("integration.manage") ? "/v1/core/integrations" : null, 30_000);
-  const cloudflareConfigured = Boolean(
-    integrations.data?.integrations.some(
-      (integration) => integration.provider === "cloudflare",
-    ),
-  );
-  const settingsTab =
-    requestedSettingsTab === "cloudflare-tls" && !cloudflareConfigured
-      ? "configuration"
-      : requestedSettingsTab;
   const server = useApiQuery<{
     canCleanupOrphans: boolean;
     canManageServer: boolean;
@@ -200,7 +184,6 @@ export function ServerDetail() {
     capacity.error ??
     keys.error ??
     credentials.error ??
-    integrations.error ??
     preparations.error ??
     orphans.error;
   if (error)
@@ -217,7 +200,6 @@ export function ServerDetail() {
     !server.data ||
     !checks.data ||
     !capacity.data ||
-    (can("integration.manage") && !integrations.data) ||
     (can("server.credentials") && (!keys.data || !credentials.data)) ||
     !preparations.data ||
     (can("server.remove") && !orphans.data)
@@ -446,11 +428,6 @@ export function ServerDetail() {
                       <Attributes.Item label="SSH port">
                         {item.config.ssh.port}
                       </Attributes.Item>
-                      <Attributes.Item label="Cloudflare TLS">
-                        {item.config.proxy?.cloudflare.enabled
-                          ? "Enabled"
-                          : "Disabled"}
-                      </Attributes.Item>
                       <Attributes.Item label="Updated">
                         {formatDate(item.updatedAt)}
                       </Attributes.Item>
@@ -624,8 +601,8 @@ export function ServerDetail() {
               content: (
                 <ResponsiveSubtabs
                   ariaLabel="Server settings"
-                  defaultSelectedKey={settingsTab}
-                  key={settingsTab}
+                  defaultSelectedKey={requestedSettingsTab}
+                  key={requestedSettingsTab}
                   tabs={[
                     {
                       value: "configuration",
@@ -649,29 +626,6 @@ export function ServerDetail() {
                         />
                       ),
                     },
-                    ...(cloudflareConfigured
-                      ? [
-                          {
-                            value: "cloudflare-tls",
-                            label: "Cloudflare TLS",
-                            badge: item.config.proxy?.cloudflare.enabled ? (
-                              <span
-                                role="img"
-                                aria-label="Cloudflare TLS enabled"
-                                title="Cloudflare TLS enabled"
-                                className="block size-1.5 rounded-full bg-success-soft-foreground"
-                              />
-                            ) : undefined,
-                            icon: <CloudProviderLogo provider="cloudflare" />,
-                            content: (
-                              <ServerTlsSettings
-                                canManage={server.data.canManageServer}
-                                server={item}
-                              />
-                            ),
-                          },
-                        ]
-                      : []),
                     {
                       value: "monitoring",
                       label: "Scout Agent",

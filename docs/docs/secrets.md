@@ -7,13 +7,12 @@ Towbar manages deployment secrets without requiring an external secrets account.
 
 ## Choose the right scope
 
-| Location                           | Purpose                                                                                |
-| ---------------------------------- | -------------------------------------------------------------------------------------- |
-| Manage → Shared secrets            | Reusable workspace values for each stage, shared across environments                   |
-| App → Settings → Secrets           | Named-environment and isolated preview values for one app                              |
-| Resource → Settings → Secrets      | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
-| Server → Settings → Credentials    | Select a stored SSH key                                                                |
-| Server → Settings → Cloudflare TLS | Cloudflare TLS and its Account API token                                               |
+| Location                        | Purpose                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| Manage → Shared secrets         | Reusable workspace values for each stage, shared across environments                   |
+| App → Settings → Secrets        | Named-environment and isolated preview values for one app                              |
+| Resource → Settings → Secrets   | Environment-specific runtime values, including `POSTGRES_PASSWORD` or `REDIS_PASSWORD` |
+| Server → Settings → Credentials | Select a stored SSH key                                                                |
 
 Shared secrets are available for reference; they are not automatically added to Repositories, apps, or resources. Configure each variable where it is needed:
 
@@ -74,9 +73,9 @@ Preview app values are isolated from production values and are used by later eli
 
 Changing `POSTGRES_PASSWORD` in Towbar does not change the password already stored inside an existing PostgreSQL database. Coordinate database password rotation separately. SSH and Cloudflare replacement similarly updates what Towbar uses; it does not provision those credentials at the provider or server.
 
-Enable Cloudflare TLS and store its token under **Server → Settings → Cloudflare TLS**.
-Workload YAML continues selecting `tls.mode: cloudflare-dns` when that deployment
-requires it.
+Configure the Cloudflare Account API token under `integrations.cloudflare` in
+`/etc/towbar/towbar.yml`. Each app or resource selects `tls.mode: cloudflare-dns`
+in its manifest when that deployment requires DNS validation.
 
 ## External secret managers
 

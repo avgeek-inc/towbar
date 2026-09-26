@@ -5,6 +5,17 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Cloudflare DNS TLS is selected by each App or Resource manifest instead of a
+  server setting. Towbar prepares the target server's Caddy DNS module when a
+  deployment needs it.
+
+### Fixed
+
+- Deployments and previews requesting Cloudflare DNS TLS are rejected before
+  queuing when the Cloudflare runtime integration is not configured.
+
 ## [2.0.13] - 2026-09-26
 
 ### Added

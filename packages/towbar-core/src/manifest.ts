@@ -247,17 +247,6 @@ export const serverConfigurationSchema = z
         port: z.number().int().min(1).max(65_535).optional(),
       })
       .strict(),
-    proxy: z
-      .object({
-        cloudflare: z
-          .object({
-            enabled: z.literal(true),
-          })
-          .strict()
-          .optional(),
-      })
-      .strict()
-      .optional(),
   })
   .strict();
 
@@ -1180,11 +1169,6 @@ export type NormalizedServer = {
   buildConcurrency: number;
   previewBuildConcurrency?: number;
   ip: string;
-  proxy?: {
-    cloudflare: {
-      enabled: true;
-    };
-  };
   ssh: { host: string; port: number; username: string };
 };
 
@@ -1520,15 +1504,6 @@ export function normalizeServerConfiguration(
       port: server.ssh.port ?? 22,
       username: server.ssh.username,
     },
-    ...(server.proxy?.cloudflare
-      ? {
-          proxy: {
-            cloudflare: {
-              enabled: true as const,
-            },
-          },
-        }
-      : {}),
   };
 }
 

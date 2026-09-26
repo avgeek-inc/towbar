@@ -19,8 +19,6 @@ import type {
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { FieldError } from "@workspace/web-design-system/forms/field";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Switch } from "@workspace/web-design-system/forms/switch";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -75,22 +73,6 @@ export function ServerCredentials({
       serverId={server.id}
       preparationPending={server.setupStatus === "pending"}
       selectedPrivateKeyId={query.data.selectedPrivateKeyId}
-    />
-  );
-}
-
-export function ServerTlsSettings({
-  canManage,
-  server,
-}: {
-  canManage: boolean;
-  server: Server;
-}) {
-  return (
-    <ServerTlsForm
-      key={String(Boolean(server.config.proxy?.cloudflare.enabled))}
-      canManage={canManage}
-      server={server}
     />
   );
 }
@@ -537,92 +519,4 @@ function hostKeyAlgorithmName(algorithm: string) {
   if (algorithm === "ecdsa-sha2-nistp256") return "ECDSA P-256";
   if (algorithm === "ssh-rsa") return "RSA";
   return algorithm;
-}
-
-function ServerTlsForm({
-  canManage,
-  server,
-}: {
-  canManage: boolean;
-  server: Server;
-}) {
-  const initialEnabled = Boolean(server.config.proxy?.cloudflare.enabled);
-  const [enabled, setEnabled] = useState(initialEnabled);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
-  async function saveConfiguration(nextEnabled: boolean) {
-    await api.patch(`/v1/core/servers/${server.id}`, {
-      buildConcurrency: server.config.buildConcurrency,
-      previewBuildConcurrency: server.config.previewBuildConcurrency,
-      ip: server.canonicalIp,
-      ssh: {
-        host: server.config.ssh.host,
-        port: server.config.ssh.port,
-        username: server.config.ssh.username,
-      },
-      ...(nextEnabled ? { proxy: { cloudflare: { enabled: true } } } : {}),
-    });
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(undefined);
-    const enabledChanged = enabled !== initialEnabled;
-    if (!enabledChanged) {
-      setError("Change the TLS setting before saving.");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await saveConfiguration(enabled);
-      refreshApiQueries();
-      toast.success("Cloudflare TLS settings saved");
-    } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Cloudflare TLS settings could not be saved",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <FormCard title="Cloudflare TLS">
-      <form className="content-grid w-full" onSubmit={submit}>
-        <Switch
-          isDisabled={!canManage || busy}
-          isSelected={enabled}
-          onChange={setEnabled}
-        >
-          <Switch.Content className="min-h-11">
-            <Switch.Control>
-              <Switch.Thumb />
-            </Switch.Control>
-            <span className="grid gap-0.5">
-              <Label className="font-normal">Enable Cloudflare TLS</Label>
-              <span className="text-xs font-normal text-muted">
-                Use Cloudflare DNS validation for applicable workloads.
-              </span>
-            </span>
-          </Switch.Content>
-        </Switch>
-
-        {error ? <FieldError>{error}</FieldError> : null}
-        {canManage ? (
-          <Button type="submit" className="w-fit" isDisabled={busy}>
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={FloppyDiskIcon}
-              className="size-4 shrink-0"
-            />
-            {busy ? "Saving…" : "Save"}
-          </Button>
-        ) : null}
-      </form>
-    </FormCard>
-  );
 }

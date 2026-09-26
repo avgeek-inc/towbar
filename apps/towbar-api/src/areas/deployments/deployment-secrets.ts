@@ -4,6 +4,7 @@ import {
   isNormalizedResource,
   requiredKeysForStage,
 } from "@workspace/towbar-core";
+import { cloudflareDnsCredential } from "./cloudflare-readiness.js";
 import { deployments, releases } from "@workspace/towbar-database/schema";
 import { notFound, unprocessable } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -15,7 +16,6 @@ import { resolveIntegration } from "../integrations/service.js";
 import type { NormalizedDeployable, SecretStage } from "@workspace/towbar-core";
 import type { SecretDatabase } from "../secrets/store.js";
 import { resolveExternalSecretSnapshot } from "./external-secret-sources.js";
-import { getRuntimeIntegration } from "../../infrastructure/runtime-integrations.js";
 
 async function getSecretDeployment(
   deploymentId: string,
@@ -164,7 +164,7 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
             Boolean(app.hooks.postDeploy),
         ),
       };
-      const cloudflare = cloudflareCredential(deployment.serverSnapshot);
+      const cloudflare = cloudflareDnsCredential(app);
       const currentTunnelPolicy = tunnelPolicy(app);
       const tunnelIngress = currentTunnelPolicy?.ingress ?? null;
       const tunnel = currentTunnelPolicy
@@ -359,22 +359,9 @@ export async function resolveDeploymentLogin(deploymentId: string) {
   });
 }
 
-function cloudflareCredential(server: {
-  proxy?: { cloudflare: { enabled: true } };
-}) {
-  if (!server.proxy?.cloudflare.enabled) return null;
-  const connection = getRuntimeIntegration("cloudflare");
-  if (!connection || connection.provider !== "cloudflare")
-    throw unprocessable(
-      "Enable the Cloudflare integration in the Towbar environment",
-      "CLOUDFLARE_CREDENTIALS_MISSING",
-    );
-  return { apiToken: connection.credentials.apiToken };
-}
-
 export async function resolveDeploymentCloudflareSecret(deploymentId: string) {
   const deployment = await getSecretDeployment(deploymentId);
-  return cloudflareCredential(deployment.serverSnapshot);
+  return cloudflareDnsCredential(deployment.appSnapshot);
 }
 
 export async function resolveDeploymentCloudflareTunnelSecret(

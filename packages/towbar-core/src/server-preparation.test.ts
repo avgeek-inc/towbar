@@ -6,16 +6,13 @@ import {
   requiresServerPreparation,
   serverPreparationStepMessageMaxLength,
 } from "./server-preparation.js";
+import { normalizeServerConfiguration } from "./manifest.js";
 
 import type { NormalizedServer } from "./manifest.js";
 
 const server = {
   buildConcurrency: 2,
   ip: "203.0.113.10",
-  proxy: {
-    cloudflare: { enabled: true as const },
-  },
-
   ssh: { host: "10.0.0.10", port: 22, username: "deploy" },
 } satisfies NormalizedServer;
 
@@ -35,11 +32,13 @@ void test("does not invalidate preparation for scheduler changes", () => {
   );
 });
 
-void test("invalidates preparation when Cloudflare support changes", () => {
-  assert.equal(
-    requiresServerPreparation(server, { ...server, proxy: undefined }),
-    true,
-  );
+void test("server configuration does not accept a Cloudflare TLS toggle", () => {
+  const configuration = {
+    ip: "203.0.113.10",
+    ssh: { username: "deploy" },
+    proxy: { cloudflare: { enabled: true } },
+  };
+  assert.throws(() => normalizeServerConfiguration(configuration));
 });
 
 void test("invalidates preparation when SSH access changes", () => {

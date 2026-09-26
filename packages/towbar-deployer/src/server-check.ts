@@ -60,13 +60,9 @@ export async function checkServer(
     if (context.purpose === "credential-verification") {
       return { hostKey: context.trustedHostKeys[0]! };
     }
-    const { stdout } = await session.run(
-      preflightScript,
-      [String(Boolean(context.config.proxy?.cloudflare))],
-      {
-        timeoutMs: 30_000,
-      },
-    );
+    const { stdout } = await session.run(preflightScript, ["false"], {
+      timeoutMs: 30_000,
+    });
     const [
       operatingSystem,
       dockerVersion,

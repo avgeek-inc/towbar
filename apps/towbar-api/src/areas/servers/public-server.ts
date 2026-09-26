@@ -47,7 +47,12 @@ export function toPublicServer(
   return {
     archivedAt: server.archivedAt,
     canonicalIp: server.canonicalIp,
-    config: server.config,
+    config: {
+      buildConcurrency: server.config.buildConcurrency,
+      previewBuildConcurrency: server.config.previewBuildConcurrency,
+      ip: server.config.ip,
+      ssh: server.config.ssh,
+    },
     createdAt: server.createdAt,
     id: server.id,
     name: server.name,

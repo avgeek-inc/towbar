@@ -80,10 +80,6 @@ export const documentationTopics = {
     "servers#remove-a-server",
     "Remove this server from Towbar after reviewing affected workloads and any data you need to keep.",
   ),
-  tls: guide(
-    "domains-tls#cloudflare-tls",
-    "Enable Cloudflare TLS for this server after its runtime integration has been configured in the Towbar environment.",
-  ),
   performance: guide(
     "monitoring#performance-history",
     "Review Scout measurements over a selected time range. Gaps mean no sample was recorded.",
@@ -332,7 +328,6 @@ export function documentationTopic(pathname: string): Topic | undefined {
     notifications: "notifications",
     credentials: "credentials",
     configuration: "credentials",
-    "cloudflare-tls": "tls",
     "scout-agent": "scout",
     "monitoring-agent": "scout",
     monitoring: "scout",
@@ -377,7 +372,6 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "Update the SSH connection and the maximum number of simultaneous builds on this server.",
   ),
   "server identity and capacity": documentationTopics.servers,
-  "cloudflare tls": documentationTopics.tls,
   "scout agent": documentationTopics.scout,
   performance: documentationTopics.performance,
   "cpu usage": guide(

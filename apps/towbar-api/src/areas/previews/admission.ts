@@ -24,6 +24,7 @@ import {
   lockDeploymentEnvironment,
 } from "../apps/instance-environment.js";
 import { resolveBuildServerAdmission } from "../apps/build-server-admission.js";
+import { cloudflareDnsCredential } from "../deployments/cloudflare-readiness.js";
 import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
@@ -245,6 +246,8 @@ export async function admitPreviewDeployment(input: {
         supersededDeploymentIds: [],
       };
     }
+
+    cloudflareDnsCredential(input.config);
 
     const now = new Date();
     const buildServer = await resolveBuildServerAdmission(transaction, {

@@ -3,14 +3,14 @@ title: "Domains and TLS"
 description: "Expose an HTTP service through Caddy with direct DNS or Cloudflare DNS validation."
 ---
 
-Towbar uses Caddy on the target server to route public HTTP traffic. Domain settings live with the app or resource in the manifest; provider credentials come from the Towbar API environment.
+Towbar uses Caddy on the target server to route public HTTP traffic. Domain settings live with the app or resource in the manifest; provider credentials come from the Towbar runtime configuration.
 
 ## Choose a TLS mode
 
-| Mode             | DNS setup                                                                         | Credentials                                                      |
-| ---------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `direct`         | Point public DNS at the target and allow ACME validation to reach Caddy           | No Cloudflare token                                              |
-| `cloudflare-dns` | Use a Cloudflare zone; Towbar manages its owned records and validates through DNS | Cloudflare enabled on the server with a scoped Account API token |
+| Mode             | DNS setup                                                                         | Credentials                                    |
+| ---------------- | --------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `direct`         | Point public DNS at the target and allow ACME validation to reach Caddy           | No Cloudflare token                            |
+| `cloudflare-dns` | Use a Cloudflare zone; Towbar manages its owned records and validates through DNS | Scoped Account API token in the Towbar runtime |
 
 Set the primary hostname without a scheme or path. A TLS declaration requires a primary domain. A publicly routed resource also needs a container port and an HTTP health check.
 
@@ -32,11 +32,11 @@ Point the hostname at the target server. Allow inbound HTTP and HTTPS traffic re
 
 ## Cloudflare TLS
 
-Set `integrations.cloudflare.enabled: true`, `accountId`, and `apiToken` in `/etc/towbar/towbar.yml`, then validate and restart Towbar. The Cloudflare integration and the per-server **Cloudflare TLS** toggle appear only after the complete configuration passes startup validation.
+Set `integrations.cloudflare.enabled: true`, `accountId`, and `apiToken` in `/etc/towbar/towbar.yml`, then validate and restart Towbar. Each app or resource selects Cloudflare DNS validation in its manifest. A deployment using `tls.mode: cloudflare-dns` is rejected if the runtime integration is missing. Towbar prepares the server's Caddy DNS module when the first such deployment runs.
 
 Create the token under **Manage Account → Account API Tokens** in Cloudflare. Grant **Zone → Zone → Read**, **Zone → DNS → Edit**, and **Zone → Zone Settings → Read**, restricted to the zones Towbar should manage. Zone Settings Read lets Towbar verify that SSL/TLS mode is Full (strict). Creating account tokens requires the Super Administrator role. See [Cloudflare's account-token guide](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/).
 
-Use a scoped account token rather than a personal or global API key. `integrations.cloudflare.zoneId` is optional when the token can discover the required zones. The prepared Caddy build must contain the Cloudflare DNS module.
+Use a scoped account token rather than a personal or global API key. `integrations.cloudflare.zoneId` is optional when the token can discover the required zones. Towbar installs the Cloudflare DNS module on the target server when needed.
 
 ```yaml title=".towbar/apps/web.app.yml"
 domains:

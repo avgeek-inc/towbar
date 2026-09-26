@@ -46,9 +46,7 @@ export function routePermission(pathname: string): Action | null {
       ? "sharedSecret.list"
       : "secret.list";
   if (pathname.startsWith("/servers/")) {
-    if (
-      ["credentials", "configuration", "cloudflare-tls"].includes(section ?? "")
-    )
+    if (["credentials", "configuration"].includes(section ?? ""))
       return "server.credentials";
     if (["cleanup", "danger", "danger-zone"].includes(section ?? ""))
       return "server.remove";

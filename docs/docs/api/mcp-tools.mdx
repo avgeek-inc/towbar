@@ -1794,23 +1794,6 @@ Edit access required. Required permissions: `server.update`.
       },
       "required": ["username"],
       "additionalProperties": false
-    },
-    "proxy": {
-      "type": "object",
-      "properties": {
-        "cloudflare": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "const": true
-            }
-          },
-          "required": ["enabled"],
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
     }
   },
   "required": ["ip", "ssh"],
@@ -1900,23 +1883,6 @@ Edit access required. Required permissions: `server.update`.
         }
       },
       "required": ["username"],
-      "additionalProperties": false
-    },
-    "proxy": {
-      "type": "object",
-      "properties": {
-        "cloudflare": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "const": true
-            }
-          },
-          "required": ["enabled"],
-          "additionalProperties": false
-        }
-      },
       "additionalProperties": false
     }
   },
