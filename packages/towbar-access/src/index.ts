@@ -179,6 +179,12 @@ export type AccessActor =
       userId: string;
       role: WorkspaceRole;
       keyId: string;
+      tokenAttribution?: {
+        tokenType: "api-key" | "mcp-oauth";
+        oauthClientId: string | null;
+        oauthClientName: string | null;
+        oauthClientTrust: string | null;
+      };
       policy: KeyPolicy;
     }
   | { kind: "team-key"; workspaceId: string; keyId: string; policy: KeyPolicy }

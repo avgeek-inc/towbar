@@ -20,7 +20,10 @@ import {
   users,
   workspaceMembers,
 } from "@workspace/towbar-database/schema";
-import { getTowbarDatabase } from "../../infrastructure/database.js";
+import {
+  type AuthDatabase,
+  getTowbarDatabase,
+} from "../../infrastructure/database.js";
 import {
   HttpError,
   badRequest,
@@ -49,6 +52,11 @@ const publicColumns = {
   lastUsedAt: apiKeys.lastRequest,
   createdAt: apiKeys.createdAt,
   creatorUserId: apiKeyPolicies.creatorUserId,
+  tokenType: apiKeyPolicies.tokenType,
+  oauthClientId: apiKeyPolicies.oauthClientId,
+  oauthClientName: apiKeyPolicies.oauthClientName,
+  oauthClientLogo: apiKeyPolicies.oauthClientLogo,
+  oauthClientTrust: apiKeyPolicies.oauthClientTrust,
 };
 export async function listApiKeys(
   user: AuthenticatedUser,
@@ -70,6 +78,26 @@ export async function listApiKeys(
     )
     .orderBy(desc(apiKeys.createdAt));
 }
+function oauthTokenMetadata(
+  oauth:
+    | {
+        clientId: string;
+        clientName: string;
+        clientLogo: string | null;
+        clientTrust: "metadata-document" | "unverified";
+        resource: string;
+      }
+    | undefined,
+) {
+  return {
+    tokenType: oauth ? ("mcp-oauth" as const) : ("api-key" as const),
+    oauthClientId: oauth?.clientId ?? null,
+    oauthClientName: oauth?.clientName ?? null,
+    oauthClientLogo: oauth?.clientLogo ?? null,
+    oauthClientTrust: oauth?.clientTrust ?? null,
+    oauthResource: oauth?.resource ?? null,
+  };
+}
 export async function createApiKey(
   user: AuthenticatedUser,
   input: {
@@ -79,8 +107,20 @@ export async function createApiKey(
     includeAdmin?: boolean;
     expiresAt?: string | null;
     requestId?: string;
+    oauth?: {
+      clientId: string;
+      clientName: string;
+      clientLogo: string | null;
+      clientTrust: "metadata-document" | "unverified";
+      resource: string;
+      grants: readonly string[];
+    };
   },
+  database: AuthDatabase = getTowbarDatabase(),
 ) {
+  if (input.oauth && (input.scope === "team" || input.includeAdmin))
+    throw forbidden();
+  const tokenMetadata = oauthTokenMetadata(input.oauth);
   const requestId = input.requestId ?? randomUUID();
   const creationDigest = createHash("sha256")
     .update(
@@ -108,7 +148,7 @@ export async function createApiKey(
       expiresAt.getTime() - Date.now() < 86400_000)
   )
     throw badRequest("Choose an expiry at least one day from now");
-  return await getTowbarDatabase().transaction(async (tx) => {
+  return await database.transaction(async (tx) => {
     await lockTeam(tx, user.workspaceId);
     const member = await currentMembership(tx, user.workspaceId, user.id);
     if (
@@ -144,7 +184,9 @@ export async function createApiKey(
       return { key, token: null, replayed: true };
     }
     const auth = createIdentityAuth(tx);
-    const grants = keyCeiling(member.role, input.access, includeAdmin);
+    const grants = keyCeiling(member.role, input.access, includeAdmin).filter(
+      (action) => !input.oauth || input.oauth.grants.includes(action),
+    );
     const key = await auth.api.createApiKey({
       body: {
         configId: scope,
@@ -157,6 +199,7 @@ export async function createApiKey(
       },
     });
     await tx.insert(apiKeyPolicies).values({
+      ...tokenMetadata,
       creationRequestId: requestId,
       creationDigest,
       keyId: key.id,
@@ -180,6 +223,7 @@ export async function createApiKey(
         access: input.access,
         includeAdmin,
         expiresAt: expiresAt?.toISOString() ?? null,
+        ...tokenMetadata,
       },
       ...auditAttribution(),
     });
@@ -192,6 +236,7 @@ export async function createApiKey(
       });
     return {
       key: {
+        ...tokenMetadata,
         id: key.id,
         name: key.name,
         scope,
@@ -219,7 +264,14 @@ export async function revokeApiKey(
     if (scope === "team") await requireTeamAdmin(tx, user.workspaceId, user.id);
     else await currentMembership(tx, user.workspaceId, user.id);
     const [previous] = await tx
-      .select({ revokedAt: apiKeyPolicies.revokedAt, name: apiKeys.name })
+      .select({
+        revokedAt: apiKeyPolicies.revokedAt,
+        name: apiKeys.name,
+        tokenType: apiKeyPolicies.tokenType,
+        oauthClientId: apiKeyPolicies.oauthClientId,
+        oauthClientName: apiKeyPolicies.oauthClientName,
+        oauthClientTrust: apiKeyPolicies.oauthClientTrust,
+      })
       .from(apiKeyPolicies)
       .innerJoin(apiKeys, eq(apiKeys.id, apiKeyPolicies.keyId))
       .where(
@@ -260,7 +312,13 @@ export async function revokeApiKey(
       action: "api-key.revoked",
       targetType: "api-key",
       targetId: id,
-      metadata: { scope },
+      metadata: {
+        scope,
+        tokenType: previous.tokenType,
+        oauthClientId: previous.oauthClientId,
+        oauthClientName: previous.oauthClientName,
+        oauthClientTrust: previous.oauthClientTrust,
+      },
       ...auditAttribution(),
     });
     if (scope === "team")
@@ -352,7 +410,12 @@ export async function resolveApiKeyPrincipal(id: string) {
     };
     return {
       actor,
-      key: { id, access: policy.access },
+      key: {
+        id,
+        access: policy.access,
+        tokenType: stored.policy.tokenType,
+        resource: stored.policy.oauthResource,
+      },
       user: {
         id: null,
         email: null,
@@ -398,10 +461,21 @@ export async function resolveApiKeyPrincipal(id: string) {
     role: user.role,
     keyId: id,
     policy,
+    tokenAttribution: {
+      tokenType: stored.policy.tokenType,
+      oauthClientId: stored.policy.oauthClientId,
+      oauthClientName: stored.policy.oauthClientName,
+      oauthClientTrust: stored.policy.oauthClientTrust,
+    },
   };
   return {
     actor,
-    key: { id, access: policy.access },
+    key: {
+      id,
+      access: policy.access,
+      tokenType: stored.policy.tokenType,
+      resource: stored.policy.oauthResource,
+    },
     user: {
       id: user.id,
       email: user.email,

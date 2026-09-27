@@ -1,5 +1,6 @@
 import { McpServerIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { cn } from "@workspace/web-design-system/lib/utils";
 
 // Brand paths from LobeHub Icons (MIT); see THIRD_PARTY_NOTICES.md.
 const brandPaths: Record<string, string> = {
@@ -13,14 +14,20 @@ const brandPaths: Record<string, string> = {
     "M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z",
 };
 
-export function McpClientLogo({ client }: { client: string }) {
-  const path = brandPaths[client];
+export function McpClientLogo({
+  client,
+  className,
+}: {
+  client: string;
+  className?: string;
+}) {
+  const path = brandPaths[client === "openai" ? "codex" : client];
   if (!path) {
     return (
       <HugeiconsIcon
         icon={McpServerIcon}
         aria-hidden="true"
-        className="size-5 shrink-0"
+        className={cn("size-4 shrink-0", className)}
       />
     );
   }
@@ -28,7 +35,7 @@ export function McpClientLogo({ client }: { client: string }) {
     <svg
       aria-hidden="true"
       focusable="false"
-      className="size-5 shrink-0"
+      className={cn("size-4 shrink-0", className)}
       viewBox={client === "vscode" ? "0 0 96 96" : "0 0 24 24"}
       fill="currentColor"
       fillRule="evenodd"

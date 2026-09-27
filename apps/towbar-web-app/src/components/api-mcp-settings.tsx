@@ -38,7 +38,6 @@ import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ActionButton, FormCard } from "./page-parts";
@@ -57,6 +56,11 @@ type ApiKey = {
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
+  tokenType: "api-key" | "mcp-oauth";
+  oauthClientName: string | null;
+  oauthClientId: string | null;
+  oauthClientLogo: string | null;
+  oauthClientTrust: "metadata-document" | "unverified" | null;
 };
 type KeySettings = {
   keys: ApiKey[];
@@ -148,6 +152,16 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
   const guide = useApiQuery<KeySettings>(
     section === "mcp" ? `${baseEndpoint}/personal` : null,
   );
+  const [revokedKeyIds, setRevokedKeyIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const visibleKeys = (query.data?.keys ?? []).filter(
+    (key) => !key.revokedAt && !revokedKeyIds.has(key.id),
+  );
+  const apiKeys = visibleKeys.filter((key) => key.tokenType !== "mcp-oauth");
+  const mcpConnections = visibleKeys.filter(
+    (key) => key.tokenType === "mcp-oauth",
+  );
   const [creatingPrivateKey, setCreatingPrivateKey] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -186,10 +200,19 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
       className: "min-w-52",
       cell: (key) => (
         <TableCellStack as="div">
-          <span>{key.name}</span>
-          <TableCellDescription className="font-mono">
-            {key.prefix}••••
-          </TableCellDescription>
+          <span className="flex items-center gap-2">
+            {key.tokenType === "mcp-oauth" && (
+              <McpClientLogo client={key.oauthClientLogo ?? "unknown"} />
+            )}
+            {key.oauthClientName ?? key.name}
+          </span>
+          {key.tokenType === "mcp-oauth" && (
+            <TableCellDescription>
+              {key.oauthClientTrust === "metadata-document" && key.oauthClientId
+                ? new URL(key.oauthClientId).hostname
+                : "Unknown client"}
+            </TableCellDescription>
+          )}
         </TableCellStack>
       ),
     },
@@ -204,14 +227,9 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             : "Edit",
     },
     {
-      key: "used",
-      header: "Last used",
-      cell: (key) =>
-        key.lastUsedAt ? (
-          <RelativeTime label="Last used" value={key.lastUsedAt} />
-        ) : (
-          <span className="text-muted">Never</span>
-        ),
+      key: "added",
+      header: "Added",
+      cell: (key) => <RelativeTime label="Added" value={key.createdAt} />,
     },
     {
       key: "expires",
@@ -224,19 +242,14 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
         ),
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (key) => (
-        <StatusBadge
-          status={
-            key.revokedAt
-              ? "revoked"
-              : key.expiresAt && Date.parse(key.expiresAt) <= Date.now()
-                ? "expired"
-                : "active"
-          }
-        />
-      ),
+      key: "used",
+      header: "Last used",
+      cell: (key) =>
+        key.lastUsedAt ? (
+          <RelativeTime label="Last used" value={key.lastUsedAt} />
+        ) : (
+          <span className="text-muted">Never</span>
+        ),
     },
     {
       key: "actions",
@@ -246,16 +259,26 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           <ActionButton
             action={async () => {
               await api.delete(`${endpoint}/${key.id}`);
+              setRevokedKeyIds((ids) => new Set(ids).add(key.id));
               query.refresh();
             }}
             confirm={{
-              title: `Revoke ${key.name}?`,
+              title: `Revoke ${key.oauthClientName ?? key.name}?`,
               description:
-                "Any script or MCP client using this key will lose access immediately. Create a replacement key to reconnect.",
-              actionLabel: "Revoke key",
+                key.tokenType === "mcp-oauth"
+                  ? "This app will lose access immediately. Sign in again from the app to reconnect."
+                  : "Any script or app using this key will lose access immediately. Create a replacement key to reconnect.",
+              actionLabel:
+                key.tokenType === "mcp-oauth"
+                  ? "Revoke connection"
+                  : "Revoke key",
             }}
             variant="danger"
-            success="Key revoked"
+            success={
+              key.tokenType === "mcp-oauth"
+                ? "Connection revoked"
+                : "Key revoked"
+            }
           >
             <HugeiconsIcon
               aria-hidden="true"
@@ -283,19 +306,46 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           <QueryLoading />
         ) : (
           <>
-            <p className="text-muted text-sm">
-              {scope === "team"
-                ? "Team keys represent this workspace and remain active until revoked or expired."
-                : "Personal keys are limited by your current role and the permissions granted when they were created."}
-            </p>
+            {scope === "team" && (
+              <p className="text-muted text-sm">
+                Team keys represent this workspace and remain active until
+                revoked or expired.
+              </p>
+            )}
             <ResourceTable
               ariaLabel={sectionLabels[section]}
               columns={columns}
-              items={query.data.keys}
+              items={apiKeys}
               getRowKey={(key) => key.id}
               emptyTitle="No API keys yet"
-              emptyDescription="Create a key for your scripts or MCP client. Its token is shown once."
+              emptyDescription={
+                scope === "personal"
+                  ? "Create an API key for your scripts or apps."
+                  : "Create an API key for scripts or apps used by your team."
+              }
             />
+            {scope === "personal" && (
+              <section
+                className="content-grid mt-4"
+                aria-labelledby="mcp-connections-title"
+              >
+                <h3 id="mcp-connections-title" className="font-medium">
+                  MCP Connections
+                </h3>
+                <ResourceTable
+                  ariaLabel="MCP Connections"
+                  columns={columns.map((column) =>
+                    column.key === "name"
+                      ? { ...column, header: "App" }
+                      : column,
+                  )}
+                  items={mcpConnections}
+                  getRowKey={(key) => key.id}
+                  emptyTitle="No MCP connections yet"
+                  emptyDescription="Connect an app to Towbar by signing in from the app."
+                />
+              </section>
+            )}
           </>
         )
       ) : guide.error ? (
@@ -556,7 +606,9 @@ function McpSetup({ url }: { url: string }) {
             label="Client"
             value={client}
             onChange={setClient}
-            renderIcon={(id) => <McpClientLogo client={id} />}
+            renderIcon={(id) => (
+              <McpClientLogo client={id} className="size-5" />
+            )}
             options={[
               ["codex", "ChatGPT"],
               ["claude", "Claude Code"],
@@ -583,9 +635,10 @@ function McpSetup({ url }: { url: string }) {
           </div>
         ) : null}
         <FieldDescription>
-          Choose a client that supports Streamable HTTP and bearer headers.
-          Towbar uses API keys; browser-only OAuth connectors cannot connect
-          directly.
+          To connect by signing in, add the MCP URL to your app, sign in to
+          Towbar and approve access. Reconnect after 30 days. You can revoke
+          access in your personal API keys. The configurations above use
+          manually created API keys.
         </FieldDescription>
         <ButtonLink
           href="https://www.towbar.dev/docs/api/mcp"

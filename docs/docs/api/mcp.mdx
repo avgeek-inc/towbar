@@ -1,20 +1,31 @@
 ---
 title: MCP setup
-description: Connect Codex, Cursor, VS Code, Claude Code, or another Streamable HTTP MCP client to your Towbar control plane.
+description: Connect ChatGPT, Codex, Cursor, VS Code, or Claude Code to Towbar to view services, deploy, and troubleshoot.
 ---
 
-Towbar's MCP server provides task-oriented tools for discovering infrastructure, deploying workloads, diagnosing failures, and managing secrets. Tools combine related reads and use direct inputs while preserving the API's workspace boundaries and role checks. You do not need to install a separate Towbar MCP process.
+Use your preferred AI app to view services, deploy workloads, troubleshoot problems, and update secrets in Towbar. You do not need to install an extra service.
 
 MCP requires an HTTPS Towbar installation. It is unavailable in the default local HTTP installation.
 
-## Connect
+## Connect by signing in
+
+1. Add `https://YOUR_TOWBAR_HOST/v1/mcp` to your app's MCP connections. Choose the option to sign in instead of entering an API key.
+2. Follow the connection prompt and sign in to Towbar.
+3. Check the app name and requested access, then choose **Allow access**.
+4. Reconnect after 30 days. To stop access sooner, revoke the connection in **Manage → My Settings → API Keys**.
+
+Apps can request read-only access or permission to make changes allowed by your Towbar role, including secret updates. Signing in does not give an app administrative access, account management, or permission to reveal stored credentials. Existing API keys keep their permissions and expiry.
+
+Only approve connections you started yourself. An **Unverified app** warning means Towbar cannot confirm who supplied the app's name.
+
+## Connect with an API key
 
 1. Open **Manage → My Settings → API Keys** and create an API key.
 2. Choose **Read-only** for discovery, **Edit** for permitted secret and Scout changes, or **Administrative** if the client must deploy or manage infrastructure.
 3. Copy the MCP URL shown in the page. It ends in `/v1/mcp` on your Towbar host.
 4. Add the appropriate client configuration below, reconnect, and ask: **“List my Towbar services.”**
 
-Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Towbar does not provide an OAuth browser sign-in flow for MCP. Clients that only support OAuth connectors cannot connect directly; use a client that supports custom bearer headers.
+Transport is **Streamable HTTP**. Authentication is the `Authorization: Bearer ...` header on every request. Use this option for existing automation or a client that supports custom bearer headers.
 
 <Tabs>
   <Tab title="Codex">
@@ -172,8 +183,39 @@ Keep human approval enabled in your client for mutations. Tools permitted by Edi
 | `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance.      |
 | No mutation tools                  | Use an Edit key with the required grants. Administrative actions need administrative permissions. |
 | Connection or certificate error    | Use the Towbar host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                        |
-| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization.      |
+| OAuth login appears                | Sign in and approve the connection, or configure an API key if your app supports it.              |
 | `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.       |
 | Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                           |
 
 To disconnect a client, remove its configuration and revoke its key in **My Settings → API Keys** or **Team Settings → API Keys**. Restart the client after replacing credentials or changing its permissions so the available tool list refreshes.
+
+## OAuth implementation and compatibility
+
+Towbar implements authorization discovery and protections from the [MCP 2026-07-28 authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization). The MCP message transport remains on the installed TypeScript SDK v1.30, which negotiates protocol versions through `2025-11-25`. This OAuth feature does not add the `2026-07-28` stateless message transport. See the [SDK migration guide](https://ts.sdk.modelcontextprotocol.io/v2/migration/support-2026-07-28).
+
+| Endpoint                                       | Purpose                                            |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `/.well-known/oauth-protected-resource/v1/mcp` | MCP resource and authorization server discovery    |
+| `/.well-known/oauth-authorization-server`      | Issuer, endpoints, scopes and supported methods    |
+| `/v1/oauth/authorize`                          | Browser authorization with explicit consent        |
+| `/v1/oauth/token`                              | Form-encoded authorization-code exchange           |
+| `/v1/oauth/register`                           | JSON dynamic client registration for compatibility |
+| `/v1/oauth/revoke`                             | Form-encoded token revocation (RFC 7009)           |
+
+Requests must use `response_type=code`, S256 PKCE, an exactly registered HTTPS or loopback redirect URI, and `resource=https://YOUR_TOWBAR_HOST/v1/mcp` at both authorization and token exchange. Authorization responses include `iss`; clients must bind credentials and pending requests to the discovered issuer and validate the returned issuer before exchanging a code.
+
+CIMD clients use `token_endpoint_auth_method=none` with PKCE. Metadata must include an exact `client_id` URL, `client_name`, and `redirect_uris`. Towbar fetches bounded JSON documents over HTTPS, rejects redirects and non-public addresses, and pins validated DNS answers for the connection. `private_key_jwt` is not supported. DCR supports public clients (`none`) and confidential clients (`client_secret_basic` or `client_secret_post`); its default is `client_secret_basic`. Only the authorization-code grant is supported. Clients may list `refresh_token` as a preference in their metadata, but registration responses advertise only `authorization_code` and no refresh token is issued.
+
+Consent requests expire after ten minutes. Approved codes expire after two minutes, are stored as hashes, and can be exchanged once. A correctly authenticated replay revokes the token issued from that code. Access tokens and DCR client secrets are stored as hashes. Revocation, account disablement, membership removal, and current role restrictions apply through Towbar's existing API-key policy controls. API-key creation, revocation, and audited operations include token type and saved MCP client attribution without raw credentials.
+
+OAuth endpoints share the external per-address rate limit. Tokens also have the normal persistent per-key limit. Discovery endpoints are public. The bundled gateway routes discovery paths to the API; custom reverse proxies must forward both `/.well-known/oauth-*` and `/v1/oauth/*` to the API service.
+
+### App identity and access
+
+For client developers: use **Streamable HTTP** with OAuth and no custom Authorization header. Each approval creates a personal token that expires after 30 days. Towbar does not issue refresh tokens. These tokens work only at this instance's MCP endpoint, not the REST API.
+
+Clients can request `mcp:read` or `mcp:read mcp:write`. Read is the default. Write grants the Edit operations permitted by the user's role; Administrative access is excluded.
+
+Towbar prefers HTTPS Client ID Metadata Documents (CIMD) and supports Dynamic Client Registration (DCR) for older clients. A metadata document establishes its publishing domain, not the identity of the running app. DCR names are unverified, even if they match a familiar app. Runtime MCP `clientInfo` and User-Agent never establish token attribution. Known metadata domains use bundled logos; unknown clients use the MCP icon. Towbar does not load client-supplied remote logos.
+
+The consent screen's **Connection details** disclosure shows the identity source, client ID, and full return URL.

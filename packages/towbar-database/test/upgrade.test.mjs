@@ -27,12 +27,13 @@ test("migration journal keeps notification destinations and failure subscription
     "0010_services_datastores.sql",
     "0011_notification_deployment_failures.sql",
     "0012_database_storage_samples.sql",
+    "0013_mcp_oauth.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 12);
+  assert.equal(journal.entries.length, 13);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -51,6 +52,7 @@ test("migration journal keeps notification destinations and failure subscription
     "0011_notification_deployment_failures",
   );
   assert.equal(journal.entries[11].tag, "0012_database_storage_samples");
+  assert.equal(journal.entries[12].tag, "0013_mcp_oauth");
   const failureSubscriptions = await readFile(
     `${migrationsFolder}/0011_notification_deployment_failures.sql`,
     "utf8",
@@ -197,7 +199,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 12);
+      assert.equal(count, 13);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(

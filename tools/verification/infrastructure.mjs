@@ -6,6 +6,7 @@ const postgresImage =
 const temporalImage =
   "temporalio/temporal:1.7.2@sha256:a715f1978c4d7d9b36fe6ef6e8aa414428f018a35f8e0f2b0c40c3cff9a9e634";
 const databases = {
+  TOWBAR_OAUTH_TEST_DATABASE_URL: "oauth",
   TOWBAR_TEST_DATABASE_URL: "regression",
   TOWBAR_TEAM_TEST_DATABASE_URL: "team",
   TOWBAR_SETTINGS_TEST_DATABASE_URL: "settings",

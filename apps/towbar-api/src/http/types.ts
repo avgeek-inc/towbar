@@ -33,7 +33,14 @@ type RequestPrincipal =
 export type TowbarVariables = {
   actor: AccessActor;
   currentSessionId: string | null;
-  apiKey: { id: string; access: "read" | "edit" } | undefined;
+  apiKey:
+    | {
+        id: string;
+        access: "read" | "edit";
+        tokenType?: "api-key" | "mcp-oauth";
+        resource?: string | null;
+      }
+    | undefined;
   requestId: string;
   user: RequestPrincipal;
 };

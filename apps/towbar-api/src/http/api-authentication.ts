@@ -1,3 +1,7 @@
+import {
+  mcpResource,
+  resourceMetadataUrl,
+} from "../areas/mcp-oauth/protocol.js";
 import { findApiKey } from "../areas/api-keys/service.js";
 import { getEnv } from "../env.js";
 import { HttpError, forbidden, unauthorized } from "./errors.js";
@@ -50,8 +54,17 @@ export function requireApiKey(
       context.req.header("authorization") ?? "",
     );
     const identity = match ? await findApiKey(match[1]!) : null;
-    if (!identity) {
-      context.header("WWW-Authenticate", 'Bearer realm="Towbar"');
+    if (
+      !identity ||
+      (identity.key.tokenType === "mcp-oauth" &&
+        (surface !== "mcp" || identity.key.resource !== mcpResource()))
+    ) {
+      context.header(
+        "WWW-Authenticate",
+        surface === "mcp"
+          ? `Bearer resource_metadata="${resourceMetadataUrl()}", scope="mcp:read"${match ? ', error="invalid_token"' : ""}`
+          : 'Bearer realm="Towbar"',
+      );
       throw unauthorized("Provide a valid, unexpired Towbar API key");
     }
     context.set("user", identity.user);
