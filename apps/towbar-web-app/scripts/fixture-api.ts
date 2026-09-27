@@ -271,6 +271,10 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
+apps[0]!.config.domains = {
+  primary: "example.com",
+  redirects: [],
+};
 apps[2]!.config.externalSecrets = {
   integration: "infisical",
   project: "00000000-0000-4000-8000-000000000001",

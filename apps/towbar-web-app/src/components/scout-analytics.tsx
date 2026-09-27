@@ -9,6 +9,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
+import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
@@ -40,9 +41,11 @@ const format = (n: number) => n.toLocaleString();
 
 export function ScoutAnalytics({
   appId,
+  domain,
   supported = true,
 }: {
   appId: string;
+  domain?: string;
   supported?: boolean;
 }) {
   const [kind, setKind] = useState<"request" | "pageview">("request");
@@ -70,6 +73,7 @@ export function ScoutAnalytics({
   return (
     <AnalyticsView
       report={query.data}
+      domain={domain}
       days={days}
       setDays={setDays}
       setKind={setKind}
@@ -79,11 +83,13 @@ export function ScoutAnalytics({
 
 export function AnalyticsView({
   report,
+  domain,
   days,
   setDays,
   setKind,
 }: {
   report: AnalyticsReport;
+  domain?: string;
   days: number;
   setDays: (n: number) => void;
   setKind: (kind: "request" | "pageview") => void;
@@ -373,6 +379,7 @@ export function AnalyticsView({
                 rows={rows}
                 total={report.total}
                 dimension={key}
+                domain={domain}
               />
             </div>
           ))}
@@ -418,9 +425,11 @@ function AnalyticsRows({
   total,
   name,
   dimension = "",
+  domain,
 }: {
   name: string;
   dimension?: string;
+  domain?: string;
   rows: { value: string; count: number }[];
   total: number;
 }) {
@@ -481,18 +490,16 @@ function AnalyticsRows({
                         )}
                       </span>
                     ) : null}
-                    <span
-                      className="block truncate"
-                      title={
+                    <AnalyticsRowLabel
+                      value={row.value}
+                      label={
                         country && /^[A-Z]{2}$/u.test(row.value)
                           ? (countryNames.of(row.value) ?? row.value)
                           : row.value
                       }
-                    >
-                      {country && /^[A-Z]{2}$/u.test(row.value)
-                        ? (countryNames.of(row.value) ?? row.value)
-                        : row.value}
-                    </span>
+                      dimension={dimension}
+                      domain={domain}
+                    />
                   </span>
                 </Table.Cell>
                 <Table.Cell className="text-right tabular-nums">
@@ -507,6 +514,46 @@ function AnalyticsRows({
         </Table.Content>
       </Table.ScrollContainer>
     </Table>
+  );
+}
+
+function AnalyticsRowLabel({
+  value,
+  label,
+  dimension,
+  domain,
+}: {
+  value: string;
+  label: string;
+  dimension: string;
+  domain?: string;
+}) {
+  const href =
+    dimension === "path" && domain && value.startsWith("/")
+      ? `https://${domain}${value}`
+      : dimension === "referrer" &&
+          /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/u.test(value)
+        ? `https://${value}`
+        : undefined;
+  if (!href)
+    return (
+      <span className="block truncate" title={label}>
+        {label}
+      </span>
+    );
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={label}
+      className="group inline-flex min-w-0 items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      <span className="truncate">{label}</span>
+      <span className="inline-flex shrink-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+        <NewTabIndicator />
+      </span>
+    </a>
   );
 }
 

@@ -406,6 +406,7 @@ export function AppDetail() {
             content: (
               <ScoutAnalytics
                 appId={appId}
+                domain={item.config.domains?.primary}
                 supported={item.config.kind !== "compose"}
               />
             ),
