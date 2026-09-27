@@ -29,7 +29,7 @@ export function analyticsFixture(
       enabled: true,
       pageviews: true,
       visitorIdentity: true,
-      retentionDays: 30,
+      retentionDays: 90,
       excludePaths: [],
     },
     agentStatus: "online",
@@ -59,7 +59,7 @@ export function analyticsFixture(
       errors: i % 3,
     })),
     comparison:
-      days * 2 > 30
+      days * 2 > 90
         ? null
         : {
             start: new Date(end - 2 * days * 86400000).toISOString(),

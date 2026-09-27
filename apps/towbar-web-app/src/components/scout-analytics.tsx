@@ -313,7 +313,7 @@ export function AnalyticsView({
                       }
                       valueFormatter={(value) => format(Number(value))}
                     >
-                      {pageviews && point?.previous != null ? (
+                      {point?.previous != null ? (
                         <div className="mt-1 border-t border-separator pt-1">
                           <MetricChange
                             current={point.count}
@@ -335,7 +335,7 @@ export function AnalyticsView({
                 isAnimationActive={false}
                 dot={false}
               />
-              {pageviews && report.comparison ? (
+              {report.comparison ? (
                 <LineChart.Line
                   dataKey="previous"
                   name={comparisonLabel}
@@ -357,14 +357,19 @@ export function AnalyticsView({
                 />
               ) : null}
             </LineChart>
-            {pageviews && report.comparison ? (
+            {report.comparison ? (
               <Widget.Legend className="mt-2 flex-wrap">
                 <Widget.LegendItem color="var(--accent)">
-                  Pageviews
+                  {pageviews ? "Pageviews" : "Requests"}
                 </Widget.LegendItem>
                 <Widget.LegendItem color="var(--warning)">
                   {comparisonLabel} (dashed)
                 </Widget.LegendItem>
+                {!pageviews ? (
+                  <Widget.LegendItem color="var(--danger)">
+                    HTTP errors
+                  </Widget.LegendItem>
+                ) : null}
               </Widget.Legend>
             ) : null}
           </Widget.Content>
