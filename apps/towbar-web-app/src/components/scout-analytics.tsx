@@ -473,7 +473,7 @@ function AnalyticsRows({
               </Table.Column>
             ) : null}
             <Table.Column isRowHeader textValue={name}>
-              <span className="inline-flex items-center gap-1">
+              <span className="flex h-4 items-center gap-1">
                 {name}
                 {country ? (
                   <HeadingHelp
