@@ -549,8 +549,8 @@ export function ServerDetail() {
               content: <ScoutIncidents serverId={serverId} />,
             },
             {
-              value: "apps",
-              label: "Apps",
+              value: "services",
+              label: "Services",
               badge:
                 appCount !== undefined ? (
                   <span className="text-muted">{appCount}</span>
@@ -564,8 +564,8 @@ export function ServerDetail() {
               ),
             },
             {
-              value: "resources",
-              label: "Resources",
+              value: "datastores",
+              label: "Datastores",
               badge:
                 resourceCount !== undefined ? (
                   <span className="text-muted">{resourceCount}</span>

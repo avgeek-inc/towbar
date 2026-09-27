@@ -64,6 +64,7 @@ import type {
   SourceSync,
   SystemHealth,
   TowbarUser,
+  TowbarUpdateInfo,
   TrustedHostKey,
   UserSession,
   VulnerabilityFinding,
@@ -80,7 +81,6 @@ export const fixtureIds = {
   deployment: "61111111-1111-4111-8111-111111111111",
   preview: "b1111111-1111-4111-8111-111111111111",
   previewDeployment: "61111111-1111-4111-8111-444444444444",
-  imageResource: "41111111-1111-4111-8111-444444444444",
   resource: "41111111-1111-4111-8111-111111111111",
   secondaryPostgres: "41111111-1111-4111-8111-333333333333",
   secondaryServer: "21111111-1111-4111-8111-222222222222",
@@ -114,8 +114,7 @@ const terminalStates = new Set<DeploymentState>([
 ]);
 
 const user: TowbarUser = {
-  avatarUrl: "/avatars/praveen-light-transparent.png",
-  email: "admin@example.com",
+  email: "praveen@avgeek.ltd",
   id: "71111111-1111-4111-8111-111111111111",
   name: "Towbar Admin",
   workspaceId: "81111111-1111-4111-8111-111111111111",
@@ -204,6 +203,7 @@ apps[1]!.config.notifications = {
     {
       address: "website-ops@example.com",
       deployments: true,
+      deploymentFailures: true,
       backupsAndRestores: false,
       alertsAndIncidents: true,
     },
@@ -212,6 +212,7 @@ apps[1]!.config.notifications = {
     {
       channelId: "C12345678",
       deployments: true,
+      deploymentFailures: false,
       backupsAndRestores: false,
       alertsAndIncidents: true,
     },
@@ -220,6 +221,7 @@ apps[1]!.config.notifications = {
     {
       webhookId: "123456789012345678",
       deployments: false,
+      deploymentFailures: true,
       backupsAndRestores: false,
       alertsAndIncidents: true,
     },
@@ -229,6 +231,7 @@ apps[1]!.config.notifications = {
       chatId: "-1001234567890",
       messageThreadId: 42,
       deployments: true,
+      deploymentFailures: false,
       backupsAndRestores: false,
       alertsAndIncidents: false,
     },
@@ -254,13 +257,6 @@ const resources: FixtureResource[] = [
     "Analytics Postgres",
     "analytics-postgres",
     "postgres",
-    servers[1]!,
-  ),
-  createResourceFixture(
-    fixtureIds.imageResource,
-    "Mailpit",
-    "mailpit",
-    "image",
     servers[1]!,
   ),
   createResourceFixture(
@@ -316,6 +312,7 @@ resources[0]!.config.notifications = {
     {
       address: "database-ops@example.com",
       deployments: false,
+      deploymentFailures: true,
       backupsAndRestores: true,
       alertsAndIncidents: true,
     },
@@ -1057,8 +1054,19 @@ let systemHealth: SystemHealth = {
       title: "Worker and maintenance",
     },
   ],
+  databaseStorage: Array.from({ length: 90 }, (_, index) => ({
+    sampledAt: new Date(
+      Date.parse(systemHealthFixtureNow) - (89 - index) * 86_400_000,
+    ).toISOString(),
+    towbarBytes: Math.round(
+      96_000_000 + index * 520_000 + Math.sin(index / 7) * 3_000_000,
+    ),
+    monitoringBytes: Math.round(
+      12_000_000 + index * 340_000 + Math.sin(index / 5) * 2_000_000,
+    ),
+  })),
   status: "healthy",
-  version: "2.0.14-fixture",
+  version: "2.0.15",
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -1067,6 +1075,13 @@ function fixtureSystemHealth(): SystemHealth {
     checks: [...systemHealth.checks],
   };
 }
+
+const towbarUpdates: TowbarUpdateInfo = {
+  installedVersion: "2.0.15",
+  latestVersion: "2.0.15",
+  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.15",
+  status: "current",
+};
 
 const runtimeCapacity: RuntimeCapacity[] = [
   {
@@ -1667,7 +1682,8 @@ export function createFixtureApiServer({
     {
       id: "a1111111-1111-4111-8111-555555555555",
       email: "operations@example.com",
-      deployments: true,
+      deployments: false,
+      deploymentFailures: true,
       backupsAndRestores: true,
       scout: true,
     },
@@ -1678,6 +1694,7 @@ export function createFixtureApiServer({
           id: "a2222222-2222-4222-8222-222222222222",
           channelId: "C12345678",
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: true,
           scout: true,
         },
@@ -1689,6 +1706,7 @@ export function createFixtureApiServer({
           routeId: "discord-123456789012345678",
           webhookId: "123456789012345678",
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: false,
           alertsAndIncidents: true,
         },
@@ -1696,6 +1714,7 @@ export function createFixtureApiServer({
           routeId: "discord-223456789012345678",
           webhookId: "223456789012345678",
           deployments: false,
+          deploymentFailures: true,
           backupsAndRestores: true,
           alertsAndIncidents: false,
         },
@@ -1708,6 +1727,7 @@ export function createFixtureApiServer({
           label: "Operations",
           hostname: "hooks.example.com",
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: false,
           alertsAndIncidents: true,
         },
@@ -1716,6 +1736,7 @@ export function createFixtureApiServer({
           label: "Archive",
           hostname: "events.example.org",
           deployments: false,
+          deploymentFailures: true,
           backupsAndRestores: true,
           alertsAndIncidents: false,
         },
@@ -1728,6 +1749,7 @@ export function createFixtureApiServer({
           chatId: "-1001234567890",
           messageThreadId: null as number | null,
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: false,
           alertsAndIncidents: true,
         },
@@ -1791,6 +1813,8 @@ export function createFixtureApiServer({
                   row.messageThreadId < 1 ||
                   row.messageThreadId > 2_147_483_647)) ||
               typeof row.deployments !== "boolean" ||
+              typeof row.deploymentFailures !== "boolean" ||
+              (row.deployments && row.deploymentFailures) ||
               typeof row.backupsAndRestores !== "boolean" ||
               typeof row.alertsAndIncidents !== "boolean",
           ) ||
@@ -1854,6 +1878,8 @@ export function createFixtureApiServer({
                   existing.webhookId === row.webhookId,
               ) ||
               typeof row.deployments !== "boolean" ||
+              typeof row.deploymentFailures !== "boolean" ||
+              (row.deployments && row.deploymentFailures) ||
               typeof row.backupsAndRestores !== "boolean" ||
               typeof row.alertsAndIncidents !== "boolean",
           ) ||
@@ -1909,6 +1935,8 @@ export function createFixtureApiServer({
                   existing.hostname === row.hostname,
               ) ||
               typeof row.deployments !== "boolean" ||
+              typeof row.deploymentFailures !== "boolean" ||
+              (row.deployments && row.deploymentFailures) ||
               typeof row.backupsAndRestores !== "boolean" ||
               typeof row.alertsAndIncidents !== "boolean",
           ) ||
@@ -1958,7 +1986,15 @@ export function createFixtureApiServer({
         const body = (await readRequestJson(request)) as {
           destinations?: typeof emailDestinations;
         };
-        if (!Array.isArray(body.destinations))
+        if (
+          !Array.isArray(body.destinations) ||
+          body.destinations.some(
+            (row) =>
+              typeof row.deployments !== "boolean" ||
+              typeof row.deploymentFailures !== "boolean" ||
+              (row.deployments && row.deploymentFailures),
+          )
+        )
           return writeJson(response, 400, {
             error: { message: "Invalid email destinations" },
           });
@@ -2007,6 +2043,8 @@ export function createFixtureApiServer({
             (row) =>
               !/^[A-Z][A-Z0-9]{1,79}$/.test(row.channelId) ||
               typeof row.deployments !== "boolean" ||
+              typeof row.deploymentFailures !== "boolean" ||
+              (row.deployments && row.deploymentFailures) ||
               typeof row.backupsAndRestores !== "boolean" ||
               typeof row.scout !== "boolean",
           ) ||
@@ -3450,12 +3488,7 @@ function getFixturePayload(
               ]
             : isApp
               ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
-              : [
-                  `type: ${item.kind}`,
-                  ...(item.kind === "image"
-                    ? ["image: axllent/mailpit:v1.27"]
-                    : []),
-                ]),
+              : [`type: ${item.kind}`]),
           "environments:",
           ...members.flatMap((member) => [
             `  ${member.environment!.name}:`,
@@ -3463,8 +3496,8 @@ function getFixturePayload(
           ]),
           "",
         ].join("\n");
-        const directory = isCompose ? "compose" : isApp ? "apps" : "resources";
-        const suffix = isCompose ? "compose" : isApp ? "app" : "resource";
+        const directory = isApp || isCompose ? "services" : "datastores";
+        const suffix = isCompose ? "compose" : isApp ? "service" : "datastore";
         return {
           path: `.towbar/${directory}/${item.manifestId}.${suffix}.yml`,
           content,
@@ -3639,6 +3672,7 @@ function getFixturePayload(
     ["/v1/core/resources", { resources }],
     ["/v1/core/servers", { servers }],
     ["/v1/core/system-health", fixtureSystemHealth()],
+    ["/v1/core/version", towbarUpdates],
     [
       "/v1/core/deployments",
       {

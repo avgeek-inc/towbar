@@ -78,8 +78,8 @@ export function WorkspaceIncidents() {
           <TableCellDescription>
             {row.incident.deployableId
               ? row.workload?.kind === "app"
-                ? "App"
-                : "Resource"
+                ? "Service"
+                : "Datastore"
               : "Server"}
           </TableCellDescription>
         </TableCellStack>

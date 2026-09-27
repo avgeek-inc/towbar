@@ -82,25 +82,25 @@ For every database, record its engine, major version, database names, users, ext
 
 Choose a Towbar deployment mode for every application:
 
-| Coolify workload                    | Towbar destination                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| Git repository with a Dockerfile    | `dockerfile` app                                                                     |
-| Static build output                 | `static` app                                                                         |
-| Prebuilt container image            | `image` app with a non-`latest` tag or digest                                        |
-| Nixpacks or Buildpacks source build | `nixpacks`, `railpack`, or `buildpack` app after a compatibility test                |
-| Git-managed Compose project         | Compose project after reviewing Towbar's restrictions                                |
-| Standalone supported database       | Managed Resource with the same supported engine and major version                    |
-| Other stateful service              | Image Resource or Compose project after validating persistence, health, and recovery |
+| Coolify workload                    | Towbar destination                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Git repository with a Dockerfile    | Service using `dockerfile`                                                                          |
+| Static build output                 | Service using `static`                                                                              |
+| Prebuilt container image            | Service using `image` with a non-`latest` tag or digest                                             |
+| Nixpacks or Buildpacks source build | Service using `nixpacks`, `railpack`, or `buildpack` after a compatibility test                     |
+| Git-managed Compose project         | Compose project after reviewing Towbar's restrictions                                               |
+| Standalone supported database       | Managed Datastore with the same supported engine and major version                                  |
+| Other stateful service              | Service with a prebuilt image or Compose project after validating persistence, health, and recovery |
 
 Read [Deployment modes](/docs/platform-deployments) before moving Compose. Towbar rejects privileged containers, Docker socket mounts, host bind mounts, fixed public host ports, remote includes, external namespaces, and several other patterns that a general Compose installation may permit.
 
-Create `towbar.yml` and one entity file per app or resource. Run schema validation in the repository before connecting it, then connect each environment to its branch. Keep automatic deployments disabled during migration.
+Create `towbar.yml` and one entity file per Service or Datastore. Run schema validation in the repository before connecting it, then connect each environment to its branch. Keep automatic deployments disabled during migration.
 
 ## 3. Recreate credentials and integrations
 
 Configure GitHub or GitLab, registries, backup storage, notifications, Cloudflare, and external-secret providers in Towbar's runtime configuration. Check platform providers under **Manage → Integrations**, and notification providers under Manage → Notifications.
 
-Copy application values into [Shared secrets](/docs/secrets) or workload environment secrets. Do not copy Coolify's encrypted database rows or encryption key into Towbar. Rotate long-lived credentials where practical, and update OAuth callback URLs, provider webhooks, CI secrets, and allowlists for the new Towbar origin.
+Save application values in [Towbar](/docs/secrets/towbar) or load them from a supported [external provider](/docs/secrets/external). Use shared secrets when several workloads need the same value. Do not copy Coolify's encrypted database rows or encryption key into Towbar. Rotate long-lived credentials where practical, and update OAuth callback URLs, provider webhooks, CI secrets, and allowlists for the new Towbar origin.
 
 ## 4. Prepare a destination server
 

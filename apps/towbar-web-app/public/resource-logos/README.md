@@ -8,8 +8,8 @@ Mappings live in `src/components/resource-image-catalog.json`. Image tags and
 digests are ignored for matching. Docker Hub shorthand, `library/`, `docker.io`,
 `index.docker.io`, and `registry-1.docker.io` normalize to the same identity.
 Other registries and namespaces remain distinct; private mirrors and unrecognized
-images retain the Docker fallback. Managed PostgreSQL and Redis keep their existing
-logos regardless of their configured image. Identification does not establish
+images retain the Docker fallback. Managed datastores use their engine logos
+regardless of their configured image. Identification does not establish
 image authenticity, maintenance status, or safety.
 
 ## Artwork and attribution

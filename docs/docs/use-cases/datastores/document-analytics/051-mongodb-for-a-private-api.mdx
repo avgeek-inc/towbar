@@ -1,0 +1,49 @@
+---
+title: "MongoDB API"
+description: "Use type: mongodb and the same container.network as the API."
+icon: "/assets/database-logos/mongodb.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mongodb.webp"
+  alt="MongoDB API logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/mongodb-for-a-private-api.datastore.yml"
+id: mongodb-for-a-private-api
+name: MongoDB API
+type: mongodb
+container:
+  network: application
+  networkAlias: mongodb-for-a-private-api
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MONGO_INITDB_ROOT_USERNAME
+    - MONGO_INITDB_ROOT_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The API reaches the Datastore alias on port `27017`.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

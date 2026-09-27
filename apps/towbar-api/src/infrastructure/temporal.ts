@@ -298,6 +298,20 @@ export async function wakeMaintenanceWorkflow() {
   return { workflowId };
 }
 
+export async function ensureDatabaseStorageWorkflow() {
+  const client = await getTemporalClient();
+  try {
+    await client.workflow.start("runDatabaseStorageWorkflow", {
+      args: [],
+      taskQueue: towbarTaskQueue,
+      workflowId: "towbar-database-storage/v1",
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    });
+  } catch (error) {
+    if (!isWorkflowAlreadyStarted(error)) throw error;
+  }
+}
+
 export async function wakeScoutAlertsWorkflow() {
   const client = await getTemporalClient();
   const workflowId = "towbar-scout-alerts";

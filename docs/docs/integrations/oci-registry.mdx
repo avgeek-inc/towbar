@@ -1,7 +1,15 @@
 ---
 title: "OCI registry"
 description: "Configure one private OCI registry for image deployments and build transfers."
+icon: "/assets/integration-logos/docker.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/docker.webp"
+  alt="OCI registry logo"
+  aria-hidden="true"
+/>
 
 Towbar uses one installation-wide OCI Registry V2 identity. It can authenticate
 private prebuilt-image deployments and transfer an image from a dedicated build
@@ -9,9 +17,9 @@ server to a runtime server without changing the image digest.
 
 Create a registry account or access token with pull access to the image repositories Towbar runs. Add push access only when a dedicated build server will transfer images through the registry. Record the registry host without `https://` or a path; an optional port is allowed.
 
-Add this to `/etc/towbar/towbar.yml`:
+Add this to `/etc/towbar/config.yml`:
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   registry:
     enabled: true
@@ -35,7 +43,7 @@ hostname and username, but never returns the password or token.
 
 Reference the integration slug `registry` from an image deployment:
 
-```yaml title=".towbar/apps/api.app.yml"
+```yaml title=".towbar/services/api.service.yml"
 deployment:
   type: image
   image: registry.example.com/acme/api:2.4.0
@@ -51,7 +59,7 @@ different image. Private registry endpoints must use HTTPS.
 
 A dedicated build server can push the verified image through the same registry:
 
-```yaml title=".towbar/apps/api.app.yml"
+```yaml title=".towbar/services/api.service.yml"
 buildServer:
   ip: 192.0.2.20
   transfer: registry
@@ -72,8 +80,8 @@ and the [runtime configuration guide](/docs/self-hosting/environment-variables#r
     <img
       src="/assets/release-v2/registry-setup-light.jpg"
       alt="OCI registry integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -81,8 +89,8 @@ and the [runtime configuration guide](/docs/self-hosting/environment-variables#r
     <img
       src="/assets/release-v2/registry-setup-dark.jpg"
       alt="OCI registry integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

@@ -1,20 +1,28 @@
 ---
 title: "KeyDB"
-description: "Declare a KeyDB 6.3 resource for amd64 servers with Redis-compatible authentication and recovery."
+description: "Declare a KeyDB 6.3 datastore for amd64 servers with Redis-compatible authentication and recovery."
+icon: "/assets/database-logos/keydb.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/keydb.svg"
+  alt="KeyDB logo"
+  aria-hidden="true"
+/>
 
 Towbar's `keydb` preset runs KeyDB 6.3 and is available only on amd64 servers.
 It listens on port `6379`, stores data in `/data`, enables append-only
 persistence, and exposes the Redis protocol with password authentication.
 
 <Warning>
-  KeyDB is not available on arm64. Towbar rejects the resource before deployment
-  when the target server architecture is incompatible.
+  KeyDB is not available on arm64. Towbar rejects the datastore before
+  deployment when the target server architecture is incompatible.
 </Warning>
 
-## Declare the resource
+## Declare the datastore
 
-```yaml title=".towbar/resources/keydb.resource.yml" highlight={3,14-16,18}
+```yaml title=".towbar/datastores/keydb.datastore.yml" highlight={3,14-16,18}
 id: keydb
 name: KeyDB
 type: keydb
@@ -38,10 +46,10 @@ environments:
 `REDIS_PASSWORD` is required. Towbar passes it to the managed KeyDB command and
 uses it for authenticated health, backup, and restore operations.
 
-## Connect from an app
+## Connect from a service
 
 Use a Redis-compatible client against `keydb:6379` from the shared network.
-Keep its URL in the consuming app's runtime secrets. The optional tunnel binds
+Keep its URL in the consuming service's runtime secrets. The optional tunnel binds
 `16381` only to server loopback.
 
 ## Operational boundary

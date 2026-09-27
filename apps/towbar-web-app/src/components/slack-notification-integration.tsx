@@ -32,23 +32,21 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { NotificationProviderIcon } from "./notification-provider-icon";
 import { PageSelectionTitle } from "./page-selection-title";
+import { DeploymentNotificationChoice } from "./deployment-notification-choice";
 
 type SlackDestination = {
   id?: string;
   channelId: string;
   deployments: boolean;
+  deploymentFailures: boolean;
   backupsAndRestores: boolean;
   scout: boolean;
 };
-type Column = keyof Pick<
-  SlackDestination,
-  "deployments" | "backupsAndRestores" | "scout"
->;
+type Column = keyof Pick<SlackDestination, "backupsAndRestores" | "scout">;
 
 const columns: Array<{ key: Column; label: string }> = [
-  { key: "deployments", label: "Deployments" },
   { key: "backupsAndRestores", label: "Backup & Restore" },
-  { key: "scout", label: "Alerts & Incidents" },
+  { key: "scout", label: "Incidents" },
 ];
 const endpoint = "/v1/core/notifications/slack/destinations";
 const channelIdPattern = /^[A-Z][A-Z0-9]{1,79}$/;
@@ -130,9 +128,16 @@ export function SlackNotificationIntegration() {
         endpoint,
         {
           destinations: next.map(
-            ({ channelId, deployments, backupsAndRestores, scout }) => ({
+            ({
               channelId,
               deployments,
+              deploymentFailures,
+              backupsAndRestores,
+              scout,
+            }) => ({
+              channelId,
+              deployments,
+              deploymentFailures,
               backupsAndRestores,
               scout,
             }),
@@ -173,6 +178,7 @@ export function SlackNotificationIntegration() {
         {
           channelId: normalized,
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: true,
           scout: true,
         },
@@ -207,6 +213,34 @@ export function SlackNotificationIntegration() {
       header: "Channel ID",
       className: "min-w-36 whitespace-nowrap !py-1.5",
       cell: (row) => row.channelId,
+    },
+    {
+      key: "deployments",
+      header: "Deployments",
+      className: "min-w-64 !py-1.5",
+      cell: (row) => (
+        <DeploymentNotificationChoice
+          name={`slack-deployments-${row.id ?? row.channelId}`}
+          label={row.channelId}
+          disabled={saving}
+          value={
+            row.deployments ? "all" : row.deploymentFailures ? "failures" : null
+          }
+          onChange={(value) =>
+            void persist(
+              destinations.map((item) =>
+                item.channelId === row.channelId
+                  ? {
+                      ...item,
+                      deployments: value === "all",
+                      deploymentFailures: value === "failures",
+                    }
+                  : item,
+              ),
+            )
+          }
+        />
+      ),
     },
     ...columns.map(({ key, label }) => ({
       key,

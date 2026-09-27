@@ -9,10 +9,10 @@ void test("the starter repository resolves production and staging separately", (
     "utf8",
   );
   const file = {
-    path: ".towbar/apps/hello-towbar.app.yml",
+    path: ".towbar/services/hello-towbar.service.yml",
     content: readFileSync(
       new URL(
-        "../../../examples/.towbar/apps/hello-towbar.app.yml",
+        "../../../examples/.towbar/services/hello-towbar.service.yml",
         import.meta.url,
       ),
       "utf8",

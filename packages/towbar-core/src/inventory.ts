@@ -10,7 +10,7 @@ export const workloadFilters = base
     sourceId: z.uuid().optional(),
     environment: z.string().min(1).max(63).optional(),
     serverIp: z.string().max(100).optional(),
-    resourceType: z.enum(["image", ...managedResourceTypes]).optional(),
+    resourceType: z.enum(managedResourceTypes).optional(),
     running: z.enum(["running", "stopped", "missing", "unknown"]).optional(),
     health: z
       .enum(["healthy", "unhealthy", "starting", "none", "unknown"])

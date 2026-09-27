@@ -35,7 +35,7 @@ for you.
 - Towbar has no equivalent to Heroku's add-on marketplace, managed dyno fleet,
   Private Spaces, or platform autoscaling.
 - Moving a mature Heroku app often means replacing add-ons and splitting
-  Procfile process types into several Towbar Apps.
+  Procfile process types into several Towbar Services.
 
 ### Heroku
 
@@ -69,14 +69,14 @@ committing their values.
 
 Map the app before provisioning replacements:
 
-| Heroku concept  | Towbar destination                                                        |
-| --------------- | ------------------------------------------------------------------------- |
-| Web dyno        | Public App with an explicit start command, port, and health check         |
-| Worker dyno     | Separate private App using the same source                                |
-| Scheduler task  | App job                                                                   |
-| Config var      | Shared or workload environment secret                                     |
-| Heroku Postgres | Compatible PostgreSQL Resource after logical restore                      |
-| Redis add-on    | Compatible Redis, Dragonfly, or KeyDB Resource after compatibility review |
+| Heroku concept  | Towbar destination                                                         |
+| --------------- | -------------------------------------------------------------------------- |
+| Web dyno        | Public Service with an explicit start command, port, and health check      |
+| Worker dyno     | Separate private Service using the same source                             |
+| Scheduler task  | Service job                                                                |
+| Config var      | Service environment secret in Towbar or an external provider               |
+| Heroku Postgres | Compatible PostgreSQL Datastore after logical restore                      |
+| Redis add-on    | Compatible Redis, Dragonfly, or KeyDB Datastore after compatibility review |
 
 ## 2. Make the build reproducible
 
@@ -92,7 +92,7 @@ webhooks, uploads, and outbound provider access.
 
 ## 3. Move add-ons and data
 
-Replace each add-on with a Towbar Resource or an external service and update the
+Replace each add-on with a Towbar Datastore or an external service and update the
 corresponding secret. Do not assume an add-on's connection URL, TLS behavior, or
 extensions match the replacement.
 
@@ -111,5 +111,5 @@ Move the production domain, then confirm TLS, health, logs, jobs, notifications,
 backups, and representative reads and writes. Retain the stopped Heroku app and
 document the data boundary for rollback.
 
-Continue with [Install Towbar](/docs/self-hosting/installation), [Apps](/docs/apps),
+Continue with [Install Towbar](/docs/self-hosting/installation), [Services](/docs/services),
 and [PostgreSQL](/docs/databases/postgresql).

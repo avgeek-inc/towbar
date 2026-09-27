@@ -47,6 +47,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "address": {
@@ -72,6 +73,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "channelId": {
@@ -95,6 +97,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
@@ -115,6 +118,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },
@@ -1098,6 +1102,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "address": {
@@ -1123,6 +1128,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "channelId": {
@@ -1146,6 +1152,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
@@ -1166,6 +1173,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },
@@ -2142,5 +2150,5 @@
   "additionalProperties": false,
   "required": ["id", "name", "environments"],
   "description": "Entity defaults are merged with the selected environment before full validation during sync. Branch mappings and secret values are managed in Towbar.",
-  "$id": "https://www.towbar.dev/schemas/app.v2.json"
+  "$id": "https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/app.v2.json"
 }

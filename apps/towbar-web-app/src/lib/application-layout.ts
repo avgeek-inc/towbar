@@ -47,15 +47,15 @@ export type ApplicationSidebarCounts = Partial<
 >;
 
 const inventorySingularLabels = {
-  apps: "app",
-  resources: "resource",
+  apps: "service",
+  resources: "datastore",
   servers: "server",
   sources: "repository",
 } as const;
 
 const inventoryPluralLabels = {
-  apps: "apps",
-  resources: "resources",
+  apps: "services",
+  resources: "datastores",
   servers: "servers",
   sources: "repositories",
 } as const;
@@ -111,15 +111,15 @@ const sidebar = {
         {
           kind: "link",
           id: "apps",
-          label: "Apps",
-          href: "/apps",
+          label: "Services",
+          href: "/services",
           icon: sidebarIcons.apps,
         },
         {
           kind: "link",
           id: "resources",
-          label: "Resources",
-          href: "/resources",
+          label: "Datastores",
+          href: "/datastores",
           icon: sidebarIcons.resources,
         },
         {

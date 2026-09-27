@@ -169,10 +169,10 @@ void test("publishes v2 entity identity, overrides and required secret keys", ()
   );
 });
 
-void test("normalizes image, PostgreSQL, and Redis resources", () => {
-  const source = `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      port: 9090\n      volumes:\n        - name: config\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n`;
+void test("normalizes PostgreSQL and Redis datastores", () => {
+  const source = `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    server: 203.0.113.10\n    access:\n      sshTunnel:\n        hostPort: 15432\n    backup:\n      schedule:\n        cron: "0 3 * * *"\n      retention:\n        keepLast: 14\n      s3:\n        bucket: example-production-backups\n        prefix: databases\n    container:\n      network: towbar-platform\n  - id: cache\n    name: Cache\n    type: redis\n    server: 203.0.113.10\n`;
   const parsed = parseResolvedManifest(source).manifest;
-  const [cache, database, metrics] = parsed.resources ?? [];
+  const [cache, database] = parsed.resources ?? [];
   assert.equal(cache?.image, managedResourceCompatibility.redis.image);
   assert.equal(cache?.container.port, 6_379);
   assert.deepEqual(cache?.container.volumes, [
@@ -197,8 +197,6 @@ void test("normalizes image, PostgreSQL, and Redis resources", () => {
     },
     schedule: { cron: "0 3 * * *", timezone: "UTC" },
   });
-  assert.equal(metrics?.image, "prom/prometheus:v3.5.0");
-  assert.equal(metrics?.health.type, "http");
 });
 
 void test("uses the supported PostgreSQL data directory for managed volumes", () => {
@@ -283,27 +281,6 @@ void test("rejects unsafe or conflicting Resource connectivity declarations", ()
       ),
     ManifestValidationError,
   );
-});
-
-void test("normalizes Resource image, command, health, volumes, and shared runtime secrets", () => {
-  const parsed = parseResolvedManifest(
-    `${manifest}\nresources:\n  - id: metrics\n    name: Metrics\n    type: image\n    image: prom/prometheus:v3.5.0\n    server: 203.0.113.10\n    container:\n      command: [--config.file=/etc/prometheus/prometheus.yml]\n      port: 9090\n      volumes:\n        - name: data\n          mountPath: /prometheus\n    health:\n      type: http\n      path: /-/healthy\n`,
-  ).manifest;
-  const resource = parsed.resources?.[0];
-  assert.ok(resource);
-  assert.equal(resource.image, "prom/prometheus:v3.5.0");
-  assert.deepEqual(resource.container.command, [
-    "--config.file=/etc/prometheus/prometheus.yml",
-  ]);
-  assert.deepEqual(resource.health, {
-    path: "/-/healthy",
-    timeoutSeconds: 60,
-    type: "http",
-  });
-  assert.deepEqual(resource.container.volumes, [
-    { mountPath: "/prometheus", name: "data" },
-  ]);
-  assert.equal("sharedSecrets" in resource, false);
 });
 
 void test("defaults to main and rejects unsafe branch names", () => {

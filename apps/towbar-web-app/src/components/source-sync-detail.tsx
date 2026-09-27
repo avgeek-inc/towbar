@@ -231,7 +231,7 @@ export function SourceSyncDetail() {
 }
 
 type ReconciliationAction = "archive" | "create" | "restore" | "update";
-type ReconciliationKind = "App" | "Resource" | "Server";
+type ReconciliationKind = "Service" | "Datastore" | "Server";
 type ReconciliationChange = {
   action: ReconciliationAction;
   id: string;
@@ -290,13 +290,13 @@ function SyncChanges({
       >
         <Attributes.Item
           icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
-          label="Apps"
+          label="Services"
         >
           {legacyCounts.apps}
         </Attributes.Item>
         <Attributes.Item
           icon={<HugeiconsIcon icon={CubeIcon} />}
-          label="Resources"
+          label="Datastores"
         >
           {legacyCounts.resources}
         </Attributes.Item>
@@ -313,7 +313,7 @@ function SyncChanges({
     <ResourceTable
       ariaLabel="Repository sync changes"
       columns={changeColumns}
-      emptyDescription="The manifest matched the current apps, resources, and servers."
+      emptyDescription="The manifest matched the current services, datastores, and servers."
       emptyTitle="No inventory changes"
       getRowKey={(change) => `${change.kind}:${change.id}:${change.action}`}
       items={changes}
@@ -395,8 +395,8 @@ function readReconciliationChanges(value: unknown) {
   if (!isRecord(value)) return [];
   return (
     [
-      ["apps", "App"],
-      ["resources", "Resource"],
+      ["apps", "Service"],
+      ["resources", "Datastore"],
       ["servers", "Server"],
     ] as const
   ).flatMap(([key, kind]) => {
@@ -429,8 +429,8 @@ function readLegacyReconciliationCounts(value: unknown) {
 }
 
 function reconciliationKindIcon(kind: ReconciliationKind) {
-  if (kind === "App") return DashboardCircleIcon;
-  if (kind === "Resource") return CubeIcon;
+  if (kind === "Service") return DashboardCircleIcon;
+  if (kind === "Datastore") return CubeIcon;
   return ServerStack01Icon;
 }
 

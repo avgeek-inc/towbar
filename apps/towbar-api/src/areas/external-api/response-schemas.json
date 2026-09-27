@@ -10407,9 +10407,9 @@
         }
       ]
     },
-    "notifications.ts:get:\"/telegram/destinations\"": {
+    "version.ts:get:\"/\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_397" },
+        { "$ref": "#/components/schemas/TowbarUpdateInfo_398" },
         {
           "type": "object",
           "properties": {
@@ -10477,7 +10477,7 @@
         }
       ]
     },
-    "notifications.ts:put:\"/telegram/destinations\"": {
+    "notifications.ts:get:\"/telegram/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_399" },
         {
@@ -10547,77 +10547,7 @@
         }
       ]
     },
-    "notifications.ts:post:\"/telegram/destinations/test\"": {
-      "allOf": [
-        { "$ref": "#/components/schemas/Response_400" },
-        {
-          "type": "object",
-          "properties": {
-            "localization": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "object",
-              "properties": {
-                "dateFormat": {
-                  "type": "string",
-                  "enum": [
-                    "day-short-month-year",
-                    "short-month-day-year",
-                    "year-month-day",
-                    "day-month-year",
-                    "month-day-year"
-                  ]
-                },
-                "timeFormat": {
-                  "type": "string",
-                  "enum": [
-                    "24-hour",
-                    "12-hour",
-                    "24-hour-seconds",
-                    "12-hour-seconds"
-                  ]
-                },
-                "timeZone": { "type": "string" },
-                "timestamps": {
-                  "type": "object",
-                  "propertyNames": { "type": "string" },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "date": { "type": "string" },
-                      "time": { "type": ["string", "null"] },
-                      "dateTime": { "type": ["string", "null"] },
-                      "timeZone": { "type": "string" },
-                      "zoneLabel": { "type": "string" },
-                      "epochMilliseconds": { "type": "number" },
-                      "inputDateTime": { "type": ["string", "null"] }
-                    },
-                    "required": [
-                      "date",
-                      "time",
-                      "dateTime",
-                      "timeZone",
-                      "zoneLabel",
-                      "epochMilliseconds",
-                      "inputDateTime"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "dateFormat",
-                "timeFormat",
-                "timeZone",
-                "timestamps"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": ["localization"]
-        }
-      ]
-    },
-    "notifications.ts:get:\"/discord/destinations\"": {
+    "notifications.ts:put:\"/telegram/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_401" },
         {
@@ -10687,7 +10617,77 @@
         }
       ]
     },
-    "notifications.ts:put:\"/discord/destinations\"": {
+    "notifications.ts:post:\"/telegram/destinations/test\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_402" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
+    "notifications.ts:get:\"/discord/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_403" },
         {
@@ -10757,77 +10757,7 @@
         }
       ]
     },
-    "notifications.ts:post:\"/discord/destinations/test\"": {
-      "allOf": [
-        { "$ref": "#/components/schemas/Response_404" },
-        {
-          "type": "object",
-          "properties": {
-            "localization": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "object",
-              "properties": {
-                "dateFormat": {
-                  "type": "string",
-                  "enum": [
-                    "day-short-month-year",
-                    "short-month-day-year",
-                    "year-month-day",
-                    "day-month-year",
-                    "month-day-year"
-                  ]
-                },
-                "timeFormat": {
-                  "type": "string",
-                  "enum": [
-                    "24-hour",
-                    "12-hour",
-                    "24-hour-seconds",
-                    "12-hour-seconds"
-                  ]
-                },
-                "timeZone": { "type": "string" },
-                "timestamps": {
-                  "type": "object",
-                  "propertyNames": { "type": "string" },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "date": { "type": "string" },
-                      "time": { "type": ["string", "null"] },
-                      "dateTime": { "type": ["string", "null"] },
-                      "timeZone": { "type": "string" },
-                      "zoneLabel": { "type": "string" },
-                      "epochMilliseconds": { "type": "number" },
-                      "inputDateTime": { "type": ["string", "null"] }
-                    },
-                    "required": [
-                      "date",
-                      "time",
-                      "dateTime",
-                      "timeZone",
-                      "zoneLabel",
-                      "epochMilliseconds",
-                      "inputDateTime"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "dateFormat",
-                "timeFormat",
-                "timeZone",
-                "timestamps"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": ["localization"]
-        }
-      ]
-    },
-    "notifications.ts:get:\"/webhook/destinations\"": {
+    "notifications.ts:put:\"/discord/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_405" },
         {
@@ -10897,7 +10827,77 @@
         }
       ]
     },
-    "notifications.ts:put:\"/webhook/destinations\"": {
+    "notifications.ts:post:\"/discord/destinations/test\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_406" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
+    "notifications.ts:get:\"/webhook/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_407" },
         {
@@ -10967,77 +10967,7 @@
         }
       ]
     },
-    "notifications.ts:post:\"/webhook/destinations/test\"": {
-      "allOf": [
-        { "$ref": "#/components/schemas/Response_408" },
-        {
-          "type": "object",
-          "properties": {
-            "localization": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "object",
-              "properties": {
-                "dateFormat": {
-                  "type": "string",
-                  "enum": [
-                    "day-short-month-year",
-                    "short-month-day-year",
-                    "year-month-day",
-                    "day-month-year",
-                    "month-day-year"
-                  ]
-                },
-                "timeFormat": {
-                  "type": "string",
-                  "enum": [
-                    "24-hour",
-                    "12-hour",
-                    "24-hour-seconds",
-                    "12-hour-seconds"
-                  ]
-                },
-                "timeZone": { "type": "string" },
-                "timestamps": {
-                  "type": "object",
-                  "propertyNames": { "type": "string" },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "date": { "type": "string" },
-                      "time": { "type": ["string", "null"] },
-                      "dateTime": { "type": ["string", "null"] },
-                      "timeZone": { "type": "string" },
-                      "zoneLabel": { "type": "string" },
-                      "epochMilliseconds": { "type": "number" },
-                      "inputDateTime": { "type": ["string", "null"] }
-                    },
-                    "required": [
-                      "date",
-                      "time",
-                      "dateTime",
-                      "timeZone",
-                      "zoneLabel",
-                      "epochMilliseconds",
-                      "inputDateTime"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "dateFormat",
-                "timeFormat",
-                "timeZone",
-                "timestamps"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": ["localization"]
-        }
-      ]
-    },
-    "notifications.ts:get:\"/slack/destinations\"": {
+    "notifications.ts:put:\"/webhook/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_409" },
         {
@@ -11107,7 +11037,77 @@
         }
       ]
     },
-    "notifications.ts:put:\"/slack/destinations\"": {
+    "notifications.ts:post:\"/webhook/destinations/test\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_410" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
+    "notifications.ts:get:\"/slack/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_411" },
         {
@@ -11177,77 +11177,7 @@
         }
       ]
     },
-    "notifications.ts:post:\"/slack/destinations/test\"": {
-      "allOf": [
-        { "$ref": "#/components/schemas/Response_412" },
-        {
-          "type": "object",
-          "properties": {
-            "localization": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "object",
-              "properties": {
-                "dateFormat": {
-                  "type": "string",
-                  "enum": [
-                    "day-short-month-year",
-                    "short-month-day-year",
-                    "year-month-day",
-                    "day-month-year",
-                    "month-day-year"
-                  ]
-                },
-                "timeFormat": {
-                  "type": "string",
-                  "enum": [
-                    "24-hour",
-                    "12-hour",
-                    "24-hour-seconds",
-                    "12-hour-seconds"
-                  ]
-                },
-                "timeZone": { "type": "string" },
-                "timestamps": {
-                  "type": "object",
-                  "propertyNames": { "type": "string" },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "date": { "type": "string" },
-                      "time": { "type": ["string", "null"] },
-                      "dateTime": { "type": ["string", "null"] },
-                      "timeZone": { "type": "string" },
-                      "zoneLabel": { "type": "string" },
-                      "epochMilliseconds": { "type": "number" },
-                      "inputDateTime": { "type": ["string", "null"] }
-                    },
-                    "required": [
-                      "date",
-                      "time",
-                      "dateTime",
-                      "timeZone",
-                      "zoneLabel",
-                      "epochMilliseconds",
-                      "inputDateTime"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "dateFormat",
-                "timeFormat",
-                "timeZone",
-                "timestamps"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": ["localization"]
-        }
-      ]
-    },
-    "notifications.ts:get:\"/email/destinations\"": {
+    "notifications.ts:put:\"/slack/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_413" },
         {
@@ -11317,7 +11247,77 @@
         }
       ]
     },
-    "notifications.ts:put:\"/email/destinations\"": {
+    "notifications.ts:post:\"/slack/destinations/test\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_414" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
+    "notifications.ts:get:\"/email/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_415" },
         {
@@ -11387,77 +11387,7 @@
         }
       ]
     },
-    "notifications.ts:post:\"/email/destinations/test\"": {
-      "allOf": [
-        { "$ref": "#/components/schemas/Response_416" },
-        {
-          "type": "object",
-          "properties": {
-            "localization": {
-              "$schema": "https://json-schema.org/draft/2020-12/schema",
-              "type": "object",
-              "properties": {
-                "dateFormat": {
-                  "type": "string",
-                  "enum": [
-                    "day-short-month-year",
-                    "short-month-day-year",
-                    "year-month-day",
-                    "day-month-year",
-                    "month-day-year"
-                  ]
-                },
-                "timeFormat": {
-                  "type": "string",
-                  "enum": [
-                    "24-hour",
-                    "12-hour",
-                    "24-hour-seconds",
-                    "12-hour-seconds"
-                  ]
-                },
-                "timeZone": { "type": "string" },
-                "timestamps": {
-                  "type": "object",
-                  "propertyNames": { "type": "string" },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "date": { "type": "string" },
-                      "time": { "type": ["string", "null"] },
-                      "dateTime": { "type": ["string", "null"] },
-                      "timeZone": { "type": "string" },
-                      "zoneLabel": { "type": "string" },
-                      "epochMilliseconds": { "type": "number" },
-                      "inputDateTime": { "type": ["string", "null"] }
-                    },
-                    "required": [
-                      "date",
-                      "time",
-                      "dateTime",
-                      "timeZone",
-                      "zoneLabel",
-                      "epochMilliseconds",
-                      "inputDateTime"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              },
-              "required": [
-                "dateFormat",
-                "timeFormat",
-                "timeZone",
-                "timestamps"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "required": ["localization"]
-        }
-      ]
-    },
-    "notifications.ts:get:\"/destinations\"": {
+    "notifications.ts:put:\"/email/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_417" },
         {
@@ -11527,7 +11457,77 @@
         }
       ]
     },
-    "notifications.ts:get:\"/deliveries\"": {
+    "notifications.ts:post:\"/email/destinations/test\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_418" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
+    "notifications.ts:get:\"/destinations\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_419" },
         {
@@ -11597,9 +11597,79 @@
         }
       ]
     },
+    "notifications.ts:get:\"/deliveries\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_421" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
     "notification-center.ts:get:\"/providers\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_422" },
+        { "$ref": "#/components/schemas/Response_424" },
         {
           "type": "object",
           "properties": {
@@ -11669,7 +11739,7 @@
     },
     "notification-center.ts:get:\"/\"": {
       "allOf": [
-        { "$ref": "#/components/schemas/Response_427" },
+        { "$ref": "#/components/schemas/Response_429" },
         {
           "type": "object",
           "properties": {
@@ -12310,7 +12380,6 @@
             { "type": "null" },
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -12826,7 +12895,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -12849,6 +12917,7 @@
             "anyOf": [
               { "type": "string", "const": "health" },
               { "type": "string", "const": "deployments" },
+              { "type": "string", "const": "deploymentFailures" },
               { "type": "string", "const": "scout" },
               { "type": "string", "const": "backups" },
               { "type": "string", "const": "restores" }
@@ -14029,7 +14098,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "address": { "type": "string" }
+        "address": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14044,7 +14114,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "channelId": { "type": "string" }
+        "channelId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14059,7 +14130,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "webhookId": { "type": "string" }
+        "webhookId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14075,6 +14147,7 @@
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
         "chatId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" },
         "messageThreadId": { "type": "number" }
       },
       "required": [
@@ -14689,7 +14762,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "address": { "type": "string" }
+        "address": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14704,7 +14778,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "channelId": { "type": "string" }
+        "channelId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14719,7 +14794,8 @@
         "deployments": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
-        "webhookId": { "type": "string" }
+        "webhookId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" }
       },
       "required": [
         "deployments",
@@ -14735,6 +14811,7 @@
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
         "chatId": { "type": "string" },
+        "deploymentFailures": { "type": "boolean" },
         "messageThreadId": { "type": "number" }
       },
       "required": [
@@ -15035,7 +15112,6 @@
         "image": { "type": "string" },
         "kind": {
           "anyOf": [
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15110,7 +15186,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15223,7 +15298,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -15905,7 +15979,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16284,7 +16357,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16438,7 +16510,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -16677,7 +16748,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -17738,7 +17808,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -17848,7 +17917,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -19003,7 +19071,6 @@
           "anyOf": [
             { "type": "string", "const": "app" },
             { "type": "string", "const": "compose" },
-            { "type": "string", "const": "image" },
             { "type": "string", "const": "postgres" },
             { "type": "string", "const": "mysql" },
             { "type": "string", "const": "mariadb" },
@@ -19421,6 +19488,15 @@
         "title"
       ]
     },
+    "Response_397": {
+      "type": "object",
+      "properties": {
+        "sampledAt": { "type": "string" },
+        "towbarBytes": { "type": "number" },
+        "monitoringBytes": { "type": "number" }
+      },
+      "required": ["sampledAt", "towbarBytes", "monitoringBytes"]
+    },
     "SystemHealth_395": {
       "type": "object",
       "properties": {
@@ -19428,6 +19504,10 @@
         "checks": {
           "type": "array",
           "items": { "$ref": "#/components/schemas/SystemHealthCheck_396" }
+        },
+        "databaseStorage": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_397" }
         },
         "status": {
           "anyOf": [
@@ -19439,9 +19519,34 @@
         },
         "version": { "type": "string" }
       },
-      "required": ["checkedAt", "checks", "status", "version"]
+      "required": [
+        "checkedAt",
+        "checks",
+        "databaseStorage",
+        "status",
+        "version"
+      ]
     },
-    "Response_398": {
+    "TowbarUpdateInfo_398": {
+      "type": "object",
+      "properties": {
+        "installedVersion": { "type": "string" },
+        "latestVersion": {
+          "anyOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "releaseUrl": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
+        "status": {
+          "anyOf": [
+            { "type": "string", "const": "unavailable" },
+            { "type": "string", "const": "available" },
+            { "type": "string", "const": "current" },
+            { "type": "string", "const": "ahead" }
+          ]
+        }
+      },
+      "required": ["installedVersion", "latestVersion", "releaseUrl", "status"]
+    },
+    "Response_400": {
       "type": "object",
       "properties": {
         "chatId": { "type": "string" },
@@ -19449,6 +19554,7 @@
           "anyOf": [{ "type": "null" }, { "type": "number" }]
         },
         "deployments": { "type": "boolean" },
+        "deploymentFailures": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" },
         "id": { "type": "string" }
@@ -19457,42 +19563,44 @@
         "chatId",
         "messageThreadId",
         "deployments",
+        "deploymentFailures",
         "backupsAndRestores",
         "alertsAndIncidents",
         "id"
       ]
-    },
-    "Response_397": {
-      "type": "object",
-      "properties": {
-        "destinations": {
-          "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_398" }
-        }
-      },
-      "required": ["destinations"]
     },
     "Response_399": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_398" }
+          "items": { "$ref": "#/components/schemas/Response_400" }
         }
       },
       "required": ["destinations"]
     },
-    "Response_400": {
+    "Response_401": {
+      "type": "object",
+      "properties": {
+        "destinations": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_400" }
+        }
+      },
+      "required": ["destinations"]
+    },
+    "Response_402": {
       "type": "object",
       "properties": { "status": { "type": "string", "const": "accepted" } },
       "required": ["status"]
     },
-    "Response_402": {
+    "Response_404": {
       "type": "object",
       "properties": {
         "routeId": { "type": "string" },
         "webhookId": { "type": "string" },
         "deployments": { "type": "boolean" },
+        "deploymentFailures": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" }
       },
@@ -19500,42 +19608,44 @@
         "routeId",
         "webhookId",
         "deployments",
+        "deploymentFailures",
         "backupsAndRestores",
         "alertsAndIncidents"
       ]
-    },
-    "Response_401": {
-      "type": "object",
-      "properties": {
-        "destinations": {
-          "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_402" }
-        }
-      },
-      "required": ["destinations"]
     },
     "Response_403": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_402" }
+          "items": { "$ref": "#/components/schemas/Response_404" }
         }
       },
       "required": ["destinations"]
     },
-    "Response_404": {
+    "Response_405": {
+      "type": "object",
+      "properties": {
+        "destinations": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_404" }
+        }
+      },
+      "required": ["destinations"]
+    },
+    "Response_406": {
       "type": "object",
       "properties": { "status": { "type": "string", "const": "accepted" } },
       "required": ["status"]
     },
-    "Response_406": {
+    "Response_408": {
       "type": "object",
       "properties": {
         "routeId": { "type": "string" },
         "label": { "type": "string" },
         "hostname": { "type": "string" },
         "deployments": { "type": "boolean" },
+        "deploymentFailures": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "alertsAndIncidents": { "type": "boolean" }
       },
@@ -19544,41 +19654,43 @@
         "label",
         "hostname",
         "deployments",
+        "deploymentFailures",
         "backupsAndRestores",
         "alertsAndIncidents"
       ]
-    },
-    "Response_405": {
-      "type": "object",
-      "properties": {
-        "destinations": {
-          "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_406" }
-        }
-      },
-      "required": ["destinations"]
     },
     "Response_407": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_406" }
+          "items": { "$ref": "#/components/schemas/Response_408" }
         }
       },
       "required": ["destinations"]
     },
-    "Response_408": {
+    "Response_409": {
+      "type": "object",
+      "properties": {
+        "destinations": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_408" }
+        }
+      },
+      "required": ["destinations"]
+    },
+    "Response_410": {
       "type": "object",
       "properties": { "status": { "type": "string", "const": "accepted" } },
       "required": ["status"]
     },
-    "Response_410": {
+    "Response_412": {
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "channelId": { "type": "string" },
         "deployments": { "type": "boolean" },
+        "deploymentFailures": { "type": "boolean" },
         "backupsAndRestores": { "type": "boolean" },
         "scout": { "type": "boolean" }
       },
@@ -19586,72 +19698,81 @@
         "id",
         "channelId",
         "deployments",
+        "deploymentFailures",
         "backupsAndRestores",
         "scout"
       ]
-    },
-    "Response_409": {
-      "type": "object",
-      "properties": {
-        "destinations": {
-          "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_410" }
-        }
-      },
-      "required": ["destinations"]
     },
     "Response_411": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_410" }
+          "items": { "$ref": "#/components/schemas/Response_412" }
         }
       },
       "required": ["destinations"]
-    },
-    "Response_412": {
-      "type": "object",
-      "properties": { "status": { "type": "string", "const": "accepted" } },
-      "required": ["status"]
-    },
-    "Response_414": {
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "email": { "type": "string" },
-        "deployments": { "type": "boolean" },
-        "backupsAndRestores": { "type": "boolean" },
-        "scout": { "type": "boolean" }
-      },
-      "required": ["id", "email", "deployments", "backupsAndRestores", "scout"]
     },
     "Response_413": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_414" }
+          "items": { "$ref": "#/components/schemas/Response_412" }
         }
       },
       "required": ["destinations"]
+    },
+    "Response_414": {
+      "type": "object",
+      "properties": { "status": { "type": "string", "const": "accepted" } },
+      "required": ["status"]
+    },
+    "Response_416": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "deployments": { "type": "boolean" },
+        "deploymentFailures": { "type": "boolean" },
+        "backupsAndRestores": { "type": "boolean" },
+        "scout": { "type": "boolean" }
+      },
+      "required": [
+        "id",
+        "email",
+        "deployments",
+        "deploymentFailures",
+        "backupsAndRestores",
+        "scout"
+      ]
     },
     "Response_415": {
       "type": "object",
       "properties": {
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_414" }
+          "items": { "$ref": "#/components/schemas/Response_416" }
         }
       },
       "required": ["destinations"]
     },
-    "Response_416": {
+    "Response_417": {
+      "type": "object",
+      "properties": {
+        "destinations": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_416" }
+        }
+      },
+      "required": ["destinations"]
+    },
+    "Response_418": {
       "type": "object",
       "properties": { "status": { "type": "string", "const": "accepted" } },
       "required": ["status"]
     },
-    "Response_418": {
+    "Response_420": {
       "type": "object",
       "properties": {
         "categories": {
@@ -19660,6 +19781,7 @@
             "anyOf": [
               { "type": "string", "const": "health" },
               { "type": "string", "const": "deployments" },
+              { "type": "string", "const": "deploymentFailures" },
               { "type": "string", "const": "scout" },
               { "type": "string", "const": "backups" },
               { "type": "string", "const": "restores" }
@@ -19686,19 +19808,19 @@
       },
       "required": ["categories", "enabled", "id", "provider", "source"]
     },
-    "Response_417": {
+    "Response_419": {
       "type": "object",
       "properties": {
         "canManageNotifications": { "type": "boolean" },
         "destinations": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_418" }
+          "items": { "$ref": "#/components/schemas/Response_420" }
         },
         "providers": { "$ref": "#/components/schemas/Response_70" }
       },
       "required": ["canManageNotifications", "destinations", "providers"]
     },
-    "Response_420": {
+    "Response_422": {
       "type": "object",
       "properties": {
         "destination": { "type": "string" },
@@ -19769,6 +19891,7 @@
             { "type": "string", "const": "test" },
             { "type": "string", "const": "health" },
             { "type": "string", "const": "deployments" },
+            { "type": "string", "const": "deploymentFailures" },
             { "type": "string", "const": "scout" },
             { "type": "string", "const": "backups" },
             { "type": "string", "const": "restores" }
@@ -19815,7 +19938,7 @@
         "entityName"
       ]
     },
-    "Response_421": {
+    "Response_423": {
       "type": "object",
       "properties": {
         "before": { "type": "string" },
@@ -19823,70 +19946,70 @@
       },
       "required": ["before", "beforeId"]
     },
-    "Response_419": {
+    "Response_421": {
       "type": "object",
       "properties": {
         "items": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_420" }
+          "items": { "$ref": "#/components/schemas/Response_422" }
         },
         "nextCursor": {
           "anyOf": [
             { "type": "null" },
-            { "$ref": "#/components/schemas/Response_421" }
+            { "$ref": "#/components/schemas/Response_423" }
           ]
         }
       },
       "required": ["items", "nextCursor"]
-    },
-    "Response_424": {
-      "type": "object",
-      "properties": { "source": { "type": "string", "const": "environment" } },
-      "required": ["source"]
-    },
-    "Response_425": {
-      "type": "object",
-      "properties": { "source": { "type": "string", "const": "environment" } },
-      "required": ["source"]
     },
     "Response_426": {
       "type": "object",
       "properties": { "source": { "type": "string", "const": "environment" } },
       "required": ["source"]
     },
-    "Response_423": {
+    "Response_427": {
+      "type": "object",
+      "properties": { "source": { "type": "string", "const": "environment" } },
+      "required": ["source"]
+    },
+    "Response_428": {
+      "type": "object",
+      "properties": { "source": { "type": "string", "const": "environment" } },
+      "required": ["source"]
+    },
+    "Response_425": {
       "type": "object",
       "properties": {
         "slack": {
           "anyOf": [
             { "type": "null" },
-            { "$ref": "#/components/schemas/Response_424" }
+            { "$ref": "#/components/schemas/Response_426" }
           ]
         },
         "smtp": {
           "anyOf": [
             { "type": "null" },
-            { "$ref": "#/components/schemas/Response_425" }
+            { "$ref": "#/components/schemas/Response_427" }
           ]
         },
         "telegram": {
           "anyOf": [
             { "type": "null" },
-            { "$ref": "#/components/schemas/Response_426" }
+            { "$ref": "#/components/schemas/Response_428" }
           ]
         }
       },
       "required": ["slack", "smtp", "telegram"]
     },
-    "Response_422": {
+    "Response_424": {
       "type": "object",
       "properties": {
-        "configurations": { "$ref": "#/components/schemas/Response_423" },
+        "configurations": { "$ref": "#/components/schemas/Response_425" },
         "providers": { "$ref": "#/components/schemas/Response_70" }
       },
       "required": ["configurations", "providers"]
     },
-    "Response_430": {
+    "Response_432": {
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -19907,7 +20030,7 @@
       },
       "required": ["id", "kind", "name"]
     },
-    "Response_431": {
+    "Response_433": {
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -19915,17 +20038,17 @@
       },
       "required": ["id", "name"]
     },
-    "Response_429": {
+    "Response_431": {
       "type": "object",
       "properties": {
         "details": { "$ref": "#/components/schemas/Record_242" },
-        "entity": { "$ref": "#/components/schemas/Response_430" },
+        "entity": { "$ref": "#/components/schemas/Response_432" },
         "message": { "type": "string" },
         "occurredAt": { "type": "string" },
         "source": {
           "anyOf": [
             { "type": "null" },
-            { "$ref": "#/components/schemas/Response_431" }
+            { "$ref": "#/components/schemas/Response_433" }
           ]
         },
         "title": { "type": "string" }
@@ -19939,7 +20062,7 @@
         "title"
       ]
     },
-    "Response_428": {
+    "Response_430": {
       "type": "object",
       "properties": {
         "category": {
@@ -19947,6 +20070,7 @@
             { "type": "string", "const": "test" },
             { "type": "string", "const": "health" },
             { "type": "string", "const": "deployments" },
+            { "type": "string", "const": "deploymentFailures" },
             { "type": "string", "const": "scout" },
             { "type": "string", "const": "backups" },
             { "type": "string", "const": "restores" }
@@ -19955,7 +20079,7 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "id": { "type": "string" },
         "occurredAt": { "type": "string", "format": "date-time" },
-        "payload": { "$ref": "#/components/schemas/Response_429" },
+        "payload": { "$ref": "#/components/schemas/Response_431" },
         "type": {
           "anyOf": [
             { "type": "string", "const": "deployment.queued" },
@@ -19995,12 +20119,12 @@
         "type"
       ]
     },
-    "Response_427": {
+    "Response_429": {
       "type": "object",
       "properties": {
         "notifications": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_428" }
+          "items": { "$ref": "#/components/schemas/Response_430" }
         }
       },
       "required": ["notifications"]

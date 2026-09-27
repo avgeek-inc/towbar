@@ -11,14 +11,17 @@ export function notificationHref(
     const deployableId = stringDetail(details.deployableId);
     const deployableKind = stringDetail(details.deployableKind);
     if (deployableId && deployableKind) {
-      const collection = deployableKind === "app" ? "apps" : "resources";
+      const collection =
+        deployableKind === "app" || deployableKind === "compose"
+          ? "services"
+          : "datastores";
       return `/${collection}/${deployableId}/deployments/${entity.id}`;
     }
     if (source) return `/repositories/${source.id}/deployments/${entity.id}`;
     return "/deployments";
   }
   if (entity.kind === "preview")
-    return source ? `/repositories/${source.id}/environments` : "/apps";
+    return source ? `/repositories/${source.id}/environments` : "/services";
   if (entity.kind === "server") {
     if (notification.type.startsWith("scout."))
       return `/servers/${entity.id}/incidents`;
@@ -26,10 +29,10 @@ export function notificationHref(
       return `/servers/${entity.id}/checks`;
     return `/servers/${entity.id}/overview`;
   }
-  if (entity.kind === "app") return `/apps/${entity.id}/overview`;
-  if (entity.kind === "resource") return `/resources/${entity.id}/overview`;
-  if (entity.kind === "backup") return `/resources/${entity.id}/backup`;
-  if (entity.kind === "restore") return `/resources/${entity.id}/restore`;
+  if (entity.kind === "app") return `/services/${entity.id}/overview`;
+  if (entity.kind === "resource") return `/datastores/${entity.id}/overview`;
+  if (entity.kind === "backup") return `/datastores/${entity.id}/backup`;
+  if (entity.kind === "restore") return `/datastores/${entity.id}/restore`;
   if (entity.kind === "source")
     return `/repositories/${entity.id}/environments`;
   return "/manage/notifications";

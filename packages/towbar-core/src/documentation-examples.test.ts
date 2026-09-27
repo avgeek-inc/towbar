@@ -30,7 +30,8 @@ void test("published YAML examples match the v2 repository parser", () => {
       const header = match[1]!;
       const snippet = match[2]!;
       const value = parse(snippet) as Record<string, unknown>;
-      if (header.includes("/etc/towbar/towbar.yml")) continue;
+      if (header.includes("/etc/towbar/config.yml")) continue;
+      if (header.includes('title="deploy/')) continue;
       assert.doesNotThrow(
         () => {
           if (value.version) {
@@ -39,7 +40,7 @@ void test("published YAML examples match the v2 repository parser", () => {
           }
           const kind = header.includes(".compose.yml")
             ? "compose"
-            : header.includes(".resource.yml") || value.type || value.backup
+            : header.includes(".datastore.yml") || value.type || value.backup
               ? "resource"
               : "app";
           const container: Record<string, unknown> =
@@ -89,7 +90,10 @@ void test("published YAML examples match the v2 repository parser", () => {
               branch: "main",
               files: [
                 {
-                  path: `.towbar/${kind === "compose" ? "compose" : `${kind}s`}/example.${kind}.yml`,
+                  path:
+                    kind === "resource"
+                      ? ".towbar/datastores/example.datastore.yml"
+                      : `.towbar/services/example.${kind === "compose" ? "compose" : "service"}.yml`,
                   content: stringify(entity),
                 },
               ],

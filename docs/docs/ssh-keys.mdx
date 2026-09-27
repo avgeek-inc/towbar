@@ -10,8 +10,8 @@ Open **Manage → Team Settings → SSH keys** to keep the private keys Towbar u
     <img
       src="/assets/release-v2/ssh-keys-light.jpg"
       alt="The team key store shows key type and current server usage."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -19,8 +19,8 @@ Open **Manage → Team Settings → SSH keys** to keep the private keys Towbar u
     <img
       src="/assets/release-v2/ssh-keys-dark.jpg"
       alt="The team key store shows key type and current server usage."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -44,7 +44,7 @@ For a generated key, copy the public key into `~/.ssh/authorized_keys` for the S
 
 ## Use a key on a server
 
-1. Open **Servers**, select the server, and open **Settings → Credentials**.
+1. Open **Servers**, select the server, and open **Settings → Configuration**.
 2. Choose a stored private key from the dropdown. **Add private key** inside the dropdown opens the same form without leaving the server.
 3. Save the selection and follow the connection verification flow.
 4. Compare the discovered host fingerprint with a trusted value from your server provider before trusting it.
@@ -57,7 +57,7 @@ The table shows the name, description, key type, usage, and update time. **Not u
 
 Open **Edit** to change the name or description. The public key appears in a disabled input and can be copied. The eye control reveals or masks the private key; revealing a stored key may require a recent authentication.
 
-A key used by a server cannot have its key material replaced. To rotate it, add a new stored key, install its public key on the affected servers, then select it in each server's Credentials page. Verify each connection before retiring the previous key. Towbar does not update a remote server's `authorized_keys` through this form.
+A key used by a server cannot have its key material replaced. To rotate it, add a new stored key, install its public key on the affected servers, then select it in each server's Configuration page. Verify each connection before retiring the previous key. Towbar does not update a remote server's `authorized_keys` through this form.
 
 ## Delete a key
 

@@ -1,0 +1,48 @@
+---
+title: "MariaDB CMS"
+description: "Use type: mariadb, private networking, and MYSQL_ROOT_PASSWORD."
+icon: "/assets/database-logos/mariadb.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mariadb.webp"
+  alt="MariaDB CMS logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/mariadb-for-a-cms.datastore.yml"
+id: mariadb-for-a-cms
+name: MariaDB CMS
+type: mariadb
+container:
+  network: application
+  networkAlias: mariadb-for-a-cms
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The CMS image's client and schema are compatible with this MariaDB major version.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

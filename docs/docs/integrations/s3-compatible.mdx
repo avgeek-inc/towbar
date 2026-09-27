@@ -1,11 +1,19 @@
 ---
 title: "S3-compatible storage"
 description: "Configure an S3-compatible endpoint for managed database backups and restores."
+icon: "/assets/integration-logos/aws.svg"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/aws.svg"
+  alt="S3-compatible storage logo"
+  aria-hidden="true"
+/>
 
 Use the `s3` integration for an S3-compatible object store other than AWS S3 or Cloudflare R2. Create a bucket and credentials scoped to the intended objects, versions, and prefix. The endpoint must be reachable from the Towbar installation; keep credentials in the root-owned control-plane YAML file.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   s3:
     enabled: true
@@ -21,15 +29,15 @@ integrations:
 
 Set `addressingStyle` to `auto`, `path`, or `virtual` as required by the service. Enable private-network access only for an intentionally internal endpoint. A private CA can be supplied as Base64 through `customCaBase64` when using a custom endpoint. Run `sudo towbar config validate`, then `sudo towbar restart`. The provider appears under **Manage → Integrations → Backup providers** when the local shape is valid.
 
-Configure a managed resource's [backup policy](/docs/backups), create a real backup, and complete a [fresh-target restore](/docs/restores). Check remote object permissions, versioning, retention, and the final restore state before relying on it for recovery. A configured chip alone does not prove the endpoint accepts writes or reads. Rotate keys by applying new YAML, verifying an operation, and then revoking the old keys. [Cloudflare R2](/docs/integrations/r2) has its own integration slug and setup guide.
+Configure a managed datastore's [backup policy](/docs/backups), create a real backup, and complete a [fresh-target restore](/docs/restores). Check remote object permissions, versioning, retention, and the final restore state before relying on it for recovery. A configured chip alone does not prove the endpoint accepts writes or reads. Rotate keys by applying new YAML, verifying an operation, and then revoking the old keys. [Cloudflare R2](/docs/integrations/r2) has its own integration slug and setup guide.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/s3-setup-light.jpg"
       alt="S3-compatible storage integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -37,8 +45,8 @@ Configure a managed resource's [backup policy](/docs/backups), create a real bac
     <img
       src="/assets/release-v2/s3-setup-dark.jpg"
       alt="S3-compatible storage integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

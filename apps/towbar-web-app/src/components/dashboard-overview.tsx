@@ -124,8 +124,8 @@ export function DashboardOverview() {
   const metrics = [
     {
       icon: DashboardCircleIcon,
-      href: "/apps",
-      label: "Apps",
+      href: "/services",
+      label: "Services",
       image: "/scout/overview-apps-charcoal.png",
       status: "running",
       detailCount: activeApps.filter(
@@ -136,8 +136,8 @@ export function DashboardOverview() {
     },
     {
       icon: CubeIcon,
-      href: "/resources",
-      label: "Resources",
+      href: "/datastores",
+      label: "Datastores",
       image: "/scout/overview-resources-charcoal.png",
       status: "running",
       detailCount: activeResources.filter(
@@ -184,7 +184,7 @@ export function DashboardOverview() {
                 </Widget.Title>
               </Widget.Header>
               <Widget.Content
-                className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
+                className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3.5 pr-[38%]`}
               >
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
@@ -260,9 +260,10 @@ function OverviewActivity() {
           <LineChart
             aria-label="Deployment activity over the last 7 days"
             chartMargin={{ bottom: 0, left: -8 }}
-            className="min-w-0"
+            className={`${illustrationStyles.activityChart} min-w-0`}
             data={activity}
-            height={240}
+            height={210}
+            style={{ height: "var(--overview-activity-height)" }}
           >
             <LineChart.Grid vertical={false} />
             <LineChart.XAxis
@@ -273,6 +274,10 @@ function OverviewActivity() {
             />
             <LineChart.YAxis
               allowDecimals={false}
+              domain={[
+                0,
+                (dataMax: number) => Math.max(1, Math.ceil(dataMax) + 1),
+              ]}
               tick={activityAxisTick}
               width={32}
             />

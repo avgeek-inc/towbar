@@ -114,7 +114,13 @@ export type SecretMetadata = {
 };
 
 export type NotificationCategory =
-  "deployments" | "previews" | "health" | "backups" | "restores" | "scout";
+  | "deployments"
+  | "deploymentFailures"
+  | "previews"
+  | "health"
+  | "backups"
+  | "restores"
+  | "scout";
 
 export type NotificationDestination = {
   categories: NotificationCategory[];
@@ -226,7 +232,7 @@ export type BackupResult = {
   deletedBackupIds: string[];
   destinations?: BackupDestinationResult[];
   encryption: "AES256" | "aws:kms" | (string & {});
-  engine?: Exclude<ResourceType, "image">;
+  engine?: ResourceType;
   engineMajorVersion?: number;
   format?:
     | "clickhouse-backup"
@@ -266,7 +272,7 @@ export type RestoreResult = {
   rollbackAvailableUntil: string | null;
   validation: {
     databaseName: string | null;
-    engine: Exclude<ResourceType, "image">;
+    engine: ResourceType;
     engineMajorVersion: number;
     healthVerified: boolean;
     readable: boolean;

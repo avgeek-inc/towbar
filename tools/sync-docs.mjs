@@ -15,8 +15,8 @@ const publishedFiles = [
   })),
   { source: "examples/towbar.yml", target: "docs/examples/towbar.yaml" },
   {
-    source: "examples/.towbar/apps/hello-towbar.app.yml",
-    target: "docs/examples/hello-towbar.app.yaml",
+    source: "examples/.towbar/services/hello-towbar.service.yml",
+    target: "docs/examples/hello-towbar.service.yaml",
   },
 ];
 

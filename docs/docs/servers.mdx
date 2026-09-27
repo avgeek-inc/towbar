@@ -34,8 +34,8 @@ After registering a server, use **Settings → Configuration → Server info** t
     <img
       src="/assets/release-v2/server-credentials-light.jpg"
       alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -43,8 +43,8 @@ After registering a server, use **Settings → Configuration → Server info** t
     <img
       src="/assets/release-v2/server-credentials-dark.jpg"
       alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -71,8 +71,8 @@ If the server presents a different host key, Towbar pauses the connection and as
     <img
       src="/assets/release-v2/server-preparation-light.jpg"
       alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -80,8 +80,8 @@ If the server presents a different host key, Towbar pauses the connection and as
     <img
       src="/assets/release-v2/server-preparation-dark.jpg"
       alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -101,7 +101,7 @@ is connected, the page links to Configuration.
 The shell has the same permissions as that SSH user. Commands run directly on
 the host and can change running workloads outside the deployment scheduler.
 Use the terminal for inspection and deliberate maintenance; use deployments
-and resource operations when Towbar should track and coordinate the change.
+and datastore operations when Towbar should track and coordinate the change.
 
 A recent sign-in is required. Terminal access is unavailable to Members,
 Viewers, personal API keys, team API keys and MCP. Connection tickets expire
@@ -137,7 +137,7 @@ Also account for the installation-wide [worker activity limit](/docs/self-hostin
 
 ## Read capacity and health
 
-The Servers table shows each server's name (or IP if unnamed), IP, and hardware capacity. A server's Apps and Resources sidebar items show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the server label. When only the provider is known, its logo appears beside observed CPU and memory capacity. If metadata is unavailable, Towbar shows hardware capacity or **Unknown Instance Type**.
+The Servers table shows each server's name (or IP if unnamed), IP, and hardware capacity. A server's Services and Datastores sidebar items show configured allocations alongside the latest observed consumption. Known cloud instance types appear below the server label. When only the provider is known, its logo appears beside observed CPU and memory capacity. If metadata is unavailable, Towbar shows hardware capacity or **Unknown Instance Type**.
 
 ### Automatic cloud detection
 
@@ -165,8 +165,8 @@ Capacity comes from server checks. A displayed value is an observation, not a gu
     <img
       src="/assets/release-v2/server-overview-light.jpg"
       alt="Host capacity, connection details, and recent operations appear on the server Overview."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -174,8 +174,8 @@ Capacity comes from server checks. A displayed value is an observation, not a gu
     <img
       src="/assets/release-v2/server-overview-dark.jpg"
       alt="Host capacity, connection details, and recent operations appear on the server Overview."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -185,7 +185,7 @@ Capacity comes from server checks. A displayed value is an observation, not a gu
   </p>
 </div>
 
-For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Resources](/docs/resources#connect-privately).
+For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Datastores](/docs/datastores#connect-privately).
 
 ## Clean up leftover workloads
 
@@ -197,11 +197,11 @@ Container and image cleanup is separate from permanent volume deletion. Towbar c
 
 ## Remove a server
 
-Admins can remove a server from **Danger zone → Remove server**, including a server still referenced by app and resource manifests. Active checks, preparations, deployments, resource operations, and vulnerability scans must finish first.
+Admins can remove a server from **Danger zone → Remove server**, including a server still referenced by service and datastore manifests. Active checks, preparations, deployments, datastore operations, and vulnerability scans must finish first.
 
-Removing a server stops Towbar management and scheduled checks, archives its assigned inventory, deletes its stored SSH and Cloudflare credentials, revokes its trusted host keys, and closes remaining Preview records. It does not terminate the cloud instance, stop services, or erase Docker data.
+Removing a server stops Towbar management and scheduled checks, archives its assigned inventory, deletes its stored SSH credential, revokes its trusted host keys, and closes remaining Preview records. It does not terminate the cloud instance, stop services, erase Docker data, or change the installation-wide Cloudflare integration.
 
-When a later Repository sync finds the same IP in a manifest, Towbar restores the archived server automatically in **Server Setup Pending**. Configure credentials and verify host-key trust again before preparing it. During that first preparation, Towbar makes a best-effort attempt to remove old Towbar-managed app containers for the restored manifest inventory. Resource volumes and other data are not removed. Historical records and workload ownership remain available.
+When a later Repository sync finds the same IP in a manifest, Towbar restores the archived server automatically in **Server Setup Pending**. Configure credentials and verify host-key trust again before preparing it. During that first preparation, Towbar makes a best-effort attempt to remove old Towbar-managed service containers for the restored manifest inventory. Datastore volumes and other data are not removed. Historical records and workload ownership remain available.
 
 ## Scout Agent
 

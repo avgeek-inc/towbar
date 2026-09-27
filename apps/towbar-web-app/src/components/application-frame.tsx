@@ -20,6 +20,7 @@ import type {
   Server,
   Source,
   TowbarUser,
+  TowbarUpdateInfo,
 } from "@workspace/towbar-web-client";
 import { AppLayout } from "@workspace/web-design-system/navigation/app-layout";
 import {
@@ -73,6 +74,10 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   }>(
     user && !user.mustChangePassword ? "/v1/core/monitoring/summary" : null,
     30_000,
+  );
+  const version = useApiQuery<TowbarUpdateInfo>(
+    user && !user.mustChangePassword ? "/v1/core/version" : null,
+    15 * 60_000,
   );
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");
   const isLogin = pathname === "/login" || pathname === "/setup";
@@ -185,6 +190,11 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
       monitoring.error ? undefined : monitoring.data,
       user,
     ),
+    ...(version.data ? { brandVersion: version.data.installedVersion } : {}),
+    brandUpdateVersion:
+      !version.error && version.data?.status === "available"
+        ? (version.data.latestVersion ?? undefined)
+        : undefined,
     footerContent: (
       <AccountMenu
         user={user}

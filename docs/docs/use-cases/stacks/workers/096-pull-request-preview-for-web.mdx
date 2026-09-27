@@ -1,0 +1,59 @@
+---
+title: "Web previews"
+description: "Enable root environment previews and Service preview settings."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [Previews](/docs/previews).
+
+These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title="towbar.yml"
+version: 2
+environments:
+  production:
+    previews:
+      enabled: true
+```
+
+```yaml title=".towbar/services/pull-request-preview-for-web-api.service.yml"
+id: pull-request-preview-for-web-api
+name: Web previews
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+preview:
+  enabled: true
+  domain: preview.example.com
+  ttlHours: 72
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Configure preview DNS and isolated preview secrets, then verify a pull request creates a separate preview workload.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Preview secrets are isolated; do not assume a Datastore is cloned for each PR.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

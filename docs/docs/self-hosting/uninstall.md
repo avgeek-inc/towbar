@@ -3,16 +3,16 @@ title: "Uninstall Towbar"
 description: "Stop or remove the control plane while keeping workload and database deletion explicit."
 ---
 
-The Towbar control plane and the apps deployed to target servers have separate lifecycles. Removing the control plane leaves deployed containers, app files, resource databases, and host services in place. You can keep those workloads running, migrate them elsewhere, or remove them separately.
+The Towbar control plane and workloads deployed to target servers have separate lifecycles. Removing the control plane leaves deployed containers, service files, datastore data, and host services in place. You can keep those workloads running, migrate them elsewhere, or remove them separately.
 
 ## Before stopping Towbar
 
 1. Pause automatic deployments and scheduled operations. Let active deployments, backups, restores, and server setup finish.
-2. Keep a verified copy of the Towbar PostgreSQL database and `/etc/towbar/towbar.yml` in restricted storage. Encrypted credentials in the database need `security.credentialsKey`. Record the installed release with `sudo towbar version`.
+2. Keep a verified copy of the Towbar PostgreSQL database and `/etc/towbar/config.yml` in restricted storage. Encrypted credentials in the database need `security.credentialsKey`. Record the installed release with `sudo towbar version`.
 3. If you are retiring the target servers too, use Towbar's workload and server cleanup controls while the control plane is available. Review each container and volume; volume deletion permanently removes its files.
 4. Disable Scout Agent on targets that will continue running independently. Remove or update GitHub webhooks that still target this installation.
 
-Do not delete backups or workload volumes as part of stopping Towbar. See [Server cleanup](/docs/servers#clean-up-leftover-workloads) and [Persistent app files](/docs/deployment-manifest#persistent-app-storage) for their separate retention behavior.
+Do not delete backups or workload volumes as part of stopping Towbar. See [Server cleanup](/docs/servers#clean-up-leftover-workloads) and [Persistent service files](/docs/services/configuration#persistent-storage) for their separate retention behavior.
 
 ## Stop and remove the control plane
 
@@ -23,7 +23,7 @@ sudo towbar status
 sudo towbar compose down --remove-orphans
 ```
 
-The command removes Towbar's containers and network. It retains the PostgreSQL volume, local images, versioned releases, and `/etc/towbar/towbar.yml`. Towbar API, dashboard, scheduler, and worker are now stopped.
+The command removes Towbar's containers and network. It retains the PostgreSQL volume, local images, versioned releases, and `/etc/towbar/config.yml`. Towbar API, dashboard, scheduler, and worker are now stopped.
 
 To resume with the retained state:
 
@@ -35,7 +35,7 @@ For a public installation, remove its DNS record and firewall rules separately i
 
 ## Permanently remove control-plane data
 
-Do this only after verifying the retained backup and deciding that this installation's database is no longer needed. The database volume also holds Temporal history. It does not hold app or resource volumes on deployment targets.
+Do this only after verifying the retained backup and deciding that this installation's database is no longer needed. The database volume also holds Temporal history. It does not hold service or datastore volumes on deployment targets.
 
 Use the CLI so the command targets the installed release and configuration:
 

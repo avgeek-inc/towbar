@@ -5,6 +5,10 @@ import { notificationDiscordRouteSettings } from "@workspace/towbar-database/sch
 import { badRequest } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import {
+  deploymentSubscriptionCategories,
+  hasOneDeploymentSubscription,
+} from "./deployment-subscriptions.js";
 
 export const discordDestinationsSchema = z
   .object({
@@ -15,10 +19,15 @@ export const discordDestinationsSchema = z
             routeId: z.string().min(1).max(255),
             webhookId: discordWebhookCredentialsSchema.shape.webhookId,
             deployments: z.boolean(),
+            deploymentFailures: z.boolean(),
             backupsAndRestores: z.boolean(),
             alertsAndIncidents: z.boolean(),
           })
-          .strict(),
+          .strict()
+          .refine(
+            hasOneDeploymentSubscription,
+            "Choose one deployment subscription",
+          ),
       )
       .max(100)
       .refine(
@@ -33,7 +42,10 @@ type DiscordDestinationInput = z.infer<
 >["destinations"][number];
 type DiscordDestinationSetting = Pick<
   DiscordDestinationInput,
-  "deployments" | "backupsAndRestores" | "alertsAndIncidents"
+  | "deployments"
+  | "deploymentFailures"
+  | "backupsAndRestores"
+  | "alertsAndIncidents"
 >;
 
 function configuredDiscordRoutes() {
@@ -64,6 +76,10 @@ function destinationFromRoute(
     webhookId: route.config.webhookId,
     deployments:
       setting?.deployments ?? route.categories.includes("deployments"),
+    deploymentFailures:
+      setting?.deploymentFailures ??
+      (!route.categories.includes("deployments") &&
+        route.categories.includes("deploymentFailures")),
     backupsAndRestores:
       setting?.backupsAndRestores ??
       (route.categories.includes("backups") ||
@@ -83,7 +99,7 @@ function routeWithSetting(
   return {
     ...route,
     categories: [
-      ...(setting.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(setting),
       ...(setting.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),
@@ -130,6 +146,7 @@ export async function saveDiscordDestinations(
     for (const row of destinations) {
       const values = {
         deployments: row.deployments,
+        deploymentFailures: row.deploymentFailures,
         backupsAndRestores: row.backupsAndRestores,
         alertsAndIncidents: row.alertsAndIncidents,
       };

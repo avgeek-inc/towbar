@@ -1,0 +1,81 @@
+---
+title: "Prometheus"
+description: "Prometheus collects and queries metrics from applications and infrastructure."
+icon: "/assets/use-case-logos/prometheus.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/prometheus.svg"
+  alt="Prometheus logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://prometheus.io/docs/prometheus/latest/installation/).
+
+Prometheus needs a scrape configuration as well as a persistent metrics directory. This first instance scrapes itself only; add explicit targets before expecting host or application metrics.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/prometheus.compose.yml"
+id: prometheus
+name: Prometheus
+file: deploy/prometheus/compose.yml
+strategy: maintenance
+services:
+  prometheus: {}
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Compose project
+
+<CodeGroup>
+
+```yaml title="deploy/prometheus/compose.yml"
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+    configs:
+      - source: scrape
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - metrics:/prometheus
+configs:
+  scrape:
+    file: ./prometheus.yml
+volumes:
+  metrics: {}
+```
+
+```yaml title="deploy/prometheus/prometheus.yml"
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these files. Replace the example server IP.
+2. Commit every file shown below under `deploy/prometheus/`. The Towbar manifest points to the Compose file; it does not create it for you.
+3. Sync the repository and inspect the resolved Compose project. Save the runtime values below if this example declares any.
+4. Keep this service private until you put authentication in front of its UI and API.
+5. Edit `prometheus.yml` to add only targets reachable from this Compose network. The sample self-scrape cannot discover Towbar Services automatically.
+6. Deploy it manually and run the verification below before enabling auto-deploy.
+
+## Verify
+
+Check `Status → Targets` from a trusted connection or query `up{job="prometheus"}` from the server. Back up the `metrics` volume if the historical samples matter.
+
+For field constraints, see [Compose guide](/docs/services/modes/compose).

@@ -9,7 +9,7 @@ Towbar uses one SMTP connection for operational notifications and account messag
 
 Get a public SMTP hostname, port, sender address, and credentials from your mail provider. Authorize the sender identity with that provider and confirm that the account can send to the intended recipients. Towbar rejects SMTP hosts that resolve to private or reserved addresses. Choose the provider's TLS mode: for a provider that offers STARTTLS on port 587, use `secure: false`; for implicit TLS on port 465, use `secure: true`.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:
@@ -20,14 +20,13 @@ notifications:
       secure: false
       username: towbar
       password: "<smtp-password>"
-  routes: []
 ```
 
 Run `sudo towbar config validate`, then `sudo towbar restart`. Open **Manage → Notifications → Email**. The destination controls appear only when SMTP is configured.
 
 ## Add and test a recipient
 
-Choose **Add email**, enter an operational recipient, and select its **Deployments**, **Backup & Restore**, and **Alerts & Incidents** subscriptions. Preview events follow Deployments. Checkbox changes save immediately. Use the test action on that row and confirm that the provider accepted the sample message; then check the recipient mailbox. Account messages go to the affected account independently of this operational destination list.
+Choose **Add email**, enter an operational recipient, and choose **All** or **Failures only** for deployments. The latter sends only failed deployment and preview events, which can reduce routine email. **Backup & Restore** and **Incidents** are separate subscriptions. Changes save immediately. Use the test action on that row and confirm that the provider accepted the sample message; then check the recipient mailbox. Account messages go to the affected account independently of this operational destination list.
 
 If testing fails, check the sender identity, SMTP authentication, TLS mode, host resolution, and the [delivery result](/docs/integrations/notifications#delivery-history). A provider acceptance does not guarantee inbox placement. Rotate a credential in YAML, validate and restart, send a test message, and only then revoke the previous credential.
 
@@ -36,8 +35,8 @@ If testing fails, check the sender identity, SMTP authentication, TLS mode, host
     <img
       src="/assets/release-v2/email-notifications-light.jpg"
       alt="Email notification destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -45,8 +44,8 @@ If testing fails, check the sender identity, SMTP authentication, TLS mode, host
     <img
       src="/assets/release-v2/email-notifications-dark.jpg"
       alt="Email notification destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

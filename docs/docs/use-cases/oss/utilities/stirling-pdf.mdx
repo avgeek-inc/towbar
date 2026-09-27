@@ -1,0 +1,52 @@
+---
+title: "Stirling PDF"
+description: "Stirling PDF offers browser-based tools for editing and converting PDF files."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://docs.stirlingpdf.com/Installation/Docker%20Install/).
+
+Stirling PDF stores its settings and embedded database in `/configs`. Current images enable login on first boot with a published default administrator password; change it immediately before using a public route.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/stirling-pdf.service.yml"
+id: stirling-pdf
+name: Stirling PDF
+buildServer: null
+deployment:
+  type: image
+  image: docker.stirlingpdf.com/stirlingtools/stirling-pdf@sha256:66b6edb8ee62e307a8b335166e8931a6e65b39c9bf73b5e517fbfe9c613ba221
+container:
+  port: 8080
+  volumes:
+    - name: configs
+      mountPath: /configs
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: stirling-pdf.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Sign in and change the initial password, process a sample PDF, and verify the account setting remains after redeployment. Back up `/configs`.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

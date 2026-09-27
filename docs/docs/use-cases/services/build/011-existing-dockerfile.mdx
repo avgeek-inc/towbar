@@ -1,0 +1,49 @@
+---
+title: "Existing Dockerfile"
+description: "Use deployment.type: dockerfile, context, and dockerfile."
+icon: "/assets/integration-logos/docker.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/docker.webp"
+  alt="Existing Dockerfile logo"
+  aria-hidden="true"
+/>
+
+**Related reading:** [Example](/docs/services/modes/dockerfile).
+
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/existing-dockerfile.service.yml"
+id: existing-dockerfile
+name: Existing Dockerfile
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The Dockerfile is inside the committed repository context.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

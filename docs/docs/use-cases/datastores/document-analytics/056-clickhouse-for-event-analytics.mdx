@@ -1,0 +1,50 @@
+---
+title: "ClickHouse analytics"
+description: "Use type: clickhouse on the analytics Service's private network."
+icon: "/assets/database-logos/clickhouse.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/clickhouse.webp"
+  alt="ClickHouse analytics logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/clickhouse-for-event-analytics.datastore.yml"
+id: clickhouse-for-event-analytics
+name: ClickHouse analytics
+type: clickhouse
+container:
+  network: application
+  networkAlias: clickhouse-for-event-analytics
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - CLICKHOUSE_USER
+    - CLICKHOUSE_PASSWORD
+    - CLICKHOUSE_DB
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The Service reaches the preset's HTTP port `8123`.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

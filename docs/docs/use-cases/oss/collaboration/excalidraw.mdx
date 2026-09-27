@@ -1,0 +1,51 @@
+---
+title: "Excalidraw"
+description: "Excalidraw is a browser-based whiteboard for sketches and diagrams."
+icon: "/assets/use-case-logos/excalidraw.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/excalidraw.svg"
+  alt="Excalidraw logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://github.com/excalidraw/excalidraw/blob/master/dev-docs/docs/introduction/development.mdx).
+
+The official image serves only Excalidraw's browser client. It needs no Datastore or Service volume, but the self-hosted client does not provide Excalidraw's sharing and live collaboration services.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/excalidraw.service.yml"
+id: excalidraw
+name: Excalidraw
+buildServer: null
+deployment:
+  type: image
+  image: excalidraw/excalidraw@sha256:f7ee194addd607bf831d2af0f0a34463dd4225e426cf35199ef0b12a803398e9
+container:
+  port: 80
+environments:
+  production:
+    server: 192.0.2.10
+domains:
+  primary: excalidraw.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Create a diagram and export it. Test in another browser before assuming drawings or collaboration are shared across users; this recipe deploys only the client.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

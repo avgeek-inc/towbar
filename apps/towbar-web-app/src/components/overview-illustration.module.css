@@ -2,6 +2,16 @@
   transform-origin: right bottom;
 }
 
+.activityChart {
+  --overview-activity-height: 210px;
+}
+
+@media (min-width: 1280px) {
+  .activityChart {
+    --overview-activity-height: 240px;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .illustration {
     transition: transform 360ms

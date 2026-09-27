@@ -137,9 +137,16 @@ doctor_check_disk_usage() {
 
 doctor_check_config() {
   local release_dir="$1" ownership mode app_url config_path helper
+  if [[ ( -e "$TOWBAR_LEGACY_YAML_FILE" || -L "$TOWBAR_LEGACY_YAML_FILE" ) && ( -e "$TOWBAR_YAML_FILE" || -L "$TOWBAR_YAML_FILE" ) ]]; then
+    doctor_record fail "Runtime configuration paths conflict" "Both $TOWBAR_LEGACY_YAML_FILE and $TOWBAR_YAML_FILE exist. Resolve the conflict before upgrading."
+    return
+  fi
   config_path="$TOWBAR_YAML_FILE"
   if [[ ! -f "$config_path" ]]; then
-    if [[ -f "$TOWBAR_ENV_FILE" ]]; then
+    if [[ -f "$TOWBAR_LEGACY_YAML_FILE" ]]; then
+      doctor_record warn "Runtime configuration uses the previous path" "The next upgrade or restart will rename it to $TOWBAR_YAML_FILE."
+      config_path="$TOWBAR_LEGACY_YAML_FILE"
+    elif [[ -f "$TOWBAR_ENV_FILE" ]]; then
       doctor_record warn "Runtime configuration uses the legacy environment file" "The next upgrade or restart will convert it to $TOWBAR_YAML_FILE."
       config_path="$TOWBAR_ENV_FILE"
     else
@@ -167,9 +174,9 @@ doctor_check_config() {
     fi
   fi
 
-  if [[ "$config_path" == "$TOWBAR_YAML_FILE" ]]; then
+  if [[ "$config_path" != "$TOWBAR_ENV_FILE" ]]; then
     helper="$(config_helper_for "$release_dir")"
-    if ! python3 "$helper" compare --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
+    if ! python3 "$helper" compare --yaml "$config_path" --env "$TOWBAR_ENV_FILE" >/dev/null 2>&1; then
       doctor_record fail "Runtime configuration is not applied" "Run sudo towbar config validate, then sudo towbar restart."
       return
     fi

@@ -18,7 +18,7 @@ A Dokploy installation cannot be imported directly into Towbar. Recreate the des
 
 #### ✅ Pros
 
-- Apps, Resources, environments, domains, jobs, and deployment policy live in
+- Services, Datastores, environments, domains, jobs, and deployment policy live in
   reviewed Git files and resolve from an immutable source revision.
 - Preview secrets stay separate from production, and repository sync,
   deployment history, Scout monitoring, vulnerability results, and recovery
@@ -76,17 +76,17 @@ Dokploy supports project-, environment-, and service-level [variables](https://d
 
 ## 2. Convert configuration to Git
 
-Create a `towbar.yml` root file and one entity file for each app or resource. Map Dokploy environments to Towbar environments and branches. Store configuration in the manifest and values in Towbar's encrypted secret stores.
+Create a `towbar.yml` root file and one entity file for each Service or Datastore. Map Dokploy environments to Towbar environments and branches. Store configuration in the manifest and values in Towbar's encrypted secret stores.
 
 | Dokploy workload                   | Towbar destination                                             |
 | ---------------------------------- | -------------------------------------------------------------- |
-| Git application with Dockerfile    | `dockerfile` app                                               |
-| Static application                 | `static` app                                                   |
-| Registry image                     | `image` app with a non-`latest` tag or digest                  |
+| Git application with Dockerfile    | Service using `dockerfile`                                     |
+| Static application                 | Service using `static`                                         |
+| Registry image                     | Service using `image` with a non-`latest` tag or digest        |
 | Nixpacks or Buildpacks application | Corresponding Towbar source builder after a compatibility test |
 | Docker Compose application         | Compose project after policy validation                        |
-| Supported standalone database      | Managed Resource with a compatible engine and major version    |
-| Other containerized service        | Image Resource or Compose project                              |
+| Supported standalone database      | Managed Datastore with a compatible engine and major version   |
+| Other containerized service        | Service with a prebuilt image or Compose project               |
 
 Towbar's [Compose policy](/docs/platform-deployments#compose-projects) is stricter than a general Dokploy Compose project. Remove unsupported host bindings, Docker socket access, privileged mode, remote includes, explicit public host ports, and external namespaces, or keep that workload outside Towbar.
 
@@ -96,7 +96,7 @@ Dokploy manages application and Compose [domains](https://docs.dokploy.com/docs/
 
 Configure the Towbar runtime for the Git provider, registry, backup storage, notifications and any external-secret provider. Platform integrations appear when configured; Notifications lists all supported providers and shows which need configuration.
 
-Move variable values into [Shared secrets](/docs/secrets) or workload environment secrets. Preserve build/runtime intent and preview isolation rather than copying every Dokploy variable into one global scope. Rotate credentials where practical, and update OAuth callbacks, Git webhooks, CI secrets, DNS automation, email allowlists, and receiving webhooks.
+Save variable values in [Towbar](/docs/secrets/towbar) or load them from a supported [external provider](/docs/secrets/external). Use shared secrets only where several workloads need the same value. Preserve build/runtime intent and preview isolation rather than copying every Dokploy variable into one global scope. Rotate credentials where practical, and update OAuth callbacks, Git webhooks, CI secrets, DNS automation, email allowlists, and receiving webhooks.
 
 ## 4. Deploy without production traffic
 

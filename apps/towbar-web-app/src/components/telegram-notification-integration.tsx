@@ -32,24 +32,25 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { NotificationProviderIcon } from "./notification-provider-icon";
 import { PageSelectionTitle } from "./page-selection-title";
+import { DeploymentNotificationChoice } from "./deployment-notification-choice";
 
 type TelegramDestination = {
   id?: string;
   chatId: string;
   messageThreadId: number | null;
   deployments: boolean;
+  deploymentFailures: boolean;
   backupsAndRestores: boolean;
   alertsAndIncidents: boolean;
 };
 type Column = keyof Pick<
   TelegramDestination,
-  "deployments" | "backupsAndRestores" | "alertsAndIncidents"
+  "backupsAndRestores" | "alertsAndIncidents"
 >;
 
 const columns: Array<{ key: Column; label: string }> = [
-  { key: "deployments", label: "Deployments" },
   { key: "backupsAndRestores", label: "Backup & Restore" },
-  { key: "alertsAndIncidents", label: "Alerts & Incidents" },
+  { key: "alertsAndIncidents", label: "Incidents" },
 ];
 const endpoint = "/v1/core/notifications/telegram/destinations";
 const chatIdPattern = /^-?\d{1,20}$/;
@@ -147,12 +148,14 @@ export function TelegramNotificationIntegration() {
               chatId,
               messageThreadId,
               deployments,
+              deploymentFailures,
               backupsAndRestores,
               alertsAndIncidents,
             }) => ({
               chatId,
               messageThreadId,
               deployments,
+              deploymentFailures,
               backupsAndRestores,
               alertsAndIncidents,
             }),
@@ -214,6 +217,7 @@ export function TelegramNotificationIntegration() {
           chatId: normalized,
           messageThreadId,
           deployments: false,
+          deploymentFailures: false,
           backupsAndRestores: false,
           alertsAndIncidents: false,
         },
@@ -259,6 +263,34 @@ export function TelegramNotificationIntegration() {
       header: "Topic",
       className: "min-w-28 whitespace-nowrap !py-1.5",
       cell: (row) => row.messageThreadId ?? "Main chat",
+    },
+    {
+      key: "deployments",
+      header: "Deployments",
+      className: "min-w-64 !py-1.5",
+      cell: (row) => (
+        <DeploymentNotificationChoice
+          name={`telegram-deployments-${row.id ?? destinationKey(row)}`}
+          label={destinationLabel(row)}
+          disabled={saving}
+          value={
+            row.deployments ? "all" : row.deploymentFailures ? "failures" : null
+          }
+          onChange={(value) =>
+            void persist(
+              destinations.map((item) =>
+                destinationKey(item) === destinationKey(row)
+                  ? {
+                      ...item,
+                      deployments: value === "all",
+                      deploymentFailures: value === "failures",
+                    }
+                  : item,
+              ),
+            )
+          }
+        />
+      ),
     },
     ...columns.map(({ key, label }) => ({
       key,

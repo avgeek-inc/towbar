@@ -1,0 +1,48 @@
+---
+title: "KeyDB amd64"
+description: "Use type: keydb and REDIS_PASSWORD."
+icon: "/assets/database-logos/keydb.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/keydb.svg"
+  alt="KeyDB amd64 logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/keydb-on-an-amd64-server.datastore.yml"
+id: keydb-on-an-amd64-server
+name: KeyDB amd64
+type: keydb
+container:
+  network: application
+  networkAlias: keydb-on-an-amd64-server
+  resources:
+    cpus: 0.5
+    memory: 512m
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+KeyDB's reviewed image is amd64-only; admission rejects arm64.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

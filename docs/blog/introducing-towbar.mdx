@@ -19,8 +19,8 @@ Towbar is not intended to compete with Coolify, Dokploy, or the other open-sourc
     <img
       src="/assets/release-v2/overview-light.jpg"
       alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="2200"
       loading="eager"
     />
   </div>
@@ -28,8 +28,8 @@ Towbar is not intended to compete with Coolify, Dokploy, or the other open-sourc
     <img
       src="/assets/release-v2/overview-dark.jpg"
       alt="Towbar overview showing deployment trends, running workloads, servers, incidents, and recent deployments."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="2200"
       loading="eager"
     />
   </div>
@@ -44,7 +44,7 @@ I like the speed of a deployment dashboard. I do not like discovering later that
 
 Configuration entered through forms is quick at first, but it is difficult to review, reproduce, and move. It can drift away from the code. It is easy to forget why a port, domain, health check, build command, or resource limit was changed. A new server or a second environment then becomes a reconstruction exercise.
 
-With Towbar, a repository contains a `towbar.yml` file and separate declarations for apps, resources, and Compose projects. Production can follow `main`, staging can follow another branch, and each environment reads its own immutable commit. A pull request can show an application change beside the deployment change it requires. If the repository moves, the deployment intent moves with it.
+With Towbar, a repository contains a `towbar.yml` file and separate declarations for Services, Datastores, and Compose projects. Production can follow `main`, staging can follow another branch, and each environment reads its own immutable commit. A pull request can show an application change beside the deployment change it requires. If the repository moves, the deployment intent moves with it.
 
 Git is not used as decoration around a dashboard-created model. It is the model for workloads. The dashboard helps people inspect, validate, deploy, and operate what the repository declares.
 
@@ -58,7 +58,7 @@ Static integration credentials are supplied through the Towbar runtime configura
 
 GitHub installation and GitLab OAuth authorization are interactive because their providers require an account authorization flow. The application identity and webhook secrets still belong to the Towbar runtime environment. Dynamic grants and the minimum account metadata needed to use them stay in the self-hosted control plane.
 
-Workload secrets are different. Manifests declare which keys an app or resource needs, but values never go into Git. Admins and members can save encrypted build, runtime, hook, environment, preview, or shared values in Towbar. A workload must refer to a shared value explicitly, so adding a secret to the workspace does not silently inject it everywhere. Towbar records the revision used for a deployment without copying plaintext into workflow history or audit events.
+Workload secrets are different. Service and Datastore manifests declare which keys are needed, but values never go into Git. Admins and members can save encrypted build, runtime, hook, environment, preview, or shared values in Towbar. A workload must refer to a shared value explicitly, so adding a secret to the workspace does not silently inject it everywhere. Towbar records the revision used for a deployment without copying plaintext into workflow history or audit events.
 
 This split keeps the repository reviewable, keeps platform credentials out of the browser, and still gives a team a practical way to manage the values an application needs.
 
@@ -76,18 +76,18 @@ Automatic deployments can be enabled per workload and paused at the Repository o
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/repositories-light.jpg"
-      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
-      width="2560"
-      height="1440"
+      alt="Towbar repositories with imported Service and Datastore counts and the latest synchronized revision."
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
   <div className="towbar-product-dark">
     <img
       src="/assets/release-v2/repositories-dark.jpg"
-      alt="Towbar repositories with imported app and resource counts and the latest synchronized revision."
-      width="2560"
-      height="1440"
+      alt="Towbar repositories with imported Service and Datastore counts and the latest synchronized revision."
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -114,13 +114,13 @@ Compose projects use repository-owned Compose files, overrides, profiles, depend
 
 Every successful application deployment creates a release tied to its immutable input. Health checks decide whether a candidate is promoted. Rolling and recreate strategies cover stateless services and stateful single-writer workloads. A rollback selects a recorded release instead of rebuilding an old source tree and hoping it produces the same image.
 
-Deployment hooks cover commands that must run before or after promotion. Scheduled jobs live beside the app declaration, respect environment automation pauses, avoid overlapping executions, and do not replay a backlog after an outage.
+Deployment hooks cover commands that must run before or after promotion. Scheduled jobs live beside the Service declaration, respect environment automation pauses, avoid overlapping executions, and do not replay a backlog after an outage.
 
 ## Pull request previews
 
-Towbar can create isolated preview environments for eligible GitHub pull requests. Preview support must be enabled for the target environment and opted into by each app, so opening a pull request cannot unexpectedly clone an entire production inventory.
+Towbar can create isolated preview environments for eligible GitHub pull requests. Preview support must be enabled for the target environment and opted into by each Service, so opening a pull request cannot unexpectedly clone an entire production inventory.
 
-The preview reads the proposed repository revision, creates isolated app instances, assigns separate routes and secrets, and reports status and the preview URL back to the source provider. Path-aware eligibility avoids rebuilding apps untouched by a change. Persistent resources are not cloned into previews, and preview secrets never fall back to production values.
+The preview reads the proposed repository revision, creates isolated Service instances, assigns separate routes and secrets, and reports status and the preview URL back to the source provider. Path-aware eligibility avoids rebuilding Services untouched by a change. Datastores are not cloned into previews, and preview secrets never fall back to production values.
 
 When the change closes, Towbar removes the preview containers, images, routes, and matching DNS records. The persistent production environment remains separate throughout the lifecycle.
 
@@ -129,8 +129,8 @@ When the change closes, Towbar removes the preview containers, images, routes, a
     <img
       src="/assets/release-v2/previews-light.jpg"
       alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -138,8 +138,8 @@ When the change closes, Towbar removes the preview containers, images, routes, a
     <img
       src="/assets/release-v2/previews-dark.jpg"
       alt="Pull request preview deployments with their branch, URL, commit, status, and expiry."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -148,27 +148,27 @@ When the change closes, Towbar removes the preview containers, images, routes, a
   </p>
 </div>
 
-## Apps, managed resources, and persistent data
+## Services, Datastores, and persistent data
 
-An app is a deployable service. A resource is a persistent service that another workload can use. Both are declared in Git, can vary by environment, and keep a stable identity and operational history even when their display names change.
+A Service builds source or runs an OCI image. A Datastore is a supported database or cache engine with Towbar-managed persistence and recovery. Both are declared in Git, can vary by environment, and keep a stable identity and operational history even when their display names change.
 
-Towbar includes managed presets for PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse. Each preset has a reviewed, digest-pinned default image, authenticated health checks, a stable data volume, a native backup format, and a fresh-target restore workflow. Image-based resources are also available for services outside those presets.
+Towbar includes managed presets for PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse. Each has a reviewed, digest-pinned default image, a readiness check, a stable data volume, a native backup format, and a fresh-target restore workflow. Other OCI images run as Services.
 
-Database backups can be written to S3, an S3-compatible service, Cloudflare R2, Google Cloud Storage. Policies define retention and scheduling in the repository while provider credentials stay in the Towbar environment. Backup assurance records whether a recent, retained backup actually exists.
+Database backups can be written to S3, an S3-compatible service, Cloudflare R2, or Google Cloud Storage. Policies define retention and scheduling in the repository while provider credentials stay in the Towbar environment. Backup assurance records whether a recent, retained backup actually exists.
 
-Restores are designed to preserve a way back. Towbar verifies the backup, restores into a fresh target, checks the result, and switches only after validation. The previous data volume is retained until cleanup is requested. A restore is never treated as an ordinary application rollback because database state deserves a separate recovery path.
+Restores are designed to preserve a way back. Towbar verifies the backup, restores into a fresh target, checks the result, and switches only after validation. The previous data volume is retained for seven days unless an Admin removes it earlier. A restore is never treated as an ordinary application rollback because database state deserves a separate recovery path.
 
 ## Servers remain ordinary Ubuntu servers
 
 Towbar deploys to Ubuntu servers over SSH. Registering a server includes SSH host-key verification, credential verification, preparation, and a final readiness check. Preparation installs and configures the runtime dependencies Towbar needs without turning the machine into a proprietary target.
 
-The server view shows capacity, deployed inventory, applications, resources, credentials, preparation history, Scout status, and detected orphans. Orphan cleanup is explicit. An audited browser terminal is available for operational work, with idle and maximum-session limits, while Towbar avoids recording terminal contents.
+The server view shows capacity, deployed Services and Datastores, credentials, preparation history, Scout status, and detected orphans. Orphan cleanup is explicit. An audited browser terminal is available for operational work, with idle and maximum-session limits, while Towbar avoids recording terminal contents.
 
 Public HTTP services are routed through Caddy. Direct DNS and Cloudflare-backed DNS or tunnel workflows are supported, with TLS status kept visible. Private database access can bind to server loopback and travel through an SSH tunnel rather than becoming a public web route.
 
 ## Monitoring that stays close to deployments
 
-Scout is Towbar's lightweight server agent. It reports server, app, and resource measurements so operators can inspect CPU, memory, storage, network activity, restarts, and container state from the same place as the deployment that changed them.
+Scout is Towbar's lightweight server agent. It reports server, Service, and Datastore measurements so operators can inspect CPU, memory, storage, network activity, restarts, and container state from the same place as the deployment that changed them.
 
 The seven-day overview makes deployment outcomes, running inventory, servers, and active incidents visible without opening several pages. Detailed monitoring supports time ranges, environment and instance filters, and URL-backed views that can be shared with another team member.
 
@@ -181,8 +181,8 @@ Towbar also scans deployed images for known vulnerabilities. Findings include th
     <img
       src="/assets/release-v2/performance-light.jpg"
       alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -190,8 +190,8 @@ Towbar also scans deployed images for known vulnerabilities. Findings include th
     <img
       src="/assets/release-v2/performance-dark.jpg"
       alt="Towbar performance monitoring with server and workload navigation, resource charts, and deployment markers."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -207,7 +207,7 @@ Applications can continue to write container logs, which Towbar captures for tro
 
 Operational notifications can go to Slack, email through SMTP, Discord, Telegram, or a webhook. Routes select categories and destinations, while delivery history records attempts and provider-safe errors. Authentication and repeated rate-limit failures can notify the team through another configured channel.
 
-Runtime integrations also cover private OCI registries, backup storage, external secrets through Infisical or Doppler, Cloudflare. Provider configuration is singular per Towbar installation and visible only when its complete environment configuration passes startup validation. This keeps the UI focused on what the current instance can actually use.
+Runtime integrations also cover private OCI registries, backup storage, external secrets through Infisical or Doppler, and Cloudflare. Provider configuration is singular per Towbar installation and visible only when its complete environment configuration passes startup validation. This keeps the UI focused on what the current instance can actually use.
 
 ## Teams, access, and an audit trail
 
@@ -225,15 +225,15 @@ Towbar ships with a host installer and a small `towbar` command-line tool. A loc
 
 Release images are published for `amd64` and `arm64`. The CLI pulls immutable image digests, applies database migrations, checks service health, and verifies the running release. Upgrades retain the current and immediately previous Towbar release while removing obsolete Towbar images without touching application data or unrelated Docker workloads.
 
-Operational commands cover status, logs, configuration validation, restart, upgrade, database backup, diagnostics through `towbar doctor`, account recovery, and uninstall. A failed preflight does not replace healthy running containers. The root-owned `/etc/towbar/towbar.yml` file can be managed with ordinary system tools and backed up separately from the database.
+Operational commands cover status, logs, configuration validation, restart, upgrade, database backup, diagnostics through `towbar doctor`, account recovery, and uninstall. A failed preflight does not replace healthy running containers. The root-owned `/etc/towbar/config.yml` file can be managed with ordinary system tools and backed up separately from the database.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
     <img
       src="/assets/release-v2/system-health-light.jpg"
       alt="Towbar system health showing the control plane services and their current status."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -241,8 +241,8 @@ Operational commands cover status, logs, configuration validation, restart, upgr
     <img
       src="/assets/release-v2/system-health-dark.jpg"
       alt="Towbar system health showing the control plane services and their current status."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

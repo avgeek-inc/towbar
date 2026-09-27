@@ -125,9 +125,7 @@ export function ResourceDetail() {
     gcpConfigured?: boolean;
     missingCredentialMessage?: string;
   }>(
-    resource.data?.resource &&
-      resource.data.resource.kind !== "image" &&
-      resource.data.resource.config.backup
+    resource.data?.resource && resource.data.resource.config.backup
       ? `/v1/core/resources/${resourceId}/backup-assurance`
       : null,
     10_000,
@@ -140,7 +138,7 @@ export function ResourceDetail() {
       <DashboardPage
         icon={CubeIcon}
         breadcrumbAncestors={resourcesBreadcrumb}
-        title="Resource"
+        title="Datastore"
       >
         <QueryError message={error} />
       </DashboardPage>
@@ -368,7 +366,7 @@ export function ResourceDetail() {
         <DeploymentTable
           deployableName={item.name}
           deployments={orderedDeployments}
-          emptyDescription="Use Deploy when this resource is ready."
+          emptyDescription="Use Deploy when this datastore is ready."
         />
       ),
     },
@@ -380,44 +378,42 @@ export function ResourceDetail() {
       icon: <HugeiconsIcon icon={GitCompareIcon} />,
       content: <ScoutCompareDeployments deployableId={resourceId} />,
     },
-    ...(item.kind === "image"
-      ? []
-      : [
-          {
-            value: "backup",
-            label: "Backup",
-            group: "Operate",
-            icon: <HugeiconsIcon icon={ReloadIcon} />,
-            indicator: missingBackupCredentials
-              ? { dot: true, ariaLabel: "Needs credentials" }
-              : undefined,
-            content: (
-              <ResourceBackupConfiguration
-                active={!item.archivedAt && item.serverReady}
-                resource={item}
-              />
-            ),
-          },
-          ...(can("resource.restore")
-            ? [
-                {
-                  value: "restore",
-                  label: "Restore",
-                  group: "Operate",
-                  icon: <HugeiconsIcon icon={Undo02Icon} />,
-                  indicator: missingRestoreCredentials
-                    ? { dot: true, ariaLabel: "Needs credentials" }
-                    : undefined,
-                  content: (
-                    <ResourceRestoreConfiguration
-                      active={!item.archivedAt && item.serverReady}
-                      resource={item}
-                    />
-                  ),
-                },
-              ]
-            : []),
-        ]),
+    ...[
+      {
+        value: "backup",
+        label: "Backup",
+        group: "Operate",
+        icon: <HugeiconsIcon icon={ReloadIcon} />,
+        indicator: missingBackupCredentials
+          ? { dot: true, ariaLabel: "Needs credentials" }
+          : undefined,
+        content: (
+          <ResourceBackupConfiguration
+            active={!item.archivedAt && item.serverReady}
+            resource={item}
+          />
+        ),
+      },
+      ...(can("resource.restore")
+        ? [
+            {
+              value: "restore",
+              label: "Restore",
+              group: "Operate",
+              icon: <HugeiconsIcon icon={Undo02Icon} />,
+              indicator: missingRestoreCredentials
+                ? { dot: true, ariaLabel: "Needs credentials" }
+                : undefined,
+              content: (
+                <ResourceRestoreConfiguration
+                  active={!item.archivedAt && item.serverReady}
+                  resource={item}
+                />
+              ),
+            },
+          ]
+        : []),
+    ],
     {
       value: "settings",
       label: "Settings",
@@ -479,10 +475,10 @@ export function ResourceDetail() {
             ) : null}
             <ActionButton
               confirm={{
-                title: "Deploy this resource?",
+                title: "Deploy this datastore?",
                 description:
-                  "Queue a new resource deployment. This may replace its running container and briefly interrupt connections.",
-                actionLabel: "Deploy resource",
+                  "Queue a new datastore deployment. This may replace its running container and briefly interrupt connections.",
+                actionLabel: "Deploy datastore",
               }}
               action={() =>
                 api.post<{ deployment: Deployment }>(
@@ -496,7 +492,7 @@ export function ResourceDetail() {
               }
               pendingLabel="Queueing…"
               isDisabled={!item.serverReady}
-              success="Resource deployment queued"
+              success="Datastore deployment queued"
               variant="primary"
             >
               <HugeiconsIcon
@@ -580,7 +576,7 @@ function ResourceSettings({
 
   return (
     <ResponsiveSubtabs
-      ariaLabel="Resource settings"
+      ariaLabel="Datastore settings"
       defaultSelectedKey={
         requestedSettings === "secrets" ? "secrets" : "configuration"
       }
@@ -609,7 +605,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
             {item.config.image}
           </TypographyCode>
         </Attributes.Item>
-        <Attributes.Item label="Resource type">
+        <Attributes.Item label="Engine">
           {formatResourceKind(item.kind)}
         </Attributes.Item>
         <Attributes.Item label="Repository branch">

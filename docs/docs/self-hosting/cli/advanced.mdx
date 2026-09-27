@@ -46,7 +46,7 @@ sudo towbar compose COMMAND [ARG...]
     ```
 
     This removes Towbar containers and its network while retaining named volumes,
-    installed releases, images, and `/etc/towbar/towbar.yml`.
+    installed releases, images, and `/etc/towbar/config.yml`.
 
   </Tab>
 </Tabs>
@@ -112,6 +112,6 @@ Local installations run `gateway`; public HTTPS installations run `gateway-publi
 
 ## Recovery boundaries
 
-`towbar compose down --volumes` permanently deletes the control-plane PostgreSQL volume, including Towbar state and Temporal history. It does not delete application or resource volumes on deployment servers. Follow the [uninstall guide](/docs/self-hosting/uninstall) and verify a database backup plus the matching `security.credentialsKey` before using it.
+`towbar compose down --volumes` permanently deletes the control-plane PostgreSQL volume, including Towbar state and Temporal history. It does not delete service or datastore volumes on deployment servers. Follow the [uninstall guide](/docs/self-hosting/uninstall) and verify a database backup plus the matching `security.credentialsKey` before using it.
 
-Container changes made through `towbar exec` are ephemeral and disappear when the service is recreated. Put lasting configuration in `/etc/towbar/towbar.yml`, validate it, and apply it with `towbar restart`.
+Container changes made through `towbar exec` are ephemeral and disappear when the service is recreated. Put lasting configuration in `/etc/towbar/config.yml`, validate it, and apply it with `towbar restart`.

@@ -1,0 +1,51 @@
+---
+title: "Multi-process repository"
+description: "Use a .compose.yml project when components must be deployed together."
+icon: "/assets/integration-logos/docker.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/docker.webp"
+  alt="Multi-process repository logo"
+  aria-hidden="true"
+/>
+
+**Related reading:** [Compose](/docs/services/modes/compose).
+
+The Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/web-worker.compose.yml"
+id: web-worker
+name: Web and worker
+file: deploy/web-worker/compose.yml
+strategy: maintenance
+services:
+  web:
+    port: 3000
+    domains:
+      - web-worker.example.com
+    ingress:
+      type: proxy
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Commit a Compose file at `deploy/web-worker/compose.yml` with the declared service name and port. Adapt it to [Towbar's Compose restrictions](/docs/services/modes/compose) before syncing.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Commit and validate the Compose file; no forbidden host mounts or public host ports remain.
+
+For field constraints, see [Compose guide](/docs/services/modes/compose).

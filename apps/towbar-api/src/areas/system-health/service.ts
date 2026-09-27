@@ -8,6 +8,7 @@ import { getEnv } from "../../env.js";
 import { pingDatabase } from "../../infrastructure/database.js";
 import { wakeMaintenanceWorkflow } from "../../infrastructure/temporal.js";
 import { getReleaseVersion } from "../../release-version.js";
+import { getDatabaseStorage } from "./database-storage.js";
 import {
   listSystemHealthSignals,
   recordSystemHealthSignal,
@@ -57,6 +58,7 @@ export async function getSystemHealth(
   return {
     checkedAt: new Date().toISOString(),
     checks,
+    databaseStorage: await getDatabaseStorage(),
     status: highestStatus(checks.map((check) => check.status)),
     version: getReleaseVersion(),
   };

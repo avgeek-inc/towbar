@@ -1,0 +1,116 @@
+---
+title: "Matomo"
+description: "Matomo tracks website and app usage through visitor reports and goals."
+icon: "/assets/use-case-logos/matomo.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/matomo.svg"
+  alt="Matomo logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://matomo.org/faq/how-to-install/install-matomo-with-docker/).
+
+Matomo needs MariaDB/MySQL for site and reporting data. The Service volume preserves its configuration, plugins, and uploaded assets. Add a scheduled archive task after the first site is working; relying only on browser-triggered archiving is not a long-term plan.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/matomo-mariadb.datastore.yml"
+id: matomo-mariadb
+name: Matomo MariaDB
+type: mariadb
+container:
+  network: application
+  networkAlias: matomo-mariadb
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/matomo.service.yml"
+id: matomo
+name: Matomo
+buildServer: null
+deployment:
+  type: image
+  image: matomo:5.5.0-apache
+container:
+  port: 80
+  network: application
+  volumes:
+    - name: html
+      mountPath: /var/www/html
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - MATOMO_DATABASE_HOST
+    - MATOMO_DATABASE_DBNAME
+    - MATOMO_DATABASE_USERNAME
+    - MATOMO_DATABASE_PASSWORD
+domains:
+  primary: matomo.example.com
+tls:
+  mode: direct
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Save the initialization values in the table below for the mariadb Datastore under **Datastore → Settings → Secrets**. Deploy it first and wait for readiness. These values create the database and user only on an empty volume.
+3. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+4. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+5. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Datastore values
+
+Save these in each Datastore's **Settings → Secrets** before deploying it. Use the suggested names or choose your own, then use the same names and passwords in the Service connection values below.
+
+| Datastore      | Key                   | Suggested value                                                                           |
+| -------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| Matomo mariadb | `MYSQL_DATABASE`      | matomo                                                                                    |
+| Matomo mariadb | `MYSQL_USER`          | matomo                                                                                    |
+| Matomo mariadb | `MYSQL_PASSWORD`      | Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value. |
+| Matomo mariadb | `MYSQL_ROOT_PASSWORD` | Run `openssl rand -hex 32` again for a separate root password.                            |
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                        | Value to save                 |
+| -------------------------- | ----------------------------- |
+| `MATOMO_DATABASE_HOST`     | matomo-mariadb                |
+| `MATOMO_DATABASE_DBNAME`   | Same value as MYSQL_DATABASE. |
+| `MATOMO_DATABASE_USERNAME` | Same value as MYSQL_USER.     |
+| `MATOMO_DATABASE_PASSWORD` | Same value as MYSQL_PASSWORD. |
+
+## Verify
+
+Complete the installer, add a site, and verify its tracking request appears. Set up Matomo's `core:archive` schedule before collecting regular traffic.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

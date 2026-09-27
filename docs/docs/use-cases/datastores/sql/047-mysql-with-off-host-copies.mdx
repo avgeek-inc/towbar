@@ -1,0 +1,59 @@
+---
+title: "MySQL copies"
+description: "Add a backup destination and retention policy."
+icon: "/assets/database-logos/mysql.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/mysql.webp"
+  alt="MySQL copies logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/mysql-with-off-host-copies.datastore.yml"
+id: mysql-with-off-host-copies
+name: MySQL copies
+type: mysql
+container:
+  network: application
+  networkAlias: mysql-with-off-host-copies
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+backup:
+  integration: aws
+  schedule:
+    cron: 0 3 * * *
+    timezone: UTC
+  retention:
+    keepLast: 14
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Enable the selected backup integration and configure its runtime storage credentials and destination before creating a recovery point. A manifest policy alone does not provide storage access.
+4. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The provider credentials are enabled and a restore into a fresh target succeeds.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

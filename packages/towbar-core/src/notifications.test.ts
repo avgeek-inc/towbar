@@ -8,6 +8,7 @@ import {
   notificationCategoryForEvent,
   notificationDestinationInputSchema,
   notificationEventPayloadSchema,
+  notificationMatchesSubscription,
   slackChannelRoutingInputSchema,
   telegramConnectionInputSchema,
   telegramTopicRoutingInputSchema,
@@ -24,6 +25,28 @@ void test("maps notification events to independent subscription categories", () 
   assert.equal(notificationCategoryForEvent("backup.stale"), "backups");
   assert.equal(notificationCategoryForEvent("restore.rolled_back"), "restores");
   assert.equal(notificationCategoryForEvent("notification.test"), "test");
+});
+
+void test("failure subscriptions receive failed deployments and previews only", () => {
+  for (const type of ["deployment.failed", "preview.failed"] as const) {
+    assert.equal(
+      notificationMatchesSubscription(type, ["deploymentFailures"]),
+      true,
+    );
+    assert.equal(notificationMatchesSubscription(type, ["deployments"]), true);
+  }
+  for (const type of [
+    "deployment.queued",
+    "deployment.started",
+    "deployment.succeeded",
+    "deployment.cancelled",
+    "preview.ready",
+    "preview.superseded",
+  ] as const)
+    assert.equal(
+      notificationMatchesSubscription(type, ["deploymentFailures"]),
+      false,
+    );
 });
 
 void test("accepts provider targets without provider credentials", () => {

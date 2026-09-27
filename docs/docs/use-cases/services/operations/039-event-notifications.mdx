@@ -1,0 +1,49 @@
+---
+title: "Event notifications"
+description: "Add notifications to select workspace-configured destinations."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [Notifications](/docs/integrations/notifications).
+
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/event-notifications.service.yml"
+id: event-notifications
+name: Event notifications
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+notifications:
+  email:
+    - address: ops@example.com
+      deployments: false
+      deploymentFailures: true
+      backupsAndRestores: false
+      alertsAndIncidents: true
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Configure and test `ops@example.com` as a workspace Email destination. The manifest selects which event categories it receives; it does not configure SMTP delivery.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The destination is enabled and has a tested delivery route.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

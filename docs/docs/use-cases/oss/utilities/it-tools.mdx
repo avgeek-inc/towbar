@@ -1,0 +1,43 @@
+---
+title: "IT-Tools"
+description: "IT-Tools brings common developer and IT utilities into one browser interface."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://github.com/CorentinTh/it-tools#self-host).
+
+IT-Tools serves a collection of browser utilities from one image. It needs no SQL Datastore or persistent server volume for the basic site.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/it-tools.service.yml"
+id: it-tools
+name: IT-Tools
+buildServer: null
+deployment:
+  type: image
+  image: ghcr.io/corentinth/it-tools@sha256:8b8128748339583ca951af03dfe02a9a4d7363f61a216226fc28030731a5a61f
+container:
+  port: 80
+environments:
+  production:
+    server: 192.0.2.10
+domains:
+  primary: it-tools.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Open the site and try a converter or generator, then verify the page still loads after redeployment.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

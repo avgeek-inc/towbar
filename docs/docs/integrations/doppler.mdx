@@ -1,11 +1,19 @@
 ---
 title: "Doppler"
 description: "Resolve workload secrets with a scoped Doppler service token."
+icon: "/assets/integration-logos/doppler.ico"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/doppler.ico"
+  alt="Doppler logo"
+  aria-hidden="true"
+/>
 
 Use a Doppler service token for the project and configuration that Towbar workloads need. The token belongs in the protected control-plane YAML file, not in a repository or workload manifest. Towbar resolves references during deployment and does not return secret values to the dashboard.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   doppler:
     enabled: true
@@ -21,8 +29,8 @@ If a deployment cannot load its secrets, check the project/configuration covered
     <img
       src="/assets/release-v2/doppler-setup-light.jpg"
       alt="Doppler integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -30,8 +38,8 @@ If a deployment cannot load its secrets, check the project/configuration covered
     <img
       src="/assets/release-v2/doppler-setup-dark.jpg"
       alt="Doppler integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

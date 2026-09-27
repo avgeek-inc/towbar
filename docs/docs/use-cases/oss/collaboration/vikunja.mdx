@@ -1,0 +1,77 @@
+---
+title: "Vikunja"
+description: "Vikunja is a task and project manager for organizing work across teams."
+icon: "/assets/use-case-logos/vikunja.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/vikunja.svg"
+  alt="Vikunja logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://vikunja.io/docs/installing/).
+
+The official image uses SQLite at `/db/vikunja.db` by default and stores uploads in `/app/vikunja/files`. Both paths need persistent volumes. SQLite is suitable for a small installation; use PostgreSQL or MySQL for a larger team.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/vikunja.service.yml"
+id: vikunja
+name: Vikunja
+buildServer: null
+deployment:
+  type: image
+  image: vikunja/vikunja@sha256:417ada6f94e81f0267aa2f007d0a811fc82d38dd2aa58351e3ea520ca01c2ea5
+container:
+  port: 3456
+  volumes:
+    - name: db
+      mountPath: /db
+      initialData: image
+    - name: files
+      mountPath: /app/vikunja/files
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - VIKUNJA_SERVICE_SECRET
+    - VIKUNJA_SERVICE_PUBLICURL
+domains:
+  primary: vikunja.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+3. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                         | Value to save                                          |
+| --------------------------- | ------------------------------------------------------ |
+| `VIKUNJA_SERVICE_SECRET`    | Generate a long random signing key and keep it stable. |
+| `VIKUNJA_SERVICE_PUBLICURL` | https://vikunja.example.com/                           |
+
+## Verify
+
+Create a project and task, attach a file, and verify all three survive redeployment. If the database cannot be opened, check that the container's UID 1000 can write to both volumes.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

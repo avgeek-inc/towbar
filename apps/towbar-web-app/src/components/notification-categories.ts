@@ -11,13 +11,19 @@ const notificationRoutingCategories = [
     categories: ["health", "scout"],
     icon: Alert02Icon,
     key: "scout",
-    label: "Alerts & incidents",
+    label: "Incidents",
   },
   {
     categories: ["deployments"],
     icon: Rocket01Icon,
     key: "deployments",
-    label: "Deployments",
+    label: "Deployments (All)",
+  },
+  {
+    categories: ["deploymentFailures"],
+    icon: Rocket01Icon,
+    key: "deploymentFailures",
+    label: "Deployments (Failures)",
   },
   {
     categories: ["backups", "restores"],
@@ -42,7 +48,14 @@ export const notificationHistoryCategories = [
   },
 ] as const;
 
-export function notificationCategoryPresentation(category: string) {
+export function notificationCategoryPresentation(
+  category: string,
+  type?: string,
+) {
+  if (type === "deployment.failed" || type === "preview.failed")
+    return notificationHistoryCategories.find(
+      (group) => group.key === "deploymentFailures",
+    );
   if (category === "previews")
     return notificationHistoryCategories.find(
       (group) => group.key === "deployments",

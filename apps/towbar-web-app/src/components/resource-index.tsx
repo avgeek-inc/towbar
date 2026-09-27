@@ -118,12 +118,12 @@ export function SourceIndex() {
           <span className="inline-flex items-center gap-4">
             {[
               {
-                label: "app",
+                label: "service",
                 count: counts?.apps ?? 0,
                 icon: DashboardCircleIcon,
               },
               {
-                label: "resource",
+                label: "datastore",
                 count: counts?.resources ?? 0,
                 icon: CubeIcon,
               },

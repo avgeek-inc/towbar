@@ -1,6 +1,13 @@
 export type SystemHealthStatus =
   "healthy" | "attention" | "critical" | "unknown";
 
+export type TowbarUpdateInfo = {
+  installedVersion: string;
+  latestVersion: string | null;
+  releaseUrl: string | null;
+  status: "available" | "current" | "ahead" | "unavailable";
+};
+
 export type SystemHealthCheck = {
   checkedAt: string | null;
   description: string;
@@ -14,6 +21,11 @@ export type SystemHealthCheck = {
 export type SystemHealth = {
   checkedAt: string;
   checks: SystemHealthCheck[];
+  databaseStorage: Array<{
+    sampledAt: string;
+    towbarBytes: number;
+    monitoringBytes: number;
+  }>;
   status: SystemHealthStatus;
   version: string;
 };

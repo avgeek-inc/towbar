@@ -44,7 +44,7 @@ changes before it can run in a container.
 - Vercel Functions, Edge Runtime, Middleware, ISR, and platform routing may need
   application changes before they work in a persistent container.
 - You operate capacity, security updates, host recovery, observability, and the
-  control plane. Towbar previews also do not clone database Resources.
+  control plane. Towbar previews also do not clone Datastores.
 
 ### Vercel
 
@@ -75,21 +75,21 @@ Map every Vercel feature to an explicit destination before changing production:
 
 | Vercel concept                                 | Towbar destination                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------------------- |
-| Git-connected project                          | Repository environment and one or more Apps                                     |
-| Static build output                            | `static` App                                                                    |
-| Framework or Node.js server                    | Containerized App using a Dockerfile or supported source builder                |
-| Vercel Function                                | Route in a long-running App, or a separate private or public App                |
+| Git-connected project                          | Repository environment and one or more Services                                 |
+| Static build output                            | `static` Service                                                                |
+| Framework or Node.js server                    | Containerized Service using a Dockerfile or supported source builder            |
+| Vercel Function                                | Route in a long-running Service, or a separate private or public Service        |
 | Edge Function or Middleware                    | Application or proxy logic after a runtime-compatibility review                 |
 | Preview deployment                             | Opt-in Towbar preview environment                                               |
 | Production, Preview, and Development variables | Production, preview, and local-development values kept in their intended scopes |
-| Cron job                                       | App job                                                                         |
+| Cron job                                       | Service job                                                                     |
 | Custom domain                                  | Manifest domain with direct or Cloudflare-managed TLS                           |
-| Marketplace database                           | Compatible Towbar Resource or external service after an engine-aware migration  |
+| Marketplace database                           | Compatible Towbar Datastore or external service after an engine-aware migration |
 | Vercel Blob                                    | External object storage or another compatible service after copying objects     |
 
 Vercel's [runtime documentation](https://vercel.com/docs/functions/configuring-functions/runtime)
 describes Node.js, Python, Ruby, Go, and Edge function environments. A Towbar
-App is a persistent container process, so do not assume function isolation,
+Service is a persistent container process, so do not assume function isolation,
 automatic concurrency, regional execution, duration limits, or edge APIs will
 carry over unchanged. Keep a workload on Vercel until you have removed or
 replaced every platform dependency it still needs.
@@ -130,7 +130,7 @@ use a fixed internal port, and expose an unauthenticated health endpoint.
 This example declares a Dockerfile build, the runtime port, a health check, and
 the production server:
 
-```yaml title=".towbar/apps/web.app.yml" highlight={3-6,8-11,14-15}
+```yaml title=".towbar/services/web.service.yml" highlight={3-6,8-11,14-15}
 id: web
 name: Web
 deployment:
@@ -159,9 +159,9 @@ environments, or individual preview branches. Review Vercel's [environment
 variable scopes](https://vercel.com/docs/environment-variables) and preserve
 that separation instead of copying every value into one shared set.
 
-Declare only the names the App needs in Git:
+Declare only the names the Service needs in Git:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 secrets:
   build:
     - PACKAGE_TOKEN
@@ -178,10 +178,10 @@ URLs with explicit application configuration where the code still needs them.
 
 Vercel's Git integration creates production deployments from the production
 branch and preview deployments from other branches and pull requests. Towbar
-previews are opt-in per App, deploy eligible same-repository pull requests, and
+previews are opt-in per Service, deploy eligible same-repository pull requests, and
 use separate preview secrets.
 
-```yaml title=".towbar/apps/web.app.yml" highlight={2-5}
+```yaml title=".towbar/services/web.service.yml" highlight={2-5}
 id: web
 preview:
   enabled: true
@@ -190,8 +190,8 @@ preview:
 ```
 
 Prepare wildcard DNS for direct TLS or configure the Cloudflare integration
-before testing previews. Towbar does not clone Resources for previews, so point
-preview Apps at disposable or non-production dependencies. Compare the behavior
+before testing previews. Towbar does not clone Datastores for previews, so point
+preview Services at disposable or non-production dependencies. Compare the behavior
 with Vercel's [Git deployments](https://vercel.com/docs/git) and [generated URL
 model](https://vercel.com/docs/deployments/generated-urls), then test pull
 request creation, updates, closure, and cleanup.
@@ -199,14 +199,14 @@ request creation, updates, closure, and cleanup.
 ## 6. Move functions, cron jobs, and routing
 
 Convert request functions into routes handled by the long-running application,
-or split independently scaled processes into separate Apps. Replace Edge
+or split independently scaled processes into separate Services. Replace Edge
 Runtime APIs and region-dependent behavior deliberately. Long-lived workers
-should run as private Apps rather than being started by an HTTP request.
+should run as private Services rather than being started by an HTTP request.
 
 Vercel Cron invokes an HTTP function on a schedule. In Towbar, declare the
-command that should run against the deployed App image:
+command that should run against the deployed Service image:
 
-```yaml title=".towbar/apps/web.app.yml"
+```yaml title=".towbar/services/web.service.yml"
 jobs:
   - name: daily-report
     description: Generate the daily report
@@ -229,7 +229,7 @@ Vercel Marketplace storage provisions third-party databases and injects their
 credentials into projects. Identify the actual provider, engine, version,
 extensions, region, connection mode, and export procedure behind each
 integration. Use an engine-native logical export, restore it to a compatible
-Towbar [database Resource](/docs/databases) or external service, then verify
+Towbar [Datastore](/docs/databases) or external service, then verify
 schema, indexes, row counts, encodings, extensions, and application migrations.
 
 For Vercel Blob, list and download every required object before cutover. The
@@ -238,13 +238,13 @@ downloading objects, but your migration also needs to preserve application
 metadata, access rules, content types, and public URLs. Update stored URLs or
 add a compatibility redirect if the object origin changes.
 
-Do not move durable uploads into a container filesystem unless the App declares
+Do not move durable uploads into a container filesystem unless the Service declares
 and operates an appropriate persistence and recovery model. External object
 storage is usually the clearer replacement for Vercel Blob.
 
 ## 8. Rehearse the cutover
 
-1. Deploy the Towbar Apps against temporary domains with automatic deployment
+1. Deploy the Towbar Services against temporary domains with automatic deployment
    disabled.
 2. Test pages, API routes, authentication, functions converted to server
    routes, workers, jobs, uploads, redirects, headers, email, OAuth, webhooks,

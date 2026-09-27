@@ -5,8 +5,8 @@ const serverSections = new Set([
   "performance",
   "alerts",
   "incidents",
-  "apps",
-  "resources",
+  "services",
+  "datastores",
   "checks",
   "settings",
 ]);

@@ -229,7 +229,7 @@ export const infrastructureTools: McpTool[] = [
   action(
     "server_credentials_update",
     "Update server credentials",
-    "Set or delete SSH/Cloudflare credentials with the revision from towbar_server_inspect. Values are never returned. Preserve expectedRevision to avoid overwriting concurrent changes.",
+    "Set or remove a server SSH private key with the revision from towbar_server_inspect. To select an existing stored key, use the private-key verification action. Cloudflare credentials belong to the control-plane runtime configuration, not this server endpoint.",
     "PATCH",
     "/servers/:serverId/credentials",
     serverId,

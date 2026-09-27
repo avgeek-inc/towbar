@@ -15,7 +15,7 @@ const apiOrigin =
 const chrome =
   process.env.CHROME_PATH ??
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const viewport = { width: 1280, height: 720 };
+const defaultViewport = { width: 1600, height: 900 };
 const deviceScaleFactor = 2;
 
 const delay = (milliseconds) =>
@@ -125,7 +125,7 @@ async function startBrowser(theme) {
   await client.send("Runtime.enable", {}, sessionId);
   await client.send(
     "Emulation.setDeviceMetricsOverride",
-    { ...viewport, deviceScaleFactor, mobile: false },
+    { ...defaultViewport, deviceScaleFactor, mobile: false },
     sessionId,
   );
   await client.send(
@@ -249,6 +249,12 @@ async function preparePageForCapture(browser) {
 }
 
 async function capture(browser, screenshot, theme) {
+  const viewport = screenshot.viewport ?? defaultViewport;
+  await browser.client.send(
+    "Emulation.setDeviceMetricsOverride",
+    { ...viewport, deviceScaleFactor, mobile: false },
+    browser.sessionId,
+  );
   const url = new URL(screenshot.route, appOrigin).toString();
   await browser.client.send("Page.navigate", { url }, browser.sessionId);
   await waitForPage(browser);
@@ -353,7 +359,7 @@ else {
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
-  "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport";
+  "1600 × 900 CSS pixels by default, rendered at 2× density; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport";
 await updateDocumentDimensions({ screenshots });
 await writeFile(
   manifestPath,

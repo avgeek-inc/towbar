@@ -24,7 +24,7 @@ root:
 Then:
 
 1. Replace the example server addresses and domains in
-   `.towbar/apps/hello-towbar.app.yml`.
+   `.towbar/services/hello-towbar.service.yml`.
 2. Push the repository to GitHub or GitLab.
 3. Connect the repository in Towbar and map `production` and `staging` to the
    branches you want to deploy.

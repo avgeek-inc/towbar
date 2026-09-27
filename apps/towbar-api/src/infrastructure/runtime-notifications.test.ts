@@ -13,7 +13,6 @@ void test("accepts a Telegram bot token without a runtime chat and keeps legacy 
     TOWBAR_NOTIFICATIONS_ENABLED: "true",
     TOWBAR_NOTIFICATION_CONFIG_JSON: JSON.stringify({
       providers: { telegram: { botToken } },
-      routes: [],
     }),
   });
   assert.equal(tokenOnly.providers.telegram?.provider, "telegram");
@@ -112,7 +111,7 @@ void test("legacy preview subscriptions follow deployment notifications", () => 
   assert.deepEqual(runtime.routes[0]?.categories, ["deployments"]);
 });
 
-void test("health and Scout routes share Alerts & Incidents subscriptions", () => {
+void test("health and Scout routes share Incidents subscriptions", () => {
   const runtime = getRuntimeNotifications({
     TOWBAR_NOTIFICATIONS_ENABLED: "true",
     TOWBAR_NOTIFICATION_CONFIG_JSON: JSON.stringify({
@@ -143,7 +142,6 @@ void test("creates one Discord route per configured webhook pair", () => {
           { webhookId: "223456789012345678", webhookToken: "second-token" },
         ],
       },
-      routes: [],
     }),
   });
   assert.deepEqual(

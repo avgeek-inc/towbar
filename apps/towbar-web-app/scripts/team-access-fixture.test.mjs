@@ -9,6 +9,9 @@ import {
   dualFactorFixturePrivateKey,
 } from "./dual-factor-fixture.ts";
 
+const fixtureEmail = (role) =>
+  role === "admin" ? "praveen@avgeek.ltd" : `${role}@example.com`;
+
 async function fixture(options, run) {
   const server = createFixtureApiServer(options);
   server.listen(0, "127.0.0.1");
@@ -100,7 +103,7 @@ for (const role of ["admin", "member", "viewer"]) {
       assert.equal(
         (
           await request("public/auth/login-email", "POST", {
-            email: `${differentRole}@example.com`,
+            email: fixtureEmail(differentRole),
             password: "Towbar fixture passphrase 2026",
           })
         ).status,
@@ -112,7 +115,7 @@ for (const role of ["admin", "member", "viewer"]) {
       );
       await request("core/session", "DELETE");
       await request("public/auth/login-email", "POST", {
-        email: `${role}@example.com`,
+        email: fixtureEmail(role),
         password: "Towbar fixture passphrase 2026",
       });
       assert.deepEqual(
@@ -289,7 +292,7 @@ for (const role of ["admin", "member", "viewer"]) {
   test(`${role} can request email verification with a one-minute cooldown`, async () =>
     fixture({ role, emailVerified: false }, async (request) => {
       const endpoint = "public/auth/identity/send-verification-email";
-      const email = `${role}@example.com`;
+      const email = fixtureEmail(role);
       assert.equal((await request(endpoint, "POST", { email })).status, 200);
       assert.equal((await request(endpoint, "POST", { email })).status, 429);
       const { user } = await (await request("core/session")).json();

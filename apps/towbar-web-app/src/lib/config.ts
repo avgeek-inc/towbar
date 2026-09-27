@@ -7,6 +7,16 @@ export const config = {
   },
 } as const;
 
-export function hasHttpsExternalAccess() {
-  return new URL(config.appBaseUrl).protocol === "https:";
+export function canShowApiMcpSettings(
+  appBaseUrl = config.appBaseUrl,
+  isDevelopment = process.env.NODE_ENV === "development",
+) {
+  const url = new URL(appBaseUrl);
+  if (url.protocol === "https:") return true;
+  return (
+    isDevelopment &&
+    url.protocol === "http:" &&
+    (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+    url.port === "4420"
+  );
 }

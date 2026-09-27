@@ -73,15 +73,27 @@ void test("does not guess product identity from a private registry, suffix, tag,
   );
 });
 
-void test("managed resource types keep their existing identity", () => {
-  assert.equal(
-    resourceImageBrand("postgres", "company/custom-db").logo,
-    "/resource-types/postgres.png",
-  );
-  assert.equal(
-    resourceImageBrand("redis", "company/custom-cache").logo,
-    "/resource-types/redis.png",
-  );
+void test("managed datastore types use their engine logos", () => {
+  const logos = {
+    clickhouse: "/resource-logos/clickhouse.webp",
+    dragonfly: "/resource-logos/dragonfly.svg",
+    keydb: "/resource-logos/keydb.svg",
+    mariadb: "/resource-logos/mariadb.webp",
+    mongodb: "/resource-logos/mongodb.webp",
+    mysql: "/resource-logos/mysql.webp",
+    postgres: "/resource-logos/postgresql.webp",
+    redis: "/resource-logos/redis.webp",
+  } as const;
+  for (const [kind, logo] of Object.entries(logos)) {
+    assert.equal(
+      resourceImageBrand(kind as keyof typeof logos, "unused").logo,
+      logo,
+    );
+    assert.ok(
+      existsSync(new URL(`../../public${logo}`, import.meta.url)),
+      logo,
+    );
+  }
 });
 
 void test("every catalog entry has unique valid repositories and bundled artwork", () => {

@@ -1,15 +1,23 @@
 ---
 title: "Redis"
-description: "Declare a Redis 8 resource with password authentication, persistent data, and RDB recovery."
+description: "Declare a Redis 8 datastore with password authentication, persistent data, and RDB recovery."
+icon: "/assets/database-logos/redis.webp"
 ---
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/redis.webp"
+  alt="Redis logo"
+  aria-hidden="true"
+/>
 
 Towbar's `redis` preset runs Redis 8 Alpine on amd64 or arm64. It listens on port
 `6379`, stores data in `/data`, enables append-only persistence, and requires
 password authentication for health and managed operations.
 
-## Declare the resource
+## Declare the datastore
 
-```yaml title=".towbar/resources/redis.resource.yml" highlight={3,14-16,18}
+```yaml title=".towbar/datastores/redis.datastore.yml" highlight={3,14-16,18}
 id: redis
 name: Redis
 type: redis
@@ -33,10 +41,10 @@ environments:
 `REDIS_PASSWORD` is required. Towbar injects it into the managed Redis command
 and uses the same value for authenticated health checks, backups, and restores.
 
-## Connect from an app
+## Connect from a service
 
 Containers on the `application` network can reach `redis:6379`. Save a URL such
-as `redis://:PASSWORD@redis:6379/0` in the app's runtime secrets. The optional
+as `redis://:PASSWORD@redis:6379/0` in the service's runtime secrets. The optional
 SSH tunnel binds `16379` only to server loopback.
 
 ## Change the password

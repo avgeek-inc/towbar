@@ -1,0 +1,64 @@
+---
+title: "Memos"
+description: "Memos is a lightweight place to capture and share short notes."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://usememos.com/docs/deploy/docker-compose).
+
+Memos uses SQLite for a simple first deployment and stores its database and local assets under `/var/opt/memos`. Set the external URL to the same HTTPS address as Towbar's route.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/memos.service.yml"
+id: memos
+name: Memos
+buildServer: null
+deployment:
+  type: image
+  image: neosmemo/memos@sha256:24c2707ddd8fbd2ceaa7a61ecab86a53cdcde640b24ce572b73da14b00b5785f
+container:
+  port: 5230
+  volumes:
+    - name: memos
+      mountPath: /var/opt/memos
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - MEMOS_INSTANCE_URL
+domains:
+  primary: memos.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+3. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                  | Value to save             |
+| -------------------- | ------------------------- |
+| `MEMOS_INSTANCE_URL` | https://memos.example.com |
+
+## Verify
+
+Create a note and attach a small file, then redeploy and confirm both remain. Include the Service volume in backups.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

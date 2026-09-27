@@ -1,6 +1,6 @@
 ---
 title: "Open-Source Git-native PaaS"
-description: "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own."
+description: "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own."
 mode: "custom"
 ---
 
@@ -25,8 +25,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/overview-light.jpg"
         alt="Towbar overview with deployment trends, workload counts, active incidents, and recent deployments"
-        width="2560"
-        height="1440"
+        width="3200"
+        height="2200"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
@@ -35,8 +35,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/overview-dark.jpg"
         alt="Towbar overview with deployment trends, workload counts, active incidents, and recent deployments"
-        width="2560"
-        height="1440"
+        width="3200"
+        height="2200"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 1200px) calc(100vw - 66px), 1134px"
         fetchPriority="high"
       />
@@ -56,13 +56,13 @@ mode: "custom"
     </a>
   </div>
   <div>
-    <h2>Run apps and databases</h2>
+    <h2>Run Services and Datastores</h2>
     <p>
-      Deploy Dockerfile apps, PostgreSQL, Redis, and container images with
+      Deploy Dockerfile Services, PostgreSQL, Redis, and container images with
       persistent storage.
     </p>
-    <a className="towbar-link" href="/docs/resources">
-      Explore resources <span aria-hidden="true">→</span>
+    <a className="towbar-link" href="/docs/datastores">
+      Explore Datastores <span aria-hidden="true">→</span>
     </a>
   </div>
   <div>
@@ -136,15 +136,15 @@ mode: "custom"
     <div>
       <h3>Your servers stay yours</h3>
       <p>
-        Register supported Ubuntu hosts over SSH and decide where every app or
-        resource runs.
+        Register supported Ubuntu hosts over SSH and decide where every Service
+        or Datastore runs.
       </p>
     </div>
     <div>
       <h3>Git records the intended state</h3>
       <p>
-        Review application, resource, domain, and environment changes alongside
-        the code.
+        Review Service, Datastore, domain, and environment changes alongside the
+        code.
       </p>
     </div>
     <div>
@@ -162,39 +162,39 @@ mode: "custom"
     <div className="towbar-feature-copy">
       <p className="towbar-feature-label">Repositories</p>
       <h2 id="repositories-heading">Your repository is the starting point.</h2>
-      <p>Connect a GitHub repository and define its apps and resources in YAML. Map production, staging, or other environments to branches in Towbar. Review configuration in Git and choose which workloads deploy automatically.</p>
+      <p>Connect a GitHub repository or GitLab project and define Services and Datastores in YAML. Map production, staging, or other environments to branches in Towbar. Review configuration in Git and choose which workloads deploy automatically.</p>
       <a className="towbar-link" href="/docs/repositories">Explore repositories <span aria-hidden="true">→</span></a>
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show imported app and resource counts and the latest sync time." width="2560" height="1440" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show imported Service and Datastore counts and the latest sync time." width="3200" height="1800" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show imported app and resource counts and the latest sync time." width="2560" height="1440" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show imported Service and Datastore counts and the latest sync time." width="3200" height="1800" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
 
-<section className="towbar-feature" aria-labelledby="apps-heading">
+<section className="towbar-feature" aria-labelledby="services-heading">
   <div className="towbar-feature-copy">
-    <p className="towbar-feature-label">Apps</p>
-    <h2 id="apps-heading">From Dockerfile to running service.</h2>
+    <p className="towbar-feature-label">Services</p>
+    <h2 id="services-heading">From Dockerfile to running service.</h2>
     <p>
       Build on your own server and check each release before it takes traffic.
       Set domains and resource limits, inspect logs, and follow deployment
-      health from the app’s page.
+      health from the Service page.
     </p>
-    <a className="towbar-link" href="/docs/apps">
-      Explore apps <span aria-hidden="true">→</span>
+    <a className="towbar-link" href="/docs/services">
+      Explore Services <span aria-hidden="true">→</span>
     </a>
   </div>
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
         src="/assets/release-v2/app-overview-light.jpg"
-        alt="An example public app using its domain favicon and showing health, running state, server, and latest deployment."
-        width="2560"
-        height="1440"
+        alt="An example public Service using its domain favicon and showing health, running state, server, and latest deployment."
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -202,9 +202,9 @@ mode: "custom"
     <div className="towbar-product-dark">
       <img
         src="/assets/release-v2/app-overview-dark.jpg"
-        alt="An example public app using its domain favicon and showing health, running state, server, and latest deployment."
-        width="2560"
-        height="1440"
+        alt="An example public Service using its domain favicon and showing health, running state, server, and latest deployment."
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -212,26 +212,26 @@ mode: "custom"
   </div>
 </section>
 
-<section className="towbar-feature" aria-labelledby="rerepositories-heading">
+<section className="towbar-feature" aria-labelledby="datastores-heading">
   <div className="towbar-feature-copy">
-    <p className="towbar-feature-label">Resources</p>
-    <h2 id="rerepositories-heading">A place for your databases, too.</h2>
+    <p className="towbar-feature-label">Datastores</p>
+    <h2 id="datastores-heading">Databases with managed recovery.</h2>
     <p>
-      Run PostgreSQL, Redis, and container images alongside your apps. Keep data
-      in persistent volumes, connect services privately, and schedule database
-      backups to S3, Google Cloud Storage.
+      Run PostgreSQL, Redis, and other supported engines alongside your
+      Services. Keep data in persistent volumes, connect privately, and schedule
+      backups to S3 or Google Cloud Storage.
     </p>
-    <a className="towbar-link" href="/docs/resources">
-      Explore resources <span aria-hidden="true">→</span>
+    <a className="towbar-link" href="/docs/datastores">
+      Explore Datastores <span aria-hidden="true">→</span>
     </a>
   </div>
   <div className="towbar-feature-image">
     <div className="towbar-product-light">
       <img
         src="/assets/release-v2/resource-overview-light.jpg"
-        alt="Example PostgreSQL resource showing production and staging selection, runtime state, server readiness, and the latest deployment."
-        width="2560"
-        height="1440"
+        alt="Example PostgreSQL Datastore showing production and staging selection, runtime state, server readiness, and the latest deployment."
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -239,9 +239,9 @@ mode: "custom"
     <div className="towbar-product-dark">
       <img
         src="/assets/release-v2/resource-overview-dark.jpg"
-        alt="Example PostgreSQL resource showing production and staging selection, runtime state, server readiness, and the latest deployment."
-        width="2560"
-        height="1440"
+        alt="Example PostgreSQL Datastore showing production and staging selection, runtime state, server readiness, and the latest deployment."
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -267,8 +267,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/server-overview-light.jpg"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
-        width="2560"
-        height="1440"
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -277,8 +277,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/server-overview-dark.jpg"
         alt="An example server’s host capacity panel showing CPU, memory, disk usage, and uptime."
-        width="2560"
-        height="1440"
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -291,9 +291,9 @@ mode: "custom"
     <p className="towbar-feature-label">Preview Deployments</p>
     <h2 id="previews-heading">See the change before you merge.</h2>
     <p>
-      Give pull requests their own app environment and a stable URL to share.
-      Use separate preview secrets, follow each deployment, and let Towbar clean
-      up environments when pull requests close or merge.
+      Give pull requests their own Service environment and a stable URL to
+      share. Use separate preview secrets, follow each deployment, and let
+      Towbar clean up environments when pull requests close or merge.
     </p>
     <a className="towbar-link" href="/docs/previews">
       Explore previews <span aria-hidden="true">→</span>
@@ -304,8 +304,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/previews-light.jpg"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
-        width="2560"
-        height="1440"
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -314,8 +314,8 @@ mode: "custom"
       <img
         src="/assets/release-v2/previews-dark.jpg"
         alt="Example Towbar pull request previews showing URLs, commits, expiry times, health status, and cleanup retry details."
-        width="2560"
-        height="1440"
+        width="3200"
+        height="1800"
         sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
         loading="lazy"
       />
@@ -327,15 +327,15 @@ mode: "custom"
     <div className="towbar-feature-copy">
       <p className="towbar-feature-label">Secret Management</p>
       <h2 id="secrets-heading">Keep credentials out of Git.</h2>
-      <p>Store encrypted secrets at workspace or workload scope. Reference workspace values explicitly. Admins can reveal values and use the File editor; Members can submit replacements without revealing existing values. Keep app values separate for each environment and preview.</p>
+      <p>Store encrypted secrets at workspace or workload scope. Reference workspace values explicitly. Admins can reveal values and use the File editor; Members can submit replacements without revealing existing values. Keep Service values separate for each environment and preview.</p>
       <a className="towbar-link" href="/docs/secrets">Explore secrets <span aria-hidden="true">→</span></a>
     </div>
     <div className="towbar-feature-image">
       <div className="towbar-product-light">
-        <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="2560" height="1440" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/shared-secrets-light.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="3200" height="1800" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
       <div className="towbar-product-dark">
-        <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="2560" height="1440" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
+        <img src="/assets/release-v2/shared-secrets-dark.jpg" alt="Shared secret settings in an example Towbar workspace. Stored values stay masked." width="3200" height="1800" sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px" loading="lazy" />
       </div>
     </div>
   </section>
@@ -353,7 +353,7 @@ mode: "custom"
     <h2 id="scout-heading">Meet Scout Agent.</h2>
     <p>
       Your server’s monitoring companion. Follow CPU, memory, disk, and network
-      usage across your servers, apps, and resources, with updates every 30
+      usage across your servers, Services, and Datastores, with updates every 30
       seconds.
     </p>
     <a className="towbar-link" href="/docs/scout">
@@ -368,9 +368,10 @@ mode: "custom"
       <p className="towbar-feature-label">Performance monitoring</p>
       <h2 id="monitoring-heading">See what changed, and when.</h2>
       <p>
-        Follow CPU, memory, disk, and network history across your servers, apps,
-        and resources. Select an entity in the sidebar, zoom into a time range,
-        and use deployment and restart markers to investigate changes.
+        Follow CPU, memory, disk, and network history across your servers,
+        Services, and Datastores. Select an entity in the sidebar, zoom into a
+        time range, and use deployment and restart markers to investigate
+        changes.
       </p>
       <a className="towbar-link" href="/docs/monitoring">
         Explore monitoring <span aria-hidden="true">→</span>
@@ -381,8 +382,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/performance-light.jpg"
           alt="Performance history with entity navigation and resource usage charts."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -391,8 +392,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/performance-dark.jpg"
           alt="Performance history with entity navigation and resource usage charts."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -418,8 +419,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/incident-detail-light.jpg"
           alt="Incident details with severity, measurements, and notification timing."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -428,8 +429,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/incident-detail-dark.jpg"
           alt="Incident details with severity, measurements, and notification timing."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -441,7 +442,7 @@ mode: "custom"
       <p className="towbar-feature-label">Vulnerability scanning</p>
       <h2 id="vulnerabilities-heading">Inspect the image you deployed.</h2>
       <p>
-        Opt apps into image scanning after successful deployments. Filter
+        Opt Services into image scanning after successful deployments. Filter
         findings by severity, inspect affected packages and available fixes, and
         follow each finding back to its deployment. Scan results include their
         freshness and stay separate from deployment health.
@@ -455,8 +456,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/vulnerabilities-light.jpg"
           alt="Workspace vulnerability findings with severity filters, packages, and fixed versions."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -465,8 +466,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/vulnerabilities-dark.jpg"
           alt="Workspace vulnerability findings with severity filters, packages, and fixed versions."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           sizes="(max-width: 640px) calc(100vw - 42px), (max-width: 900px) calc(100vw - 66px), (max-width: 1200px) calc(59.524vw - 78.19px), 636px"
           loading="lazy"
         />
@@ -495,8 +496,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/team-members-light.jpg"
           alt="Team members and pending invitations with Admin, Member, and Viewer roles."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           loading="lazy"
         />
       </div>
@@ -504,8 +505,8 @@ mode: "custom"
         <img
           src="/assets/release-v2/team-members-dark.jpg"
           alt="Team members and pending invitations with Admin, Member, and Viewer roles."
-          width="2560"
-          height="1440"
+          width="3200"
+          height="1800"
           loading="lazy"
         />
       </div>

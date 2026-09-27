@@ -1,0 +1,107 @@
+---
+title: "Keycloak"
+description: "Keycloak provides sign-in and single sign-on for applications."
+icon: "/assets/use-case-logos/keycloak.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/keycloak.svg"
+  alt="Keycloak logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://www.keycloak.org/server/containers).
+
+Keycloak needs PostgreSQL and a production start command. Towbar routes HTTPS to Keycloak's internal HTTP port; its hostname and proxy-header settings must match that route. The database is a private Compose service here, not a Towbar-managed Datastore.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/keycloak.compose.yml"
+id: keycloak
+name: Keycloak
+file: deploy/keycloak/compose.yml
+strategy: maintenance
+services:
+  keycloak:
+    port: 8080
+    domains:
+      - keycloak.example.com
+    ingress:
+      type: proxy
+  postgresql: {}
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - POSTGRES_PASSWORD
+    - KC_BOOTSTRAP_ADMIN_PASSWORD
+```
+
+## Compose project
+
+```yaml title="deploy/keycloak/compose.yml"
+services:
+  postgresql:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U keycloak -d keycloak
+      interval: 10s
+      retries: 10
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.3@sha256:6a7217a100bd3e5de4063a27a538ef999a3c5a88c4b4ec0ffc0a642aee7b2597
+    command:
+      - start
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: https://keycloak.example.com
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+volumes:
+  database: {}
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these files. Replace the example server IP and domain.
+2. Commit every file shown below under `deploy/keycloak/`. The Towbar manifest points to the Compose file; it does not create it for you.
+3. Sync the repository and inspect the resolved Compose project. Save the runtime values below if this example declares any.
+4. Use `start`, never `start-dev`, for this public hostname. Replace the hostname in the Compose file and Towbar route together.
+5. Back up the PostgreSQL volume before changing Keycloak versions. The example uses the standard image; an optimized custom image is an optional later improvement.
+6. Deploy it manually and run the verification below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Compose project after the repository sync. The manifest declares required keys, not their values.
+
+| Key                           | Value to save                                   |
+| ----------------------------- | ----------------------------------------------- |
+| `POSTGRES_PASSWORD`           | Generate a unique PostgreSQL password.          |
+| `KC_BOOTSTRAP_ADMIN_PASSWORD` | Generate a strong first administrator password. |
+
+## Verify
+
+Finish the administrator login, create a realm and test user, then confirm the realm remains after redeployment. Verify external redirect URLs use HTTPS.
+
+For field constraints, see [Compose guide](/docs/services/modes/compose).

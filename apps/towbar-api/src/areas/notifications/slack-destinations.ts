@@ -9,6 +9,10 @@ import {
 import { badRequest } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import {
+  deploymentSubscriptionCategories,
+  hasOneDeploymentSubscription,
+} from "./deployment-subscriptions.js";
 
 export const slackDestinationsSchema = z
   .object({
@@ -18,10 +22,15 @@ export const slackDestinationsSchema = z
           .object({
             channelId: slackNotificationConfigSchema.shape.channelId,
             deployments: z.boolean(),
+            deploymentFailures: z.boolean(),
             backupsAndRestores: z.boolean(),
             scout: z.boolean(),
           })
-          .strict(),
+          .strict()
+          .refine(
+            hasOneDeploymentSubscription,
+            "Choose one deployment subscription",
+          ),
       )
       .max(100)
       .refine(
@@ -44,10 +53,13 @@ function legacySlackDestinations(): SlackDestinationInput[] {
     const row = byChannel.get(channelId) ?? {
       channelId,
       deployments: false,
+      deploymentFailures: false,
       backupsAndRestores: false,
       scout: false,
     };
     row.deployments ||= route.categories.includes("deployments");
+    row.deploymentFailures ||= route.categories.includes("deploymentFailures");
+    if (row.deployments) row.deploymentFailures = false;
     row.backupsAndRestores ||=
       route.categories.includes("backups") ||
       route.categories.includes("restores");
@@ -150,7 +162,7 @@ function routeForRow(
     provider: "slack" as const,
     enabled: true,
     categories: [
-      ...(row.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(row),
       ...(row.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),

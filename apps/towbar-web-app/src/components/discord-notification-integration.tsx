@@ -21,23 +21,24 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { NotificationProviderIcon } from "./notification-provider-icon";
 import { PageSelectionTitle } from "./page-selection-title";
+import { DeploymentNotificationChoice } from "./deployment-notification-choice";
 
 type DiscordDestination = {
   routeId: string;
   webhookId: string;
   deployments: boolean;
+  deploymentFailures: boolean;
   backupsAndRestores: boolean;
   alertsAndIncidents: boolean;
 };
 type Column = keyof Pick<
   DiscordDestination,
-  "deployments" | "backupsAndRestores" | "alertsAndIncidents"
+  "backupsAndRestores" | "alertsAndIncidents"
 >;
 
 const columns: Array<{ key: Column; label: string }> = [
-  { key: "deployments", label: "Deployments" },
   { key: "backupsAndRestores", label: "Backup & Restore" },
-  { key: "alertsAndIncidents", label: "Alerts & Incidents" },
+  { key: "alertsAndIncidents", label: "Incidents" },
 ];
 const endpoint = "/v1/core/notifications/discord/destinations";
 
@@ -141,6 +142,34 @@ export function DiscordNotificationIntegration() {
       header: "ID",
       className: "min-w-36 whitespace-nowrap !py-1.5",
       cell: (row) => row.webhookId,
+    },
+    {
+      key: "deployments",
+      header: "Deployments",
+      className: "min-w-64 !py-1.5",
+      cell: (row) => (
+        <DeploymentNotificationChoice
+          name={`discord-deployments-${row.routeId}`}
+          label={row.webhookId}
+          disabled={saving}
+          value={
+            row.deployments ? "all" : row.deploymentFailures ? "failures" : null
+          }
+          onChange={(value) =>
+            void persist(
+              destinations.map((item) =>
+                item.routeId === row.routeId
+                  ? {
+                      ...item,
+                      deployments: value === "all",
+                      deploymentFailures: value === "failures",
+                    }
+                  : item,
+              ),
+            )
+          }
+        />
+      ),
     },
     ...columns.map(({ key, label }) => ({
       key,

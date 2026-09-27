@@ -11,7 +11,7 @@ Create personal keys in **Manage → My Settings → API Keys**. Admins create t
 | -------------------------- | ---------------------------------------------------- |
 | Scope                      | Personal; Team for Admins                            |
 | Access                     | Read-only; Edit for Members and Admins               |
-| Administrative permissions | Admins only, with Edit                               |
+| Administrative permissions | Admins only; includes Edit                           |
 | Expiry                     | 30 days, 90 days (default), 1 year; Never for Admins |
 
 Read-only grants permitted operational reads, not credential reveal. Edit adds repository, secret-update and Scout operations allowed by the current role. Administrative permissions add supported deployment and infrastructure actions. Browser-only account management, key creation and credential reveal remain unavailable to API/MCP tokens.
@@ -34,9 +34,9 @@ Create a replacement key, update the consumer, verify a permitted request, then 
 
 ## Configure rate limits
 
-Set these in `/etc/towbar/towbar.yml`, then run `sudo towbar config validate` and `sudo towbar restart`:
+Set these in `/etc/towbar/config.yml`, then run `sudo towbar config validate` and `sudo towbar restart`:
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 security:
   apiRateLimit:
     max: 60

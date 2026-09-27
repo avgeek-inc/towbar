@@ -1,0 +1,1382 @@
+[
+  {
+    "id": 1,
+    "category": "oss/analytics",
+    "slug": "umami",
+    "title": "Umami",
+    "approach": "Image Service plus a PostgreSQL Datastore on the same private network.",
+    "verify": "Current Umami requires PostgreSQL and a runtime `DATABASE_URL`; do not use an older MySQL recipe.",
+    "upstream": "https://docs.umami.is/docs/install",
+    "description": "Umami is a privacy-focused website analytics tool for tracking visits, pages, and events."
+  },
+  {
+    "id": 2,
+    "category": "oss/observability",
+    "slug": "grafana",
+    "title": "Grafana",
+    "approach": "Adapt Grafana's upstream Compose setup, with persistent storage for `/var/lib/grafana`.",
+    "verify": "Choose the current `grafana/grafana` OSS image and back up the Service volume separately.",
+    "upstream": "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
+    "description": "Grafana helps teams explore metrics, logs, and other operational data through dashboards."
+  },
+  {
+    "id": 3,
+    "category": "oss/developer-tools",
+    "slug": "gitea",
+    "title": "Gitea",
+    "approach": "Adapt the upstream Compose project, preserving its persistent data volume.",
+    "verify": "Preserve `/data`; web routing does not by itself expose Git-over-SSH.",
+    "upstream": "https://docs.gitea.com/next/installation/install-with-docker/",
+    "description": "Gitea is a lightweight Git hosting service for repositories, code reviews, and team collaboration."
+  },
+  {
+    "id": 4,
+    "category": "oss/developer-tools",
+    "slug": "forgejo",
+    "title": "Forgejo",
+    "approach": "Adapt its upstream container installation to a Compose project.",
+    "verify": "Preserve `/data` and plan SSH access separately from HTTP routing.",
+    "upstream": "https://forgejo.org/docs/latest/admin/installation/docker/",
+    "description": "Forgejo is a self-hosted Git forge for code, issues, reviews, and collaboration."
+  },
+  {
+    "id": 5,
+    "category": "oss/security",
+    "slug": "vaultwarden",
+    "title": "Vaultwarden",
+    "approach": "Adapt the upstream Compose setup with a persistent volume at `/data`.",
+    "verify": "Set the public `DOMAIN` through a runtime value and verify TLS before creating accounts.",
+    "upstream": "https://github.com/dani-garcia/vaultwarden/blob/main/README.md",
+    "description": "Vaultwarden is a lightweight server for Bitwarden-compatible password vaults."
+  },
+  {
+    "id": 6,
+    "category": "oss/observability",
+    "slug": "uptime-kuma",
+    "title": "Uptime Kuma",
+    "approach": "Image Service with a named volume at `/app/data`.",
+    "verify": "Use local storage with POSIX file locking; keep a separate copy of the Service volume.",
+    "upstream": "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
+    "description": "Uptime Kuma monitors websites and services and displays their availability on status pages."
+  },
+  {
+    "id": 7,
+    "category": "oss/analytics",
+    "slug": "metabase",
+    "title": "Metabase",
+    "approach": "Adapt the upstream Compose setup with a PostgreSQL application database in the same Compose project.",
+    "verify": "Configure the application database per upstream guidance; its embedded default is a quick start, not the production plan.",
+    "upstream": "https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker",
+    "description": "Metabase helps teams explore data, build dashboards, and share answers."
+  },
+  {
+    "id": 8,
+    "category": "oss/content-media",
+    "slug": "paperless-ngx",
+    "title": "Paperless-ngx",
+    "approach": "Adapt the upstream PostgreSQL Compose variant, including its own database service.",
+    "verify": "Its Compose setup has multiple dependencies and persistent directories; replace unsupported bind mounts with permitted volumes or use another deployment method.",
+    "upstream": "https://docs.paperless-ngx.com/setup/",
+    "description": "Paperless-ngx organizes scanned documents and PDFs into a searchable digital archive."
+  },
+  {
+    "id": 9,
+    "category": "oss/developer-tools",
+    "slug": "meilisearch",
+    "title": "Meilisearch",
+    "approach": "Adapt the upstream Compose setup with a persistent data volume.",
+    "verify": "Set its production master key as a runtime secret and verify the image's data path and health endpoint for the chosen release.",
+    "upstream": "https://www.meilisearch.com/integrations/docker",
+    "description": "Meilisearch adds fast, typo-tolerant search to applications."
+  },
+  {
+    "id": 10,
+    "category": "oss/content-media",
+    "slug": "jellyfin",
+    "title": "Jellyfin",
+    "approach": "Adapt the upstream container setup for HTTP streaming with persistent configuration, cache, and media storage.",
+    "verify": "The HTTP app listens on port 8096. DLNA, host networking, and hardware transcoding need separate platform capabilities.",
+    "upstream": "https://jellyfin.org/docs/general/installation/container/",
+    "description": "Jellyfin organizes and streams movies, shows, music, and other personal media."
+  },
+  {
+    "id": 11,
+    "category": "services/build",
+    "slug": "011-existing-dockerfile",
+    "title": "Existing Dockerfile",
+    "approach": "Use `deployment.type: dockerfile`, `context`, and `dockerfile`. [Example](/docs/services/modes/dockerfile)",
+    "verify": "The Dockerfile is inside the committed repository context."
+  },
+  {
+    "id": 12,
+    "category": "services/build",
+    "slug": "012-multi-stage-dockerfile",
+    "title": "Multi-stage Dockerfile",
+    "approach": "Add `deployment.target` to select the runtime stage. [Example](/docs/services/modes/dockerfile)",
+    "verify": "The selected stage contains the executable and listens on `container.port`."
+  },
+  {
+    "id": 13,
+    "category": "services/build",
+    "slug": "013-private-package-at-build-time",
+    "title": "Private packages",
+    "approach": "Declare `secrets.build` and mount it through BuildKit in a Dockerfile. [Secrets](/docs/secrets/towbar)",
+    "verify": "The credential is not copied into an image layer or browser bundle."
+  },
+  {
+    "id": 14,
+    "category": "services/build",
+    "slug": "014-separate-build-server",
+    "title": "Build server",
+    "approach": "Set `buildServer` for a source-build Service. [Modes](/docs/platform-deployments)",
+    "verify": "The builder is registered and has capacity; the runtime server remains the environment target."
+  },
+  {
+    "id": 15,
+    "category": "services/build",
+    "slug": "015-static-site",
+    "title": "Static site",
+    "approach": "Use `deployment.type: static`, `buildCommand`, and `output`. [Example](/docs/services/modes/static)",
+    "verify": "The output directory exists and the runtime listens on the declared port."
+  },
+  {
+    "id": 16,
+    "category": "services/build",
+    "slug": "016-single-page-app",
+    "title": "Single-page app",
+    "approach": "In static mode, set `spaFallback: true`. [Example](/docs/services/modes/static)",
+    "verify": "Direct navigation to a client-side route returns the entry page."
+  },
+  {
+    "id": 17,
+    "category": "services/build",
+    "slug": "017-railpack-detected-project",
+    "title": "Railpack-detected project",
+    "approach": "Use the pinned `railpack` version and frontend image from its guide. [Example](/docs/services/modes/railpack)",
+    "verify": "Inspect the detected build and start process; this mode cannot use build secrets."
+  },
+  {
+    "id": 18,
+    "category": "services/build",
+    "slug": "018-existing-nixpacks-project",
+    "title": "Nixpacks project",
+    "approach": "Use the pinned `nixpacks` builder and optional `configFile`. [Example](/docs/services/modes/nixpacks)",
+    "verify": "Its generated image starts correctly; this mode cannot use build secrets."
+  },
+  {
+    "id": 19,
+    "category": "services/build",
+    "slug": "019-buildpack-project",
+    "title": "Buildpack project",
+    "approach": "Pin `packImage` and a reviewed `builder`. [Example](/docs/services/modes/buildpack)",
+    "verify": "An arbitrary builder digest is rejected; this mode cannot use build secrets."
+  },
+  {
+    "id": 20,
+    "category": "services/build",
+    "slug": "020-prebuilt-oci-image",
+    "title": "OCI image",
+    "approach": "Run a reviewed OCI image with an explicit digest. [Image deployment](/docs/services/modes/image)",
+    "verify": "`latest` is rejected; pin a reviewed tag or digest and verify the image listens on the declared port."
+  },
+  {
+    "id": 21,
+    "category": "services/runtime",
+    "slug": "021-http-api",
+    "title": "HTTP API",
+    "approach": "Set `container.port` and `health.path`. [Container and health](/docs/services/configuration)",
+    "verify": "The process listens on the container interface and the path answers without login."
+  },
+  {
+    "id": 22,
+    "category": "services/runtime",
+    "slug": "022-slow-startup",
+    "title": "Slow startup",
+    "approach": "Increase `health.timeoutSeconds` only to a measured startup bound. [Container and health](/docs/services/configuration)",
+    "verify": "A candidate still fails when it never becomes ready."
+  },
+  {
+    "id": 23,
+    "category": "services/runtime",
+    "slug": "023-cpu-bound-process",
+    "title": "CPU-bound process",
+    "approach": "Set `container.resources.cpus` and `memory`. [Container and health](/docs/services/configuration)",
+    "verify": "The target server has capacity for the new and old copies during rollout."
+  },
+  {
+    "id": 24,
+    "category": "services/runtime",
+    "slug": "024-private-api",
+    "title": "Private API",
+    "approach": "Set `container.network` and omit public `domains`. [Private connectivity](/docs/services/configuration#private-connectivity)",
+    "verify": "A peer on the same server and network can resolve the alias."
+  },
+  {
+    "id": 25,
+    "category": "services/runtime",
+    "slug": "025-service-plus-postgresql",
+    "title": "PostgreSQL service",
+    "approach": "Give both workloads `container.network: application`; use the Datastore alias and port in a secret URL. [PostgreSQL](/docs/databases/postgresql)",
+    "verify": "No credential is committed and the app can connect after database readiness."
+  },
+  {
+    "id": 26,
+    "category": "services/runtime",
+    "slug": "026-service-plus-redis",
+    "title": "Redis service",
+    "approach": "Share a private network and save an authenticated Redis URL as a runtime secret. [Redis](/docs/databases/redis)",
+    "verify": "The app uses the declared Redis password and the datastore is healthy."
+  },
+  {
+    "id": 27,
+    "category": "services/runtime",
+    "slug": "027-persistent-uploaded-files",
+    "title": "Persistent files",
+    "approach": "Add a named `container.volumes` mount and a `recreate` rollout. [Storage](/docs/services/configuration#persistent-storage)",
+    "verify": "The runtime user can write the mount and files survive a redeploy."
+  },
+  {
+    "id": 28,
+    "category": "services/runtime",
+    "slug": "028-public-https",
+    "title": "Public HTTPS",
+    "approach": "Set `domains.primary` and a supported `tls.mode`. [Routing and TLS](/docs/services/routing)",
+    "verify": "DNS, ingress, and certificate prerequisites are ready before traffic changes."
+  },
+  {
+    "id": 29,
+    "category": "services/runtime",
+    "slug": "029-alternate-domain",
+    "title": "Alternate domain",
+    "approach": "Add a domain alias according to [routing](/docs/services/routing).",
+    "verify": "Both hostnames resolve and route to the intended Service."
+  },
+  {
+    "id": 30,
+    "category": "services/runtime",
+    "slug": "030-single-writer-data",
+    "title": "Single-writer data",
+    "approach": "Use `rollout.type: recreate` with `maintenanceMode: true` and a reason. [Storage](/docs/services/configuration#persistent-storage)",
+    "verify": "A second process never writes the same volume concurrently."
+  },
+  {
+    "id": 31,
+    "category": "services/operations",
+    "slug": "031-required-runtime-credential",
+    "title": "Runtime credential",
+    "approach": "List its key under `secrets.runtime`, then save the value in **Settings → Secrets**. [Towbar secrets](/docs/secrets/towbar)",
+    "verify": "Deployment blocks until the selected environment has the value."
+  },
+  {
+    "id": 32,
+    "category": "services/operations",
+    "slug": "032-private-build-dependency",
+    "title": "Build dependency",
+    "approach": "Declare a build-stage key and use a Dockerfile BuildKit secret mount. [Towbar secrets](/docs/secrets/towbar)",
+    "verify": "The value does not appear in the committed file or final image."
+  },
+  {
+    "id": 33,
+    "category": "services/operations",
+    "slug": "033-infisical-folder",
+    "title": "Infisical folder",
+    "approach": "Set `externalSecrets.integration: infisical`, project, and optional `environmentSlug` or `secretPath`. [External secrets](/docs/secrets/external)",
+    "verify": "The selected folder returns the required runtime keys."
+  },
+  {
+    "id": 34,
+    "category": "services/operations",
+    "slug": "034-doppler-config",
+    "title": "Doppler config",
+    "approach": "Set `externalSecrets.integration: doppler`, project, and optional config. [External secrets](/docs/secrets/external)",
+    "verify": "The runtime token can read that config at deployment time."
+  },
+  {
+    "id": 35,
+    "category": "services/operations",
+    "slug": "035-monorepo-auto-deploy",
+    "title": "Monorepo auto-deploy",
+    "approach": "List relevant paths in `autoDeploy.inputs`. [Automation](/docs/services/automation)",
+    "verify": "Shared packages and lockfiles are included, not only the app directory."
+  },
+  {
+    "id": 36,
+    "category": "services/operations",
+    "slug": "036-pull-request-preview",
+    "title": "Pull-request preview",
+    "approach": "Enable previews in root `towbar.yml`, then set the Service `preview` block. [Previews](/docs/previews)",
+    "verify": "Preview secrets are isolated and the preview domain resolves."
+  },
+  {
+    "id": 37,
+    "category": "services/operations",
+    "slug": "037-daily-report",
+    "title": "Daily report",
+    "approach": "Add a `jobs` entry with an argument-array command and five-field cron. [Jobs](/docs/services/jobs)",
+    "verify": "It runs from the deployed image and does not overlap itself."
+  },
+  {
+    "id": 38,
+    "category": "services/operations",
+    "slug": "038-pre-deploy-migration",
+    "title": "Pre-deploy migration",
+    "approach": "Use a pre-deploy hook and stage-specific secrets. [Deployment hooks](/docs/deployments#deployment-hooks)",
+    "verify": "The migration is safe to retry and compatible with rollback."
+  },
+  {
+    "id": 39,
+    "category": "services/operations",
+    "slug": "039-event-notifications",
+    "title": "Event notifications",
+    "approach": "Add `notifications` to select workspace-configured destinations. [Notifications](/docs/integrations/notifications)",
+    "verify": "The destination is enabled and has a tested delivery route."
+  },
+  {
+    "id": 40,
+    "category": "services/operations",
+    "slug": "040-image-vulnerability-scan",
+    "title": "Vulnerability scanning",
+    "approach": "Set `vulnerabilityScanning` and review the result before release. [Scanning](/docs/vulnerability-scanning)",
+    "verify": "Findings are assessed for the exact image digest being deployed."
+  },
+  {
+    "id": 41,
+    "category": "datastores/sql",
+    "slug": "041-postgresql-for-one-service",
+    "title": "Single-service PostgreSQL",
+    "approach": "Set `type: postgres`, a private network, and the required `POSTGRES_PASSWORD`.",
+    "verify": "The Service uses the declared private network alias on port 5432 and its own secret connection URL."
+  },
+  {
+    "id": 42,
+    "category": "datastores/sql",
+    "slug": "042-postgresql-with-named-database",
+    "title": "Named PostgreSQL",
+    "approach": "Declare `POSTGRES_USER` and `POSTGRES_DB` alongside the password.",
+    "verify": "Set values before first initialization; changing them later does not rename an existing role or database."
+  },
+  {
+    "id": 43,
+    "category": "datastores/sql",
+    "slug": "043-postgresql-for-an-operator-laptop",
+    "title": "PostgreSQL tunnel",
+    "approach": "Add `access.sshTunnel.hostPort` to the Datastore.",
+    "verify": "Reach the loopback-bound port through SSH; do not publish the database port publicly."
+  },
+  {
+    "id": 44,
+    "category": "datastores/sql",
+    "slug": "044-postgresql-with-daily-backups",
+    "title": "PostgreSQL backups",
+    "approach": "Add a [backup policy](/docs/backups) with an enabled provider, daily cron, and retention.",
+    "verify": "Create and restore-test a representative recovery point."
+  },
+  {
+    "id": 45,
+    "category": "datastores/sql",
+    "slug": "045-mysql-for-an-api",
+    "title": "MySQL API",
+    "approach": "Use `type: mysql`, a private network, and `MYSQL_ROOT_PASSWORD`.",
+    "verify": "The app uses port `3306` with an application user, not Towbar's root credential."
+  },
+  {
+    "id": 46,
+    "category": "datastores/sql",
+    "slug": "046-mysql-application-schema",
+    "title": "MySQL schema",
+    "approach": "Declare `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD` before first deployment.",
+    "verify": "Check the user and schema actually exist after initialization."
+  },
+  {
+    "id": 47,
+    "category": "datastores/sql",
+    "slug": "047-mysql-with-off-host-copies",
+    "title": "MySQL copies",
+    "approach": "Add a backup destination and retention policy.",
+    "verify": "The provider credentials are enabled and a restore into a fresh target succeeds."
+  },
+  {
+    "id": 48,
+    "category": "datastores/sql",
+    "slug": "048-mariadb-for-a-cms",
+    "title": "MariaDB CMS",
+    "approach": "Use `type: mariadb`, private networking, and `MYSQL_ROOT_PASSWORD`.",
+    "verify": "The CMS image's client and schema are compatible with this MariaDB major version."
+  },
+  {
+    "id": 49,
+    "category": "datastores/sql",
+    "slug": "049-mariadb-application-role",
+    "title": "MariaDB role",
+    "approach": "Declare `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD` at creation.",
+    "verify": "Do not assume changing the saved values rotates an existing role."
+  },
+  {
+    "id": 50,
+    "category": "datastores/sql",
+    "slug": "050-mariadb-with-ssh-access",
+    "title": "MariaDB tunnel",
+    "approach": "Add a loopback-only SSH tunnel port and keep regular app traffic private.",
+    "verify": "An SSH-forwarded client connects; the server firewall does not expose `3306`."
+  },
+  {
+    "id": 51,
+    "category": "datastores/document-analytics",
+    "slug": "051-mongodb-for-a-private-api",
+    "title": "MongoDB API",
+    "approach": "Use `type: mongodb` and the same `container.network` as the API.",
+    "verify": "The API reaches the Datastore alias on port `27017`."
+  },
+  {
+    "id": 52,
+    "category": "datastores/document-analytics",
+    "slug": "052-mongodb-root-initialization",
+    "title": "MongoDB initialization",
+    "approach": "Declare `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD`.",
+    "verify": "Set them before the data volume is initialized."
+  },
+  {
+    "id": 53,
+    "category": "datastores/document-analytics",
+    "slug": "053-mongodb-app-specific-user",
+    "title": "MongoDB user",
+    "approach": "Create a least-privilege database user after initialization.",
+    "verify": "The Service uses that user; Towbar's managed root credential stays separate."
+  },
+  {
+    "id": 54,
+    "category": "datastores/document-analytics",
+    "slug": "054-mongodb-operator-access",
+    "title": "MongoDB access",
+    "approach": "Add `access.sshTunnel.hostPort` without public database routing.",
+    "verify": "The client authenticates to the correct database through SSH."
+  },
+  {
+    "id": 55,
+    "category": "datastores/document-analytics",
+    "slug": "055-mongodb-recovery",
+    "title": "MongoDB recovery",
+    "approach": "Schedule a provider-backed backup and practice a fresh-target restore.",
+    "verify": "The archive can be read by an application after restore."
+  },
+  {
+    "id": 56,
+    "category": "datastores/document-analytics",
+    "slug": "056-clickhouse-for-event-analytics",
+    "title": "ClickHouse analytics",
+    "approach": "Use `type: clickhouse` on the analytics Service's private network.",
+    "verify": "The Service reaches the preset's HTTP port `8123`."
+  },
+  {
+    "id": 57,
+    "category": "datastores/document-analytics",
+    "slug": "057-clickhouse-credentials",
+    "title": "ClickHouse credentials",
+    "approach": "Declare `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD`.",
+    "verify": "The values are saved in the selected environment before deployment."
+  },
+  {
+    "id": 58,
+    "category": "datastores/document-analytics",
+    "slug": "058-clickhouse-database-selection",
+    "title": "ClickHouse selection",
+    "approach": "Optionally declare `CLICKHOUSE_DB` before initial deployment.",
+    "verify": "The intended database exists and the client is pointed at it."
+  },
+  {
+    "id": 59,
+    "category": "datastores/document-analytics",
+    "slug": "059-clickhouse-resource-sizing",
+    "title": "ClickHouse sizing",
+    "approach": "Set `container.resources` for measured ingest and query load.",
+    "verify": "The target server has enough CPU, memory, and disk headroom."
+  },
+  {
+    "id": 60,
+    "category": "datastores/document-analytics",
+    "slug": "060-clickhouse-recovery",
+    "title": "ClickHouse recovery",
+    "approach": "Add a supported backup provider and test a fresh-target archive restore.",
+    "verify": "Query representative data on the restored Datastore."
+  },
+  {
+    "id": 61,
+    "category": "datastores/cache",
+    "slug": "061-redis-for-sessions",
+    "title": "Redis sessions",
+    "approach": "Use `type: redis`, a private network, and `REDIS_PASSWORD`.",
+    "verify": "The Service uses an authenticated URL on port `6379`."
+  },
+  {
+    "id": 62,
+    "category": "datastores/cache",
+    "slug": "062-redis-for-a-queue",
+    "title": "Redis queue",
+    "approach": "Give the producer and worker the same private network and secret URL.",
+    "verify": "Both clients handle reconnection and use the intended database or key prefix."
+  },
+  {
+    "id": 63,
+    "category": "datastores/cache",
+    "slug": "063-redis-with-operator-tunnel",
+    "title": "Redis tunnel",
+    "approach": "Add `access.sshTunnel.hostPort`.",
+    "verify": "The loopback port is reached only over SSH; no public cache port is needed."
+  },
+  {
+    "id": 64,
+    "category": "datastores/cache",
+    "slug": "064-redis-recovery",
+    "title": "Redis recovery",
+    "approach": "Run a backup and verify a fresh-target RDB restore.",
+    "verify": "The restored data supports the application and append-only persistence resumes."
+  },
+  {
+    "id": 65,
+    "category": "datastores/cache",
+    "slug": "065-dragonfly-for-a-redis-protocol-client",
+    "title": "Dragonfly client",
+    "approach": "Use `type: dragonfly` and `REDIS_PASSWORD`.",
+    "verify": "Test the application's actual commands against Dragonfly, not just connection establishment."
+  },
+  {
+    "id": 66,
+    "category": "datastores/cache",
+    "slug": "066-dragonfly-private-endpoint",
+    "title": "Dragonfly endpoint",
+    "approach": "Share `container.network` with the consuming Service.",
+    "verify": "The Service reaches the Dragonfly alias on port `6379`."
+  },
+  {
+    "id": 67,
+    "category": "datastores/cache",
+    "slug": "067-dragonfly-recovery",
+    "title": "Dragonfly recovery",
+    "approach": "Test a verified snapshot and a same-engine restore.",
+    "verify": "The restored dataset is readable before traffic moves."
+  },
+  {
+    "id": 68,
+    "category": "datastores/cache",
+    "slug": "068-keydb-on-an-amd64-server",
+    "title": "KeyDB amd64",
+    "approach": "Use `type: keydb` and `REDIS_PASSWORD`.",
+    "verify": "KeyDB's reviewed image is amd64-only; admission rejects arm64."
+  },
+  {
+    "id": 69,
+    "category": "datastores/cache",
+    "slug": "069-keydb-private-endpoint",
+    "title": "KeyDB endpoint",
+    "approach": "Share a network with the consuming Service and keep the port private.",
+    "verify": "An authenticated client can use port `6379`."
+  },
+  {
+    "id": 70,
+    "category": "datastores/cache",
+    "slug": "070-keydb-recovery",
+    "title": "KeyDB recovery",
+    "approach": "Back up and restore into a fresh KeyDB target.",
+    "verify": "The target uses the supported KeyDB major version."
+  },
+  {
+    "id": 71,
+    "category": "datastores/recovery",
+    "slug": "071-manual-backup-before-a-change",
+    "title": "Manual backup",
+    "approach": "Configure an enabled storage provider and choose **Back up now**.",
+    "verify": "The stored copy passes Towbar's restore-readiness check."
+  },
+  {
+    "id": 72,
+    "category": "datastores/recovery",
+    "slug": "072-daily-retention",
+    "title": "Daily retention",
+    "approach": "Add `backup.schedule` with UTC cron and `retention.keepLast`.",
+    "verify": "The schedule is at least hourly and old copies are eventually removed."
+  },
+  {
+    "id": 73,
+    "category": "datastores/recovery",
+    "slug": "073-aws-s3-destination",
+    "title": "AWS S3",
+    "approach": "Use `backup.integration: aws` with the runtime AWS provider enabled.",
+    "verify": "The runtime identity can write, read, and delete under the intended location."
+  },
+  {
+    "id": 74,
+    "category": "datastores/recovery",
+    "slug": "074-s3-compatible-destination",
+    "title": "S3-compatible destination",
+    "approach": "Select an enabled `s3` or `r2` provider as appropriate.",
+    "verify": "Endpoint, bucket, encryption, and credentials match the runtime integration."
+  },
+  {
+    "id": 75,
+    "category": "datastores/recovery",
+    "slug": "075-google-cloud-destination",
+    "title": "Google Cloud",
+    "approach": "Select an enabled `gcs` provider.",
+    "verify": "The runtime identity can write and read the designated bucket."
+  },
+  {
+    "id": 76,
+    "category": "datastores/recovery",
+    "slug": "076-two-cloud-copies",
+    "title": "Cloud copies",
+    "approach": "Declare both `s3` and `gcs` destinations and set `restoreFrom`.",
+    "verify": "Both copies verify; the chosen restore source remains accessible."
+  },
+  {
+    "id": 77,
+    "category": "datastores/recovery",
+    "slug": "077-restore-drill",
+    "title": "Restore drill",
+    "approach": "Restore a known recovery point into a fresh target.",
+    "verify": "Query representative data through an application client before promotion."
+  },
+  {
+    "id": 78,
+    "category": "datastores/recovery",
+    "slug": "078-new-server-placement",
+    "title": "Server placement",
+    "approach": "Override the Datastore's server in another environment.",
+    "verify": "Save that environment's secrets and confirm its server supports the engine architecture."
+  },
+  {
+    "id": 79,
+    "category": "datastores/recovery",
+    "slug": "079-database-password-rotation",
+    "title": "Password rotation",
+    "approach": "Change the user inside the database first, then update Towbar's saved value.",
+    "verify": "Health, application connections, backup, and restore operations all authenticate."
+  },
+  {
+    "id": 80,
+    "category": "datastores/recovery",
+    "slug": "080-incident-investigation",
+    "title": "Incident investigation",
+    "approach": "Inspect recovery-point freshness and operation events.",
+    "verify": "Distinguish a late backup from an unreadable or incompatible one."
+  },
+  {
+    "id": 81,
+    "category": "stacks/web",
+    "slug": "081-api-with-postgresql",
+    "title": "PostgreSQL stack",
+    "approach": "Dockerfile Service + scoped PostgreSQL Datastore; the secret URL uses the Datastore's declared network alias on port 5432. [PostgreSQL](/docs/databases/postgresql)",
+    "verify": "The app can query using a non-root application role."
+  },
+  {
+    "id": 82,
+    "category": "stacks/web",
+    "slug": "082-api-with-mysql",
+    "title": "MySQL stack",
+    "approach": "Dockerfile Service + scoped MySQL Datastore; the secret URL uses the Datastore's declared network alias on port 3306. [MySQL](/docs/databases/mysql)",
+    "verify": "The chosen client and schema match MySQL 8.4."
+  },
+  {
+    "id": 83,
+    "category": "stacks/web",
+    "slug": "083-cms-with-mariadb",
+    "title": "MariaDB stack",
+    "approach": "CMS Service + `mariadb` Datastore; share a network and use an app user. [MariaDB](/docs/databases/mariadb)",
+    "verify": "The CMS release supports the managed MariaDB version."
+  },
+  {
+    "id": 84,
+    "category": "stacks/web",
+    "slug": "084-api-with-mongodb",
+    "title": "MongoDB stack",
+    "approach": "API Service + `mongodb` Datastore; create an app user apart from Towbar's root user. [MongoDB](/docs/databases/mongodb)",
+    "verify": "The URL selects the correct authentication database."
+  },
+  {
+    "id": 85,
+    "category": "stacks/web",
+    "slug": "085-web-sessions-with-redis",
+    "title": "Session stack",
+    "approach": "Web Service + `redis` Datastore; use a secret authenticated URL. [Redis](/docs/databases/redis)",
+    "verify": "Session behavior remains correct after a Redis restart."
+  },
+  {
+    "id": 86,
+    "category": "stacks/web",
+    "slug": "086-queue-client-with-dragonfly",
+    "title": "Dragonfly queue",
+    "approach": "Producer Service + worker Service + `dragonfly` Datastore. [Dragonfly](/docs/databases/dragonfly)",
+    "verify": "The queue library's actual commands work with Dragonfly."
+  },
+  {
+    "id": 87,
+    "category": "stacks/web",
+    "slug": "087-search-backed-api",
+    "title": "Search-backed API",
+    "approach": "API Service with `SEARCH_URL` and `SEARCH_KEY` for an existing Meilisearch endpoint. [Meilisearch upstream](https://www.meilisearch.com/integrations/docker)",
+    "verify": "The API can reach the configured search endpoint. Keep the master key in runtime secrets and back up Meilisearch separately."
+  },
+  {
+    "id": 88,
+    "category": "stacks/web",
+    "slug": "088-event-analytics",
+    "title": "Event analytics",
+    "approach": "Ingest Service + `clickhouse` Datastore on one private network. [ClickHouse](/docs/databases/clickhouse)",
+    "verify": "Measure ingest, query, and disk usage before sizing the server."
+  },
+  {
+    "id": 89,
+    "category": "stacks/web",
+    "slug": "089-internal-metabase",
+    "title": "Internal Metabase",
+    "approach": "Metabase and its PostgreSQL application database in one adapted Compose project. [Metabase upstream](https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker)",
+    "verify": "Configure Metabase's application database per upstream guidance."
+  },
+  {
+    "id": 90,
+    "category": "stacks/web",
+    "slug": "090-umami-analytics",
+    "title": "Umami analytics",
+    "approach": "Umami image Service + `postgres` Datastore; `DATABASE_URL` is a runtime secret. [Umami upstream](https://docs.umami.is/docs/install)",
+    "verify": "Use current PostgreSQL guidance and verify the site after first login."
+  },
+  {
+    "id": 91,
+    "category": "stacks/workers",
+    "slug": "091-api-worker-and-redis",
+    "title": "API-worker stack",
+    "approach": "Deploy `redis`, then private API and worker Services on its network.",
+    "verify": "Both Services use authenticated runtime URLs and handle reconnects."
+  },
+  {
+    "id": 92,
+    "category": "stacks/workers",
+    "slug": "092-api-with-a-daily-report",
+    "title": "Daily reports",
+    "approach": "Declare a [job](/docs/services/jobs) on the API's deployed image.",
+    "verify": "The command is present, bounded, and safe to rerun."
+  },
+  {
+    "id": 93,
+    "category": "stacks/workers",
+    "slug": "093-webhook-receiver-and-worker",
+    "title": "Webhook worker",
+    "approach": "Keep the receiver public, worker private, and share a cache or database on one server.",
+    "verify": "The worker has no public domain and failed work can be retried safely."
+  },
+  {
+    "id": 94,
+    "category": "stacks/workers",
+    "slug": "094-static-frontend-and-routed-api",
+    "title": "Frontend API",
+    "approach": "Deploy a static Service and a separately routed API Service.",
+    "verify": "Browser requests use a reachable HTTPS API origin; private Docker DNS is not available to browsers."
+  },
+  {
+    "id": 95,
+    "category": "stacks/workers",
+    "slug": "095-multi-process-repository",
+    "title": "Multi-process repository",
+    "approach": "Use a `.compose.yml` project when components must be deployed together. [Compose](/docs/services/modes/compose)",
+    "verify": "Commit and validate the Compose file; no forbidden host mounts or public host ports remain."
+  },
+  {
+    "id": 96,
+    "category": "stacks/workers",
+    "slug": "096-pull-request-preview-for-web",
+    "title": "Web previews",
+    "approach": "Enable root environment previews and Service preview settings. [Previews](/docs/previews)",
+    "verify": "Preview secrets are isolated; do not assume a Datastore is cloned for each PR."
+  },
+  {
+    "id": 97,
+    "category": "stacks/workers",
+    "slug": "097-staging-and-production",
+    "title": "Staging production",
+    "approach": "Map each environment to its branch and server. [Environment branches](/docs/repositories/environments)",
+    "verify": "Credentials, domains, and capacities are separately set for each environment."
+  },
+  {
+    "id": 98,
+    "category": "stacks/workers",
+    "slug": "098-stateful-web-app",
+    "title": "Stateful web",
+    "approach": "Use a single-writer Service volume with `recreate` rollout plus a Datastore.",
+    "verify": "Back up the Service volume separately from Towbar-managed Datastore backups."
+  },
+  {
+    "id": 99,
+    "category": "stacks/workers",
+    "slug": "099-two-services-and-one-database",
+    "title": "Shared database",
+    "approach": "Deploy the database, save a separate URL in each Service, then deploy them.",
+    "verify": "The least-privilege roles and connection limits fit both clients."
+  },
+  {
+    "id": 100,
+    "category": "stacks/workers",
+    "slug": "100-independent-stacks-on-separate-servers",
+    "title": "Isolated stacks",
+    "approach": "Place each Service and its Datastore on one server, with a second independent pair on another server.",
+    "verify": "Each Service reaches only its local Datastore; a same-name Docker network on two servers does **not** connect them."
+  },
+  {
+    "id": 101,
+    "category": "oss/analytics",
+    "slug": "plausible-ce",
+    "title": "Plausible CE",
+    "composeService": "plausible",
+    "port": 8000,
+    "approach": "Adapt Plausible Community Edition with PostgreSQL and ClickHouse on one server.",
+    "verify": "Keep both database volumes private and persistent; route only Plausible HTTP through Towbar.",
+    "upstream": "https://github.com/plausible/community-edition",
+    "setup": [
+      "Set the public BASE_URL and generate a unique SECRET_KEY_BASE. Keep PostgreSQL and ClickHouse credentials outside Git."
+    ],
+    "description": "Plausible Community Edition is a privacy-focused website analytics platform."
+  },
+  {
+    "id": 102,
+    "category": "oss/analytics",
+    "slug": "matomo",
+    "title": "Matomo",
+    "composeService": "matomo",
+    "port": 80,
+    "approach": "Adapt the official Compose setup with MariaDB and a report-archiving cron container.",
+    "verify": "Verify the archive job runs and preserve both Matomo files and the MariaDB volume.",
+    "upstream": "https://matomo.org/faq/how-to-install/install-matomo-with-docker/",
+    "setup": [
+      "Use unique MariaDB credentials and replace upstream host ports with Towbar ingress. Keep the archiving container in the Compose project."
+    ],
+    "description": "Matomo tracks website and app usage through visitor reports and goals."
+  },
+  {
+    "id": 103,
+    "category": "oss/observability",
+    "slug": "glitchtip",
+    "title": "GlitchTip",
+    "composeService": "web",
+    "port": 8000,
+    "approach": "Adapt GlitchTip’s Compose setup with PostgreSQL and optional Valkey.",
+    "verify": "Check the public domain, background processing, email delivery, and persistent uploads.",
+    "upstream": "https://glitchtip.com/documentation/install/",
+    "setup": [
+      "Set GLITCHTIP_DOMAIN, SECRET_KEY, and email configuration. Keep the PostgreSQL and upload volumes persistent."
+    ],
+    "description": "GlitchTip helps teams track application errors, performance, and uptime."
+  },
+  {
+    "id": 104,
+    "category": "oss/observability",
+    "slug": "prometheus",
+    "title": "Prometheus",
+    "composeService": "prometheus",
+    "port": 9090,
+    "approach": "Run Prometheus with a versioned scrape configuration and persistent metrics volume.",
+    "verify": "Verify the intended targets are scraped; do not expose internal metrics or the admin API publicly by accident.",
+    "upstream": "https://prometheus.io/docs/prometheus/latest/installation/",
+    "setup": [
+      "Bake prometheus.yml into a custom image because Towbar Compose does not accept host bind mounts. Persist /prometheus with a named volume."
+    ],
+    "description": "Prometheus collects and queries metrics from applications and infrastructure."
+  },
+  {
+    "id": 105,
+    "category": "oss/observability",
+    "slug": "victoriametrics",
+    "title": "VictoriaMetrics",
+    "composeService": "victoriametrics",
+    "port": 8428,
+    "approach": "Run single-node VictoriaMetrics with a persistent data volume.",
+    "verify": "Confirm ingestion and retention settings before using it as a metrics store.",
+    "upstream": "https://docs.victoriametrics.com/victoriametrics/quick-start/",
+    "setup": [
+      "Persist /victoria-metrics-data in a Docker-managed volume and keep the write endpoint private unless callers need public access."
+    ],
+    "description": "VictoriaMetrics stores and queries metrics for monitoring and analysis."
+  },
+  {
+    "id": 106,
+    "category": "oss/observability",
+    "slug": "gatus",
+    "title": "Gatus",
+    "composeService": "gatus",
+    "port": 8080,
+    "approach": "Run Gatus with a versioned endpoint configuration.",
+    "verify": "Check that endpoint checks execute and notifications reach the intended destination.",
+    "upstream": "https://github.com/TwiN/gatus",
+    "setup": [
+      "Bake the Gatus configuration into the image or use a supported volume; Towbar Compose does not accept host bind mounts."
+    ],
+    "description": "Gatus checks service endpoints and displays their health on a status page."
+  },
+  {
+    "id": 107,
+    "category": "oss/security",
+    "slug": "keycloak",
+    "title": "Keycloak",
+    "composeService": "keycloak",
+    "port": 8080,
+    "approach": "Run Keycloak with PostgreSQL and an HTTPS public hostname.",
+    "verify": "Use the production start mode rather than start-dev, and verify the external hostname and login flow.",
+    "upstream": "https://www.keycloak.org/server/containers",
+    "setup": [
+      "Build an optimized image, set KC_DB to postgres, and supply the database and bootstrap admin credentials securely."
+    ],
+    "description": "Keycloak provides sign-in and single sign-on for applications."
+  },
+  {
+    "id": 108,
+    "category": "oss/security",
+    "slug": "authentik",
+    "title": "authentik",
+    "composeService": "server",
+    "port": 9000,
+    "approach": "Adapt authentik’s official Compose stack with PostgreSQL and its worker.",
+    "verify": "Verify initial setup and preserve the database, media, and certificate data.",
+    "upstream": "https://docs.goauthentik.io/install-config/install/docker-compose/",
+    "setup": [
+      "Set a unique secret key and PostgreSQL password; route the server’s HTTP port through Towbar without publishing host ports."
+    ],
+    "description": "authentik manages users, sign-in, and single sign-on across applications."
+  },
+  {
+    "id": 109,
+    "category": "oss/content-media",
+    "slug": "ghost",
+    "title": "Ghost",
+    "composeService": "ghost",
+    "port": 2368,
+    "approach": "Adapt the official Ghost Docker project with its MySQL database.",
+    "verify": "Verify the canonical URL, uploads, database persistence, and mail configuration.",
+    "upstream": "https://github.com/TryGhost/ghost-docker",
+    "setup": [
+      "Remove the bundled public reverse proxy when Towbar provides ingress, and keep Ghost’s database and content volumes persistent."
+    ],
+    "description": "Ghost is a publishing platform for websites, newsletters, and memberships."
+  },
+  {
+    "id": 110,
+    "category": "oss/content-media",
+    "slug": "wordpress",
+    "title": "WordPress",
+    "composeService": "wordpress",
+    "port": 80,
+    "approach": "Run WordPress with a private MySQL or MariaDB database.",
+    "verify": "Preserve wp-content and database data; check uploads and plugin updates after deployment.",
+    "upstream": "https://hub.docker.com/_/wordpress",
+    "setup": [
+      "Use unique database credentials and keep the database service private in the same Compose project."
+    ],
+    "description": "WordPress is a content management system for websites and blogs."
+  },
+  {
+    "id": 111,
+    "category": "oss/content-media",
+    "slug": "wiki-js",
+    "title": "Wiki.js",
+    "composeService": "wiki",
+    "port": 3000,
+    "approach": "Run Wiki.js with a PostgreSQL database.",
+    "verify": "Verify the database connection and preserve the PostgreSQL volume before importing content.",
+    "upstream": "https://docs.requarks.io/install/docker",
+    "setup": [
+      "Set DB_TYPE to postgres and point Wiki.js to the private database service name."
+    ],
+    "description": "Wiki.js helps teams create and maintain documentation and knowledge bases."
+  },
+  {
+    "id": 112,
+    "category": "oss/content-media",
+    "slug": "navidrome",
+    "title": "Navidrome",
+    "composeService": "navidrome",
+    "port": 4533,
+    "approach": "Run Navidrome with separate data and music volumes.",
+    "verify": "Confirm the music library is readable and back up the database stored under /data.",
+    "upstream": "https://navidrome.org/docs/installation/docker/",
+    "setup": [
+      "Persist /data and make the music library available at /music through a Docker-managed volume; Towbar Compose does not accept host bind mounts."
+    ],
+    "description": "Navidrome streams a personal music library through a web player and compatible apps."
+  },
+  {
+    "id": 113,
+    "category": "oss/automation",
+    "slug": "node-red",
+    "title": "Node-RED",
+    "composeService": "node-red",
+    "port": 1880,
+    "approach": "Run Node-RED with a persistent flow data volume.",
+    "verify": "Verify flows survive replacement and protect the editor before exposing it publicly.",
+    "upstream": "https://nodered.org/docs/getting-started/docker",
+    "setup": [
+      "Persist /data with a named volume and set a unique credential secret for encrypted flow credentials."
+    ],
+    "description": "Node-RED lets you connect services and devices through automation flows in a visual editor."
+  },
+  {
+    "id": 114,
+    "category": "oss/developer-tools",
+    "slug": "typesense",
+    "title": "Typesense",
+    "composeService": "typesense",
+    "port": 8108,
+    "approach": "Run Typesense with a persistent search index and an API key.",
+    "verify": "Verify the collection survives replacement and the API key is not embedded in public clients.",
+    "upstream": "https://typesense.org/docs/guide/install-typesense.html",
+    "setup": [
+      "Persist /data and supply a strong API key through the protected runtime configuration."
+    ],
+    "description": "Typesense is a search engine for building fast search experiences in applications."
+  },
+  {
+    "id": 115,
+    "category": "oss/developer-tools",
+    "slug": "searxng",
+    "title": "SearXNG",
+    "composeService": "searxng",
+    "port": 8080,
+    "approach": "Adapt SearXNG’s container setup with its configuration and optional Valkey.",
+    "verify": "Verify search works and the public instance has appropriate rate limits.",
+    "upstream": "https://docs.searxng.org/admin/installation-docker.html",
+    "setup": [
+      "Bake settings.yml into an image or use a supported volume; remove public host ports from the upstream Compose file."
+    ],
+    "description": "SearXNG combines results from multiple search engines in a self-hosted search interface."
+  },
+  {
+    "id": 116,
+    "category": "oss/content-media",
+    "slug": "freshrss",
+    "title": "FreshRSS",
+    "composeService": "freshrss",
+    "port": 80,
+    "approach": "Run FreshRSS with persistent data and extension volumes.",
+    "verify": "Confirm feeds refresh on schedule and the database survives container replacement.",
+    "upstream": "https://github.com/FreshRSS/FreshRSS/blob/edge/Docker/README.md",
+    "setup": [
+      "Persist /var/www/FreshRSS/data and /var/www/FreshRSS/extensions in named volumes; configure the refresh schedule."
+    ],
+    "description": "FreshRSS gathers updates from websites and feeds into one reading app."
+  },
+  {
+    "id": 117,
+    "category": "oss/content-media",
+    "slug": "linkding",
+    "title": "linkding",
+    "composeService": "linkding",
+    "port": 9090,
+    "approach": "Run linkding with a persistent bookmark database.",
+    "verify": "Create an initial admin account and confirm bookmarks survive a redeployment.",
+    "upstream": "https://github.com/sissbruecker/linkding#installation",
+    "setup": [
+      "Persist /etc/linkding/data with a named volume and configure trusted origins for the public domain if needed."
+    ],
+    "description": "linkding saves and organizes web bookmarks in a simple self-hosted library."
+  },
+  {
+    "id": 118,
+    "category": "oss/content-media",
+    "slug": "hedgedoc",
+    "title": "HedgeDoc",
+    "composeService": "app",
+    "port": 3000,
+    "approach": "Adapt HedgeDoc’s Compose example with PostgreSQL and upload storage.",
+    "verify": "Set the public domain and preserve both the database and uploaded files.",
+    "upstream": "https://docs.hedgedoc.org/setup/docker/",
+    "setup": [
+      "Replace example database passwords, set CMD_DOMAIN for the public hostname, and keep the database and uploads on named volumes."
+    ],
+    "description": "HedgeDoc lets people write and edit Markdown notes together in real time."
+  },
+  {
+    "id": 119,
+    "category": "oss/automation",
+    "slug": "huginn",
+    "title": "Huginn",
+    "composeService": "web",
+    "port": 3000,
+    "approach": "Adapt Huginn’s Docker setup with MySQL.",
+    "verify": "Change the initial admin password and confirm agents execute after the service starts.",
+    "upstream": "https://github.com/huginn/huginn/blob/master/doc/docker/install.md",
+    "setup": [
+      "Use the official single-process image layout and adapt unsupported legacy Compose fields such as volumes_from to named volumes."
+    ],
+    "description": "Huginn runs agents that watch events online and trigger automated actions."
+  },
+  {
+    "id": 120,
+    "category": "oss/automation",
+    "slug": "changedetection",
+    "title": "ChangeDetection.io",
+    "composeService": "changedetection",
+    "port": 5000,
+    "approach": "Run ChangeDetection.io with a persistent watch datastore.",
+    "verify": "Confirm saved watches survive replacement; add a browser sidecar only if JavaScript pages need it.",
+    "upstream": "https://github.com/dgtlmoon/changedetection.io/blob/master/docker-compose.yml",
+    "setup": [
+      "Persist /datastore with a named volume and remove upstream host port publishing when routing through Towbar."
+    ],
+    "description": "ChangeDetection.io watches web pages and alerts you when their content changes."
+  },
+  {
+    "id": 121,
+    "category": "oss/files",
+    "slug": "nextcloud",
+    "title": "Nextcloud",
+    "composeService": "app",
+    "port": 80,
+    "approach": "Adapt the Apache-image Compose example with MariaDB and persistent data.",
+    "verify": "Confirm uploads, background jobs, and database backups before inviting users.",
+    "upstream": "https://github.com/nextcloud/docker#running-this-image-with-docker-compose",
+    "setup": [
+      "Use the Apache image for port 80, preserve its application volume and the MariaDB volume, and set trusted domains and reverse-proxy settings for the public hostname."
+    ],
+    "description": "Nextcloud gives teams a place to store, sync, and share files."
+  },
+  {
+    "id": 122,
+    "category": "oss/content-media",
+    "slug": "immich",
+    "title": "Immich",
+    "composeService": "immich-server",
+    "port": 2283,
+    "approach": "Adapt Immich's current Compose file with its PostgreSQL and machine-learning services.",
+    "verify": "Back up both uploads and PostgreSQL data; confirm thumbnail and search jobs finish.",
+    "upstream": "https://docs.immich.app/install/docker-compose/",
+    "setup": [
+      "Keep the upstream service layout and required database extensions. Replace bind-mounted upload and database paths with supported persistent storage before syncing."
+    ],
+    "description": "Immich backs up, organizes, and browses photos and videos from your devices."
+  },
+  {
+    "id": 123,
+    "category": "oss/content-media",
+    "slug": "bookstack",
+    "title": "BookStack",
+    "composeService": "bookstack",
+    "port": 80,
+    "approach": "Run the LinuxServer BookStack image with a private MariaDB service.",
+    "verify": "Check the public URL, first login, attachments, and database recovery.",
+    "upstream": "https://docs.linuxserver.io/images/docker-bookstack/",
+    "setup": [
+      "Set APP_URL and a generated APP_KEY, save database credentials outside Git, and persist /config and the MariaDB data directory."
+    ],
+    "description": "BookStack organizes documentation into books, chapters, and pages for teams."
+  },
+  {
+    "id": 124,
+    "category": "oss/content-media",
+    "slug": "calibre-web",
+    "title": "Calibre-Web",
+    "composeService": "calibre-web",
+    "port": 8083,
+    "approach": "Run Calibre-Web with separate configuration and book-library volumes.",
+    "verify": "Confirm the configured Calibre library is readable and its database survives replacement.",
+    "upstream": "https://docs.linuxserver.io/images/docker-calibre-web/",
+    "setup": [
+      "Persist /config and provide a prepared Calibre library at /books using supported volumes. Do not assume an empty /books volume contains a library."
+    ],
+    "description": "Calibre-Web lets you browse and read books from an existing Calibre library."
+  },
+  {
+    "id": 125,
+    "category": "oss/content-media",
+    "slug": "photoprism",
+    "title": "PhotoPrism",
+    "composeService": "photoprism",
+    "port": 2342,
+    "approach": "Adapt PhotoPrism's Compose example with MariaDB and persistent originals.",
+    "verify": "Index a small album, check originals and storage persist, and test the database backup.",
+    "upstream": "https://docs.photoprism.app/getting-started/docker-compose/",
+    "setup": [
+      "Set a unique initial admin password before first start. Keep originals, application storage, and MariaDB data on persistent volumes."
+    ],
+    "description": "PhotoPrism organizes and searches a personal photo collection."
+  },
+  {
+    "id": 126,
+    "category": "oss/content-media",
+    "slug": "miniflux",
+    "title": "Miniflux",
+    "composeService": "miniflux",
+    "port": 8080,
+    "approach": "Run Miniflux with PostgreSQL for feed and account data.",
+    "verify": "Add a feed, confirm scheduled refreshes, and restore from a database backup.",
+    "upstream": "https://miniflux.app/docs/docker.html",
+    "setup": [
+      "Set DATABASE_URL to the private PostgreSQL service and configure the initial administrator securely. Keep the database volume persistent."
+    ],
+    "description": "Miniflux is a minimal feed reader for following articles from websites you choose."
+  },
+  {
+    "id": 127,
+    "category": "oss/notifications",
+    "slug": "ntfy",
+    "title": "ntfy",
+    "composeService": "ntfy",
+    "port": 80,
+    "approach": "Run ntfy with a persistent message cache and explicit access policy.",
+    "verify": "Publish and receive a test message, then verify unauthenticated access matches the intended policy.",
+    "upstream": "https://docs.ntfy.sh/install/#docker",
+    "setup": [
+      "Run the image with the serve command, persist /var/cache/ntfy, and provide a versioned server configuration without a host bind mount. Configure authentication before exposing private topics."
+    ],
+    "description": "ntfy sends and receives notifications through topics you can subscribe to."
+  },
+  {
+    "id": 128,
+    "category": "oss/developer-tools",
+    "slug": "jenkins",
+    "title": "Jenkins",
+    "composeService": "jenkins",
+    "port": 8080,
+    "approach": "Run the Jenkins LTS controller with persistent home data and separately managed build agents.",
+    "verify": "Complete the setup wizard, test an agent connection, and back up Jenkins home.",
+    "upstream": "https://www.jenkins.io/doc/book/installing/docker/",
+    "setup": [
+      "Persist /var/jenkins_home. The controller image does not include a Docker CLI; plan build agents separately and do not mount the host Docker socket into this Compose project."
+    ],
+    "description": "Jenkins automates software builds, tests, and delivery pipelines."
+  },
+  {
+    "id": 129,
+    "category": "oss/collaboration",
+    "slug": "vikunja",
+    "title": "Vikunja",
+    "approach": "Run one Vikunja Service with persistent SQLite and uploaded files for a small first instance.",
+    "verify": "Create a project and upload a file; verify both survive redeployment.",
+    "upstream": "https://vikunja.io/docs/installing/",
+    "description": "Vikunja is a task and project manager for organizing work across teams."
+  },
+  {
+    "id": 130,
+    "category": "oss/collaboration",
+    "slug": "kanboard",
+    "title": "Kanboard",
+    "approach": "Run the official image with persistent SQLite data and a separate plugins volume.",
+    "verify": "Change the initial administrator password, create a board, and verify it survives redeployment.",
+    "upstream": "https://docs.kanboard.org/v1/admin/docker/",
+    "description": "Kanboard is a Kanban board for planning and tracking project tasks."
+  },
+  {
+    "id": 131,
+    "category": "oss/collaboration",
+    "slug": "excalidraw",
+    "title": "Excalidraw",
+    "approach": "Run the official client image; self-hosted collaboration and sharing require additional upstream services.",
+    "verify": "Draw and export a diagram; confirm the limitations before treating it as a shared workspace.",
+    "upstream": "https://github.com/excalidraw/excalidraw/blob/master/dev-docs/docs/introduction/development.mdx",
+    "description": "Excalidraw is a browser-based whiteboard for sketches and diagrams."
+  },
+  {
+    "id": 132,
+    "category": "oss/collaboration",
+    "slug": "memos",
+    "title": "Memos",
+    "approach": "Run Memos with its SQLite data on a persistent Service volume.",
+    "verify": "Create a note and verify it survives redeployment.",
+    "upstream": "https://usememos.com/docs/deploy/docker-compose",
+    "description": "Memos is a lightweight place to capture and share short notes."
+  },
+  {
+    "id": 133,
+    "category": "oss/notifications",
+    "slug": "gotify",
+    "title": "Gotify",
+    "approach": "Run Gotify with persistent SQLite storage and a protected initial administrator account.",
+    "verify": "Send a test message and confirm the account and message survive redeployment.",
+    "upstream": "https://gotify.net/docs/install",
+    "description": "Gotify receives application messages and delivers them to its web and mobile clients."
+  },
+  {
+    "id": 134,
+    "category": "oss/files",
+    "slug": "file-browser",
+    "title": "File Browser",
+    "approach": "Run File Browser with separate persistent file, database, and configuration volumes.",
+    "verify": "Retrieve the initial administrator password from logs, upload a file, and verify it survives redeployment.",
+    "upstream": "https://github.com/filebrowser/filebrowser/blob/master/docs/installation.md",
+    "description": "File Browser gives you a web interface to browse, upload, and manage files."
+  },
+  {
+    "id": 135,
+    "category": "oss/utilities",
+    "slug": "actual-budget",
+    "title": "Actual Budget",
+    "approach": "Run Actual with its server data on a persistent volume and HTTPS for browser access.",
+    "verify": "Create a budget and confirm it remains after redeployment.",
+    "upstream": "https://actualbudget.org/docs/install/docker/",
+    "description": "Actual Budget helps you plan spending and track personal finances."
+  },
+  {
+    "id": 136,
+    "category": "oss/content-media",
+    "slug": "audiobookshelf",
+    "title": "Audiobookshelf",
+    "approach": "Run Audiobookshelf with persistent configuration, metadata, and media volumes.",
+    "verify": "Import an audiobook, play it, and verify the library remains after redeployment.",
+    "upstream": "https://audiobookshelf.org/docs/documentation/install/docker/",
+    "description": "Audiobookshelf organizes and streams audiobooks and podcasts."
+  },
+  {
+    "id": 137,
+    "category": "oss/utilities",
+    "slug": "stirling-pdf",
+    "title": "Stirling PDF",
+    "approach": "Run the official image with persistent configuration and change its initial administrator password.",
+    "verify": "Process a test PDF and verify the settings survive redeployment.",
+    "upstream": "https://docs.stirlingpdf.com/Installation/Docker%20Install/",
+    "description": "Stirling PDF offers browser-based tools for editing and converting PDF files."
+  },
+  {
+    "id": 138,
+    "category": "oss/utilities",
+    "slug": "cyberchef",
+    "title": "CyberChef",
+    "approach": "Run the official prebuilt web image; it needs no database or persistent server volume.",
+    "verify": "Open the page and test an encoding operation.",
+    "upstream": "https://github.com/gchq/CyberChef#running-locally",
+    "description": "CyberChef is a browser-based toolkit for encoding, decoding, and transforming data."
+  },
+  {
+    "id": 139,
+    "category": "oss/utilities",
+    "slug": "it-tools",
+    "title": "IT-Tools",
+    "approach": "Run the official web image; this first deployment needs no database or persistent volume.",
+    "verify": "Open the page and try a conversion tool.",
+    "upstream": "https://github.com/CorentinTh/it-tools#self-host",
+    "description": "IT-Tools brings common developer and IT utilities into one browser interface."
+  },
+  {
+    "id": 140,
+    "category": "oss/ai",
+    "slug": "ollama",
+    "title": "Ollama",
+    "approach": "Run the CPU image privately with a persistent model volume; model downloads and hardware capacity are separate steps.",
+    "verify": "Pull a small model and verify the private API lists it after redeployment.",
+    "upstream": "https://docs.ollama.com/docker",
+    "description": "Ollama serves downloadable AI models through a local API."
+  },
+  {
+    "id": 141,
+    "category": "oss/ai",
+    "slug": "localai",
+    "title": "LocalAI",
+    "approach": "Run the CPU image privately with persistent models, backends, configuration, and data volumes.",
+    "verify": "Install a small compatible model and query it through the private API.",
+    "upstream": "https://localai.io/docs/getting-started/",
+    "description": "LocalAI runs AI models locally behind an API compatible with common model clients."
+  },
+  {
+    "id": 142,
+    "category": "oss/files",
+    "slug": "copyparty",
+    "title": "Copyparty",
+    "approach": "Run the official image privately with persistent shared files and configuration; its default share is writable.",
+    "verify": "Upload and download a test file over a trusted connection before configuring public access.",
+    "upstream": "https://github.com/9001/copyparty/blob/hovudstraum/scripts/docker/README.md",
+    "description": "Copyparty is a web-based file server for sharing, browsing, and uploading files."
+  }
+]

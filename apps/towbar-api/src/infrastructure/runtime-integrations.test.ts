@@ -38,5 +38,21 @@ void test("decodes and validates the GitHub App private key", () => {
   });
 
   assert.equal(runtime.github?.privateKey, pem);
+  assert.equal(runtime.github?.webhookSecret, "a-secure-webhook-secret");
+  assert.equal(runtime.providers.github?.provider, "github");
+});
+
+void test("accepts a GitHub App without a webhook secret", () => {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const runtime = parseRuntimeIntegrations({
+    TOWBAR_GITHUB_APP_ID: "12345",
+    TOWBAR_GITHUB_APP_SLUG: "towbar-test",
+    TOWBAR_GITHUB_ENABLED: "true",
+    TOWBAR_GITHUB_PRIVATE_KEY_BASE64: Buffer.from(
+      privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
+    ).toString("base64"),
+  });
+
+  assert.equal(runtime.github?.webhookSecret, undefined);
   assert.equal(runtime.providers.github?.provider, "github");
 });

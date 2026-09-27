@@ -1,0 +1,56 @@
+---
+title: "Navidrome"
+description: "Navidrome streams a personal music library through a web player and compatible apps."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://navidrome.org/docs/installation/docker/).
+
+Navidrome stores its catalog and settings in `/data` and reads files from `/music`. Populate the music volume before scanning; an empty named volume is an empty library.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/navidrome.service.yml"
+id: navidrome
+name: Navidrome
+buildServer: null
+deployment:
+  type: image
+  image: deluan/navidrome:0.58.0
+container:
+  port: 4533
+  volumes:
+    - name: data
+      mountPath: /data
+      initialData: image
+    - name: music
+      mountPath: /music
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: navidrome.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+4. After deployment, transfer a test album to the server and use `docker cp` to place it under `/music` in the running Navidrome container. The named music volume retains those files across redeployments.
+
+## Verify
+
+Add an album to `/music`, run a scan, play a track, and confirm the catalog survives redeployment.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

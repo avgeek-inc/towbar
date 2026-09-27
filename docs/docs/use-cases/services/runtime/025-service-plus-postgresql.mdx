@@ -1,0 +1,72 @@
+---
+title: "PostgreSQL service"
+description: "Give both workloads container.network: application; use the Datastore alias and port in a secret URL."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [PostgreSQL](/docs/databases/postgresql).
+
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/service-plus-postgresql-postgres.datastore.yml"
+id: service-plus-postgresql-postgres
+name: PostgreSQL
+type: postgres
+container:
+  network: application
+  networkAlias: service-plus-postgresql-postgres
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/service-plus-postgresql.service.yml"
+id: service-plus-postgresql
+name: PostgreSQL service
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - DATABASE_URL
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+4. Point each Service connection secret at `service-plus-postgresql-postgres` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
+5. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+No credential is committed and the app can connect after database readiness.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

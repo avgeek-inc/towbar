@@ -1,0 +1,44 @@
+---
+title: "CPU-bound process"
+description: "Set container.resources.cpus and memory."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [Container and health](/docs/services/configuration).
+
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/cpu-bound-process.service.yml"
+id: cpu-bound-process
+name: CPU-bound process
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  resources:
+    cpus: 2
+    memory: 2g
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The target server has capacity for the new and old copies during rollout.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

@@ -10,6 +10,7 @@ import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { useQueryChoice } from "@/hooks/use-page-query";
 import Link from "next/link";
+import Image from "next/image";
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -23,6 +24,7 @@ import {
 import { useApiQuery } from "@/hooks/use-api-query";
 import { DashboardPage } from "./page-parts";
 import {
+  hasNoAdvisories,
   severityVariant,
   severityTooltip,
   VulnerabilitySeverityWidgets,
@@ -206,6 +208,17 @@ export function WorkspaceVulnerabilities() {
                 ].join(":")
               }
               items={query.data.findings}
+              emptyMedia={
+                hasNoAdvisories(query.data.summary) ? (
+                  <Image
+                    src="/mascots/happy.png"
+                    alt=""
+                    width={160}
+                    height={160}
+                    className="size-32 object-contain"
+                  />
+                ) : undefined
+              }
               emptyTitle="No advisories in this view"
               emptyDescription="Findings from the latest scan of each App's production image appear here ranked by severity. Resources are not image-scanned."
               tableClassName="min-w-[760px] 2xl:min-w-[1080px]"

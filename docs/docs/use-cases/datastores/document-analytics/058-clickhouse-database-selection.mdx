@@ -1,0 +1,50 @@
+---
+title: "ClickHouse selection"
+description: "Optionally declare CLICKHOUSE_DB before initial deployment."
+icon: "/assets/database-logos/clickhouse.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/clickhouse.webp"
+  alt="ClickHouse selection logo"
+  aria-hidden="true"
+/>
+
+## Towbar manifest
+
+```yaml title=".towbar/datastores/clickhouse-database-selection.datastore.yml"
+id: clickhouse-database-selection
+name: ClickHouse selection
+type: clickhouse
+container:
+  network: application
+  networkAlias: clickhouse-database-selection
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - CLICKHOUSE_USER
+    - CLICKHOUSE_PASSWORD
+    - CLICKHOUSE_DB
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The intended database exists and the client is pointed at it.
+
+For field constraints, see [Datastore manifest](/docs/datastores/manifest).

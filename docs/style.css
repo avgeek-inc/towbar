@@ -5,9 +5,134 @@
   --towbar-on-yellow: oklch(1 0 0);
 }
 .dark {
-  --towbar-yellow: oklch(0.68 0.15 85);
+  --towbar-yellow: #b9872c;
   --towbar-yellow-hover: color-mix(in oklch, var(--towbar-yellow) 90%, white);
   --towbar-on-yellow: oklch(0.23 0.01 85);
+}
+/* The page icon and title form one heading; the same asset appears in navigation. */
+#content-area:has(.towbar-doc-brand-logo) #page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#content-area:has(.towbar-doc-brand-logo) #page-title::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  background: var(--towbar-doc-brand) center / contain no-repeat;
+}
+.towbar-doc-brand-logo {
+  display: none;
+}
+a[href^="/docs/databases/"] img[src^="/assets/database-logos/"],
+a[href^="/docs/integrations/"] img[src^="/assets/integration-logos/"] {
+  object-fit: contain;
+  padding: 1px;
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/postgresql.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/postgresql.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mysql.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mysql.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mariadb.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mariadb.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/mongodb.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/mongodb.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/redis.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/redis.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/dragonfly.svg"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/dragonfly.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/keydb.svg"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/keydb.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/database-logos/clickhouse.webp"]
+) {
+  --towbar-doc-brand: url("/assets/database-logos/clickhouse.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/github.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/github.svg");
+}
+.dark img[src="/assets/integration-logos/github.svg"],
+.dark
+  #content-area:has(
+    .towbar-doc-brand-logo[src="/assets/integration-logos/github.svg"]
+  )
+  #page-title::before {
+  filter: brightness(0) invert(1);
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/gitlab.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/gitlab.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/docker.webp"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/docker.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/aws.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/aws.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/gcp.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/gcp.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/cloudflare.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/cloudflare.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/infisical.webp"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/infisical.webp");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/doppler.ico"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/doppler.ico");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/slack.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/slack.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/discord.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/discord.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/integration-logos/telegram.svg"]
+) {
+  --towbar-doc-brand: url("/assets/integration-logos/telegram.svg");
 }
 #navbar a:has(> .bg-primary-dark) > .bg-primary-dark {
   background-color: var(--towbar-yellow);
@@ -520,4 +645,205 @@ body:has(.towbar-home) {
     align-items: flex-start;
     gap: 16px;
   }
+}
+
+/* Use-case product marks shown beside page titles. */
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/umami.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/umami.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/grafana.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/grafana.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/gitea.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/gitea.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/forgejo.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/forgejo.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/vaultwarden.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/vaultwarden.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/uptimekuma.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/uptimekuma.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/metabase.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/metabase.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/paperlessngx.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/paperlessngx.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/meilisearch.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/meilisearch.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/jellyfin.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/jellyfin.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/plausibleanalytics.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/plausibleanalytics.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/matomo.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/matomo.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/prometheus.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/prometheus.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/victoriametrics.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/victoriametrics.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/keycloak.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/keycloak.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/authentik.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/authentik.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ghost.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ghost.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/wordpress.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/wordpress.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/nodered.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/nodered.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/searxng.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/searxng.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/freshrss.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/freshrss.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/hedgedoc.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/hedgedoc.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/nextcloud.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/nextcloud.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/immich.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/immich.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/bookstack.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/bookstack.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/calibreweb.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/calibreweb.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/photoprism.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/photoprism.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/miniflux.png"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/miniflux.png");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ntfy.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ntfy.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/jenkins.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/jenkins.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/vikunja.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/vikunja.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/excalidraw.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/excalidraw.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/actualbudget.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/actualbudget.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/audiobookshelf.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/audiobookshelf.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ollama.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ollama.svg");
+}
+.dark
+  img[src^="/assets/use-case-logos/"]:not([src$="photoprism.svg"]):not(
+    [src$="miniflux.png"]
+  ),
+.dark
+  #content-area:has(
+    .towbar-doc-brand-logo[src^="/assets/use-case-logos/"]:not(
+        [src$="photoprism.svg"]
+      ):not([src$="miniflux.png"])
+  )
+  #page-title::before {
+  filter: invert(1);
+}
+a[href^="/docs/use-cases/"] img[src^="/assets/use-case-logos/"],
+a[href^="/docs/use-cases/"] img[src^="/assets/integration-logos/docker.webp"],
+a[href^="/docs/use-cases/"] img[src^="/assets/database-logos/"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  object-fit: contain;
+  object-position: center;
+  transition: none;
+  animation: none;
 }

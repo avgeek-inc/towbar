@@ -3,11 +3,11 @@ title: "Database restores"
 description: "Validate a retained database backup, restore it in isolation, and promote it with rollback protection."
 ---
 
-Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse resources. Retained backups may use the enabled AWS S3, Cloudflare R2, generic S3-compatible, Google Cloud Storage (GCS) runtime integration. Restores are never started automatically.
+Towbar supports manual restores with validation and rollback protection for manifest-managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Dragonfly, KeyDB, and ClickHouse datastores. Retained backups may use an enabled AWS S3, Cloudflare R2, generic S3-compatible, or Google Cloud Storage (GCS) runtime integration. Restores are never started automatically.
 
 ## Dedicated restore page
 
-Restore workflows are managed on a dedicated page under **Resource → Settings → Restore** in the secondary sidebar:
+Restore workflows are managed on a dedicated page under **Datastore → Settings → Restore** in the secondary sidebar:
 
 - **Restore source card**: Highlights the authoritative storage provider configuration and its exact object location.
 - **Restorable backups table**: Displays all retained backups from the authoritative provider along with their size, engine, format, and restore-assurance status.
@@ -17,7 +17,7 @@ An older backup retains its original provider and object location even after the
 
 ## Before a restore
 
-A retained backup must be marked restore-ready on the Resource's **Restore** page. Towbar continuously checks every retained object for:
+A retained backup must be marked restore-ready on the Datastore's **Restore** page. Towbar continuously checks every retained object for:
 
 - freshness relative to the declared backup schedule;
 - object existence and plausible size across the authoritative storage provider;
@@ -35,19 +35,19 @@ The runtime provider identity needs read access to the declared backup storage:
 - **AWS S3, Cloudflare R2, and generic S3-compatible storage**: object read access on the declared bucket and prefix, including the retained object version where supported. AWS KMS backups also need decrypt access to the selected key.
 - **Google Cloud**: `storage.objects.get` on the bucket and prefix, plus Cloud KMS decrypt permissions if CMEK is enabled.
 
-The target Server must be prepared, have a healthy current Resource release, use one Towbar-owned database volume, and have free Docker storage of at least three times the backup size (with a 1 GiB minimum).
+The target Server must be prepared, have a healthy current Datastore release, use one Towbar-owned database volume, and have free Docker storage of at least three times the backup size (with a 1 GiB minimum).
 
 <div className="towbar-doc-screenshot">
-<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
-<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
+<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="3200" height="1800" loading="lazy" /></div>
+<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="3200" height="1800" loading="lazy" /></div>
 <p>A restorable backup still needs configured provider credentials before Restore is available.</p>
 </div>
 
 ## Restore flow
 
-1. Open **Resource → Settings → Restore**.
+1. Open **Datastore → Settings → Restore**.
 2. Select a restore-ready retained backup from the table and choose **Restore**.
-3. In the confirmation dialog, enter an operator reason (at least 10 characters) and type the Resource name exactly.
+3. In the confirmation dialog, enter an operator reason (at least 10 characters) and type the Datastore name exactly.
 4. Towbar serializes the restore operation with active deployments, backups, cleanups, and other work on the target Server.
 5. Towbar downloads the backup object from the authoritative provider, verifies checksum and version metadata, creates an isolated candidate volume and container, restores the archive, and validates database readability and health.
 6. Only after validation does Towbar atomically switch the stable active-volume pointer and recreate the managed runtime.
@@ -67,7 +67,7 @@ If a restore fails, review the final phase and error message before retrying. Co
 
 ## Verify recovery
 
-After the restore reaches its final state, check the resource's runtime health and connect with an application or database client to verify the expected recovery point. Review the retained previous volume and its cleanup deadline. Record the outcome in your recovery procedure before resuming normal writes or dependent operations.
+After the restore reaches its final state, check the datastore's runtime health and connect with an application or database client to verify the expected recovery point. Review the retained previous volume and its cleanup deadline. Record the outcome in your recovery procedure before resuming normal writes or dependent operations.
 
 Restores accept only the same engine and reviewed major version recorded by the backup. Towbar does not use restore as an automatic database upgrade or as a cross-engine conversion path. See the [managed database compatibility matrix](/docs/databases) for the supported versions and native tools.
 

@@ -1,0 +1,55 @@
+---
+title: "Kanboard"
+description: "Kanboard is a Kanban board for planning and tracking project tasks."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://docs.kanboard.org/v1/admin/docker/).
+
+Kanboard's default SQLite database and attachments live in `/var/www/app/data`; plugins use a separate directory. A dedicated SQL Datastore is optional for a small first installation.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/kanboard.service.yml"
+id: kanboard
+name: Kanboard
+buildServer: null
+deployment:
+  type: image
+  image: kanboard/kanboard@sha256:8df6c4339134b6c196da9a262daa42ab8ce395f528a48d4a3dd7038c296f34c1
+container:
+  port: 80
+  volumes:
+    - name: data
+      mountPath: /var/www/app/data
+      initialData: image
+    - name: plugins
+      mountPath: /var/www/app/plugins
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: kanboard.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Change the initial administrator credentials, create a board and task, and confirm they remain after redeployment. Back up the data and plugins volumes together.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

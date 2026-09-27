@@ -38,13 +38,13 @@ function mock(
                   sha: rootSha,
                 },
                 {
-                  path: ".towbar/apps",
+                  path: ".towbar/services",
                   type: "tree",
                   mode: "040000",
                   sha: treeSha,
                 },
                 {
-                  path: ".towbar/apps/site.app.yml",
+                  path: ".towbar/services/site.service.yml",
                   type: "blob",
                   mode: options.mode ?? "100644",
                   sha: appSha,
@@ -69,9 +69,9 @@ void test("pins branch resolution once and loads all files by blob SHA", async (
   const { dependencies, paths } = mock();
   const snapshot = await fetchGitHubEnvironmentSnapshot(input, dependencies);
   assert.equal(snapshot.commitSha, commitSha);
-  assert.equal(snapshot.files[0]?.path, ".towbar/apps/site.app.yml");
+  assert.equal(snapshot.files[0]?.path, ".towbar/services/site.service.yml");
   assert.equal(snapshot.root, root);
-  assert.deepEqual(snapshot.directories, [".towbar/apps"]);
+  assert.deepEqual(snapshot.directories, [".towbar/services"]);
   assert.equal(paths.filter((path) => path.includes("/git/ref/")).length, 1);
   assert(paths.includes(`/repos/example/app/git/commits/${commitSha}`));
   assert(paths.includes(`/repos/example/app/git/blobs/${appSha}`));

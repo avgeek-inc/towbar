@@ -1,0 +1,57 @@
+---
+title: "File Browser"
+description: "File Browser gives you a web interface to browse, upload, and manage files."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://github.com/filebrowser/filebrowser/blob/master/docs/installation.md).
+
+File Browser stores shared files in `/srv`, its user database in `/database`, and settings in `/config`. The official image generates an administrator password on first boot and prints it only once in the container logs, so start with a private route.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/file-browser.service.yml"
+id: file-browser
+name: File Browser
+buildServer: null
+deployment:
+  type: image
+  image: filebrowser/filebrowser@sha256:a469ea076d4a1b4b1d86a41d130f2f536cd9da996a2b1fb39c0d7635f9d89b9a
+container:
+  port: 80
+  network: application
+  networkAlias: file-browser
+  volumes:
+    - name: srv
+      mountPath: /srv
+      initialData: image
+    - name: database
+      mountPath: /database
+      initialData: image
+    - name: config
+      mountPath: /config
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Retrieve and save the one-time administrator password from the deployment logs, upload a test file over a trusted connection, and verify it remains after redeployment. Add a public domain only after securing the accounts and permissions.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

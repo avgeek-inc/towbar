@@ -558,10 +558,10 @@ function McpSetup({ url }: { url: string }) {
             onChange={setClient}
             renderIcon={(id) => <McpClientLogo client={id} />}
             options={[
-              ["codex", "Codex"],
+              ["codex", "ChatGPT"],
+              ["claude", "Claude Code"],
               ["cursor", "Cursor"],
               ["vscode", "VS Code"],
-              ["claude", "Claude Code"],
               ["other", "Other clients"],
             ]}
           />
@@ -573,9 +573,9 @@ function McpSetup({ url }: { url: string }) {
             <pre className="inline whitespace-nowrap rounded bg-default px-1 py-0.25 text-foreground">
               <code>TOWBAR_API_KEY</code>
             </pre>{" "}
-            to your key in the environment that launches Codex, then restart it.
-            The configuration stores the variable name, not the key. In the CLI,
-            use{" "}
+            to your key in the environment that launches the app, then restart
+            it. The configuration stores the variable name, not the key. In the
+            CLI, use{" "}
             <code className="rounded bg-default px-1 py-0.25 text-foreground">
               /mcp
             </code>{" "}

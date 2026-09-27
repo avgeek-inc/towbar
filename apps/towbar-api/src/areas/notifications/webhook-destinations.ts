@@ -4,6 +4,10 @@ import { notificationWebhookRouteSettings } from "@workspace/towbar-database/sch
 import { badRequest } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import {
+  deploymentSubscriptionCategories,
+  hasOneDeploymentSubscription,
+} from "./deployment-subscriptions.js";
 
 export const webhookDestinationsSchema = z
   .object({
@@ -15,10 +19,15 @@ export const webhookDestinationsSchema = z
             label: z.string().trim().min(1).max(100),
             hostname: z.string().min(1).max(255),
             deployments: z.boolean(),
+            deploymentFailures: z.boolean(),
             backupsAndRestores: z.boolean(),
             alertsAndIncidents: z.boolean(),
           })
-          .strict(),
+          .strict()
+          .refine(
+            hasOneDeploymentSubscription,
+            "Choose one deployment subscription",
+          ),
       )
       .max(100)
       .refine(
@@ -33,7 +42,10 @@ type WebhookDestinationInput = z.infer<
 >["destinations"][number];
 type WebhookDestinationSetting = Pick<
   WebhookDestinationInput,
-  "deployments" | "backupsAndRestores" | "alertsAndIncidents"
+  | "deployments"
+  | "deploymentFailures"
+  | "backupsAndRestores"
+  | "alertsAndIncidents"
 >;
 
 function configuredWebhookRoutes() {
@@ -65,6 +77,10 @@ function destinationFromRoute(
     hostname: new URL(route.config.url).hostname,
     deployments:
       setting?.deployments ?? route.categories.includes("deployments"),
+    deploymentFailures:
+      setting?.deploymentFailures ??
+      (!route.categories.includes("deployments") &&
+        route.categories.includes("deploymentFailures")),
     backupsAndRestores:
       setting?.backupsAndRestores ??
       (route.categories.includes("backups") ||
@@ -84,7 +100,7 @@ function routeWithSetting(
   return {
     ...route,
     categories: [
-      ...(setting.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(setting),
       ...(setting.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),
@@ -132,6 +148,7 @@ export async function saveWebhookDestinations(
     for (const row of destinations) {
       const values = {
         deployments: row.deployments,
+        deploymentFailures: row.deploymentFailures,
         backupsAndRestores: row.backupsAndRestores,
         alertsAndIncidents: row.alertsAndIncidents,
       };

@@ -83,7 +83,7 @@ const runtimeNotificationsSchema = z
           .optional(),
       })
       .strict(),
-    routes: z.array(routeSchema).max(100),
+    routes: z.array(routeSchema).max(100).default([]),
   })
   .strict()
   .superRefine((value, context) => {

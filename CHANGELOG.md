@@ -5,6 +5,25 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.15] - 2026-09-27
+
+### Added
+
+- Services and Datastores are first-class workload types, with dedicated
+  inventory, deployment details, and managed engine configuration.
+- Deployment notifications can be limited to failures, and System Health shows
+  database storage history and available Towbar updates.
+- The dashboard has dedicated 404 and 500 pages. Documentation adds individual
+  use-case guides and refreshed product screenshots.
+
+### Changed
+
+- The self-hosted runtime configuration path is `/etc/towbar/config.yml`.
+  The updated CLI renames an existing `/etc/towbar/towbar.yml` during upgrade
+  or restart while preserving its contents and permissions.
+- Service and Datastore manifests use the corresponding repository directories.
+  Notification and secret guides reflect the current workload model.
+
 ## [2.0.14] - 2026-09-26
 
 ### Changed

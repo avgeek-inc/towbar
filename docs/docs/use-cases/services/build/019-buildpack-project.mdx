@@ -1,0 +1,42 @@
+---
+title: "Buildpack project"
+description: "Pin packImage and a reviewed builder."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [Example](/docs/services/modes/buildpack).
+
+`context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/buildpack-project.service.yml"
+id: buildpack-project
+name: Buildpack project
+deployment:
+  type: buildpack
+  context: .
+  packImage: buildpacksio/pack@sha256:a53c4d6c297e10e680404cffda32e557b79a26d1ee4b7e6b18c0d175cb274621
+  builder: heroku/builder@sha256:84d80b3c0d242961414a3c4d0a00c3518e6de01ef936423cfbaf1b0aa0f9155c
+container:
+  port: 3000
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+An arbitrary builder digest is rejected; this mode cannot use build secrets.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

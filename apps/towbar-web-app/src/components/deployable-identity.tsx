@@ -50,12 +50,12 @@ export function AppIdentity({
 
   return (
     <span className="inline-flex min-w-0 items-center gap-3">
-      <AppLogo key={primaryDomain ?? "no-domain"} domain={primaryDomain} />
+      <ServiceLogo app={app} />
       <TableCellStack className="justify-items-start">
         <DeployableName
           autoDeploy={Boolean(app.config.autoDeploy)}
           name={app.name}
-          href={`/apps/${app.id}`}
+          href={`/services/${app.id}`}
           exposed={domains.length > 0}
           health={healthStatus}
         />
@@ -191,6 +191,25 @@ export function AppLogo({
   );
 }
 
+export function ServiceLogo({
+  app,
+  size = "default",
+}: {
+  app: App;
+  size?: "default" | "small" | "compact";
+}) {
+  const deployment =
+    "deployment" in app.config ? app.config.deployment : undefined;
+  if (deployment?.type === "image") {
+    const brand = resourceImageBrand("image", deployment.image);
+    if (brand.label !== "Image")
+      return <ResourceLogo brand={brand} size={size} />;
+  }
+  const domain =
+    app.config.domains?.primary ?? app.config.domains?.redirects[0]?.host;
+  return <AppLogo key={domain ?? "no-domain"} domain={domain} size={size} />;
+}
+
 function DeployableName({
   autoDeploy,
   name,
@@ -268,7 +287,7 @@ export function ResourceIdentity({
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
           name={resource.name}
-          href={`/resources/${resource.id}`}
+          href={`/datastores/${resource.id}`}
           exposed={Boolean(resource.config.domains?.primary)}
           health={healthStatus}
         />

@@ -45,10 +45,10 @@ export function SecuritySettings() {
         }
       >
         <div className="content-grid">
-          <FieldDescription>
+          <p className="text-sm text-muted">
             An authenticator app adds a one-time code to your password when you
             sign in. Recommended for admins.
-          </FieldDescription>
+          </p>
           {setup ? (
             <>
               <FieldDescription>

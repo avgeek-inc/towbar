@@ -19,9 +19,9 @@ export function ConfigurationLinks({
       ) : null}
       {deployable && can("secret.list") ? (
         <InlineLink
-          href={`/${deployable.kind}s/${deployable.id}/settings/secrets`}
+          href={`/${deployable.kind === "app" ? "services" : "datastores"}/${deployable.id}/settings/secrets`}
         >
-          {deployable.kind === "app" ? "App secrets" : "Resource secrets"}
+          {deployable.kind === "app" ? "Service secrets" : "Datastore secrets"}
         </InlineLink>
       ) : null}
     </span>

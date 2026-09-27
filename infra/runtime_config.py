@@ -14,7 +14,7 @@ from pathlib import Path
 try:
     import yaml
 except ImportError:
-    sys.exit("Towbar: python3-yaml is required to read towbar.yml")
+    sys.exit("Towbar: python3-yaml is required to read config.yml")
 
 
 class ConfigError(Exception):

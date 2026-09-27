@@ -22,6 +22,7 @@ const readRoutes = [
   "/v1/core/deployments/history",
   "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
+  "/v1/core/version",
   "/v1/core/integrations",
   "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
@@ -146,6 +147,7 @@ test("email destinations are editable while provider credentials remain runtime-
           {
             email: initialDestination.email,
             deployments: false,
+            deploymentFailures: false,
             backupsAndRestores: true,
             scout: true,
           },
@@ -165,6 +167,7 @@ test("email destinations are editable while provider credentials remain runtime-
           {
             email: "alerts@example.com",
             deployments: true,
+            deploymentFailures: false,
             backupsAndRestores: false,
             scout: true,
           },
@@ -267,6 +270,7 @@ test("Slack channels use runtime credentials and control-plane subscriptions", a
           {
             channelId: initial.channelId,
             deployments: false,
+            deploymentFailures: false,
             backupsAndRestores: false,
             scout: true,
           },
@@ -443,6 +447,7 @@ test("Telegram destinations support a main chat and multiple topics", async () =
         chatId: main.chatId,
         messageThreadId: 42,
         deployments: true,
+        deploymentFailures: false,
         backupsAndRestores: false,
         alertsAndIncidents: false,
       },
@@ -1544,7 +1549,7 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     ).json();
     assert.equal(sources.length, 4);
     const expected = new Map([
-      [fixtureIds.source, [5, 11, 2]],
+      [fixtureIds.source, [5, 10, 2]],
       [fixtureIds.docsSource, [3, 0, 1]],
       [fixtureIds.analyticsSource, [0, 1, 1]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
@@ -1664,8 +1669,8 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
         .domains?.primary,
       "www.wikipedia.org",
     );
-    assert.equal(resourceInventory.resources.length, 12);
-    assert.equal(resourceInventory.counts.all, 11);
+    assert.equal(resourceInventory.resources.length, 11);
+    assert.equal(resourceInventory.counts.all, 10);
     const history = await get(
       "/v1/core/deployments/history?targetEnvironment=staging&limit=1",
     );

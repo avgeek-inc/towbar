@@ -1,0 +1,103 @@
+---
+title: "Webhook worker"
+description: "Keep the receiver public, worker private, and share a cache or database on one server."
+icon: "/assets/database-logos/redis.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/redis.webp"
+  alt="Webhook worker logo"
+  aria-hidden="true"
+/>
+
+These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title="redis"
+# .towbar/datastores/webhook-receiver-and-worker-redis.datastore.yml
+id: webhook-receiver-and-worker-redis
+name: Webhook worker Redis
+type: redis
+container:
+  network: application
+  networkAlias: webhook-receiver-and-worker-redis
+  resources:
+    cpus: 0.5
+    memory: 512m
+secrets:
+  runtime:
+    - REDIS_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title="api"
+# .towbar/services/webhook-receiver-and-worker-api.service.yml
+id: webhook-receiver-and-worker-api
+name: Webhook worker
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - CACHE_URL
+domains:
+  primary: webhooks.example.com
+tls:
+  mode: direct
+```
+
+```yaml title="worker"
+# .towbar/services/webhook-receiver-and-worker-worker.service.yml
+id: webhook-receiver-and-worker-worker
+name: Worker
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - QUEUE_URL
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+4. Point each Service connection secret at `webhook-receiver-and-worker-redis` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
+5. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+The worker has no public domain and failed work can be retried safely.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

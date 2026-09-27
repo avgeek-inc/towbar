@@ -120,7 +120,7 @@ export function DeployableActionsMenu({
         </Button>
         <Dropdown.Popover className="min-w-48">
           <Dropdown.Menu
-            aria-label={`${type === "app" ? "App" : "Resource"} actions`}
+            aria-label={`${type === "app" ? "Service" : "Datastore"} actions`}
             onAction={(key) =>
               setSelectedAction(String(key) as DeployableAction)
             }
@@ -343,8 +343,8 @@ export function RuntimeLogs({
             services.length
               ? "Entire stack"
               : type === "app"
-                ? "App container"
-                : "Resource container"
+                ? "Service container"
+                : "Datastore container"
           }
           onChange={setTarget}
         />

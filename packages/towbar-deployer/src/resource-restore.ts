@@ -88,7 +88,6 @@ function resolveRestorePlan(input: ManagedRestoreInput): RestorePlan {
     context.request.type !== "restore" ||
     !resource ||
     !isNormalizedResource(resource) ||
-    resource.kind === "image" ||
     !release ||
     !backup ||
     !storage ||

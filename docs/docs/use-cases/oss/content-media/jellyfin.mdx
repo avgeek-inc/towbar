@@ -1,0 +1,67 @@
+---
+title: "Jellyfin"
+description: "Jellyfin organizes and streams movies, shows, music, and other personal media."
+icon: "/assets/use-case-logos/jellyfin.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/jellyfin.svg"
+  alt="Jellyfin logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://jellyfin.org/docs/general/installation/container/).
+
+Jellyfin keeps its library database in `/config` and transcode/cache files in `/cache`. `/media` is a separate volume; an empty volume has no films or music, so import files before creating a library.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/jellyfin.service.yml"
+id: jellyfin
+name: Jellyfin
+buildServer: null
+deployment:
+  type: image
+  image: jellyfin/jellyfin:10.10.7
+container:
+  port: 8096
+  volumes:
+    - name: config
+      mountPath: /config
+      initialData: image
+    - name: cache
+      mountPath: /cache
+      initialData: image
+    - name: media
+      mountPath: /media
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: jellyfin.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+4. After deployment, transfer a sample media file to the server and use `docker cp` to place it under `/media` in the running Jellyfin container. The named media volume retains it when the container is replaced.
+
+## Verify
+
+Add a small media file to `/media`, scan the library, and play it over HTTP. This example does not configure DLNA or hardware transcoding.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

@@ -1,0 +1,42 @@
+---
+title: "OCI image"
+description: "Run a reviewed OCI image with an explicit digest."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Related reading:** [Image deployment](/docs/services/modes/image).
+
+Use the image's actual listening port and health endpoint. Towbar does not build this image from the repository.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/prebuilt-oci-image.service.yml"
+id: prebuilt-oci-image
+name: OCI image
+buildServer: null
+deployment:
+  type: image
+  image: nginxinc/nginx-unprivileged@sha256:27985295bdb22a1ef8f712863210bd5877c0f3006494a593e86b3fe0fa55467e
+  platform: linux/amd64
+container:
+  port: 8080
+health:
+  path: /
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+`latest` is rejected; pin a reviewed tag or digest and verify the image listens on the declared port.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

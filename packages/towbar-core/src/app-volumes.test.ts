@@ -18,7 +18,7 @@ function resolve(
     environment,
     files: [
       {
-        path: ".towbar/apps/files.app.yml",
+        path: ".towbar/services/files.service.yml",
         content: stringify({
           id: "files",
           name: "Files",

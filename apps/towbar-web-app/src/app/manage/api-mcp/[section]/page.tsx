@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { hasHttpsExternalAccess } from "@/lib/config";
+import { canShowApiMcpSettings } from "@/lib/config";
 export const dynamic = "force-dynamic";
 const destinations: Record<string, string> = {
   "private-keys": "/manage/ssh-keys",
@@ -15,6 +15,6 @@ export default async function Page({
   const { section } = await params;
   const target = destinations[section];
   if (!target) notFound();
-  if (!hasHttpsExternalAccess() && section !== "private-keys") notFound();
+  if (!canShowApiMcpSettings() && section !== "private-keys") notFound();
   redirect(target);
 }

@@ -19,10 +19,10 @@ export function environmentSyncDependencies(
           version: 2 as const,
           environments: { production: {}, staging: {} },
         },
-        directories: [".towbar/apps"],
+        directories: [".towbar/services"],
         files: [
           {
-            path: ".towbar/apps/site.app.yml",
+            path: ".towbar/services/site.service.yml",
             content: JSON.stringify({
               id: "site",
               name: "Site",

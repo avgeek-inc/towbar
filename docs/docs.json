@@ -2,17 +2,18 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Towbar",
-  "description": "Open-source, Git-native PaaS for apps, databases, and previews. Deploy to servers you own.",
+  "description": "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own.",
   "logo": {
     "light": "/assets/towbar-logo.png",
     "dark": "/assets/towbar-logo.png",
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#A16207" },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#B9872C" },
   "appearance": { "default": "system" },
   "icons": { "library": "lucide" },
   "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
+  "interaction": { "drilldown": false },
   "navigation": {
     "dropdowns": [
       {
@@ -68,19 +69,8 @@
       },
       {
         "dropdown": "Build & run",
-        "icon": "boxes",
+        "icon": "rocket",
         "groups": [
-          {
-            "group": "Repositories",
-            "pages": [
-              "docs/repositories",
-              "docs/repositories/connect",
-              "docs/repositories/environments",
-              "docs/repositories/sync",
-              "docs/repositories/delete",
-              "docs/deployment-manifest"
-            ]
-          },
           {
             "group": "Servers",
             "pages": [
@@ -93,38 +83,49 @@
             ]
           },
           {
-            "group": "Applications",
+            "group": "Repositories",
             "pages": [
-              "docs/apps",
-              "docs/apps/manifest",
-              "docs/apps/configuration",
-              "docs/apps/routing",
-              "docs/apps/automation",
-              "docs/apps/jobs",
+              "docs/repositories",
+              "docs/repositories/connect",
+              "docs/repositories/environments",
+              "docs/repositories/sync",
+              "docs/repositories/delete",
+              "docs/deployment-manifest"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "docs/services",
+              "docs/services/manifest",
+              "docs/services/configuration",
+              "docs/services/routing",
+              "docs/services/automation",
+              "docs/services/jobs",
               "docs/platform-deployments",
               {
                 "group": "Deployment modes",
                 "pages": [
-                  "docs/apps/modes/dockerfile",
-                  "docs/apps/modes/static",
-                  "docs/apps/modes/image",
-                  "docs/apps/modes/railpack",
-                  "docs/apps/modes/nixpacks",
-                  "docs/apps/modes/buildpack",
-                  "docs/apps/modes/compose"
+                  "docs/services/modes/dockerfile",
+                  "docs/services/modes/static",
+                  "docs/services/modes/image",
+                  "docs/services/modes/railpack",
+                  "docs/services/modes/nixpacks",
+                  "docs/services/modes/buildpack",
+                  "docs/services/modes/compose"
                 ]
               }
             ]
           },
           {
-            "group": "Resources",
+            "group": "Datastores",
             "pages": [
-              "docs/resources",
-              "docs/resources/manifest",
-              "docs/resources/image",
+              "docs/datastores",
+              "docs/datastores/manifest",
               "docs/databases/index",
               {
-                "group": "Managed databases",
+                "group": "Engines",
+                "icon": "database",
                 "pages": [
                   "docs/databases/postgresql",
                   "docs/databases/mysql",
@@ -196,14 +197,17 @@
           { "group": "Overview", "pages": ["docs/integrations/index"] },
           {
             "group": "Source control",
+            "icon": "git-branch",
             "pages": ["docs/integrations/github", "docs/integrations/gitlab"]
           },
           {
             "group": "Container registries",
+            "icon": "container",
             "pages": ["docs/integrations/oci-registry"]
           },
           {
             "group": "Backup providers",
+            "icon": "cloud-upload",
             "pages": [
               "docs/integrations/backup-providers",
               "docs/integrations/aws",
@@ -214,6 +218,7 @@
           },
           {
             "group": "External secrets",
+            "icon": "key-round",
             "pages": [
               "docs/integrations/infisical",
               "docs/integrations/doppler"
@@ -221,6 +226,7 @@
           },
           {
             "group": "Platform services",
+            "icon": "cloud",
             "pages": [
               "docs/integrations/platform-services",
               "docs/integrations/cloudflare"
@@ -228,6 +234,7 @@
           },
           {
             "group": "Notifications",
+            "icon": "bell",
             "pages": [
               "docs/integrations/notifications",
               "docs/integrations/notifications/email",
@@ -235,6 +242,275 @@
               "docs/integrations/notifications/discord",
               "docs/integrations/notifications/telegram",
               "docs/integrations/notifications/webhook"
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Use cases",
+        "icon": "lightbulb",
+        "groups": [
+          { "group": "Start here", "pages": ["docs/use-cases/index"] },
+          {
+            "group": "Open-source software",
+            "pages": [
+              {
+                "group": "AI tools",
+                "pages": [
+                  "docs/use-cases/oss/ai/localai",
+                  "docs/use-cases/oss/ai/ollama"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "docs/use-cases/oss/analytics/matomo",
+                  "docs/use-cases/oss/analytics/metabase",
+                  "docs/use-cases/oss/analytics/plausible-ce",
+                  "docs/use-cases/oss/analytics/umami"
+                ]
+              },
+              {
+                "group": "Automation",
+                "pages": [
+                  "docs/use-cases/oss/automation/changedetection",
+                  "docs/use-cases/oss/automation/huginn",
+                  "docs/use-cases/oss/automation/node-red"
+                ]
+              },
+              {
+                "group": "Collaboration",
+                "pages": [
+                  "docs/use-cases/oss/collaboration/excalidraw",
+                  "docs/use-cases/oss/collaboration/kanboard",
+                  "docs/use-cases/oss/collaboration/memos",
+                  "docs/use-cases/oss/collaboration/vikunja"
+                ]
+              },
+              {
+                "group": "Content & media",
+                "pages": [
+                  "docs/use-cases/oss/content-media/audiobookshelf",
+                  "docs/use-cases/oss/content-media/bookstack",
+                  "docs/use-cases/oss/content-media/calibre-web",
+                  "docs/use-cases/oss/content-media/freshrss",
+                  "docs/use-cases/oss/content-media/ghost",
+                  "docs/use-cases/oss/content-media/hedgedoc",
+                  "docs/use-cases/oss/content-media/immich",
+                  "docs/use-cases/oss/content-media/jellyfin",
+                  "docs/use-cases/oss/content-media/linkding",
+                  "docs/use-cases/oss/content-media/miniflux",
+                  "docs/use-cases/oss/content-media/navidrome",
+                  "docs/use-cases/oss/content-media/paperless-ngx",
+                  "docs/use-cases/oss/content-media/photoprism",
+                  "docs/use-cases/oss/content-media/wiki-js",
+                  "docs/use-cases/oss/content-media/wordpress"
+                ]
+              },
+              {
+                "group": "Developer tools",
+                "pages": [
+                  "docs/use-cases/oss/developer-tools/forgejo",
+                  "docs/use-cases/oss/developer-tools/gitea",
+                  "docs/use-cases/oss/developer-tools/jenkins",
+                  "docs/use-cases/oss/developer-tools/meilisearch",
+                  "docs/use-cases/oss/developer-tools/searxng",
+                  "docs/use-cases/oss/developer-tools/typesense"
+                ]
+              },
+              {
+                "group": "Files & storage",
+                "pages": [
+                  "docs/use-cases/oss/files/copyparty",
+                  "docs/use-cases/oss/files/file-browser",
+                  "docs/use-cases/oss/files/nextcloud"
+                ]
+              },
+              {
+                "group": "Notifications",
+                "pages": [
+                  "docs/use-cases/oss/notifications/gotify",
+                  "docs/use-cases/oss/notifications/ntfy"
+                ]
+              },
+              {
+                "group": "Observability",
+                "pages": [
+                  "docs/use-cases/oss/observability/gatus",
+                  "docs/use-cases/oss/observability/glitchtip",
+                  "docs/use-cases/oss/observability/grafana",
+                  "docs/use-cases/oss/observability/prometheus",
+                  "docs/use-cases/oss/observability/uptime-kuma",
+                  "docs/use-cases/oss/observability/victoriametrics"
+                ]
+              },
+              {
+                "group": "Security",
+                "pages": [
+                  "docs/use-cases/oss/security/authentik",
+                  "docs/use-cases/oss/security/keycloak",
+                  "docs/use-cases/oss/security/vaultwarden"
+                ]
+              },
+              {
+                "group": "Utilities",
+                "pages": [
+                  "docs/use-cases/oss/utilities/actual-budget",
+                  "docs/use-cases/oss/utilities/cyberchef",
+                  "docs/use-cases/oss/utilities/it-tools",
+                  "docs/use-cases/oss/utilities/stirling-pdf"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Service recipes",
+            "pages": [
+              {
+                "group": "Build and images",
+                "pages": [
+                  "docs/use-cases/services/build/011-existing-dockerfile",
+                  "docs/use-cases/services/build/012-multi-stage-dockerfile",
+                  "docs/use-cases/services/build/013-private-package-at-build-time",
+                  "docs/use-cases/services/build/014-separate-build-server",
+                  "docs/use-cases/services/build/015-static-site",
+                  "docs/use-cases/services/build/016-single-page-app",
+                  "docs/use-cases/services/build/017-railpack-detected-project",
+                  "docs/use-cases/services/build/018-existing-nixpacks-project",
+                  "docs/use-cases/services/build/019-buildpack-project",
+                  "docs/use-cases/services/build/020-prebuilt-oci-image"
+                ]
+              },
+              {
+                "group": "Runtime",
+                "pages": [
+                  "docs/use-cases/services/runtime/021-http-api",
+                  "docs/use-cases/services/runtime/022-slow-startup",
+                  "docs/use-cases/services/runtime/023-cpu-bound-process",
+                  "docs/use-cases/services/runtime/024-private-api",
+                  "docs/use-cases/services/runtime/025-service-plus-postgresql",
+                  "docs/use-cases/services/runtime/026-service-plus-redis",
+                  "docs/use-cases/services/runtime/027-persistent-uploaded-files",
+                  "docs/use-cases/services/runtime/028-public-https",
+                  "docs/use-cases/services/runtime/029-alternate-domain",
+                  "docs/use-cases/services/runtime/030-single-writer-data"
+                ]
+              },
+              {
+                "group": "Operations",
+                "pages": [
+                  "docs/use-cases/services/operations/031-required-runtime-credential",
+                  "docs/use-cases/services/operations/032-private-build-dependency",
+                  "docs/use-cases/services/operations/033-infisical-folder",
+                  "docs/use-cases/services/operations/034-doppler-config",
+                  "docs/use-cases/services/operations/035-monorepo-auto-deploy",
+                  "docs/use-cases/services/operations/036-pull-request-preview",
+                  "docs/use-cases/services/operations/037-daily-report",
+                  "docs/use-cases/services/operations/038-pre-deploy-migration",
+                  "docs/use-cases/services/operations/039-event-notifications",
+                  "docs/use-cases/services/operations/040-image-vulnerability-scan"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Datastore recipes",
+            "pages": [
+              {
+                "group": "SQL",
+                "pages": [
+                  "docs/use-cases/datastores/sql/041-postgresql-for-one-service",
+                  "docs/use-cases/datastores/sql/042-postgresql-with-named-database",
+                  "docs/use-cases/datastores/sql/043-postgresql-for-an-operator-laptop",
+                  "docs/use-cases/datastores/sql/044-postgresql-with-daily-backups",
+                  "docs/use-cases/datastores/sql/045-mysql-for-an-api",
+                  "docs/use-cases/datastores/sql/046-mysql-application-schema",
+                  "docs/use-cases/datastores/sql/047-mysql-with-off-host-copies",
+                  "docs/use-cases/datastores/sql/048-mariadb-for-a-cms",
+                  "docs/use-cases/datastores/sql/049-mariadb-application-role",
+                  "docs/use-cases/datastores/sql/050-mariadb-with-ssh-access"
+                ]
+              },
+              {
+                "group": "Document and analytics",
+                "pages": [
+                  "docs/use-cases/datastores/document-analytics/051-mongodb-for-a-private-api",
+                  "docs/use-cases/datastores/document-analytics/052-mongodb-root-initialization",
+                  "docs/use-cases/datastores/document-analytics/053-mongodb-app-specific-user",
+                  "docs/use-cases/datastores/document-analytics/054-mongodb-operator-access",
+                  "docs/use-cases/datastores/document-analytics/055-mongodb-recovery",
+                  "docs/use-cases/datastores/document-analytics/056-clickhouse-for-event-analytics",
+                  "docs/use-cases/datastores/document-analytics/057-clickhouse-credentials",
+                  "docs/use-cases/datastores/document-analytics/058-clickhouse-database-selection",
+                  "docs/use-cases/datastores/document-analytics/059-clickhouse-resource-sizing",
+                  "docs/use-cases/datastores/document-analytics/060-clickhouse-recovery"
+                ]
+              },
+              {
+                "group": "Caches",
+                "pages": [
+                  "docs/use-cases/datastores/cache/061-redis-for-sessions",
+                  "docs/use-cases/datastores/cache/062-redis-for-a-queue",
+                  "docs/use-cases/datastores/cache/063-redis-with-operator-tunnel",
+                  "docs/use-cases/datastores/cache/064-redis-recovery",
+                  "docs/use-cases/datastores/cache/065-dragonfly-for-a-redis-protocol-client",
+                  "docs/use-cases/datastores/cache/066-dragonfly-private-endpoint",
+                  "docs/use-cases/datastores/cache/067-dragonfly-recovery",
+                  "docs/use-cases/datastores/cache/068-keydb-on-an-amd64-server",
+                  "docs/use-cases/datastores/cache/069-keydb-private-endpoint",
+                  "docs/use-cases/datastores/cache/070-keydb-recovery"
+                ]
+              },
+              {
+                "group": "Recovery",
+                "pages": [
+                  "docs/use-cases/datastores/recovery/071-manual-backup-before-a-change",
+                  "docs/use-cases/datastores/recovery/072-daily-retention",
+                  "docs/use-cases/datastores/recovery/073-aws-s3-destination",
+                  "docs/use-cases/datastores/recovery/074-s3-compatible-destination",
+                  "docs/use-cases/datastores/recovery/075-google-cloud-destination",
+                  "docs/use-cases/datastores/recovery/076-two-cloud-copies",
+                  "docs/use-cases/datastores/recovery/077-restore-drill",
+                  "docs/use-cases/datastores/recovery/078-new-server-placement",
+                  "docs/use-cases/datastores/recovery/079-database-password-rotation",
+                  "docs/use-cases/datastores/recovery/080-incident-investigation"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Complete stacks",
+            "pages": [
+              {
+                "group": "Web stacks",
+                "pages": [
+                  "docs/use-cases/stacks/web/081-api-with-postgresql",
+                  "docs/use-cases/stacks/web/082-api-with-mysql",
+                  "docs/use-cases/stacks/web/083-cms-with-mariadb",
+                  "docs/use-cases/stacks/web/084-api-with-mongodb",
+                  "docs/use-cases/stacks/web/085-web-sessions-with-redis",
+                  "docs/use-cases/stacks/web/086-queue-client-with-dragonfly",
+                  "docs/use-cases/stacks/web/087-search-backed-api",
+                  "docs/use-cases/stacks/web/088-event-analytics",
+                  "docs/use-cases/stacks/web/089-internal-metabase",
+                  "docs/use-cases/stacks/web/090-umami-analytics"
+                ]
+              },
+              {
+                "group": "Worker stacks",
+                "pages": [
+                  "docs/use-cases/stacks/workers/091-api-worker-and-redis",
+                  "docs/use-cases/stacks/workers/092-api-with-a-daily-report",
+                  "docs/use-cases/stacks/workers/093-webhook-receiver-and-worker",
+                  "docs/use-cases/stacks/workers/094-static-frontend-and-routed-api",
+                  "docs/use-cases/stacks/workers/095-multi-process-repository",
+                  "docs/use-cases/stacks/workers/096-pull-request-preview-for-web",
+                  "docs/use-cases/stacks/workers/097-staging-and-production",
+                  "docs/use-cases/stacks/workers/098-stateful-web-app",
+                  "docs/use-cases/stacks/workers/099-two-services-and-one-database",
+                  "docs/use-cases/stacks/workers/100-independent-stacks-on-separate-servers"
+                ]
+              }
             ]
           }
         ]
@@ -308,7 +584,7 @@
             ]
           },
           {
-            "group": "Apps",
+            "group": "Services",
             "pages": [
               {
                 "group": "Overview",
@@ -370,7 +646,7 @@
             ]
           },
           {
-            "group": "Resources",
+            "group": "Datastores",
             "pages": [
               {
                 "group": "Overview",
@@ -578,7 +854,8 @@
                 "group": "System health",
                 "pages": [
                   "api-reference/get_system_health",
-                  "api-reference/post_system_health_actions_check"
+                  "api-reference/post_system_health_actions_check",
+                  "api-reference/get_version"
                 ]
               },
               { "group": "Identity", "pages": ["api-reference/get_identity"] }

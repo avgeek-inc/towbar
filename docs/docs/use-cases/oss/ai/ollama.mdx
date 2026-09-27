@@ -1,0 +1,62 @@
+---
+title: "Ollama"
+description: "Ollama serves downloadable AI models through a local API."
+icon: "/assets/use-case-logos/ollama.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/ollama.svg"
+  alt="Ollama logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://docs.ollama.com/docker).
+
+This CPU-only image stores downloaded models under `/root/.ollama`. Ollama's API has no built-in authentication, so the example stays on the server's private application network. Model size and speed depend on available RAM and CPU.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/ollama.service.yml"
+id: ollama
+name: Ollama
+buildServer: null
+deployment:
+  type: image
+  image: ollama/ollama@sha256:8262851b2846b87c649eddf3e76beb270c52f4d1bc94559f47efde16b0841551
+container:
+  port: 11434
+  resources:
+    cpus: 4
+    memory: 8g
+  network: application
+  networkAlias: ollama
+  volumes:
+    - name: ollama
+      mountPath: /root/.ollama
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+From a trusted shell on the server, pull a small model in the running container and query `/api/tags`. Redeploy and confirm the model is still listed.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

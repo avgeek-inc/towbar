@@ -25,7 +25,7 @@ class RuntimeConfigTests(unittest.TestCase):
             if path.suffix not in (".md", ".mdx"):
                 continue
             examples = re.findall(
-                r'```yaml title="/etc/towbar/towbar.yml"[^\n]*\n(.*?)\n```',
+                r'```yaml title="/etc/towbar/config.yml"[^\n]*\n(.*?)\n```',
                 path.read_text(),
                 re.DOTALL,
             )
@@ -53,7 +53,7 @@ class RuntimeConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             env = root / "towbar.env"
-            yml = root / "towbar.yml"
+            yml = root / "config.yml"
             env.write_text((ROOT / ".env.example").read_text())
             original = config_tool.parse_env(env)
             config_tool.migrate(env, yml, True)
@@ -101,7 +101,7 @@ class RuntimeConfigTests(unittest.TestCase):
     def test_secret_characters_survive_rendering(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
-            yml = root / "towbar.yml"
+            yml = root / "config.yml"
             env = root / "towbar.env"
             secret = "can't use $OTHER # this value"
             config = {
@@ -118,7 +118,6 @@ class RuntimeConfigTests(unittest.TestCase):
                             }
                         ]
                     },
-                    "routes": [],
                 },
             }
             yml.write_text(config_tool.yaml.safe_dump(config))
@@ -134,7 +133,7 @@ class RuntimeConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             env = root / "towbar.env"
-            yml = root / "towbar.yml"
+            yml = root / "config.yml"
             env.write_text("TOWBAR_INSTALL_MODE=local\nCUSTOM_TOKEN=secret\n")
             with self.assertRaisesRegex(config_tool.ConfigError, "CUSTOM_TOKEN"):
                 config_tool.migrate(env, yml, False)
@@ -149,7 +148,7 @@ class RuntimeConfigTests(unittest.TestCase):
     def test_installation_url_can_change_after_an_interrupted_install(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
-            yml = root / "towbar.yml"
+            yml = root / "config.yml"
             env = root / "towbar.env"
             env.write_text((ROOT / ".env.example").read_text())
             config_tool.migrate(env, yml, False)

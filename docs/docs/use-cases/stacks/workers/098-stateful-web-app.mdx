@@ -1,0 +1,86 @@
+---
+title: "Stateful web"
+description: "Use a single-writer Service volume with recreate rollout plus a Datastore."
+icon: "/assets/database-logos/postgresql.webp"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/database-logos/postgresql.webp"
+  alt="Stateful web logo"
+  aria-hidden="true"
+/>
+
+These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/stateful-web-app-postgres.datastore.yml"
+id: stateful-web-app-postgres
+name: Stateful web PostgreSQL
+type: postgres
+container:
+  network: application
+  networkAlias: stateful-web-app-postgres
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/stateful-web-app-api.service.yml"
+id: stateful-web-app-api
+name: Stateful web
+deployment:
+  type: dockerfile
+  context: .
+  dockerfile: Dockerfile
+container:
+  port: 3000
+  network: application
+  volumes:
+    - name: uploads
+      mountPath: /app/uploads
+      initialData: image
+health:
+  path: /health
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - DATABASE_URL
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Single-writer uploads
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.
+2. Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.
+3. Save the Service's declared keys in its selected environment, or enable and authorize the selected [external-secret provider](/docs/secrets/external). Do not commit the values.
+4. Point each Service connection secret at `stateful-web-app-postgres` on the database engine's private port. The server and network must match; credentials are saved separately for each Service.
+5. Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.
+
+## Verify
+
+Back up the Service volume separately from Towbar-managed Datastore backups.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

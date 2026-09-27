@@ -25,8 +25,8 @@ const kindIcons = {
   sources: GitBranchIcon,
 } as const;
 const kindLabels = {
-  apps: "apps",
-  resources: "resources",
+  apps: "services",
+  resources: "datastores",
   servers: "servers",
   sources: "repositories",
 } as const;
@@ -113,11 +113,10 @@ export function InventorySidebar({
         ? [
             {
               key: "resourceType",
-              label: "Resource type",
+              label: "Datastore type",
               options: [
                 { id: "postgres", label: "PostgreSQL" },
                 { id: "redis", label: "Redis" },
-                { id: "image", label: "Docker image" },
               ],
             },
           ]

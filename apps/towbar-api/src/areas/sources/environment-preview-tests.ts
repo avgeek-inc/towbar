@@ -384,7 +384,7 @@ export async function assertEnvironmentManifestSnapshots(input: {
   assert.equal(staging?.commitSha, "b".repeat(40));
   assert.deepEqual(
     staging?.files.map((file) => file.path),
-    ["towbar.yml", ".towbar/apps/site.app.yml"],
+    ["towbar.yml", ".towbar/services/site.service.yml"],
   );
   assert.match(staging!.files[0]!.content, /version: 2/);
   await assert.rejects(

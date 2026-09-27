@@ -57,7 +57,7 @@ A published release becomes installable after its **Publish release images** wor
 
 ## Configure the installation
 
-Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/towbar.yml`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited with the host editor of your choice:
+Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/config.yml`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited with the host editor of your choice:
 
 ```bash
 sudo nano "$(towbar config path)"

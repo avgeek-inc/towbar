@@ -1,0 +1,64 @@
+---
+title: "Gotify"
+description: "Gotify receives application messages and delivers them to its web and mobile clients."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://gotify.net/docs/install).
+
+Gotify uses SQLite by default. Its `/app/data` directory contains the database and uploaded application images. Supply the first administrator password before deployment rather than using a default credential.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/gotify.service.yml"
+id: gotify
+name: Gotify
+buildServer: null
+deployment:
+  type: image
+  image: gotify/server@sha256:44fc5bbd1c0618878e33073d38c2c13126b48f245c3fe12236b1da48eb203b86
+container:
+  port: 80
+  volumes:
+    - name: data
+      mountPath: /app/data
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - GOTIFY_DEFAULTUSER_PASS
+domains:
+  primary: gotify.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+3. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                       | Value to save                                                     |
+| ------------------------- | ----------------------------------------------------------------- |
+| `GOTIFY_DEFAULTUSER_PASS` | Generate a strong password for the initial administrator account. |
+
+## Verify
+
+Sign in, create an application token, send a test message, and verify the message and account remain after redeployment. Back up `/app/data`.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

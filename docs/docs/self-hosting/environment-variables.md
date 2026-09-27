@@ -3,13 +3,13 @@ title: "Runtime configuration"
 description: "Reference for Towbar's YAML configuration, including secrets, integrations, notifications, and worker settings."
 ---
 
-Use this reference when configuring the Towbar installation. Application secrets belong in the [Shared secrets editor](/docs/secrets), and app behavior belongs in the [deployment manifest](/docs/deployment-manifest).
+Use this reference when configuring the Towbar installation. Workload secrets are described in [Secrets](/docs/secrets), and workload behavior belongs in the [deployment manifest](/docs/deployment-manifest).
 
-The installer creates `/etc/towbar/towbar.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
+The installer creates `/etc/towbar/config.yml` with root ownership and mode `600`. `towbar config path` prints that location without reading the file. Edit it with an editor such as `sudo nano "$(towbar config path)"`, validate it with `sudo towbar config validate`, and apply changes with `sudo towbar restart`. Editing YAML alone does not update running services.
 
 Towbar does not provide a configuration editor. Before replacing a running container, `restart` validates the YAML and Compose model, then runs API, worker, integration, notification, and Caddy preflights against the installed release images. A failed preflight leaves the running services untouched and directs you to `sudo towbar doctor`.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 version: 1
 installation:
   mode: public
@@ -27,7 +27,6 @@ integrations:
     appId: "12345"
     appSlug: towbar
     privateKeyBase64: "..."
-    webhookSecret: "..."
 ```
 
 Optional provider objects can be added under `integrations` and `notifications`. Keep identifiers and secrets quoted when they contain only digits or YAML-special characters. Unknown settings and duplicate YAML keys are rejected.
@@ -79,10 +78,12 @@ Set secret values directly. Towbar does not support external file references. En
 
 | Provider     | Required YAML settings                                                                                   | Optional settings                |
 | ------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| GitHub App   | `integrations.github.enabled`, `appId`, `appSlug`, `privateKeyBase64`, `webhookSecret`                   | `apiUrl`                         |
+| GitHub App   | `integrations.github.enabled`, `appId`, `appSlug`, `privateKeyBase64`                                    | `apiUrl`, `webhookSecret`        |
 | GitLab OAuth | `integrations.gitlab.enabled`, `oauthClientId`, `oauthClientSecret`, `oauthRedirectUri`, `webhookSecret` | `baseUrl`, `allowPrivateNetwork` |
 
 GitHub stores only the selected App installation and account metadata in PostgreSQL. GitLab stores only an encrypted, revocable OAuth grant and short-lived PKCE authorization attempts. App identity, OAuth client secrets, webhook secrets, and provider endpoints remain in the protected YAML file.
+
+When `integrations.github.webhookSecret` is set, Towbar requires a valid signature on GitHub webhooks. If omitted, GitHub webhook delivery remains available without signature verification.
 
 ### Registries, storage, secrets, and platform services
 
@@ -103,7 +104,7 @@ Other supported fields include bucket, prefix, endpoint, addressing style, priva
 
 Set `notifications.enabled: true` and add provider credentials under `notifications.providers`. Manage Email, Slack, and Telegram destinations in the dashboard. Discord webhook credentials and webhook push endpoint URLs, headers, and signing secrets stay in YAML; their subscriptions are managed in the dashboard. Route IDs, Discord webhook IDs, and webhook endpoint IDs must be unique.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 notifications:
   enabled: true
   providers:
@@ -126,7 +127,6 @@ notifications:
         headers:
           Authorization: "Bearer ..."
         signingSecret: "..."
-  routes: []
 ```
 
 The dashboard shows the active providers and routes without returning credentials. Notification events, delivery attempts, provider outcomes, and thread identifiers remain persisted for reliable retries and audit history.
@@ -134,23 +134,23 @@ The dashboard shows the active providers and routes without returning credential
 ## Image vulnerability scanning
 
 Set `worker.vulnerabilityScanning.enabled: true` to make image scanning
-available to Repositories. Each App must then opt in explicitly in its deployment
+available to Repositories. Each Service must then opt in explicitly in its deployment
 manifest:
 
-```yaml title=".towbar/apps/hello-towbar.app.yml" highlight={2}
+```yaml title=".towbar/services/hello-towbar.service.yml" highlight={2}
 id: hello-towbar
 vulnerabilityScanning: true
 environments:
   production: {}
 ```
 
-Towbar queues a scan of that App's immutable image digest after each successful
-production or Preview deployment. Changing only this App policy does not force
-a redeployment, and Resources are not scanned. Towbar reuses one result per
+Towbar queues a scan of that Service's immutable image digest after each successful
+production or Preview deployment. Changing only this Service policy does not force
+a redeployment, and Datastores are not scanned. Towbar reuses one result per
 workspace and image digest, stores only bounded normalized findings, and keeps
 scan failures separate from deployment health. The deployment detail page
 shows severity totals, actionable findings, scanner metadata, and stale or
-failed states. Disabling the App policy stops new scans without deleting prior
+failed states. Disabling the Service policy stops new scans without deleting prior
 results.
 
 `worker.vulnerabilityScanning.maxAgeHours` controls when completed results are

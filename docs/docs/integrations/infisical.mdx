@@ -1,15 +1,23 @@
 ---
 title: "Infisical"
 description: "Use a scoped Infisical machine identity to resolve deployment secrets."
+icon: "/assets/integration-logos/infisical.webp"
 ---
 
-Towbar can load runtime secrets for an app, resource, or Compose project from an Infisical folder when a deployment runs. The machine identity credentials stay in `/etc/towbar/towbar.yml`. See [External secrets](/docs/secrets/external) for workload manifest examples and folder behavior.
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/infisical.webp"
+  alt="Infisical logo"
+  aria-hidden="true"
+/>
+
+Towbar can load runtime secrets for a service or datastore from an Infisical folder when a deployment runs. The machine identity credentials stay in `/etc/towbar/config.yml`. See [External secrets](/docs/secrets/external) for workload manifest examples and folder behavior.
 
 ## Prepare access
 
 Create a machine identity in Infisical, grant it access only to the projects, environments, paths, and secret versions your workloads need, and create a client ID and secret for that identity. For a self-hosted Infisical installation, use its HTTPS base URL. Enable `allowPrivateNetwork` only if that installation intentionally resolves to an internal address reachable from Towbar.
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   infisical:
     enabled: true
@@ -32,8 +40,8 @@ If resolution fails, check the deployment's secret stage, path, identity permiss
     <img
       src="/assets/release-v2/infisical-setup-light.jpg"
       alt="Infisical integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -41,8 +49,8 @@ If resolution fails, check the deployment's secret stage, path, identity permiss
     <img
       src="/assets/release-v2/infisical-setup-dark.jpg"
       alt="Infisical integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

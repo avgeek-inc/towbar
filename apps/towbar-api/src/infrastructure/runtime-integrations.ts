@@ -39,7 +39,7 @@ export type GitHubRuntimeConfiguration = {
   appId: string;
   appSlug: string;
   privateKey: string;
-  webhookSecret: string;
+  webhookSecret?: string;
 };
 
 export type GitLabRuntimeConfiguration = {
@@ -128,7 +128,8 @@ export function parseRuntimeIntegrations(
       webhookSecret: z
         .string()
         .min(16)
-        .parse(required(environment, "TOWBAR_GITHUB_WEBHOOK_SECRET")),
+        .optional()
+        .parse(value(environment, "TOWBAR_GITHUB_WEBHOOK_SECRET")),
     };
     providers.github = {
       provider: "github",

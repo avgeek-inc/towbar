@@ -1,15 +1,23 @@
 ---
 title: "GitLab"
 description: "Configure a GitLab OAuth application in Towbar's YAML configuration and authorize one account."
+icon: "/assets/integration-logos/gitlab.svg"
 ---
 
-Towbar supports one GitLab OAuth authorization per workspace. OAuth application identity, client secret, webhook secret, base URL, and private-network policy live in `/etc/towbar/towbar.yml`. PostgreSQL stores the encrypted OAuth grant and account metadata needed to refresh it.
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/integration-logos/gitlab.svg"
+  alt="GitLab logo"
+  aria-hidden="true"
+/>
+
+Towbar supports one GitLab OAuth authorization per workspace. OAuth application identity, client secret, webhook secret, base URL, and private-network policy live in `/etc/towbar/config.yml`. PostgreSQL stores the encrypted OAuth grant and account metadata needed to refresh it.
 
 ## Configure OAuth
 
 Create an OAuth application in GitLab with the `api` and `read_repository` scopes. Set its callback to the exact API callback URL, then configure:
 
-```yaml title="/etc/towbar/towbar.yml"
+```yaml title="/etc/towbar/config.yml"
 integrations:
   gitlab:
     enabled: true
@@ -31,7 +39,7 @@ When adding a Repository, select GitLab, then the project and branch. Towbar rea
 
 ## Verify a project connection
 
-Open **Repositories → Add repository**, select GitLab, and confirm that the intended project appears. Map an environment to a branch containing `towbar.yml` and at least one app or resource manifest, then inspect the first sync. The project connection proves repository access; a successful sync proves that Towbar can read and validate that commit. Deployment remains a separate action.
+Open **Repositories → Add repository**, select GitLab, and confirm that the intended project appears. Map an environment to a branch containing `towbar.yml` and at least one service or datastore manifest, then inspect the first sync. The project connection proves repository access; a successful sync proves that Towbar can read and validate that commit. Deployment remains a separate action.
 
 Push a harmless manifest change to a mapped branch and check the resulting sync. If nothing arrives, inspect the GitLab project's webhook deliveries and the public Towbar origin. If authorization expires or project access changes, reconnect the account from **Manage → Integrations → GitLab** and verify the project again. Keep `allowPrivateNetwork` disabled unless the configured self-managed GitLab host intentionally needs private-network access.
 
@@ -40,8 +48,8 @@ Push a harmless manifest change to a mapped branch and check the resulting sync.
     <img
       src="/assets/release-v2/gitlab-setup-light.jpg"
       alt="GitLab integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -49,8 +57,8 @@ Push a harmless manifest change to a mapped branch and check the resulting sync.
     <img
       src="/assets/release-v2/gitlab-setup-dark.jpg"
       alt="GitLab integration settings in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

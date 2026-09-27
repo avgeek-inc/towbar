@@ -64,6 +64,7 @@ import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerIpLink } from "./source-inventory";
 import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { serviceTypeLabel } from "./service-type";
 
 const inventoryLayouts = ["grouped", "unified"] as const;
 
@@ -71,7 +72,7 @@ function isApp(item: App | Resource): item is App {
   return item.kind === "app" || item.kind === "compose";
 }
 
-function InventoryViewToggle({ kind }: { kind: "Apps" | "Resources" }) {
+function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
   const [layout, setLayout] = useQueryChoice(
     "layout",
     inventoryLayouts,
@@ -130,8 +131,8 @@ export function AppsIndex() {
   return (
     <DashboardPage
       icon={DashboardCircleIcon}
-      title="Apps"
-      actions={<InventoryViewToggle kind="Apps" />}
+      title="Services"
+      actions={<InventoryViewToggle kind="Services" />}
     >
       <InventorySidebar
         kind="apps"
@@ -174,8 +175,8 @@ export function ResourcesIndex() {
   return (
     <DashboardPage
       icon={CubeIcon}
-      title="Resources"
-      actions={<InventoryViewToggle kind="Resources" />}
+      title="Datastores"
+      actions={<InventoryViewToggle kind="Datastores" />}
     >
       <InventorySidebar
         kind="resources"
@@ -300,9 +301,20 @@ function DeployableInventoryTable({
           ? "resource-identity-cell w-full min-w-[22rem]"
           : "w-full min-w-64",
       wrapRowLink: false,
-      header: kind === "app" ? "App" : "Resource",
+      header: kind === "app" ? "Service" : "Datastore",
       key: "name",
     },
+    ...(kind === "app"
+      ? [
+          {
+            cell: (item: App | Resource) =>
+              isApp(item) ? serviceTypeLabel(item) : null,
+            className: "min-w-28 whitespace-nowrap",
+            header: "Type",
+            key: "type",
+          },
+        ]
+      : []),
     {
       cell: (item) => (
         <InstanceEnvironmentLabel environment={item.environment} />
@@ -376,24 +388,24 @@ function DeployableInventoryTable({
     layout === "unified" ? ResourceTable : GroupedDeployableTable;
   return (
     <InventoryTable
-      ariaLabel={kind === "app" ? "Apps" : "Resources"}
+      ariaLabel={kind === "app" ? "Services" : "Datastores"}
       columns={columns}
       emptyDescription={
         filtered
           ? "Try changing or clearing the filters."
           : kind === "app"
-            ? "A successful Repository sync imports apps into this workspace."
-            : "A successful Repository sync imports resources into this workspace."
+            ? "A successful Repository sync imports services into this workspace."
+            : "A successful Repository sync imports datastores into this workspace."
       }
       emptyTitle={
         filtered
           ? "No matching workloads"
           : kind === "app"
-            ? "No apps yet"
-            : "No resources yet"
+            ? "No services yet"
+            : "No datastores yet"
       }
       getRowHref={(item) =>
-        `/${kind === "app" ? "apps" : "resources"}/${item.id}`
+        `/${kind === "app" ? "services" : "datastores"}/${item.id}`
       }
       getRowKey={(item) => item.id}
       items={items}
@@ -486,9 +498,9 @@ function ServerInventory({
         return (
           <span className="inline-flex items-center gap-5 whitespace-nowrap">
             <TooltipText
-              aria-label={formatCount(appCount, "app")}
+              aria-label={formatCount(appCount, "service")}
               className="inline-flex items-center gap-1.5"
-              tooltip={formatCount(appCount, "app")}
+              tooltip={formatCount(appCount, "service")}
             >
               <HugeiconsIcon
                 aria-hidden="true"
@@ -498,9 +510,9 @@ function ServerInventory({
               <span className="tabular-nums">{appCount}</span>
             </TooltipText>
             <TooltipText
-              aria-label={formatCount(resourceCount, "resource")}
+              aria-label={formatCount(resourceCount, "datastore")}
               className="inline-flex items-center gap-1.5"
-              tooltip={formatCount(resourceCount, "resource")}
+              tooltip={formatCount(resourceCount, "datastore")}
             >
               <HugeiconsIcon
                 aria-hidden="true"

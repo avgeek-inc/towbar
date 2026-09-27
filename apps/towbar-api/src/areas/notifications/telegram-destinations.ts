@@ -9,6 +9,10 @@ import {
 import { badRequest } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
+import {
+  deploymentSubscriptionCategories,
+  hasOneDeploymentSubscription,
+} from "./deployment-subscriptions.js";
 
 const destinationSchema = z
   .object({
@@ -17,10 +21,12 @@ const destinationSchema = z
       .unwrap()
       .nullable(),
     deployments: z.boolean(),
+    deploymentFailures: z.boolean(),
     backupsAndRestores: z.boolean(),
     alertsAndIncidents: z.boolean(),
   })
-  .strict();
+  .strict()
+  .refine(hasOneDeploymentSubscription, "Choose one deployment subscription");
 
 export const telegramDestinationsSchema = z
   .object({
@@ -66,10 +72,13 @@ function legacyTelegramDestinations(): Array<
       chatId,
       messageThreadId,
       deployments: false,
+      deploymentFailures: false,
       backupsAndRestores: false,
       alertsAndIncidents: false,
     };
     row.deployments ||= route.categories.includes("deployments");
+    row.deploymentFailures ||= route.categories.includes("deploymentFailures");
+    if (row.deployments) row.deploymentFailures = false;
     row.backupsAndRestores ||=
       route.categories.includes("backups") ||
       route.categories.includes("restores");
@@ -194,7 +203,7 @@ function routeForRow(row: TelegramDestinationInput & { id: string }) {
     provider: "telegram" as const,
     enabled: true,
     categories: [
-      ...(row.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(row),
       ...(row.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),

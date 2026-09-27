@@ -144,15 +144,27 @@ export function entityFileKind(
 ): "app" | "compose" | "resource" | undefined {
   if (normalizeRepositoryPath(filePath) !== filePath)
     throw new Error("Entity paths must be canonical repository-relative paths");
-  if (filePath.startsWith(".towbar/apps/") && filePath.endsWith(".app.yml"))
+  if (
+    [".towbar/apps/", ".towbar/resources/", ".towbar/compose/"].some((prefix) =>
+      filePath.startsWith(prefix),
+    )
+  )
+    invalid(
+      filePath,
+      "Use .towbar/services for services or .towbar/datastores for datastores",
+    );
+  if (
+    filePath.startsWith(".towbar/services/") &&
+    filePath.endsWith(".service.yml")
+  )
     return "app";
   if (
-    filePath.startsWith(".towbar/resources/") &&
-    filePath.endsWith(".resource.yml")
+    filePath.startsWith(".towbar/datastores/") &&
+    filePath.endsWith(".datastore.yml")
   )
     return "resource";
   if (
-    filePath.startsWith(".towbar/compose/") &&
+    filePath.startsWith(".towbar/services/") &&
     filePath.endsWith(".compose.yml")
   )
     return "compose";
