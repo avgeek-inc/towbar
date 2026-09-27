@@ -102,13 +102,6 @@ a {
     min-width: 0 !important;
   }
 
-  @media (max-width: 63.999rem) {
-    .table__column,
-    .table__cell {
-      @apply px-3;
-    }
-  }
-
   /* Match the compact mobile button rhythm across single-line controls, while
      keeping editable text at 16px so mobile browsers do not zoom on focus. */
   .input {
