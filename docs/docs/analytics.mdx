@@ -121,8 +121,22 @@ Accepted batches use Scout’s existing bounded, private retry directory: up to 
 
 Reports require `scout.read` and are scoped to the authenticated workspace. Data is retained for the manifest’s duration and deleted by daily Temporal maintenance. Shorter retention applies to report queries immediately and to stored rows on the next sweep. Deleting a service cascades its analytics history. Backups follow their own retention policy. Aggregates and optional pseudonymous identity hashes live in Towbar’s PostgreSQL database; no third-party analytics service receives them.
 
+### Filter by path
+
+Select **Filters** beside the Analytics title. Choose **Path**, then **is** for an exact path or **starts with** for a prefix, enter the path, and select **Apply**. The button shows the number of active filters. Filters stay active when switching between HTTP requests and pageviews or changing the time range. Use **Clear filters** in the modal to reset them.
+
+All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/docs/api`, and `/docs-old`; use `/docs/` to match only paths beneath that directory. Matching is case-sensitive and treats `%` and `_` literally. Enter paths without query strings or fragments. Filters scope totals, trends, breakdowns, and the previous period consistently. A previous period with no matching activity is shown as unavailable.
+
 ### API
 
 `GET /v1/core/apps/{appId}/analytics?kind=request&days=7` returns request totals, trends, ranked dimensions, and a latency histogram. Reports also include `comparison` totals and an aligned trend for the immediately preceding period of equal length. Comparison is unavailable when that period exceeds configured retention or has no collected samples. Tables describe only the selected period. Use `kind=pageview` for browser analytics. `days` accepts 1–90 and is clamped to service retention. Browser-only response dimensions are absent from request reports, and latency fields are not meaningful for pageviews.
+
+Pass an optional `filters` query parameter containing a URL-encoded JSON array of up to eight conditions:
+
+```json
+[{ "field": "path", "operator": "startsWith", "value": "/docs/" }]
+```
+
+Each condition has a field, operator, and value. Supported operators are `equals` and `startsWith`; `path` is currently the only supported field. Conditions use AND, and the response echoes the applied `filters`. Invalid fields, operators, or values return HTTP 400. Each path value is limited to 256 characters. Omitting `filters` returns the unfiltered report.
 
 The collection format follows [Caddy’s structured access log](https://caddyserver.com/docs/caddyfile/directives/log) and [log_append](https://caddyserver.com/docs/caddyfile/directives/log_append). Browser navigation follows the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState).

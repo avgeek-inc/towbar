@@ -1,6 +1,7 @@
 import { type SQL, and, eq, isNull, sql } from "drizzle-orm";
 import {
   type AnalyticsConfig,
+  type AnalyticsFilter,
   type AnalyticsReport,
   type MonitoringSample,
   analyticsLatencyBounds,
@@ -115,6 +116,7 @@ export async function getAnalyticsReport(input: {
   workspaceId: string;
   days: number;
   kind: "request" | "pageview";
+  filters?: AnalyticsFilter[];
 }): Promise<AnalyticsReport> {
   const database = getTowbarDatabase();
   const [app] = await database
@@ -140,7 +142,9 @@ export async function getAnalyticsReport(input: {
     end.getTime() -
       Math.min(input.days, config?.retentionDays ?? 30) * 86400_000,
   );
-  const filter = sql`s.app_id=${app.id}::uuid and s.collected_at>=${start.toISOString()}::timestamptz and s.collected_at<${end.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
+  const conditions = analyticsConditions(input.filters ?? []);
+  const currentPeriod = sql`s.app_id=${app.id}::uuid and s.collected_at>=${start.toISOString()}::timestamptz and s.collected_at<${end.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
+  const filter = sql`${currentPeriod} and ${conditions}`;
   const step = input.days === 1 ? 3600 : 86400;
   const { totals, trend } = await periodSummary(
     database,
@@ -156,15 +160,17 @@ export async function getAnalyticsReport(input: {
     Boolean(config) &&
     previousStart.getTime() >=
       end.getTime() - (config?.retentionDays ?? 30) * 86400_000;
+  const previousPeriod = sql`s.app_id=${app.id}::uuid and s.collected_at>=${previousStart.toISOString()}::timestamptz and s.collected_at<${start.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
   const previous = canCompare
     ? await periodSummary(
         database,
-        sql`s.app_id=${app.id}::uuid and s.collected_at>=${previousStart.toISOString()}::timestamptz and s.collected_at<${start.toISOString()}::timestamptz and c->>'kind'=${input.kind}`,
+        sql`${previousPeriod} and ${conditions}`,
         previousStart,
         start,
         step,
       )
     : null;
+  const previousHasData = Boolean(previous?.totals.last);
   const histogramRows = await database.execute<{
     idx: number;
     count: string;
@@ -188,6 +194,7 @@ export async function getAnalyticsReport(input: {
     }));
   }
   return {
+    filters: input.filters ?? [],
     enabled: Boolean(config),
     config,
     ...agentDiagnostics(agent),
@@ -202,7 +209,7 @@ export async function getAnalyticsReport(input: {
     histogram,
     trend,
     comparison:
-      previous && previous.totals.last
+      previous && previousHasData
         ? {
             start: previousStart.toISOString(),
             end: start.toISOString(),
@@ -212,6 +219,27 @@ export async function getAnalyticsReport(input: {
         : null,
     dimensions,
   };
+}
+
+function analyticsConditions(filters: AnalyticsFilter[]): SQL {
+  const fields: Record<AnalyticsFilter["field"], SQL> = {
+    path: sql`c->>'path'`,
+  };
+  const operators: Record<
+    AnalyticsFilter["operator"],
+    (field: SQL, value: string) => SQL
+  > = {
+    equals: (field, value) => sql`${field} = ${value}`,
+    startsWith: (field, value) =>
+      sql`left(${field}, length(${value}::text)) = ${value}`,
+  };
+  return (
+    and(
+      ...filters.map(({ field, operator, value }) =>
+        operators[operator](fields[field], value),
+      ),
+    ) ?? sql`true`
+  );
 }
 
 function agentDiagnostics(

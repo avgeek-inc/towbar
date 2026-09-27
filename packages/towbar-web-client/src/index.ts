@@ -36,4 +36,4 @@ export { deploymentStates } from "@workspace/towbar-core/temporal";
 
 export type { AuditEventIcon } from "@workspace/towbar-core";
 
-export type { AnalyticsReport } from "@workspace/towbar-core";
+export type { AnalyticsReport, AnalyticsFilter } from "@workspace/towbar-core";

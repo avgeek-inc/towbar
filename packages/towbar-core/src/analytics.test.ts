@@ -52,3 +52,37 @@ void test("request payloads reject IP addresses, identities, queries, and incons
   ])
     assert(!analyticsCellSchema.safeParse({ ...cell, ...patch }).success);
 });
+
+void test("analytics filters validate bounded AND conditions", async () => {
+  const { analyticsQuerySchema } = await import("./analytics.js");
+  assert.deepEqual(analyticsQuerySchema.parse({}).filters, []);
+  const filters = [
+    { field: "path", operator: "startsWith", value: "/docs" },
+    { field: "path", operator: "equals", value: "/docs/api" },
+  ];
+  assert.deepEqual(
+    analyticsQuerySchema.parse({ filters: JSON.stringify(filters) }).filters,
+    filters,
+  );
+  for (const value of [
+    "{",
+    "{}",
+    "null",
+    JSON.stringify(Array(9).fill(filters[0])),
+    ...[
+      { ...filters[0], field: "country" },
+      { ...filters[0], operator: "contains" },
+      { ...filters[0], value: "docs" },
+      { ...filters[0], value: "/docs?token=secret" },
+      { ...filters[0], value: "/docs#section" },
+      { ...filters[0], value: "/docs\n" },
+      { ...filters[0], value: "/" + "a".repeat(256) },
+      { ...filters[0], extra: true },
+    ].map((filter) => JSON.stringify([filter])),
+  ])
+    assert.equal(
+      analyticsQuerySchema.safeParse({ filters: value }).success,
+      false,
+      value,
+    );
+});

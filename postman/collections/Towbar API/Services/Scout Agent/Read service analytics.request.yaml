@@ -3,7 +3,7 @@ id: 5245a6b1-308f-57ec-9616-eaa7a1d83e6a
 description:
   "Required permissions: scout.read. Personal keys are capped by the current member role;
   team keys use explicit grants."
-url: "{{baseUrl}}/apps/:appId/analytics?days=7&kind=request"
+url: "{{baseUrl}}/apps/:appId/analytics?days=7&kind=request&filters=%5B%5D"
 method: GET
 headers:
   Accept: application/json
@@ -12,6 +12,8 @@ queryParams:
     value: "7"
   - key: kind
     value: request
+  - key: filters
+    value: "[]"
 pathVariables:
   - key: appId
     value: "{{appId}}"

@@ -253,6 +253,165 @@ void test(
       assert.equal(visits.total, 2);
       assert.equal(visits.visitors, 1);
       assert.equal(visits.sessions, 1);
+      async function verifyPathFilters() {
+        // Both measures share the same predicates across every report section.
+        for (const kind of ["request", "pageview"] as const) {
+          const base = kind === "request" ? cell : page;
+          for (const [hours, multiplier] of [
+            [1, 1],
+            [36, 2],
+          ] as const) {
+            await db.insert(analyticsSamples).values({
+              serverId,
+              appId,
+              sampleId: randomBytes(16).toString("hex"),
+              collectedAt: new Date(Date.now() - hours * 3600000),
+              cells: [
+                "/filter",
+                "/filter/api",
+                "/filtering",
+                "/literal_%/x",
+                "/literalAB/x",
+                "/current-only",
+              ]
+                .filter((path) => hours === 1 || path !== "/current-only")
+                .map((path, index) => ({
+                  ...base,
+                  path,
+                  count: (index + 1) * multiplier,
+                  bytes: kind === "request" ? (index + 1) * multiplier * 10 : 0,
+                  durationMs:
+                    kind === "request" ? (index + 1) * multiplier * 5 : 0,
+                  histogram: [
+                    kind === "request" ? (index + 1) * multiplier : 0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                  ],
+                })),
+            });
+          }
+          const cases = [
+            {
+              filters: [
+                { field: "path", operator: "equals", value: "/filter" },
+              ],
+              total: 1,
+              paths: ["/filter"],
+            },
+            {
+              filters: [
+                { field: "path", operator: "startsWith", value: "/filter" },
+              ],
+              total: 6,
+              paths: ["/filter", "/filter/api", "/filtering"],
+            },
+            {
+              filters: [
+                { field: "path", operator: "startsWith", value: "/filter/" },
+                { field: "path", operator: "equals", value: "/filter/api" },
+              ],
+              total: 2,
+              paths: ["/filter/api"],
+            },
+            {
+              filters: [
+                { field: "path", operator: "startsWith", value: "/literal_%" },
+              ],
+              total: 4,
+              paths: ["/literal_%/x"],
+            },
+            {
+              filters: [
+                { field: "path", operator: "equals", value: "/' OR true --" },
+              ],
+              total: 0,
+              paths: [],
+            },
+            {
+              filters: [
+                { field: "path", operator: "equals", value: "/filter" },
+                { field: "path", operator: "equals", value: "/filter/api" },
+              ],
+              total: 0,
+              paths: [],
+            },
+          ] satisfies {
+            filters: import("@workspace/towbar-core").AnalyticsFilter[];
+            total: number;
+            paths: string[];
+          }[];
+          for (const { filters, total, paths } of cases) {
+            const filtered = await getAnalyticsReport({
+              appId,
+              workspaceId,
+              days: 1,
+              kind,
+              filters,
+            });
+            assert.deepEqual(filtered.filters, filters);
+            assert.equal(filtered.total, total);
+            assert.equal(
+              filtered.trend.reduce((sum, point) => sum + point.count, 0),
+              total,
+            );
+            assert.deepEqual(
+              filtered.dimensions.path?.map((row) => row.value).sort(),
+              paths.sort(),
+            );
+            for (const rows of Object.values(filtered.dimensions))
+              assert.equal(
+                rows.reduce((sum, row) => sum + row.count, 0),
+                total,
+              );
+            assert.equal(filtered.bytes, kind === "request" ? total * 10 : 0);
+            assert.equal(filtered.errors, kind === "request" ? total : 0);
+            assert.equal(
+              filtered.histogram.reduce((sum, n) => sum + n, 0),
+              kind === "request" ? total : 0,
+            );
+            assert.equal(
+              filtered.visitors,
+              kind === "pageview" ? Number(total > 0) : null,
+            );
+            assert.equal(
+              filtered.sessions,
+              kind === "pageview" ? Number(total > 0) : null,
+            );
+            if (total) {
+              assert.equal(filtered.comparison?.total, total * 2);
+              assert.equal(
+                filtered.comparison?.trend.reduce(
+                  (sum, point) => sum + point.count,
+                  0,
+                ),
+                total * 2,
+              );
+              assert.equal(
+                filtered.comparison?.errors,
+                kind === "request" ? total * 2 : 0,
+              );
+              assert.equal(filtered.meanMs, kind === "request" ? 5 : null);
+            } else assert.equal(filtered.comparison, null);
+          }
+          const noPriorMatch = await getAnalyticsReport({
+            appId,
+            workspaceId,
+            days: 1,
+            kind,
+            filters: [
+              { field: "path", operator: "equals", value: "/current-only" },
+            ],
+          });
+          assert.equal(noPriorMatch.total, 6);
+          assert.equal(noPriorMatch.comparison, null);
+        }
+      }
+      await verifyPathFilters();
       await db
         .update(apps)
         .set({

@@ -93,11 +93,42 @@ export const analyticsCellSchema = z
       });
   });
 export type AnalyticsCell = z.infer<typeof analyticsCellSchema>;
+export const analyticsFilterSchema = z
+  .object({
+    field: z.enum(["path"]),
+    operator: z.enum(["equals", "startsWith"]),
+    value: z
+      .string()
+      .startsWith("/")
+      .max(256)
+      .regex(/^[^?#\r\n]*$/u),
+  })
+  .strict();
+export type AnalyticsFilter = z.infer<typeof analyticsFilterSchema>;
+export const analyticsFiltersSchema = z.array(analyticsFilterSchema).max(8);
+const encodedAnalyticsFiltersSchema = z
+  .string()
+  .max(8192)
+  .describe(
+    'JSON array of AND conditions, for example [{"field":"path","operator":"startsWith","value":"/docs"}]. Supports path with equals or startsWith; at most 8 conditions.',
+  )
+  .default("[]")
+  .transform((value, ctx) => {
+    try {
+      return JSON.parse(value) as unknown;
+    } catch {
+      ctx.addIssue({ code: "custom", message: "Filters must be a JSON array" });
+      return z.NEVER;
+    }
+  })
+  .pipe(analyticsFiltersSchema);
 export const analyticsQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(90).default(7),
   kind: z.enum(["request", "pageview"]).default("request"),
+  filters: encodedAnalyticsFiltersSchema,
 });
 export type AnalyticsReport = {
+  filters: AnalyticsFilter[];
   enabled: boolean;
   config: AnalyticsConfig | null;
   agentStatus: string;

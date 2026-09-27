@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { analyticsQuerySchema } from "@workspace/towbar-core";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
 
 export function analyticsFixture(
@@ -7,15 +8,80 @@ export function analyticsFixture(
   url: URL,
 ) {
   if (!/^\/v1\/core\/apps\/[^/]+\/analytics$/u.test(url.pathname)) return false;
-  const kind =
-    url.searchParams.get("kind") === "pageview" ? "pageview" : "request";
-  const days = Number(url.searchParams.get("days") ?? 7);
+  const query = analyticsQuerySchema.safeParse(
+    Object.fromEntries(url.searchParams),
+  );
+  if (!query.success) {
+    response.writeHead(400, { "content-type": "application/json" });
+    response.end(
+      JSON.stringify({ error: { message: "Invalid analytics filters" } }),
+    );
+    return true;
+  }
+  const { kind, days, filters } = query.data;
+  if (
+    filters.length &&
+    process.env.TOWBAR_FIXTURE_ANALYTICS_STATE === "filtered-error"
+  ) {
+    response.writeHead(503, { "content-type": "application/json" });
+    response.end(
+      JSON.stringify({
+        error: { message: "Analytics is temporarily unavailable" },
+      }),
+    );
+    return true;
+  }
+  const paths = [
+    { value: "/", share: 0.45 },
+    { value: "/docs/getting-started", share: 0.24 },
+    { value: "/pricing", share: 0.12 },
+    {
+      value:
+        "/blog/a-long-article-path-that-must-truncate-without-breaking-the-table",
+      share: 0.05,
+    },
+    { value: "/docs/api", share: 0.09 },
+    { value: "/contact", share: 0.05 },
+  ];
+  const matchingPaths = paths.filter((path) =>
+    filters.every((filter) =>
+      filter.operator === "equals"
+        ? path.value === filter.value
+        : path.value.startsWith(filter.value),
+    ),
+  );
+  const fraction = matchingPaths.reduce((sum, path) => sum + path.share, 0);
   const end = Date.now();
-  const counts = Array.from({ length: days === 1 ? 24 : days }, (_, i) =>
+  const allCounts = Array.from({ length: days === 1 ? 24 : days }, (_, i) =>
     kind === "request" ? 400 + ((i * 137) % 450) : 200 + ((i * 57) % 190),
   );
-  const previousCounts = counts.map((count, i) =>
-    Math.floor(count * (0.65 + (i % 3) * 0.15)),
+  const allocate = (count: number) =>
+    paths
+      .map((path, index) => ({
+        value: path.value,
+        count:
+          index === 0
+            ? count -
+              paths
+                .slice(1)
+                .reduce(
+                  (sum, other) => sum + Math.floor(count * other.share),
+                  0,
+                )
+            : Math.floor(count * path.share),
+      }))
+      .filter((path) =>
+        matchingPaths.some((match) => match.value === path.value),
+      );
+  const currentBuckets = allCounts.map(allocate);
+  const counts = currentBuckets.map((rows) =>
+    rows.reduce((sum, row) => sum + row.count, 0),
+  );
+  const previousCounts = allCounts.map((count, i) =>
+    allocate(Math.floor(count * (0.65 + (i % 3) * 0.15))).reduce(
+      (sum, row) => sum + row.count,
+      0,
+    ),
   );
   const total = counts.reduce((a, b) => a + b, 0);
   const histogram = [0, 0.55, 0.27, 0.12, 0.015, 0.005, 0.001, 0.0005].map(
@@ -42,33 +108,34 @@ export function analyticsFixture(
     start: new Date(end - days * 86400000).toISOString(),
     end: new Date(end).toISOString(),
     kind,
+    filters,
     total,
-    bytes: 23456789,
-    errors: 34,
-    meanMs: 48.2,
-    p50Ms: 50,
-    p95Ms: 200,
-    visitors: kind === "pageview" ? 702 : null,
-    sessions: kind === "pageview" ? 841 : null,
+    bytes: Math.floor(23456789 * fraction),
+    errors: Math.floor(34 * fraction),
+    meanMs: total ? 48.2 : null,
+    p50Ms: total ? 50 : null,
+    p95Ms: total ? 200 : null,
+    visitors: kind === "pageview" ? Math.floor(702 * fraction) : null,
+    sessions: kind === "pageview" ? Math.floor(841 * fraction) : null,
     histogram,
     trend: counts.map((count, i) => ({
       at: new Date(
         end - (counts.length - i) * (days === 1 ? 3600000 : 86400000),
       ).toISOString(),
       count,
-      errors: i % 3,
+      errors: Math.floor((i % 3) * fraction),
     })),
     comparison:
-      days * 2 > 90
+      days * 2 > 90 || !fraction
         ? null
         : {
             start: new Date(end - 2 * days * 86400000).toISOString(),
             end: new Date(end - days * 86400000).toISOString(),
             total: previousCounts.reduce((sum, count) => sum + count, 0),
-            errors: 50,
+            errors: Math.floor(50 * fraction),
             meanMs: 56.8,
-            visitors: kind === "pageview" ? 640 : null,
-            sessions: kind === "pageview" ? 910 : null,
+            visitors: kind === "pageview" ? Math.floor(640 * fraction) : null,
+            sessions: kind === "pageview" ? Math.floor(910 * fraction) : null,
             trend: counts.map((_count, i) => ({
               at: new Date(
                 end -
@@ -76,20 +143,18 @@ export function analyticsFixture(
                   (counts.length - i) * (days === 1 ? 3600000 : 86400000),
               ).toISOString(),
               count: previousCounts[i]!,
-              errors: 2,
+              errors: Math.floor(2 * fraction),
             })),
           },
     dimensions: {
-      path: [
-        { value: "/", count: share(0.45) },
-        { value: "/docs/getting-started", count: share(0.24) },
-        { value: "/pricing", count: share(0.12) },
-        {
-          value:
-            "/blog/a-long-article-path-that-must-truncate-without-breaking-the-table",
-          count: share(0.05),
-        },
-      ],
+      path: matchingPaths.map((path) => ({
+        value: path.value,
+        count: currentBuckets.reduce(
+          (sum, rows) =>
+            sum + (rows.find((row) => row.value === path.value)?.count ?? 0),
+          0,
+        ),
+      })),
       referrer: [
         { value: "google.com", count: share(0.35) },
         { value: "github.com", count: share(0.2) },
@@ -98,13 +163,16 @@ export function analyticsFixture(
       ...(kind === "request"
         ? {
             status: [
-              { value: "200", count: total - 34 },
-              { value: "404", count: 30 },
-              { value: "500", count: 4 },
+              { value: "200", count: total - Math.floor(34 * fraction) },
+              { value: "404", count: Math.floor(30 * fraction) },
+              {
+                value: "500",
+                count: Math.floor(34 * fraction) - Math.floor(30 * fraction),
+              },
             ],
             method: [
-              { value: "GET", count: total - 50 },
-              { value: "POST", count: 50 },
+              { value: "GET", count: total - Math.floor(50 * fraction) },
+              { value: "POST", count: Math.floor(50 * fraction) },
             ],
           }
         : {
@@ -124,7 +192,7 @@ export function analyticsFixture(
           }),
     },
   };
-  if (process.env.TOWBAR_FIXTURE_ANALYTICS_STATE === "empty") {
+  if (!total || process.env.TOWBAR_FIXTURE_ANALYTICS_STATE === "empty") {
     report.total = 0;
     report.bytes = 0;
     report.errors = 0;

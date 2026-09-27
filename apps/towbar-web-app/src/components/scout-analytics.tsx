@@ -1,8 +1,18 @@
 "use client";
 
+import { PageSelectionTitle } from "./page-selection-title";
+import { Activity01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import styles from "./scout-analytics.module.css";
-import type { AnalyticsReport } from "@workspace/towbar-web-client";
+import type {
+  AnalyticsReport,
+  AnalyticsFilter,
+} from "@workspace/towbar-web-client";
+import {
+  FilterDialog,
+  type FilterField,
+} from "@workspace/towbar-web-ui/filter-dialog";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -38,6 +48,22 @@ const latencyLabels = [
   ">2.5 s",
 ];
 const format = (n: number) => n.toLocaleString();
+const filterFields: FilterField<
+  AnalyticsFilter["field"],
+  AnalyticsFilter["operator"]
+>[] = [
+  {
+    field: "path",
+    label: "Path",
+    operators: [
+      { value: "equals", label: "is" },
+      { value: "startsWith", label: "starts with" },
+    ],
+    placeholder: "/docs",
+    pattern: "/[^?#\\r\\n]*",
+    maxLength: 256,
+  },
+];
 
 export function ScoutAnalytics({
   appId,
@@ -50,34 +76,60 @@ export function ScoutAnalytics({
 }) {
   const [kind, setKind] = useState<"request" | "pageview">("request");
   const [days, setDays] = useState(7);
+  const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
+  const params = new URLSearchParams({ kind, days: String(days) });
+  if (filters.length) params.set("filters", JSON.stringify(filters));
   const query = useApiQuery<AnalyticsReport>(
-    supported
-      ? `/v1/core/apps/${appId}/analytics?kind=${kind}&days=${days}`
-      : null,
+    supported ? `/v1/core/apps/${appId}/analytics?${params}` : null,
   );
   if (!supported)
     return (
-      <EmptyState>
-        <EmptyState.Header>
-          <EmptyState.Title>
-            Analytics is available for single-container services
-          </EmptyState.Title>
-          <EmptyState.Description>
-            Compose workloads do not support Scout analytics yet.
-          </EmptyState.Description>
-        </EmptyState.Header>
-      </EmptyState>
+      <>
+        <PageSelectionTitle
+          label="Analytics"
+          icon={<HugeiconsIcon icon={Activity01Icon} />}
+          keepEntityName
+        />
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.Title>
+              Analytics is available for single-container services
+            </EmptyState.Title>
+            <EmptyState.Description>
+              Compose workloads do not support Scout analytics yet.
+            </EmptyState.Description>
+          </EmptyState.Header>
+        </EmptyState>
+      </>
     );
-  if (query.error) return <QueryError message={query.error} />;
-  if (!query.data) return <QueryLoading />;
   return (
-    <AnalyticsView
-      report={query.data}
-      domain={domain}
-      days={days}
-      setDays={setDays}
-      setKind={setKind}
-    />
+    <>
+      <PageSelectionTitle
+        label="Analytics"
+        icon={<HugeiconsIcon icon={Activity01Icon} />}
+        keepEntityName
+        actions={
+          <FilterDialog
+            fields={filterFields}
+            value={filters}
+            onChange={setFilters}
+          />
+        }
+      />
+      {query.error ? (
+        <QueryError message={query.error} />
+      ) : !query.data ? (
+        <QueryLoading />
+      ) : (
+        <AnalyticsView
+          report={query.data}
+          domain={domain}
+          days={days}
+          setDays={setDays}
+          setKind={setKind}
+        />
+      )}
+    </>
   );
 }
 
@@ -247,9 +299,11 @@ export function AnalyticsView({
               No {pageviews ? "pageviews" : "requests"} in this range
             </EmptyState.Title>
             <EmptyState.Description>
-              {pageviews
-                ? "Add the script shown below to your site and visit a page. Data usually appears within a minute."
-                : "Visit this service. Data usually appears within a minute."}
+              {report.filters.length
+                ? "Try different filters or a wider time range."
+                : pageviews
+                  ? "Add the script shown below to your site and visit a page. Data usually appears within a minute."
+                  : "Visit this service. Data usually appears within a minute."}
             </EmptyState.Description>
           </EmptyState.Header>
         </EmptyState>

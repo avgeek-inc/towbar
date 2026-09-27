@@ -400,6 +400,7 @@ export function AppDetail() {
           },
           {
             value: "analytics",
+            contentOwnsTitle: true,
             icon: <HugeiconsIcon icon={Activity01Icon} />,
             label: "Analytics",
             group: "Monitor",
