@@ -90,23 +90,12 @@ export function AnalyticsView({
     return (
       <EmptyState>
         <EmptyState.Header>
-          <EmptyState.Title>
-            Turn on analytics for this service
-          </EmptyState.Title>
+          <EmptyState.Title>Analytics is disabled</EmptyState.Title>
           <EmptyState.Description>
-            Add this to your service file, deploy, and make sure Scout Agent is
-            installed.
+            Enable analytics in the service manifest to see traffic for this
+            service.
           </EmptyState.Description>
         </EmptyState.Header>
-        <pre className="text-left text-sm">{"analytics:\n  enabled: true"}</pre>
-        <a
-          className="text-sm underline"
-          href="https://www.towbar.dev/docs/analytics"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Analytics setup guide
-        </a>
       </EmptyState>
     );
   const pageviews = report.kind === "pageview";

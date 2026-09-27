@@ -80,6 +80,10 @@ export const documentationTopics = {
     "servers/remove",
     "Remove this server from Towbar after reviewing affected workloads and any data you need to keep.",
   ),
+  analytics: guide(
+    "analytics",
+    "Turn on request analytics and optional website pageviews for a service.",
+  ),
   performance: guide(
     "operate/performance",
     "Review Scout measurements over a selected time range. Gaps mean no sample was recorded.",
@@ -323,6 +327,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
   const parts = path.split("/").filter(Boolean);
   const section = parts.at(-1);
   const sections: Record<string, Topic> = {
+    analytics: "analytics",
     performance: "performance",
     alerts: "alerts",
     incidents: "incidents",
