@@ -45,7 +45,7 @@ import { ServerIpLink } from "./source-inventory";
 import illustrationStyles from "./overview-illustration.module.css";
 
 const activitySeries = [
-  { color: "var(--warning)", key: "total", label: "Requested" },
+  { color: "var(--muted)", key: "total", label: "Requested" },
   {
     color: "var(--chart-succeeded)",
     key: "succeeded",
