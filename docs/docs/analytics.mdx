@@ -1,60 +1,88 @@
 ---
 title: "Service analytics"
-description: "Opt-in HTTP request and website analytics collected by Scout Agent."
+description: "See requests, website pageviews, and optional visitor estimates with Scout Agent."
 ---
 
-Scout analytics measures traffic for a public service. HTTP request analytics works at Caddy ingress. Website analytics uses an optional script served from the same service domain. Neither runs until the service owner enables it in the manifest.
+Scout analytics shows how much traffic reaches a public service and which pages receive it. Start with request counts. Add a small script to your website when you also want pageviews. Collection is off until you enable it.
 
-## Enable collection
+## Turn on request analytics
 
-Install or update Scout Agent from the server’s Scout settings, then add analytics to your service file and deploy it:
+Install or update Scout Agent from the server’s Scout settings. Add this to your service file, then deploy the service:
+
+```yaml
+analytics:
+  enabled: true
+```
+
+Open **Services → your service → Analytics** and select **HTTP requests**. Visit the service; data usually appears within a minute. You can see request counts, errors, response times, and the most requested paths.
+
+Requests include API calls, images, scripts, and bots, so request counts do not tell you how many people visited. Analytics is available for single-container services with a public primary domain.
+
+## Count website pageviews
+
+To count pages viewed in a browser, add `pageviews: true` and deploy:
 
 ```yaml
 analytics:
   enabled: true
   pageviews: true
-  retentionDays: 30
-  excludePaths:
-    - /account
-    - /checkout
-    - /api/health
 ```
 
-`pageviews` defaults to `false`. Retention accepts `7`, `30`, or `90` days and defaults to `30`. Exclusions match path prefixes and apply to both collection paths. Put sensitive routes in this list before enabling collection. Paths themselves can contain personal information even when query strings are removed.
-
-Analytics requires a service with a public primary domain. Compose workloads, datastores, preview deployments, and redirect hostnames are not included. Requests served entirely by a CDN cache never reach Caddy and do not appear in request analytics.
-
-Open **Services → your service → Analytics**. Select HTTP requests or Website pageviews and a time range. Scout needs free loopback ports 9468 (UDP) and 9469 (TCP). If they are unavailable, analytics is disabled and performance reporting continues. Scout sends batches about every 30 seconds; allow up to a minute for initial configuration and collection.
-
-## Add pageviews
-
-With `pageviews: true`, put this script once in your site’s shared page template:
+Put this script once in your site’s shared page template:
 
 ```html
 <script defer src="/.well-known/towbar-analytics/script.js"></script>
 ```
 
-The script reports the initial page and pathname changes through `pushState`, `replaceState`, and browser back/forward navigation. Changes limited to a query string or fragment do not create another pageview. A page restored from the browser’s back/forward cache counts as a new pageview. It does not measure clicks, conversion goals, scroll depth, bounce rate, or engagement time.
+Select **Website pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It does not measure clicks, conversions, or engagement time. Blocked scripts and disabled JavaScript reduce the count.
 
-Allow your own origin in your Content Security Policy’s `script-src` and `connect-src`. The script honors Do Not Track and Global Privacy Control. JavaScript blocking, privacy signals, offline browsers, and failed requests reduce reported pageviews. Public analytics endpoints cannot prove that every event came from a human.
+## Optional visitor and session estimates
 
-## Optional visitor identity
-
-Anonymous collection does not count visitors or sessions. To opt in explicitly:
+Pageviews work without identifying visitors. Turn on visitor estimates only if you need to distinguish repeat pageviews from separate browser visits and the setting fits your site’s privacy and consent choices:
 
 ```yaml
 analytics:
   enabled: true
   pageviews: true
   visitorIdentity: true
-  retentionDays: 30
 ```
 
-The script stores cryptographically random IDs in first-party local storage. Visitor IDs expire after 30 days; session IDs expire after 30 minutes without a reported pageview. Scout hashes each ID with the service ID before upload, so stored identities are scoped to one service. It never derives identity from an IP address or user-agent fingerprint.
+This adds random IDs in the browser’s local storage. Counts represent browser identities, not people: shared browsers, blocked storage, and deleted IDs affect the estimate. IDs are never derived from an IP address or a browser fingerprint. Leave `visitorIdentity` out to keep visitor and session estimates off.
 
-Visitor and session counts are estimates of browser storage identities, not people. Shared browsers, storage blocking, deletion, and expiry change the counts. Review this option against your site’s privacy and consent choices before enabling it. Removing `visitorIdentity` stops accepting new identity data; existing history expires with retention. Removing the script stops browser collection.
+## Technical details
 
-## What each source measures
+The sections below explain collection limits, privacy, storage, and how to diagnose missing data. They are useful when operating a busy service or reviewing what analytics stores.
+
+### Settings and troubleshooting
+
+Retention defaults to 30 days and accepts `7`, `30`, or `90`. `pageviews` and `visitorIdentity` default to `false`. Use `excludePaths` to leave sensitive routes out of both request and pageview collection:
+
+```yaml
+analytics:
+  enabled: true
+  pageviews: true
+  retentionDays: 7
+  excludePaths:
+    - /account
+    - /checkout
+    - /api/health
+```
+
+Exclusions match path prefixes. Set them before collection starts: paths can contain personal information even when query strings are removed.
+
+Compose workloads, datastores, preview deployments, and redirect hostnames are not included. Requests served entirely by a CDN cache never reach the service and do not appear in request analytics.
+
+Scout needs free loopback ports 9468 (UDP) and 9469 (TCP). If they are unavailable, analytics is disabled and performance reporting continues. Scout sends batches about every 30 seconds; allow up to a minute for initial configuration and collection. A warning in Analytics means Scout needs attention on the service’s server.
+
+### Browser behavior and identity storage
+
+The script reports the initial page and pathname changes through `pushState`, `replaceState`, and browser back/forward navigation. Changes limited to a query string or fragment do not create another pageview. A page restored from the browser’s back/forward cache counts as a new pageview. Scroll depth and bounce rate are not measured.
+
+Allow your own origin in your Content Security Policy’s `script-src` and `connect-src`. The script honors Do Not Track and Global Privacy Control. Privacy signals, offline browsers, and failed requests reduce reported pageviews. Public analytics endpoints cannot prove that every event came from a human.
+
+When visitor identity is enabled, cryptographically random visitor IDs expire after 30 days and session IDs expire after 30 minutes without a reported pageview. Scout hashes each ID with the service ID before upload, so stored identities are scoped to one service. Removing `visitorIdentity` stops accepting new identity data; existing history expires with retention. Removing the script stops browser collection.
+
+### What each source measures
 
 | Dimension             | Caddy request analytics                                                | Browser pageviews                                         |
 | --------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -73,7 +101,7 @@ Country lookup uses the direct connection address for ordinary services. For `cl
 
 Cloudflare network ranges ship with Scout; newly added ranges remain untrusted until an agent update. Other CDNs are not recognized and may appear as the connection’s country. Cloudflare Workers can change the client address, so country estimates are not a security or identity signal. See [Cloudflare’s header behavior](https://developers.cloudflare.com/fundamentals/reference/http-headers/). IP geolocation is approximate; it does not locate an individual.
 
-## Local geolocation database
+### Local geolocation database
 
 Scout downloads [DB-IP Country Lite](https://db-ip.com/db/download/ip-to-country-lite) over HTTPS on initial startup and stores an MMDB file locally under `/var/lib/towbar-monitoring/geo/`. No visitor IP is sent to DB-IP or Towbar’s control plane. The dashboard includes the required **IP Geolocation by DB-IP** attribution link.
 
@@ -81,7 +109,7 @@ DB-IP publishes Lite editions monthly under [CC BY 4.0](https://creativecommons.
 
 We compared [ip-location-db](https://github.com/sapics/ip-location-db), whose original country datasets publish daily under PDDL but whose documented upstream geofeeds can lack explicit licenses, and [MaxMind GeoLite](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data/), which has additional account and license obligations. DB-IP provides a direct provider download and clear attribution requirement without an account or license key. A daily check does not imply daily source releases.
 
-## Privacy, reliability, and retention
+### Privacy, reliability, and retention
 
 Caddy removes the request object and response headers before emitting its analytics log. It keeps only the pathname, method, sanitized referrer host, status, duration, byte count, and service identity. Browser requests are validated against the configured service and exact HTTPS Origin. The IP is used transiently for local country lookup and discarded. Scout never uploads raw IP addresses, headers, query strings, fragments, or raw user agents.
 
@@ -91,7 +119,7 @@ Accepted batches use Scout’s existing bounded, private retry directory: up to 
 
 Reports require `scout.read` and are scoped to the authenticated workspace. Data is retained for the manifest’s duration and deleted by daily Temporal maintenance. Shorter retention applies to report queries immediately and to stored rows on the next sweep. Deleting a service cascades its analytics history. Backups follow their own retention policy. Aggregates and optional pseudonymous identity hashes live in Towbar’s PostgreSQL database; no third-party analytics service receives them.
 
-## API
+### API
 
 `GET /v1/core/apps/{appId}/analytics?kind=request&days=7` returns request totals, trends, ranked dimensions, and a latency histogram. Use `kind=pageview` for browser analytics. `days` accepts 1–90 and is clamped to service retention. Browser-only response dimensions are absent from request reports, and latency fields are not meaningful for pageviews.
 
