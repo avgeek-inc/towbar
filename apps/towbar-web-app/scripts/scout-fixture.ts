@@ -1,7 +1,10 @@
+import type { NormalizedDeployable } from "@workspace/towbar-core";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   scoutAlertPresets,
+  scoutAnalyticsCapabilities,
+  isScoutAnalyticsMetric,
   scoutAlertRuleSchema,
 } from "@workspace/towbar-core/scout-alerts";
 import {
@@ -19,6 +22,7 @@ type Workload = {
   serverId: string;
   sourceId: string;
   kind?: string;
+  config?: NormalizedDeployable;
 };
 export function createScoutFixture(
   serverIds: string[],
@@ -338,7 +342,11 @@ export function createScoutFixture(
           ),
           workloads: workloads
             .filter((w) => w.serverId === serverId)
-            .map((w) => ({ ...w, kind: w.kind ?? "app" })),
+            .map(({ config, ...w }) => ({
+              ...w,
+              kind: w.kind ?? "app",
+              analytics: scoutAnalyticsCapabilities(config),
+            })),
           destinations,
           providers: { slack: true, smtp: true },
         });
@@ -481,6 +489,21 @@ export function createScoutFixture(
         return send(204);
       }
       const draft = scoutAlertRuleSchema.parse(input);
+      if (draft.enabled && isScoutAnalyticsMetric(draft.condition.metric)) {
+        const capabilities = scoutAnalyticsCapabilities(
+          workloads.find(
+            (w) => w.id === draft.deployableId && w.serverId === serverId,
+          )?.config,
+        );
+        if (
+          !(draft.condition.metric === "pageviews"
+            ? capabilities.pageviews
+            : capabilities.httpRequests)
+        )
+          throw new Error(
+            "Enable the corresponding analytics collection for this service before creating this alert",
+          );
+      }
       if (rule) Object.assign(rule, draft);
       else if (rest === "/rules")
         rules.push({

@@ -307,3 +307,26 @@ func TestAnalyticsLatencyBoundaries(t *testing.T) {
 		}
 	}
 }
+
+func TestAnalyticsCollectionReadiness(t *testing.T) {
+	a := testAnalytics()
+	a.ready = true
+	q := &Queue{Dir: t.TempDir()}
+	now := time.Now()
+	for index := 0; index < 3; index++ {
+		sample := Sample{ID: randomID(), CollectedAt: now}
+		if index == 2 {
+			a.refreshed = now.Add(-3 * time.Minute)
+		}
+		if err := a.flush(&sample, q, now); err != nil {
+			t.Fatal(err)
+		}
+		if index == 1 {
+			if len(sample.AnalyticsServices) != 1 || !sample.AnalyticsServices[0].Pageviews {
+				t.Fatal("ready zero-traffic service missing", sample)
+			}
+		} else if len(sample.AnalyticsServices) != 0 {
+			t.Fatal("startup or stale config marked ready", sample)
+		}
+	}
+}

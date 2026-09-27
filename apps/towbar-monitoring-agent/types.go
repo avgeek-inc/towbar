@@ -20,18 +20,19 @@ type Entity struct {
 	Metrics      map[string]float64 `json:"metrics"`
 }
 type Sample struct {
-	TunnelPeers            map[string][]string `json:"tunnelPeers,omitempty"`
-	AnalyticsListenerReady bool                `json:"analyticsListenerReady"`
-	AnalyticsGeoBuiltAt    string              `json:"analyticsGeoBuiltAt,omitempty"`
-	Analytics              []AnalyticsCell     `json:"analytics,omitempty"`
-	AnalyticsDropped       uint64              `json:"analyticsDropped,omitempty"`
-	ID                     string              `json:"id"`
-	CollectedAt            time.Time           `json:"collectedAt"`
-	Version                string              `json:"version"`
-	CollectionDurationMs   int64               `json:"collectionDurationMs"`
-	CollectionErrors       int                 `json:"collectionErrors"`
-	DroppedSamples         uint64              `json:"droppedSamples"`
-	Entities               []Entity            `json:"entities"`
+	TunnelPeers            map[string][]string         `json:"tunnelPeers,omitempty"`
+	AnalyticsServices      []AnalyticsServiceReadiness `json:"analyticsServices,omitempty"`
+	AnalyticsListenerReady bool                        `json:"analyticsListenerReady"`
+	AnalyticsGeoBuiltAt    string                      `json:"analyticsGeoBuiltAt,omitempty"`
+	Analytics              []AnalyticsCell             `json:"analytics,omitempty"`
+	AnalyticsDropped       uint64                      `json:"analyticsDropped,omitempty"`
+	ID                     string                      `json:"id"`
+	CollectedAt            time.Time                   `json:"collectedAt"`
+	Version                string                      `json:"version"`
+	CollectionDurationMs   int64                       `json:"collectionDurationMs"`
+	CollectionErrors       int                         `json:"collectionErrors"`
+	DroppedSamples         uint64                      `json:"droppedSamples"`
+	Entities               []Entity                    `json:"entities"`
 }
 type Config struct {
 	ServerID string `json:"serverId"`

@@ -515,6 +515,20 @@ for (const [index, app] of apps.entries()) {
     "Storefront and cache deployed together using Docker Compose.",
   ][index]!;
 }
+(apps[0]!.config as NormalizedApp).analytics = {
+  enabled: true,
+  pageviews: true,
+  visitorIdentity: true,
+  retentionDays: 30,
+  excludePaths: [],
+};
+(apps[1]!.config as NormalizedApp).analytics = {
+  enabled: true,
+  pageviews: false,
+  visitorIdentity: false,
+  retentionDays: 30,
+  excludePaths: [],
+};
 (apps[0]!.config as NormalizedApp).buildServer = {
   ip: servers[4]!.canonicalIp,
   transfer: "direct",
@@ -4900,6 +4914,7 @@ function createAppFixture(
     environment: null,
     archivedAt: null,
     config: {
+      kind: "app",
       autoDeploy: true,
       vulnerabilityScanning: true,
       container: {

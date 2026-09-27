@@ -31,12 +31,14 @@ export function ScoutRuleEditor({
   serverId,
   initial,
   deployableId,
+  analytics,
   onClose,
   onSaved,
 }: {
   serverId: string;
   initial?: ScoutRule;
   deployableId?: string;
+  analytics?: { httpRequests: boolean; pageviews: boolean };
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -67,12 +69,18 @@ export function ScoutRuleEditor({
   const condition = (values: Partial<ScoutAlertRuleInput["condition"]>) => {
     setDraft((old) => ({ ...old, condition: { ...old.condition, ...values } }));
   };
+  const isTraffic = ["httpRequests", "pageviews"].includes(
+    draft.condition.metric,
+  );
   const isCounter = ["missingReports", "restarts", "httpAvailability"].includes(
     draft.condition.metric,
   );
-  const hasDuration = !["missingReports", "restarts"].includes(
-    draft.condition.metric,
-  );
+  const hasDuration = ![
+    "missingReports",
+    "restarts",
+    "httpRequests",
+    "pageviews",
+  ].includes(draft.condition.metric);
   const durationOptions = [
     ...(initial && draft.condition.durationSeconds === 0
       ? [{ id: "0", label: "Immediately" }]
@@ -178,6 +186,12 @@ export function ScoutRuleEditor({
                     required
                     value={draft.condition.metric}
                     options={scoutMetrics
+                      .filter((m) =>
+                        m.id === "httpRequests" || m.id === "pageviews"
+                          ? Boolean(draft.deployableId && analytics?.[m.id]) ||
+                            initial?.condition.metric === m.id
+                          : true,
+                      )
                       .filter(
                         (m) =>
                           !draft.deployableId ||
@@ -230,6 +244,8 @@ export function ScoutRuleEditor({
                         durationSeconds: [
                           "missingReports",
                           "restarts",
+                          "httpRequests",
+                          "pageviews",
                         ].includes(metric)
                           ? 0
                           : hasDuration
@@ -238,7 +254,7 @@ export function ScoutRuleEditor({
                       });
                     }}
                   />
-                  {!isCounter && !draft.condition.http ? (
+                  {!isCounter && !isTraffic && !draft.condition.http ? (
                     <ScoutSelect
                       label="Use readings"
                       required
@@ -284,7 +300,7 @@ export function ScoutRuleEditor({
                       onChange={(value) =>
                         condition({ threshold: value * definition.factor })
                       }
-                      step={isCounter ? 1 : 0.01}
+                      step={isCounter || isTraffic ? 1 : 0.01}
                     />
                   </div>
                 )}
@@ -307,7 +323,7 @@ export function ScoutRuleEditor({
                   </p>
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {draft.condition.metric === "restarts" ? (
+                  {draft.condition.metric === "restarts" || isTraffic ? (
                     <ScoutNumber
                       label="Count within (minutes)"
                       value={draft.condition.windowSeconds / 60}

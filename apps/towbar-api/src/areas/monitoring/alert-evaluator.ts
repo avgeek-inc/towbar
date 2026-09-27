@@ -1,8 +1,11 @@
+import { analyticsAlertObservations } from "./analytics-alerts.js";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   type ScoutObservation,
   evaluateScoutCondition,
+  isScoutAnalyticsMetric,
   scoutAlertConditionSchema,
+  scoutAnalyticsMetricEnabled,
 } from "@workspace/towbar-core";
 import {
   apps,
@@ -98,6 +101,7 @@ export async function evaluateScoutAlerts(
                 sourceId: apps.sourceId,
                 serverId: apps.serverId,
                 archivedAt: apps.archivedAt,
+                config: apps.config,
               })
               .from(apps)
               .where(
@@ -108,7 +112,12 @@ export async function evaluateScoutAlerts(
               )
               .limit(1)
           : [];
+        const analyticsInactive = !scoutAnalyticsMetricEnabled(
+          rule.condition.metric,
+          workload?.config,
+        );
         if (
+          analyticsInactive ||
           !server ||
           server.archivedAt ||
           server.workspaceId !== rule.workspaceId ||
@@ -119,7 +128,12 @@ export async function evaluateScoutAlerts(
               workload.archivedAt ||
               workload.serverId !== server.id))
         ) {
-          await resolveRuleIncidents(tx, rule.id, "monitoring_inactive", now);
+          await resolveRuleIncidents(
+            tx,
+            rule.id,
+            analyticsInactive ? "analytics_disabled" : "monitoring_inactive",
+            now,
+          );
           await tx
             .update(scoutAlertRules)
             .set({
@@ -314,6 +328,8 @@ async function getRuleObservations(
   now: Date,
 ): Promise<ScoutObservation[]> {
   const condition = rule.condition;
+  if (isScoutAnalyticsMetric(condition.metric))
+    return analyticsAlertObservations(tx, rule, now);
   let observations: ScoutObservation[] = [];
   if (condition.metric === "httpAvailability") {
     const checks = await tx

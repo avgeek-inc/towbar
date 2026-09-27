@@ -6,6 +6,8 @@ import {
   type ScoutAlertRuleInput,
   digestValue,
   scoutAlertRuleSchema,
+  scoutAnalyticsCapabilities,
+  scoutAnalyticsMetricEnabled,
   withScoutAlertDuration,
 } from "@workspace/towbar-core";
 import {
@@ -55,6 +57,7 @@ export async function listScoutAlertRules(
         name: apps.name,
         sourceId: apps.sourceId,
         kind: apps.kind,
+        config: apps.config,
       })
       .from(apps)
       .where(
@@ -94,7 +97,10 @@ export async function listScoutAlertRules(
       condition: withScoutAlertDuration(rule.condition),
       httpCheck: checks.find((check) => check.rule_id === rule.id) ?? null,
     })),
-    workloads,
+    workloads: workloads.map(({ config, ...workload }) => ({
+      ...workload,
+      analytics: scoutAnalyticsCapabilities(config),
+    })),
     destinations,
     providers: await notificationProviderAvailability(scope.workspaceId),
   };
@@ -112,7 +118,14 @@ export async function saveScoutAlertRule(
   return await database.transaction(async (tx) => {
     // Serialize admission with removal, other rule creates, and workload moves.
     await lockScoutServer(tx, input);
-    await validateWorkload(tx, input, rule.deployableId);
+    const workload = await validateWorkload(tx, input, rule.deployableId);
+    if (
+      rule.enabled &&
+      !scoutAnalyticsMetricEnabled(rule.condition.metric, workload?.config)
+    )
+      throw badRequest(
+        "Enable the corresponding analytics collection for this service before creating this alert",
+      );
     if (rule.condition.metric === "httpAvailability") {
       const existingHttp = await tx
         .select({ id: scoutAlertRules.id })
@@ -347,7 +360,7 @@ async function validateWorkload(
 ) {
   if (!deployableId) return null;
   const [app] = await tx
-    .select({ sourceId: apps.sourceId })
+    .select({ sourceId: apps.sourceId, config: apps.config })
     .from(apps)
     .where(
       and(
@@ -361,7 +374,7 @@ async function validateWorkload(
     .limit(1);
   if (!app)
     throw badRequest("Choose an active workload assigned to this server");
-  return app.sourceId;
+  return app;
 }
 export async function resolveRuleIncidents(
   tx: ScoutTransaction,

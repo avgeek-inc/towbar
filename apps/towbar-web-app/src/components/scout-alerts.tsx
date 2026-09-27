@@ -450,6 +450,10 @@ export function ScoutAlerts({
         <ScoutRuleEditor
           serverId={serverId}
           initial={editing === "new" ? undefined : editing}
+          analytics={
+            data.workloads.find((workload) => workload.id === deployableId)
+              ?.analytics
+          }
           deployableId={deployableId}
           onClose={() => setEditing(null)}
           onSaved={refresh}

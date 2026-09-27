@@ -49,7 +49,8 @@ export async function ingestAnalytics(
   serverId: string,
   sample: MonitoringSample,
 ) {
-  if (!sample.analytics?.length) return;
+  if (!sample.analytics?.length && sample.analyticsListenerReady === undefined)
+    return;
   const services = await database
     .select()
     .from(apps)
@@ -57,7 +58,10 @@ export async function ingestAnalytics(
   for (const app of services) {
     if (!isNormalizedApp(app.config) || !app.config.analytics) continue;
     const config = app.config.analytics;
-    const cells = sample.analytics
+    const ready = sample.analyticsServices?.find(
+      (service) => service.appId === app.id,
+    );
+    const cells = (sample.analytics ?? [])
       .filter(
         (cell) =>
           cell.appId === app.id &&
@@ -70,17 +74,24 @@ export async function ingestAnalytics(
         visitor: config.visitorIdentity ? cell.visitor : "",
         session: config.visitorIdentity ? cell.session : "",
       }));
-    if (cells.length)
-      await database
-        .insert(analyticsSamples)
-        .values({
-          serverId,
-          sampleId: sample.id,
-          appId: app.id,
-          collectedAt: new Date(sample.collectedAt),
-          cells,
-        })
-        .onConflictDoNothing();
+    await database
+      .insert(analyticsSamples)
+      .values({
+        serverId,
+        sampleId: sample.id,
+        appId: app.id,
+        collectedAt: new Date(sample.collectedAt),
+        coverage: {
+          requests: sample.analyticsListenerReady === true && Boolean(ready),
+          pageviews:
+            sample.analyticsListenerReady === true &&
+            Boolean(ready?.pageviews) &&
+            config.pageviews,
+          dropped: sample.analyticsDropped ?? 0,
+        },
+        cells,
+      })
+      .onConflictDoNothing();
   }
 }
 

@@ -2752,6 +2752,11 @@ export const analyticsSamples = pgTable(
       .notNull()
       .references(() => apps.id, { onDelete: "cascade" }),
     collectedAt: timestamp("collected_at", { withTimezone: true }).notNull(),
+    coverage: jsonb("coverage").$type<{
+      requests: boolean;
+      pageviews: boolean;
+      dropped: number;
+    }>(),
     cells: jsonb("cells")
       .$type<import("@workspace/towbar-core").AnalyticsCell[]>()
       .notNull(),

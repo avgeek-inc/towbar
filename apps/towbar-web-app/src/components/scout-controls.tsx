@@ -49,6 +49,7 @@ export type ScoutRulesResponse = {
     name: string;
     sourceId: string;
     kind: string;
+    analytics: { httpRequests: boolean; pageviews: boolean };
   }>;
   destinations: NotificationDestination[];
   providers: {
@@ -60,6 +61,8 @@ export type ScoutRulesResponse = {
   };
 };
 export const scoutMetrics = [
+  { id: "httpRequests", label: "HTTP requests", unit: "requests", factor: 1 },
+  { id: "pageviews", label: "Pageviews", unit: "pageviews", factor: 1 },
   {
     id: "httpAvailability",
     label: "Public HTTP endpoint",
@@ -130,9 +133,13 @@ export function scoutValue(value: number | null, metric: string) {
         ? "Available"
         : "Unavailable";
   const definition = metricDefinition(metric);
+  const unit =
+    value === 1 && ["httpRequests", "pageviews"].includes(metric)
+      ? definition.unit.slice(0, -1)
+      : definition.unit;
   return value === null
     ? "No measurement"
-    : `${(value / definition.factor).toLocaleString(undefined, { maximumFractionDigits: 2 })}${definition.unit === "%" ? "" : " "}${definition.unit}`.trim();
+    : `${(value / definition.factor).toLocaleString(undefined, { maximumFractionDigits: 2 })}${unit === "%" ? "" : " "}${unit}`.trim();
 }
 export function conditionDescription(condition: ScoutAlertCondition) {
   const duration = condition.durationSeconds ?? 0;
@@ -141,7 +148,7 @@ export function conditionDescription(condition: ScoutAlertCondition) {
     : "";
   if (condition.metric === "httpAvailability")
     return `Endpoint unavailable${durationText}`;
-  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${condition.metric === "restarts" ? ` in ${condition.windowSeconds / 60} minutes` : durationText}`;
+  return `${metricDefinition(condition.metric).label} ${condition.operator === "above" ? "at least" : "at most"} ${scoutValue(condition.threshold, condition.metric)}${["restarts", "httpRequests", "pageviews"].includes(condition.metric) ? ` in ${condition.windowSeconds / 60} ${condition.windowSeconds === 60 ? "minute" : "minutes"}` : durationText}`;
 }
 export function ScoutSelect({
   label,

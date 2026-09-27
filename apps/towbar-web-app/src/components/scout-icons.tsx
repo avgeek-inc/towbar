@@ -128,6 +128,8 @@ export function ScoutOptionIcon({
 }) {
   if (label === "Environment") return <EnvironmentIcon name={value} />;
   if (label === "Metric") {
+    if (value === "httpRequests") return <ScoutIcon name="request" />;
+    if (value === "pageviews") return <ScoutIcon name="pageview" />;
     if (value === "httpAvailability") return <ScoutIcon name="http" />;
     if (value === "missingReports") return <ScoutIcon name="time" />;
     if (value === "restarts") return <ScoutIcon name="refresh" />;

@@ -5,7 +5,10 @@ import {
 } from "./scout-delivery-state.js";
 import { and, asc, eq, lte, or, sql } from "drizzle-orm";
 import { ZodError } from "zod";
-import { notificationMatchesSubscription } from "@workspace/towbar-core";
+import {
+  notificationMatchesSubscription,
+  scoutAnalyticsMetricEnabled,
+} from "@workspace/towbar-core";
 
 import {
   apps,
@@ -530,7 +533,7 @@ async function suppressScoutDelivery(
     : [];
   const [workload] = scout?.rule.deployableId
     ? await transaction
-        .select({ id: apps.id })
+        .select({ id: apps.id, config: apps.config })
         .from(apps)
         .where(
           and(
@@ -545,6 +548,10 @@ async function suppressScoutDelivery(
   const now = new Date();
   const suppressed =
     !scout ||
+    !scoutAnalyticsMetricEnabled(
+      scout.rule.condition.metric,
+      workload?.config,
+    ) ||
     !scope ||
     scope.archivedAt ||
     (scout.rule.condition.metric !== "httpAvailability" &&

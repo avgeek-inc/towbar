@@ -4,6 +4,7 @@ CREATE TABLE "towbar_analytics_samples" (
   "app_id" uuid NOT NULL REFERENCES "towbar_apps"("id") ON DELETE CASCADE,
   "collected_at" timestamptz NOT NULL,
   "cells" jsonb NOT NULL,
+  "coverage" jsonb,
   PRIMARY KEY ("server_id", "sample_id", "app_id")
 );
 --> statement-breakpoint

@@ -34,6 +34,11 @@ type AnalyticsCell struct {
 	DurationMs float64  `json:"durationMs"`
 	Histogram  [8]int64 `json:"histogram"`
 }
+type AnalyticsServiceReadiness struct {
+	AppID     string `json:"appId"`
+	Pageviews bool   `json:"pageviews"`
+}
+
 type analyticsService struct {
 	CloudflareProxy  bool     `json:"cloudflareProxy"`
 	CloudflareTunnel bool     `json:"cloudflareTunnel"`
@@ -50,6 +55,7 @@ type analyticsConfig struct {
 type analyticsCollector struct {
 	tunnelPeers     map[string][]string
 	peerCollectedAt time.Time
+	flushed         bool
 	ready           bool
 	period          time.Time
 	ingressWindow   int64
@@ -162,12 +168,21 @@ func (a *analyticsCollector) flush(sample *Sample, q *Queue, now time.Time) erro
 	}
 	sample.AnalyticsListenerReady = a.ready
 	sample.AnalyticsDropped = a.dropped
+	if a.flushed && a.ready && now.Sub(a.refreshed) < 2*time.Minute {
+		for _, service := range a.services {
+			if len(sample.AnalyticsServices) == 512 {
+				break
+			}
+			sample.AnalyticsServices = append(sample.AnalyticsServices, AnalyticsServiceReadiness{AppID: service.ID, Pageviews: service.Pageviews})
+		}
+	}
 	if a.geo != nil {
 		sample.AnalyticsGeoBuiltAt = a.geo.builtAt()
 	}
 	if err := q.add(*sample, now); err != nil {
 		return err
 	}
+	a.flushed = true
 	clear(a.cells)
 	a.period = time.Time{}
 	return nil

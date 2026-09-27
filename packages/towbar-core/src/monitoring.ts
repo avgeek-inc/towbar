@@ -73,6 +73,12 @@ export const monitoringSampleSchema = z
     analytics: z.array(analyticsCellSchema).max(512).optional(),
     analyticsGeoBuiltAt: z.string().datetime().optional(),
     analyticsListenerReady: z.boolean().optional(),
+    analyticsServices: z
+      .array(
+        z.object({ appId: z.string().uuid(), pageviews: z.boolean() }).strict(),
+      )
+      .max(512)
+      .optional(),
     analyticsDropped: z
       .number()
       .int()
