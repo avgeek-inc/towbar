@@ -265,3 +265,23 @@ func (t analyticsTestTransport) RoundTrip(r *http.Request) (*http.Response, erro
 	clone.URL = target
 	return http.DefaultTransport.RoundTrip(clone)
 }
+
+func TestCloudflareIPv6CompanionOnlyAppliesToPseudoIPv4(t *testing.T) {
+	a := testAnalytics()
+	service := analyticsService{ID: analyticsTestID, CloudflareProxy: true}
+	r := httptest.NewRequest("POST", "https://example.com/", nil)
+	r.Header.Set("X-Towbar-Client-IP", "104.16.1.2")
+	r.Header.Set("X-Towbar-CF-IP", "8.8.8.8")
+	r.Header.Set("X-Towbar-CF-IPv6", "2001:4860:4860::8888")
+	if got := a.clientIP(service, r); got != "8.8.8.8" {
+		t.Fatal("unrelated IPv6 header replaced verified address", got)
+	}
+	r.Header.Set("X-Towbar-CF-IP", "240.16.0.1")
+	if got := a.clientIP(service, r); got != "2001:4860:4860::8888" {
+		t.Fatal("original IPv6 lost", got)
+	}
+	r.Header.Del("X-Towbar-CF-IPv6")
+	if got := a.clientIP(service, r); got != "" {
+		t.Fatal("pseudo address should be unknown without original IPv6", got)
+	}
+}

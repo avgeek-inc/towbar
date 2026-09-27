@@ -56,7 +56,10 @@ func (a *analyticsCollector) clientIP(service analyticsService, r *http.Request)
 			return ""
 		}
 		client := r.Header.Get("X-Towbar-CF-IP")
-		if ipv6 := r.Header.Get("X-Towbar-CF-IPv6"); ipv6 != "" {
+		// Only the reserved pseudo-IPv4 range authenticates the companion IPv6
+		// header; an unrelated client-supplied header must not replace a real IP.
+		if ip := net.ParseIP(client).To4(); ip != nil && ip[0] >= 240 {
+			ipv6 := r.Header.Get("X-Towbar-CF-IPv6")
 			if ip := net.ParseIP(ipv6); ip != nil && ip.To4() == nil {
 				client = ipv6
 			} else {
