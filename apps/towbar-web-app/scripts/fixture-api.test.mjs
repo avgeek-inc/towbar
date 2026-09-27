@@ -2145,8 +2145,8 @@ test("showcase inventory covers supported engines, build modes, provider hardwar
     8,
   );
   for (const item of servers) cloudInstanceSchema.parse(item.hardware.instance);
-  assert(servers.some((item) => item.name === null));
-  assert(servers.filter((item) => item.name).length >= 6);
+  assert(servers.every((item) => item.name));
+  assert.equal(servers.filter((item) => item.scout?.enabled).length, 7);
   assert(apps.filter((item) => item.config.domains?.primary).length >= 15);
   const modes = new Set(
     apps.map((item) =>

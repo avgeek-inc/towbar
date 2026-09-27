@@ -256,7 +256,8 @@ activation; local tests cannot establish either.
 
 The local fixture and public workers use the same seed: 17 services (18 environment
 instances), all eight managed datastore engines (11 instances), four repositories,
-and eight servers. Server names show region/purpose; provider identities use
+and eight servers. All server names show region/purpose; seven have simulated Scout charts and the
+staging server demonstrates agent setup. Provider identities use
 Towbar's supported AWS, GCP, Azure, Oracle, Hetzner, DigitalOcean, Linode, and
 Alibaba types. Datastore images, ports, data paths, and backup engine versions
 come from `managedResourceCompatibility`. Service examples cover Dockerfile,

@@ -215,7 +215,7 @@ const additionalServers = [
   {
     provider: "linode",
     type: "g6-standard-4",
-    name: null,
+    name: "Edge cache · Frankfurt",
     cpu: 4,
     memory: 8,
     username: "deploy",
@@ -1944,7 +1944,7 @@ export function createFixtureApiServer({
   const monitoring = new Map(
     servers.map((server, index) => [
       server.id,
-      fixtureMonitoringAgent(index === 0),
+      fixtureMonitoringAgent(index !== 5),
     ]),
   );
   type FixturePrivateKey = {
