@@ -91,7 +91,7 @@ and it proxies only to the fixed demo gateway, never visitor-supplied hosts.
 See [Docker's isolated gateway mode](https://docs.docker.com/engine/network/port-publishing/#gateway-modes).
 
 The demo is non-root, read-only, drops all capabilities, has no-new-privileges,
-a bounded `/tmp`, 2 GiB memory, 2 CPUs, and 256 PIDs. Workers inherit an empty
+a bounded `/tmp`, 1 GiB memory, 1.5 CPUs, and 128 PIDs. Workers inherit an empty
 environment and have V8 heap limits (64 MiB old / 16 MiB young). The UI receives
 only four non-secret runtime variables. The image contains the dashboard and a
 bundled fixture; no production API/worker process or deployment executor runs.
@@ -112,23 +112,22 @@ headers cannot bypass limits. IPv6 addresses share a /64 rate bucket. Keep DNS
 in DNS-only mode: adding a CDN requires a separately reviewed trusted-proxy
 configuration, otherwise its shared IP receives the combined network limit.
 
-Default limits are 24 active/starting workers, 60 starts globally per ten
+Default limits are 4 active/starting workers, 60 starts globally per ten
 minutes, 12 starts per network per ten minutes, 360 API requests/session/minute,
 1,800 requests/network/minute, 6,000 requests globally/minute, 100 state-changing
 requests per session, 48 in-flight fixture requests and 8 streams per session, and
 256 gateway connections. Date/time helper POSTs consume the API rate budget but do not consume the
 state-change budget. Full capacity returns 503; rate limits return 429 with Retry-After.
 These are bounded abuse controls, not a distributed denial-of-service defense.
-A local Node 24 check with 24 workers measured roughly 0.7–1.0 GiB total process RSS and
-2–5 seconds to start them sequentially, excluding Next/Caddy. This is a local
-baseline, not a throughput guarantee for the target VM. Do not increase caps
-without measuring resident memory and startup latency.
+The four-session cap leaves memory for the UI, Caddy, Docker, and the host on a
+2 GiB VM. Measure resident memory and startup latency on the host before raising it.
 
 ## Local validation
 
 Requires Node 24+, the repository's pinned pnpm, and Docker Engine 28+ with
 Compose v2 and isolated bridge gateway support. Docker Desktop can run the
-local architecture build; the publishing workflow produces Linux amd64.
+local architecture build; the publishing workflow builds and tests Linux arm64
+on a native ARM runner.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -163,7 +162,7 @@ docker compose --project-name towbar-demo-review -f infra/demo/compose.yml up -d
 
 Open `http://localhost:4880/demo`. Start a demo, then open **Services → Example
 Website → Deploy** to review progress. The standard configuration uses the real
-ten-minute expiry and 24-session capacity. Stop the preview with:
+ten-minute expiry and four-session capacity. Stop the preview with:
 
 ```bash
 TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-review -f infra/demo/compose.yml down --volumes
@@ -178,11 +177,11 @@ TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-rev
    the desired reviewer protection. Run **Publish public demo image** on main
    with that released tag. It resolves a non-draft, non-prerelease main-branch
    commit, builds `--target demo`, runs the container smoke, and pushes the
-   tested amd64 image. Copy the immutable `TOWBAR_DEMO_IMAGE=...@sha256:...`
+   tested arm64 image. Copy the immutable `TOWBAR_DEMO_IMAGE=...@sha256:...`
    output. Make `ghcr.io/avgeek-inc/towbar-demo` publicly readable (or configure
    a read-only registry login on the host). No SSH/cloud secrets are required
    by this publishing workflow.
-3. Provision a **dedicated amd64 Ubuntu 24.04+ host**, initially 2 vCPU, 4 GiB
+3. Provision a **dedicated arm64 Ubuntu 24.04+ host**, initially 2 vCPU, 2 GiB
    RAM, and 20 GiB disk. Install Docker Engine 28+ / Compose v2, Node 24+, Git,
    curl, and util-linux (`flock`). Reserve `172.30.44.0/29` for this stack; if it
    collides, change the subnet, both static addresses, trusted proxy, and smoke

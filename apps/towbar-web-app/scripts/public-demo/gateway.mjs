@@ -59,7 +59,7 @@ export function createDemoServer({
   workerUrl = new URL("./worker.mjs", import.meta.url),
   trustedProxy,
   ttlMs = 10 * minute,
-  maxSessions = 24,
+  maxSessions = 4,
   startsPerNetwork = 12,
   now = Date.now,
 } = {}) {

@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 40
     environment: public-demo
     permissions:
@@ -56,7 +56,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - name: Publish the tested amd64 artifact and record its immutable digest
+      - name: Publish the tested arm64 artifact and record its immutable digest
         env:
           SOURCE_COMMIT: ${{ steps.release.outputs.commit }}
         run: |

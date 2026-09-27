@@ -6,7 +6,7 @@ image="${1:?Usage: tools/deploy-public-demo.sh ghcr.io/avgeek-inc/towbar-demo@sh
   echo 'Use the immutable digest from the public demo publishing workflow.' >&2
   exit 1
 }
-[[ "$(uname -m)" == x86_64 ]] || { echo 'The published demo artifact requires an amd64 host.' >&2; exit 1; }
+[[ "$(uname -m)" == aarch64 ]] || { echo 'The published demo artifact requires an arm64 host.' >&2; exit 1; }
 node --input-type=module -e 'if (Number(process.versions.node.split(".")[0]) < 24) process.exit(1)'
 # Each host runs one instance. Serialize updates, including rollback and state writes.
 exec 9>infra/demo/.deploy.lock

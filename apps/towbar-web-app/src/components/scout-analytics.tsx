@@ -1,8 +1,12 @@
 "use client";
 
+import {
+  MonitoringEventMarker,
+  monitoringEventColor,
+} from "./monitoring-events";
 import { PageSelectionTitle } from "./page-selection-title";
 import {
-  Activity01Icon,
+  Analytics01Icon,
   FilterHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -92,7 +96,7 @@ export function ScoutAnalytics({
       <>
         <PageSelectionTitle
           label="Analytics"
-          icon={<HugeiconsIcon icon={Activity01Icon} />}
+          icon={<HugeiconsIcon icon={Analytics01Icon} />}
           keepEntityName
         />
         <EmptyState>
@@ -111,7 +115,7 @@ export function ScoutAnalytics({
     <>
       <PageSelectionTitle
         label="Analytics"
-        icon={<HugeiconsIcon icon={Activity01Icon} />}
+        icon={<HugeiconsIcon icon={Analytics01Icon} />}
         keepEntityName
         actions={
           <FilterDialog
@@ -171,6 +175,7 @@ export function AnalyticsView({
   setKind: (kind: "request" | "pageview") => void;
   onFilterPath: (path: string) => void;
 }) {
+  const [eventActive, setEventActive] = useState(false);
   if (!report.enabled)
     return (
       <EmptyState>
@@ -232,6 +237,7 @@ export function AnalyticsView({
       ];
   const trend = report.trend.map((point, index) => ({
     ...point,
+    at: Date.parse(point.at),
     previous: report.comparison?.trend[index]?.count ?? null,
   }));
   const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
@@ -355,8 +361,19 @@ export function AnalyticsView({
                 tickMargin={8}
                 minTickGap={45}
                 dataKey="at"
+                type="number"
+                scale="time"
+                domain={[Date.parse(report.start), Date.parse(report.end)]}
+                allowDataOverflow
+                ticks={trend
+                  .map((point) => point.at)
+                  .filter(
+                    (at) =>
+                      at >= Date.parse(report.start) &&
+                      at <= Date.parse(report.end),
+                  )}
                 tickFormatter={(value) =>
-                  new Date(String(value)).toLocaleDateString(undefined, {
+                  new Date(Number(value)).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                     ...(days === 1 ? { hour: "numeric" } : {}),
@@ -370,8 +387,11 @@ export function AnalyticsView({
                 allowDecimals={false}
               />
               <LineChart.Tooltip
+                active={eventActive ? false : undefined}
                 content={({ active, label, payload }) => {
-                  const point = trend.find((point) => point.at === label);
+                  const point = trend.find(
+                    (point) => point.at === Number(label),
+                  );
                   return (
                     <LineChart.TooltipContent
                       active={active}
@@ -385,7 +405,7 @@ export function AnalyticsView({
                       )}
                       label={label}
                       labelFormatter={(value) =>
-                        new Date(String(value)).toLocaleString(undefined, {
+                        new Date(Number(value)).toLocaleString(undefined, {
                           dateStyle: "medium",
                           ...(days === 1 ? { timeStyle: "short" } : {}),
                         })
@@ -406,6 +426,23 @@ export function AnalyticsView({
                   );
                 }}
               />
+              {!pageviews &&
+                report.deployments.map((event) => (
+                  <LineChart.ReferenceLine
+                    key={event.id}
+                    x={Date.parse(event.at)}
+                    zIndex={600}
+                    stroke={monitoringEventColor(event.type)}
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.6}
+                    label={
+                      <MonitoringEventMarker
+                        event={event}
+                        onActiveChange={setEventActive}
+                      />
+                    }
+                  />
+                ))}
               <LineChart.Line
                 dataKey="count"
                 name={pageviews ? "Pageviews" : "Requests"}

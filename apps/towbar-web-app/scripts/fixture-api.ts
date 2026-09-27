@@ -1457,7 +1457,7 @@ let systemHealth: SystemHealth = {
     ),
   })),
   status: "healthy",
-  version: "2.0.15",
+  version: "2.0.16",
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -1468,9 +1468,9 @@ function fixtureSystemHealth(): SystemHealth {
 }
 
 const towbarUpdates: TowbarUpdateInfo = {
-  installedVersion: "2.0.15",
-  latestVersion: "2.0.15",
-  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.15",
+  installedVersion: "2.0.16",
+  latestVersion: "2.0.16",
+  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.16",
   status: "current",
 };
 
