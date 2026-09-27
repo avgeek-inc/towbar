@@ -34,7 +34,7 @@ test("migration journal keeps notification destinations and failure subscription
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 13);
+  assert.equal(journal.entries.length, 14);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -54,6 +54,7 @@ test("migration journal keeps notification destinations and failure subscription
   );
   assert.equal(journal.entries[11].tag, "0012_database_storage_samples");
   assert.equal(journal.entries[12].tag, "0013_mcp_oauth");
+  assert.equal(journal.entries[13].tag, "0014_scout_analytics");
   const failureSubscriptions = await readFile(
     `${migrationsFolder}/0011_notification_deployment_failures.sql`,
     "utf8",
@@ -210,6 +211,9 @@ test(
       const columns =
         await client`select table_name, column_name from information_schema.columns where table_schema = 'public'`;
       for (const [table, column] of [
+        ["towbar_analytics_samples", "cells"],
+        ["towbar_analytics_samples", "collected_at"],
+        ["towbar_analytics_refresh", "requested_at"],
         ["towbar_servers", "canonical_ip"],
         ["towbar_servers", "name"],
         ["towbar_apps", "required_secrets"],
