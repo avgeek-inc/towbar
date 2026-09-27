@@ -29,6 +29,14 @@ void test("analytics ingress excludes previews and strips request data before ne
   assert.match(config, /resp_headers delete/);
   assert.match(config, /127.0.0.1:9468/);
   assert.match(config, /header_up X-Towbar-Service/);
+  const appendedFields = config
+    .split("\n")
+    .filter((line) => line.trim().startsWith("log_append "));
+  assert.deepEqual(
+    appendedFields.map((line) => line.trim().split(" ")[1]),
+    ["service", "path", "method", "referrer"],
+    "Network-writer stderr fallback must not receive client IP fields",
+  );
   assert.deepEqual(renderAnalytics({ ...context, environment: "preview" }), []);
   assert.deepEqual(
     renderAnalytics({
