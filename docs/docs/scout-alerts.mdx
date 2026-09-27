@@ -104,6 +104,14 @@ Metric rules require Scout Agent to be enabled. Missing-report rules include an 
 
 Deleting or pausing a rule, changing its condition, or removing its monitored workload closes its incident with an explicit reason. That is different from recovery and does not send a recovery notification. Active incidents remain visible; resolved incidents follow the server's Scout retention setting, defaulting to 15 days when no agent is installed.
 
+## Traffic count alerts
+
+Services with [analytics](/docs/analytics) enabled can use **HTTP requests** as an alert metric. **Pageviews** is also available when pageview collection is enabled. These metrics count production traffic across all paths, after the service’s analytics exclusions. They are not available for servers or datastores.
+
+Choose **At least** or **At most**, a whole-number threshold, and **Count within (minutes)** from 1 to 60. For example, alert when HTTP requests reach 10,000 in five minutes, or when pageviews are at most zero in ten minutes. Counts use a rolling window, evaluated as Scout reports arrive; there is no additional duration or average/peak setting. Pageviews count received browser events, so the pageview script must be installed.
+
+Scout needs a full window of consecutive, ready collection reports before it can evaluate the rule. Zero traffic is a valid count. Missing, stale, dropped, or incomplete collection data instead produces **No recent data** and cannot open or recover an incident. Older agents must be updated to report collection readiness. Disabling the corresponding analytics collection closes active incidents without sending recovery notifications. Traffic incident charts show up to the last 24 hours.
+
 ## Public HTTP checks
 
 Choose **Public HTTP endpoint** as a server rule's metric. Set a public HTTP or HTTPS URL, request method, expected status range, interval, and timeout. Only use endpoints that are safe to request repeatedly.

@@ -1,6 +1,10 @@
 import { type SQL, and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { withScoutAlertDuration } from "@workspace/towbar-core";
+import { analyticsAlertHistory } from "./analytics-alerts.js";
+import {
+  isScoutAnalyticsMetric,
+  withScoutAlertDuration,
+} from "@workspace/towbar-core";
 import { apps, scoutAlertIncidents } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { notFound } from "../../http/errors.js";
@@ -43,15 +47,19 @@ export async function getScoutIncident(
   const { condition } = incident;
   const notes: string[] = [];
   // Restart windows require individual counter measurements, not minute rollups.
-  const days = condition.metric === "restarts" ? 1 : agent.retentionDays;
+  const traffic = isScoutAnalyticsMetric(condition.metric);
+  const days =
+    condition.metric === "restarts" || traffic ? 1 : agent.retentionDays;
   const start = new Date(
     Math.max(incident.openedAt.getTime(), now.getTime() - days * 86400_000),
   );
   if (start > incident.openedAt)
     notes.push(
-      condition.metric === "restarts"
-        ? "Restart history is available for the last 24 hours, while individual counter measurements are retained."
-        : `Earlier measurements are outside this server’s ${agent.retentionDays}-day retention period.`,
+      traffic
+        ? "Traffic incident charts show the last 24 hours of complete counting windows."
+        : condition.metric === "restarts"
+          ? "Restart history is available for the last 24 hours, while individual counter measurements are retained."
+          : `Earlier measurements are outside this server’s ${agent.retentionDays}-day retention period.`,
     );
   const step = Math.max(
     30,
@@ -68,10 +76,12 @@ export async function getScoutIncident(
     notes,
   );
   const extreme = condition.operator === "above" ? sql`max` : sql`min`;
-  const rows = await database.execute<{
-    bin: number;
-    value: number | null;
-  }>(sql`
+  const rows = traffic
+    ? await analyticsAlertHistory(database, incident, start, now, step)
+    : await database.execute<{
+        bin: number;
+        value: number | null;
+      }>(sql`
     with observations as (${observations}) select floor(extract(epoch from at-${startAt}::timestamptz)/${step})::integer bin,
       ${condition.metric === "httpAvailability" ? sql`max` : extreme}(value) value
     from observations where at>=${startAt}::timestamptz and at<=${endAt}::timestamptz

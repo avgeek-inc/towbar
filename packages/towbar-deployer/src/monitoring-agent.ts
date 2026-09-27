@@ -27,11 +27,11 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 PrivateTmp=true
-MemoryMax=64M
+MemoryMax=128M
 CPUQuota=5%
 TasksMax=32
 LimitNOFILE=128
-Environment=GOMEMLIMIT=32MiB GOMAXPROCS=2
+Environment=GOMEMLIMIT=64MiB GOMAXPROCS=2
 LogNamespace=towbar-monitoring
 LogRateLimitIntervalSec=60s
 LogRateLimitBurst=5

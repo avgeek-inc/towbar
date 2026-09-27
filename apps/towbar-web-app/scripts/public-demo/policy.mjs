@@ -6,6 +6,7 @@ const secrets = new RegExp(
   `^/v1/core/(?:(apps|resources)/${id}|settings)/secrets/${environment}/${stage}$`,
 );
 const readRoutes = [
+  new RegExp(`^/v1/core/apps/${id}/analytics$`),
   new RegExp(`^/v1/core/(apps|resources|servers)/${id}/metrics$`),
   /^\/v1\/core\/settings\/api-keys\/(personal|team)$/,
   new RegExp(`^/v1/core/settings/private-keys/${id}/reveal$`),

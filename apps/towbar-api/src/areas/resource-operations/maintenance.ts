@@ -1,3 +1,4 @@
+import { ensureAnalyticsWorkflow } from "../../infrastructure/temporal.js";
 import { wakeAppJobsWorkflow } from "../../infrastructure/temporal.js";
 import { enqueueDueTransactionalEmails } from "../team/email-delivery.js";
 import { withActor } from "../auth/actor-context.js";
@@ -42,6 +43,7 @@ import { enqueueDueVulnerabilityScans } from "../vulnerability-scans/service.js"
 export async function runMaintenanceSweep() {
   // Retry startup after a Temporal outage; the dedicated Scout loop has its own cadence.
   await wakeScoutAlertsWorkflow().catch(() => undefined);
+  await ensureAnalyticsWorkflow().catch(() => undefined);
   await wakeAppJobsWorkflow().catch(() => undefined);
   // Scheduled deployable work has priority; health checks are maintenance and
   // should enter a server coordinator only after its queue becomes idle.

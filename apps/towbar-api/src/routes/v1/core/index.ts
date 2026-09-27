@@ -1,3 +1,4 @@
+import { analyticsRoutes } from "./analytics.js";
 import { integrationRoutes } from "./integrations.js";
 import { gitlabRoutes } from "./gitlab.js";
 import { serverTerminalRoutes } from "./server-terminal.js";
@@ -75,6 +76,7 @@ controlPlaneRoutes.route(
 );
 controlPlaneRoutes.route("/monitoring", monitoringOverviewRoutes);
 controlPlaneRoutes.route("/", monitoringHistoryRoutes);
+controlPlaneRoutes.route("/", analyticsRoutes);
 controlPlaneRoutes.route("/servers/:serverId/scout-alerts", scoutAlertRoutes);
 controlPlaneRoutes.route("/", scoutComparisonRoutes);
 controlPlaneRoutes.route("/sources", sourceRoutes);

@@ -2,12 +2,14 @@
 
 import {
   forwardRef,
+  Fragment,
   useEffect,
   useRef,
   useState,
   type ComponentPropsWithRef,
   type ReactNode,
 } from "react";
+import { Highlight, type PrismTheme } from "prism-react-renderer";
 import {
   Copy01Icon,
   SourceCodeIcon,
@@ -17,6 +19,22 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Button, type ButtonProps } from "../buttons/button";
 import { Widget } from "../data-display/widget";
 import { cn } from "../lib/utils";
+
+const htmlTheme: PrismTheme = {
+  plain: { color: "var(--foreground)" },
+  styles: [
+    { types: ["tag"], style: { color: "var(--accent)" } },
+    {
+      types: ["attr-name"],
+      style: { color: "var(--warning-soft-foreground)" },
+    },
+    {
+      types: ["attr-value", "string"],
+      style: { color: "var(--success-soft-foreground)" },
+    },
+    { types: ["punctuation"], style: { color: "var(--muted)" } },
+  ],
+};
 
 const Root = forwardRef<HTMLDivElement, ComponentPropsWithRef<"div">>(
   ({ className, ...props }, ref) => (
@@ -69,7 +87,29 @@ const Code = forwardRef<
       data-slot="code-block-code"
       {...props}
     >
-      <code>{code}</code>
+      {language === "html" ? (
+        <Highlight code={code} language="markup" theme={htmlTheme}>
+          {({ tokens, getTokenProps }) => (
+            <code>
+              {tokens.map((line, lineIndex) => (
+                <Fragment key={lineIndex}>
+                  {lineIndex > 0 ? "\n" : null}
+                  {line.map((token, tokenIndex) => (
+                    <span
+                      key={tokenIndex}
+                      style={getTokenProps({ token }).style}
+                    >
+                      {token.content}
+                    </span>
+                  ))}
+                </Fragment>
+              ))}
+            </code>
+          )}
+        </Highlight>
+      ) : (
+        <code>{code}</code>
+      )}
     </pre>
   </Widget.Content>
 ));

@@ -1,3 +1,4 @@
+import { getAnalyticsConfiguration } from "../../areas/analytics/service.js";
 import { Hono } from "hono";
 import { monitoringSampleSchema } from "@workspace/towbar-core";
 import {
@@ -39,4 +40,16 @@ monitoringIngestRoutes.post("/metrics", async (context) => {
   return context.json(
     await ingestMonitoringSample(serverId, generation, sample, now),
   );
+});
+
+monitoringIngestRoutes.get("/analytics/config", async (context) => {
+  const authorization = context.req.header("authorization") ?? "";
+  if (!/^Bearer twma_[a-f0-9]{64}$/u.test(authorization))
+    throw unauthorized("A monitoring agent credential is required");
+  const serverId = readUuidPathParameter(
+    context.req.header("x-towbar-server") ?? "",
+    "X-Towbar-Server",
+  );
+  await authenticateAgent(serverId, authorization.slice(7));
+  return context.json(await getAnalyticsConfiguration(serverId));
 });

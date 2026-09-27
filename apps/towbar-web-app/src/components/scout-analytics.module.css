@@ -1,0 +1,74 @@
+@layer components {
+  .rowAction {
+    opacity: 0;
+  }
+
+  .breakdown [data-slot="table-row"]:hover .rowAction,
+  .breakdown [data-slot="table-row"]:focus-within .rowAction {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .rowAction {
+      opacity: 1;
+    }
+  }
+
+  .countBar {
+    border-radius: 0.25rem;
+  }
+
+  .breakdown [data-slot="table-row"]:first-child .countBar {
+    border-start-start-radius: calc(min(32px, var(--radius-2xl)) - 0.25rem);
+  }
+
+  .breakdown [data-slot="table-row"]:last-child .countBar {
+    border-end-start-radius: calc(min(32px, var(--radius-2xl)) - 0.25rem);
+  }
+
+  .breakdown [data-slot="table-cell"] {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
+  .breakdown [data-slot="table-column"] {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .breakdown [data-slot="table-column"]:nth-last-child(-n + 2) {
+    width: 5rem !important;
+  }
+
+  .numbered .rankColumn {
+    width: 1rem !important;
+    padding-inline: 0;
+  }
+
+  .numbered .rankColumn::after {
+    content: none;
+  }
+
+  .breakdown.numbered [data-slot="table-row"] .rankCell {
+    padding-inline: 0;
+    border-bottom: 0;
+    border-radius: 0;
+    background: var(--surface-secondary);
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .numbered
+    [data-slot="table-row"]:first-child
+    [data-slot="table-cell"]:nth-child(2) {
+    border-start-start-radius: min(32px, var(--radius-2xl));
+  }
+
+  .numbered
+    [data-slot="table-row"]:last-child
+    [data-slot="table-cell"]:nth-child(2) {
+    border-end-start-radius: min(32px, var(--radius-2xl));
+  }
+}

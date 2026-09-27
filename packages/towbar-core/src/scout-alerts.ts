@@ -1,3 +1,4 @@
+import type { NormalizedDeployable } from "./manifest.js";
 import { z } from "zod";
 import {
   type MonitoringAggregates,
@@ -14,7 +15,35 @@ export const scoutAlertMetrics = [
   "restarts",
   "missingReports",
   "httpAvailability",
+  "httpRequests",
+  "pageviews",
 ] as const;
+
+export function isScoutAnalyticsMetric(metric: string) {
+  return metric === "httpRequests" || metric === "pageviews";
+}
+
+export function scoutAnalyticsCapabilities(
+  config: NormalizedDeployable | undefined,
+) {
+  const analytics = config?.kind === "app" ? config.analytics : undefined;
+  return {
+    httpRequests: Boolean(analytics),
+    pageviews: Boolean(analytics?.pageviews),
+  };
+}
+
+export function scoutAnalyticsMetricEnabled(
+  metric: string,
+  config: NormalizedDeployable | undefined,
+) {
+  const capabilities = scoutAnalyticsCapabilities(config);
+  return metric === "httpRequests"
+    ? capabilities.httpRequests
+    : metric === "pageviews"
+      ? capabilities.pageviews
+      : true;
+}
 
 export const scoutHttpCheckSchema = z
   .object({
@@ -126,8 +155,25 @@ export const scoutAlertConditionSchema = z
         path: ["threshold"],
         message: "Choose at least one restart",
       });
+    if (isScoutAnalyticsMetric(value.metric) && value.windowSeconds % 60 !== 0)
+      ctx.addIssue({
+        code: "custom",
+        path: ["windowSeconds"],
+        message: "Choose a whole number of minutes",
+      });
     if (
-      ["restarts", "missingReports"].includes(value.metric) &&
+      isScoutAnalyticsMetric(value.metric) &&
+      !Number.isSafeInteger(value.threshold)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["threshold"],
+        message: "Choose a whole-number count",
+      });
+    if (
+      ["restarts", "missingReports", "httpRequests", "pageviews"].includes(
+        value.metric,
+      ) &&
       value.durationSeconds !== 0
     )
       ctx.addIssue({
@@ -156,6 +202,12 @@ export const scoutAlertRuleSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (!value.deployableId && isScoutAnalyticsMetric(value.condition.metric))
+      ctx.addIssue({
+        code: "custom",
+        path: ["deployableId"],
+        message: "Analytics conditions belong to a service",
+      });
     if (
       value.deployableId &&
       [
@@ -413,4 +465,47 @@ export function scoutRestartObservations(
           : null,
     };
   });
+}
+
+/** Counts require a full collection window, including a baseline before its start. */
+export function scoutTrafficObservation(
+  samples: Array<{
+    at: number;
+    count: number;
+    ready: boolean;
+    dropped: number | null;
+  }>,
+  windowSeconds: number,
+  now: number,
+): ScoutObservation {
+  const ordered = samples
+    .filter((point) => point.at <= now)
+    .sort((a, b) => a.at - b.at);
+  const latest = ordered.at(-1);
+  const unknown = { at: latest?.at ?? now, value: null };
+  if (!latest || now - latest.at > 90_000) return unknown;
+  const boundary = latest.at - windowSeconds * 1000;
+  let baseline = -1;
+  for (let index = 0; index < ordered.length; index++)
+    if (ordered[index]!.at <= boundary) baseline = index;
+  if (baseline < 0 || boundary - ordered[baseline]!.at > 45_000) return unknown;
+  const points = ordered.slice(baseline);
+  let total = 0;
+  for (let index = 0; index < points.length; index++) {
+    const point = points[index]!;
+    if (
+      !point.ready ||
+      point.dropped === null ||
+      point.dropped !== points[0]!.dropped ||
+      !Number.isSafeInteger(point.count) ||
+      point.count < 0
+    )
+      return unknown;
+    if (index > 0) {
+      const gap = point.at - points[index - 1]!.at;
+      if (gap <= 0 || gap > 45_000) return unknown;
+      total += point.count;
+    }
+  }
+  return { at: latest.at, value: total };
 }

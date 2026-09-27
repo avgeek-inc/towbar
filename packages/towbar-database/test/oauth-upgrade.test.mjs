@@ -25,9 +25,11 @@ test(
       const journal = JSON.parse(
         await readFile(join(previous, "meta/_journal.json"), "utf8"),
       );
-      journal.entries = journal.entries.filter(
-        (entry) => entry.tag !== "0013_mcp_oauth",
+      const oauthIndex = journal.entries.findIndex(
+        (entry) => entry.tag === "0013_mcp_oauth",
       );
+      assert(oauthIndex >= 0);
+      journal.entries = journal.entries.slice(0, oauthIndex);
       await writeFile(
         join(previous, "meta/_journal.json"),
         JSON.stringify(journal),

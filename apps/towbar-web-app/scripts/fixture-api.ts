@@ -4,6 +4,7 @@ import {
   rolloutStrategySchema,
   managedResourceCompatibility,
 } from "@workspace/towbar-core";
+import { analyticsFixture } from "./analytics-fixture.ts";
 import { eventHistoryFixture } from "./event-history-fixture.ts";
 import { terminalFixture } from "./terminal-fixture.ts";
 import {
@@ -270,6 +271,10 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
+apps[0]!.config.domains = {
+  primary: "example.com",
+  redirects: [],
+};
 apps[2]!.config.externalSecrets = {
   integration: "infisical",
   project: "00000000-0000-4000-8000-000000000001",
@@ -510,6 +515,20 @@ for (const [index, app] of apps.entries()) {
     "Storefront and cache deployed together using Docker Compose.",
   ][index]!;
 }
+(apps[0]!.config as NormalizedApp).analytics = {
+  enabled: true,
+  pageviews: true,
+  visitorIdentity: true,
+  retentionDays: 30,
+  excludePaths: [],
+};
+(apps[1]!.config as NormalizedApp).analytics = {
+  enabled: true,
+  pageviews: false,
+  visitorIdentity: false,
+  retentionDays: 30,
+  excludePaths: [],
+};
 (apps[0]!.config as NormalizedApp).buildServer = {
   ip: servers[4]!.canonicalIp,
   transfer: "direct",
@@ -2676,6 +2695,7 @@ export function createFixtureApiServer({
       return;
     }
 
+    if (analyticsFixture(request, response, requestUrl)) return;
     if (scoutFixture(request, response, requestUrl)) return;
     if (
       request.method === "GET" &&
@@ -4894,6 +4914,7 @@ function createAppFixture(
     environment: null,
     archivedAt: null,
     config: {
+      kind: "app",
       autoDeploy: true,
       vulnerabilityScanning: true,
       container: {
@@ -5503,6 +5524,7 @@ const allowedFixtureOrigins = new Set([
   "http://127.0.0.1:4021",
   "http://[::1]:4021",
   "http://localhost:4021",
+  "http://localhost:4036",
 ]);
 
 function authorizeFixtureCorsRequest(
