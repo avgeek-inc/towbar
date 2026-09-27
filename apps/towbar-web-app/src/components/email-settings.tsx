@@ -100,7 +100,7 @@ export function EmailSettings() {
             email changes only after you confirm it.
           </FieldDescription>
           {query.error ? (
-            <p role="alert" className="text-danger">
+            <p role="alert" className="text-sm text-danger">
               {query.error}
             </p>
           ) : null}
