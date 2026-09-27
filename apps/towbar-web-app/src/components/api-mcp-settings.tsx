@@ -207,9 +207,6 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
               ? `MCP connection · ${key.oauthClientTrust === "metadata-document" && key.oauthClientId ? new URL(key.oauthClientId).hostname : "Unverified app"}`
               : "API key"}
           </TableCellDescription>
-          <TableCellDescription className="font-mono">
-            {key.prefix}••••
-          </TableCellDescription>
         </TableCellStack>
       ),
     },
