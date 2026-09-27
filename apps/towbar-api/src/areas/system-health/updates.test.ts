@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { checkTowbarUpdates, compareStableVersions } from "./updates.js";
+import {
+  checkTowbarUpdates,
+  compareStableVersions,
+  getTowbarUpdateInfo,
+} from "./updates.js";
 
 const release = (tag_name: string) =>
   new Response(JSON.stringify({ tag_name, draft: false, prerelease: false }), {
@@ -19,7 +23,9 @@ void test("the latest stable release is available when it is newer", async () =>
   const updates = await checkTowbarUpdates("2.0.14", () =>
     Promise.resolve(release("v2.0.15")),
   );
+  assert(Number.isFinite(Date.parse(updates.checkedAt)));
   assert.deepEqual(updates, {
+    checkedAt: updates.checkedAt,
     installedVersion: "2.0.14",
     latestVersion: "2.0.15",
     releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.15",
@@ -37,4 +43,22 @@ void test("an unreachable or invalid release does not report an update", async (
     assert.equal(updates.status, "unavailable");
     assert.equal(updates.latestVersion, null);
   }
+});
+
+void test("cached release checks retain their timestamp until the next upstream fetch", async (context) => {
+  const now = Date.UTC(2030, 0, 1);
+  context.mock.timers.enable({ apis: ["Date"], now });
+  const upstream = context.mock.method(globalThis, "fetch", () =>
+    Promise.resolve(release("v2.0.18")),
+  );
+  const first = await getTowbarUpdateInfo();
+  assert.equal(first.checkedAt, new Date(now).toISOString());
+  context.mock.timers.tick(60_000);
+  const cached = await getTowbarUpdateInfo();
+  assert.equal(cached.checkedAt, first.checkedAt);
+  assert.equal(upstream.mock.callCount(), 1);
+  context.mock.timers.tick(15 * 60_000);
+  const refreshed = await getTowbarUpdateInfo();
+  assert.equal(refreshed.checkedAt, new Date(now + 16 * 60_000).toISOString());
+  assert.equal(upstream.mock.callCount(), 2);
 });

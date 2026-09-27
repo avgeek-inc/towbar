@@ -116,3 +116,22 @@ After success, Towbar keeps the current and immediately previous release directo
   Do not use `towbar install` to upgrade an existing installation. It stops when
   Towbar is already installed. Use `sudo towbar upgrade`.
 </Warning>
+
+## `towbar upgrade-service`
+
+Enable the optional host service that lets recently authenticated Admins upgrade from System Health:
+
+```bash
+sudo towbar upgrade-service enable
+```
+
+This requires the standard upstream Linux/systemd CLI installation and a release containing the host admission protocol. Setup restarts the API with a private socket mount. Once enabled, `sudo towbar upgrade` also goes through the host runner's readiness barrier and durable job record.
+
+After an interrupted or failed attempt, inspect the host logs, database, and service health before acknowledging recovery:
+
+```bash
+sudo towbar doctor
+sudo towbar upgrade-service resume --acknowledge-recovery
+```
+
+The recovery command refuses active jobs or unresolved work. See [Upgrades and recovery](/docs/self-hosting/upgrades) for prerequisites, backup requirements, admission behavior, stale activity leases, and migration limits.

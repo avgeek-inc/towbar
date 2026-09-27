@@ -7,11 +7,15 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 import { instrumentTemporalActivities } from "@workspace/observability-node/temporal";
 import { towbarTaskQueue } from "@workspace/towbar-core/temporal";
 
+import { guardActivities } from "./infrastructure/upgrade-admission.js";
+
 import * as activities from "./activities/index.js";
 import { getEnv } from "./env.js";
 
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
-const instrumentedActivities = instrumentTemporalActivities(activities);
+const instrumentedActivities = instrumentTemporalActivities(
+  guardActivities(activities),
+);
 
 async function main() {
   const env = getEnv();

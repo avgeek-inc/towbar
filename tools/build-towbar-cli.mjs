@@ -12,6 +12,7 @@ const fragments = [
   "20-host.sh",
   "30-release.sh",
   "40-lifecycle.sh",
+  "45-upgrade-service.sh",
   "50-doctor.sh",
   "60-commands.sh",
 ];

@@ -1,6 +1,10 @@
 compose_for() {
   local release_dir="$1" commit="$2" env_file="$3" compose_profiles
   local api_image worker_image web_app_image
+  local -a upgrade_override=()
+  if [[ -f "$TOWBAR_CONFIG_DIR/upgrade-compose.yml" ]]; then
+    upgrade_override=(--file "$TOWBAR_CONFIG_DIR/upgrade-compose.yml")
+  fi
   shift 3
   compose_profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
   api_image="$(metadata_value "$release_dir" API_IMAGE)"
@@ -16,6 +20,7 @@ compose_for() {
       --env-file "$env_file" \
       --project-directory "$release_dir" \
       --file "$release_dir/docker-compose.yml" \
+      "${upgrade_override[@]}" \
       "$@"
 }
 
@@ -270,6 +275,12 @@ cleanup_installation_artifacts() {
 
 upgrade_release() {
   local requested_version="${1:-latest}" version commit release_dir
+  require_root upgrade
+  [[ ! -f /.dockerenv && ! -f /run/.containerenv ]] || fail "run upgrades on the host"
+  if [[ -f "$TOWBAR_CONFIG_DIR/upgrade-compose.yml" && -z "${TOWBAR_UPGRADE_JOB:-}" ]]; then
+    python3 /usr/local/lib/towbar-upgrade/runner.py --upgrade "$requested_version"
+    return
+  fi
   local previous_release="" previous_commit="" containers_changed=false
   local config_path_migrated=false had_legacy_config=false
 
@@ -281,7 +292,6 @@ upgrade_release() {
 
   trap 'restore_upgrade_config_path' EXIT
 
-  require_root upgrade
   require_linux
   require_runtime_tools
   validate_repository
@@ -296,6 +306,9 @@ upgrade_release() {
   fi
   verify_release "$version"
   commit="$(resolve_release_commit "$version")"
+  if [[ -n "${TOWBAR_UPGRADE_JOB:-}" ]]; then
+    [[ "$commit" == "${TOWBAR_UPGRADE_COMMIT:-}" ]] || fail "the release commit changed after confirmation"
+  fi
   ui_step "Verified $version at immutable commit ${commit:0:12}"
   release_dir="$(download_release "$version" "$commit")"
   if [[ -f "$TOWBAR_LEGACY_YAML_FILE" && ! -e "$TOWBAR_YAML_FILE" ]]; then
