@@ -342,7 +342,7 @@ export function TelegramNotificationIntegration() {
             Test
           </Button>
           <Button
-            variant="danger-ghost"
+            variant="danger"
             isDisabled={saving}
             onPress={() => setRemoving(row)}
           >

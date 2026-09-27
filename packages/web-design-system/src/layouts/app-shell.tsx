@@ -91,13 +91,18 @@ function RoutedLink({
   children?: ReactNode;
 }) {
   const navigate = useAppNavigate();
+  const pathname = usePathname();
   const { close } = useMobileNavigation();
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
       return;
     if (!item.external && navigate) {
       event.preventDefault();
-      navigate(item.href);
+      if (
+        pathname !== item.href &&
+        !(item.preserveSubroute && pathname.startsWith(`${item.href}/`))
+      )
+        navigate(item.href);
     }
     close();
   };
@@ -256,7 +261,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                   className="truncate text-xs font-medium text-warning-soft-foreground"
                   title={`Towbar v${config.brandUpdateVersion} is available`}
                 >
-                  v{config.brandUpdateVersion} available
+                  Update available
                 </span>
               ) : null}
             </span>
@@ -295,6 +300,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                     <span className="min-w-0 flex-1 break-words">
                       {item.label}
                     </span>
+                    {item.trailing}
                     {item.badge ? (
                       <span
                         aria-label={item.badge.label}

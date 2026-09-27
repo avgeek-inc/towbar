@@ -21,6 +21,7 @@ export interface ShellLinkConfig {
   href: string;
   accessibleLabel?: string;
   external?: boolean;
+  preserveSubroute?: boolean;
 }
 export interface HeaderBrandConfig {
   accessibleLabel: string;
@@ -44,6 +45,7 @@ export interface SidebarLinkConfig extends ShellLinkConfig {
     tone?: "danger" | "warning";
   };
   icon?: SidebarIcon;
+  trailing?: ReactNode;
 }
 export interface SidebarActionConfig {
   kind: "action";

@@ -7,7 +7,11 @@ import { EmptyState } from "@workspace/web-design-system/data-display/empty-stat
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { ThemeSwitcher } from "@workspace/web-design-system/controls/theme-switcher";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { clearApiQueryCache, refreshApiQueries } from "@/hooks/use-api-query";
+import {
+  clearApiQueryCache,
+  prefetchApiQueries,
+  refreshApiQueries,
+} from "@/hooks/use-api-query";
 import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +21,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import type {
   App,
+  Deployment,
   Resource,
   Server,
   Source,
@@ -41,7 +46,7 @@ import {
   createApplicationSidebar,
 } from "@/lib/application-layout";
 import { RelativeTimeProvider } from "./last-synced-time";
-import { DeploymentQueue } from "@/components/deployment-queue";
+import { getActiveDeploymentStates } from "@/lib/inventory-status";
 import { NotificationCenter } from "@/components/notification-center";
 import { AccountMenu } from "@/components/account-menu";
 import { HeadingHelpContext } from "@workspace/web-design-system/overlays/heading-help";
@@ -54,10 +59,75 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   return isPublicDemo ? <DemoBoundary>{frame}</DemoBoundary> : frame;
 }
 
+const navigationPrefetchPaths: Record<string, string[]> = {
+  "/": [
+    "/v1/core/apps",
+    "/v1/core/resources",
+    "/v1/core/servers",
+    "/v1/core/deployments",
+    "/v1/core/deployments/history?page=1&limit=6",
+  ],
+  "/deployments": [
+    "/v1/core/servers",
+    "/v1/core/deployments/history?page=1&limit=10&",
+  ],
+  "/servers": ["/v1/core/servers", "/v1/core/apps", "/v1/core/resources"],
+  "/repositories": ["/v1/core/sources"],
+  "/services": [
+    "/v1/core/apps",
+    "/v1/core/deployments",
+    "/v1/core/sources",
+    "/v1/core/servers",
+  ],
+  "/datastores": [
+    "/v1/core/resources",
+    "/v1/core/deployments",
+    "/v1/core/sources",
+    "/v1/core/servers",
+  ],
+  "/monitoring/incidents": [
+    "/v1/core/monitoring/incidents?state=active&severity=all&limit=20",
+  ],
+  "/monitoring/vulnerabilities": [
+    "/v1/core/monitoring/vulnerabilities?severity=all&page=1&limit=20",
+  ],
+  "/manage/ssh-keys": ["/v1/core/settings/private-keys"],
+  "/manage/shared-secrets": ["/v1/core/settings/secrets"],
+  "/manage/notifications": ["/v1/core/notifications/providers"],
+  "/manage/integrations": ["/v1/core/integrations"],
+  "/team-settings/general": ["/v1/core/team"],
+  "/system-health": ["/v1/core/system-health"],
+};
+
 function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const navigate = useCallback((href: string) => router.push(href), [router]);
+  const navigationSequence = useRef(0);
+  const navigate = useCallback(
+    (href: string) => {
+      const sequence = ++navigationSequence.current;
+      const paths = navigationPrefetchPaths[href];
+      if (!paths) {
+        router.push(href);
+        return;
+      }
+      void (async () => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            prefetchApiQueries(paths).catch(() => undefined),
+            new Promise<void>((resolve) => {
+              timeout = setTimeout(resolve, 800);
+            }),
+          ]);
+        } finally {
+          if (timeout) clearTimeout(timeout);
+        }
+        if (sequence === navigationSequence.current) router.push(href);
+      })();
+    },
+    [router],
+  );
   const [user, setUser] = useState<TowbarUser | null>();
   const [isSignOutConfirming, setIsSignOutConfirming] = useState(false);
   const apps = useApiQuery<{ apps: App[] }>(
@@ -86,6 +156,10 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
   const version = useApiQuery<TowbarUpdateInfo>(
     user && !user.mustChangePassword ? "/v1/core/version" : null,
     15 * 60_000,
+  );
+  const deployments = useApiQuery<{ deployments: Deployment[] }>(
+    user && !user.mustChangePassword ? "/v1/core/deployments" : null,
+    5_000,
   );
   const sidebarState = usePersistentAppSidebar("towbar-sidebar");
   const isLogin = pathname === "/login" || pathname === "/setup";
@@ -188,21 +262,43 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  const baseSidebar = createApplicationSidebar(
+    {
+      apps: apps.data
+        ? groupDeployableInstances(apps.data.apps).length
+        : undefined,
+      resources: resources.data
+        ? groupDeployableInstances(resources.data.resources).length
+        : undefined,
+      servers: servers.data?.servers.length,
+      sources: sources.data?.sources.length,
+    },
+    monitoring.error ? undefined : monitoring.data,
+    user,
+  );
   const sidebar = {
-    ...createApplicationSidebar(
-      {
-        apps: apps.data
-          ? groupDeployableInstances(apps.data.apps).length
-          : undefined,
-        resources: resources.data
-          ? groupDeployableInstances(resources.data.resources).length
-          : undefined,
-        servers: servers.data?.servers.length,
-        sources: sources.data?.sources.length,
-      },
-      monitoring.error ? undefined : monitoring.data,
-      user,
-    ),
+    ...baseSidebar,
+    groups: baseSidebar.groups.map((group) => ({
+      ...group,
+      items: group.items.map((item) =>
+        item.kind === "link" &&
+        item.id === "deployments" &&
+        deployments.data &&
+        getActiveDeploymentStates(deployments.data.deployments).size > 0
+          ? {
+              ...item,
+              trailing: (
+                <Spinner
+                  aria-label="Deployments in progress"
+                  className="ms-auto shrink-0 text-warning-soft-foreground"
+                  color="current"
+                  size="sm"
+                />
+              ),
+            }
+          : item,
+      ),
+    })),
     ...(version.data ? { brandVersion: version.data.installedVersion } : {}),
     brandUpdateVersion:
       !version.error && version.data?.status === "available"
@@ -227,13 +323,9 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
               <ApplicationNavbar
                 actions={
                   <div className="flex items-center gap-2">
-                    <DeploymentQueue inline />
                     <NotificationCenter />
                     <div className="flex items-center gap-1">
                       <ThemeSwitcher size="small" />
-                      <HeaderSignOut
-                        onSignOutRequest={() => setIsSignOutConfirming(true)}
-                      />
                     </div>
                   </div>
                 }
@@ -289,24 +381,6 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
         <ReauthenticationDialog />
       </HeadingHelpContext.Provider>
     </AccessContext.Provider>
-  );
-}
-
-function HeaderSignOut({ onSignOutRequest }: { onSignOutRequest: () => void }) {
-  return (
-    <Button
-      aria-label="Sign out"
-      className="size-8 min-h-8 min-w-8 rounded-full p-0"
-      isIconOnly
-      onPress={onSignOutRequest}
-      variant="danger"
-    >
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="size-4"
-        icon={Logout03Icon}
-      />
-    </Button>
   );
 }
 

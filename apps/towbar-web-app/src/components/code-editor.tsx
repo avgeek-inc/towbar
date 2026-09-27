@@ -125,7 +125,7 @@ export default function CodeEditor({
             },
             ".cm-scroller": {
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: language === "env" ? "14px" : "16px",
+              fontSize: "14px",
               lineHeight: "1.6",
               overflow: "auto",
               minHeight: "240px",

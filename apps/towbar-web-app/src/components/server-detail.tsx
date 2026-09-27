@@ -53,6 +53,7 @@ import type {
   ServerPreparation,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
@@ -176,6 +177,12 @@ export function ServerDetail() {
   }, [latestPreparationStatus, refreshServer]);
   const orphans = useApiQuery<{ orphans: OrphanItem[] }>(
     can("server.remove") ? `/v1/core/servers/${serverId}/orphans` : null,
+    5_000,
+  );
+  const cleanup = useApiQuery<{ inProgress: boolean }>(
+    requestedSettingsTab === "cleanup"
+      ? `/v1/core/servers/${serverId}/cleanup`
+      : null,
     5_000,
   );
   const error =
@@ -650,6 +657,16 @@ export function ServerDetail() {
                     {
                       value: "cleanup",
                       label: "Cleanup",
+                      badge: cleanup.data?.inProgress ? (
+                        <Chip size="small" variant="warning">
+                          In progress
+                        </Chip>
+                      ) : undefined,
+                      titleBadge: cleanup.data?.inProgress ? (
+                        <Chip size="small" variant="warning">
+                          In progress
+                        </Chip>
+                      ) : undefined,
                       content: (
                         <div className="content-grid">
                           {orphanItems.length ? (
@@ -674,6 +691,7 @@ export function ServerDetail() {
                             <div className="flex flex-wrap gap-2">
                               {disposableOrphans.length ? (
                                 <CleanupButton
+                                  onQueued={cleanup.refresh}
                                   description={`Towbar will re-check and remove ${disposableOrphans.length} Towbar-owned containers or images. Objects no longer orphaned will be skipped.`}
                                   items={disposableOrphans}
                                   label="Clean containers and images"
@@ -683,6 +701,7 @@ export function ServerDetail() {
                               ) : null}
                               {orphanVolumes.length ? (
                                 <CleanupButton
+                                  onQueued={cleanup.refresh}
                                   description={`This permanently deletes ${orphanVolumes.length} Towbar-owned Docker volumes and all data still stored in them. Towbar will re-check each volume and skip anything currently owned by a deployable.`}
                                   items={orphanVolumes}
                                   label="Delete orphan volumes"
@@ -821,12 +840,14 @@ function CleanupButton({
   description,
   items,
   label,
+  onQueued,
   serverId,
   title,
 }: {
   description: string;
   items: OrphanItem[];
   label: string;
+  onQueued: () => void;
   serverId: string;
   title: string;
 }) {
@@ -840,6 +861,7 @@ function CleanupButton({
         )
       }
       confirm={{ actionLabel: label, description, title }}
+      onSuccess={onQueued}
       success="Orphan cleanup queued"
       variant="danger"
     >

@@ -517,27 +517,41 @@ export function PrivateKeyStore({
               <HugeiconsIcon aria-hidden="true" icon={Edit02Icon} />
               Edit
             </Button>
-            <ActionButton
-              action={async () => {
-                await api.delete(`${privateKeysEndpoint}/${key.id}`);
-                query.refresh();
-              }}
-              confirm={{
-                title: `Delete ${key.name}?`,
-                description:
-                  key.usageCount > 0
-                    ? "This key is attached to a server. Detach it before deleting the stored key."
-                    : "This permanently deletes the encrypted private key and its public key from Towbar.",
-                actionLabel: "Delete private key",
-              }}
-              isDisabled={key.usageCount > 0}
-              pendingLabel="Deleting…"
-              success="Private key deleted"
-              variant="danger"
-            >
-              <HugeiconsIcon aria-hidden="true" icon={Delete02Icon} />
-              Delete
-            </ActionButton>
+            <Tooltip isDisabled={key.usageCount === 0}>
+              <Tooltip.Trigger>
+                <span
+                  className="inline-flex"
+                  tabIndex={key.usageCount > 0 ? 0 : undefined}
+                >
+                  <ActionButton
+                    action={async () => {
+                      await api.delete(`${privateKeysEndpoint}/${key.id}`);
+                      query.refresh();
+                    }}
+                    confirm={{
+                      title: `Delete ${key.name}?`,
+                      description:
+                        key.usageCount > 0
+                          ? "This key is attached to a server. Detach it before deleting the stored key."
+                          : "This permanently deletes the encrypted private key and its public key from Towbar.",
+                      actionLabel: "Delete private key",
+                    }}
+                    isDisabled={key.usageCount > 0}
+                    pendingLabel="Deleting…"
+                    success="Private key deleted"
+                    variant="danger"
+                  >
+                    <HugeiconsIcon aria-hidden="true" icon={Delete02Icon} />
+                    Delete
+                  </ActionButton>
+                </span>
+              </Tooltip.Trigger>
+              <Tooltip.Content placement="top" showArrow>
+                <Tooltip.Arrow />
+                This key is used by {key.usageCount} server
+                {key.usageCount === 1 ? "" : "s"}. Detach it before deleting.
+              </Tooltip.Content>
+            </Tooltip>
           </div>
         ) : null,
     },

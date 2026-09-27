@@ -126,7 +126,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
       "Checks & preparation",
       /\/(checks|preparations)$|\/actions\/(check|prepare)$/,
     ],
-    ["Cleanup", /\/orphans$|\/actions\/cleanup-orphans$/],
+    ["Cleanup", /\/(orphans|cleanup)$|\/actions\/cleanup-orphans$/],
     ["Capacity", /\/capacity$/],
     ["Inventory", /\/(apps|resources|deployments)$/],
     ["Overview", /^\/servers(?:\/[^/]+)?$/],

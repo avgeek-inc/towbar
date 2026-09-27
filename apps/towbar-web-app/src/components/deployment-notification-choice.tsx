@@ -45,7 +45,7 @@ export function DeploymentNotificationChoice({
       {value ? (
         <button
           type="button"
-          className="text-muted underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="text-muted underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           onClick={() => onChange(null)}
         >
           Clear

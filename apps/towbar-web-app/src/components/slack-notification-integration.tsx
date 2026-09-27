@@ -292,7 +292,7 @@ export function SlackNotificationIntegration() {
             Test
           </Button>
           <Button
-            variant="danger-ghost"
+            variant="danger"
             isDisabled={saving}
             onPress={() => setRemoving(row.channelId)}
           >

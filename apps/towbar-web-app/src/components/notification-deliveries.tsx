@@ -289,7 +289,7 @@ export function NotificationDeliveries() {
             onChange={(value) => history.setFilter("category", value)}
           />
           <HistoryFilter
-            label="Datastores"
+            label="Entities"
             value={history.filters.entityId}
             allIcon={<ScoutIcon name="all" />}
             options={entities.map((entity) => ({
@@ -324,7 +324,7 @@ export function NotificationDeliveries() {
                 </span>
               ) : undefined,
             }))}
-            searchPlaceholder="Search apps, resources or servers"
+            searchPlaceholder="Search services, datastores or servers"
             onChange={(value) => history.setFilter("entityId", value)}
           />
         </div>

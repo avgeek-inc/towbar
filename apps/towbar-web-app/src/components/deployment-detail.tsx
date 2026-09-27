@@ -145,7 +145,7 @@ export function DeploymentDetail() {
         breadcrumbAncestors={deployableBreadcrumb}
         title="Deployment"
       >
-        <QueryLoading variant="detail" immediate />
+        <QueryLoading variant="detail" />
       </DashboardPage>
     );
 
