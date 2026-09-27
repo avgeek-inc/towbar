@@ -70,6 +70,7 @@ type TooltipEntry = {
 };
 function TooltipContent({
   active,
+  children,
   className,
   label,
   labelFormatter,
@@ -77,6 +78,7 @@ function TooltipContent({
   valueFormatter,
 }: {
   active?: boolean;
+  children?: ReactNode;
   className?: string;
   label?: unknown;
   labelFormatter?: (value: unknown) => ReactNode;
@@ -116,6 +118,7 @@ function TooltipContent({
           </span>
         </div>
       ))}
+      {children}
     </div>
   );
 }

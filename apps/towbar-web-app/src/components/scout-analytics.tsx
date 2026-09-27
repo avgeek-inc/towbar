@@ -284,17 +284,41 @@ export function AnalyticsView({
                 allowDecimals={false}
               />
               <LineChart.Tooltip
-                content={
-                  <LineChart.TooltipContent
-                    labelFormatter={(label) =>
-                      new Date(String(label)).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        ...(days === 1 ? { timeStyle: "short" } : {}),
-                      })
-                    }
-                    valueFormatter={(value) => format(Number(value))}
-                  />
-                }
+                content={({ active, label, payload }) => {
+                  const point = trend.find((point) => point.at === label);
+                  return (
+                    <LineChart.TooltipContent
+                      active={active}
+                      payload={payload.map(
+                        ({ color, dataKey, name, value }) => ({
+                          color,
+                          dataKey: String(dataKey),
+                          name: String(name),
+                          value: Number(value),
+                        }),
+                      )}
+                      label={label}
+                      labelFormatter={(value) =>
+                        new Date(String(value)).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          ...(days === 1 ? { timeStyle: "short" } : {}),
+                        })
+                      }
+                      valueFormatter={(value) => format(Number(value))}
+                    >
+                      {pageviews && point?.previous != null ? (
+                        <div className="mt-1 border-t border-separator pt-1">
+                          <MetricChange
+                            current={point.count}
+                            previous={point.previous}
+                            lowerIsBetter={false}
+                            label={comparisonLabel}
+                          />
+                        </div>
+                      ) : null}
+                    </LineChart.TooltipContent>
+                  );
+                }}
               />
               <LineChart.Line
                 dataKey="count"
