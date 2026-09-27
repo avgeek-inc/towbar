@@ -13,6 +13,7 @@ import { NotificationProviderIcon } from "./notification-provider-icon";
 
 type Subscription = {
   deployments: boolean;
+  deploymentFailures?: boolean;
   backupsAndRestores: boolean;
   alertsAndIncidents: boolean;
 };
@@ -31,9 +32,8 @@ const providerLabels: Record<Provider, string> = {
 };
 
 const subscriptionColumns = [
-  { key: "deployments", label: "Deployments" },
   { key: "backupsAndRestores", label: "Backup & Restore" },
-  { key: "alertsAndIncidents", label: "Alerts & Incidents" },
+  { key: "alertsAndIncidents", label: "Incidents" },
 ] as const;
 
 const columns: ResourceTableColumn<Destination>[] = [
@@ -53,6 +53,21 @@ const columns: ResourceTableColumn<Destination>[] = [
     header: "Destination",
     className: "min-w-44",
     cell: (row) => row.label,
+  },
+  {
+    key: "deployments",
+    header: "Deployments",
+    className: "min-w-32",
+    cell: (row) =>
+      row.deployments ? (
+        "All"
+      ) : row.deploymentFailures ? (
+        "Failures only"
+      ) : (
+        <span className="text-muted" aria-label="Not enabled">
+          —
+        </span>
+      ),
   },
   ...subscriptionColumns.map(({ key, label }) => ({
     key,

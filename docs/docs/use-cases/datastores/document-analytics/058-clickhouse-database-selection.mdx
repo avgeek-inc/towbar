@@ -1,13 +1,17 @@
 ---
-title: "ClickHouse database selection"
+title: "ClickHouse selection"
 description: "Optionally declare CLICKHOUSE_DB before initial deployment."
 icon: "/assets/database-logos/clickhouse.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/clickhouse.webp"
-  alt="ClickHouse database selection logo"
+  alt="ClickHouse selection logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/clickhouse.webp"
 
 ```yaml title=".towbar/datastores/clickhouse-database-selection.datastore.yml"
 id: clickhouse-database-selection
-name: ClickHouse database selection
+name: ClickHouse selection
 type: clickhouse
 container:
   network: application

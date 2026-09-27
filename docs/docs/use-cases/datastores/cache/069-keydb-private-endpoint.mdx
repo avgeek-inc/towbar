@@ -1,13 +1,17 @@
 ---
-title: "KeyDB private endpoint"
+title: "KeyDB endpoint"
 description: "Share a network with the consuming Service and keep the port private."
 icon: "/assets/database-logos/keydb.svg"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/keydb.svg"
-  alt="KeyDB private endpoint logo"
+  alt="KeyDB endpoint logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/keydb.svg"
 
 ```yaml title=".towbar/datastores/keydb-private-endpoint.datastore.yml"
 id: keydb-private-endpoint
-name: KeyDB private endpoint
+name: KeyDB endpoint
 type: keydb
 container:
   network: application

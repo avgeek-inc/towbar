@@ -1,21 +1,28 @@
 ---
-title: "Redis for a queue"
+title: "Redis queue"
 description: "Give the producer and worker the same private network and secret URL."
 icon: "/assets/database-logos/redis.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/redis.webp"
-  alt="Redis for a queue logo"
+  alt="Redis queue logo"
   aria-hidden="true"
 />
 
 ## Towbar manifests
 
-```yaml title=".towbar/datastores/redis-for-a-queue.datastore.yml"
+<CodeGroup>
+
+```yaml title="datastore"
+# .towbar/datastores/redis-for-a-queue.datastore.yml
 id: redis-for-a-queue
-name: Redis for a queue
+name: Redis queue
 type: redis
 container:
   network: application
@@ -31,9 +38,10 @@ environments:
     server: 192.0.2.10
 ```
 
-```yaml title=".towbar/services/redis-for-a-queue-producer.service.yml"
+```yaml title="producer"
+# .towbar/services/redis-for-a-queue-producer.service.yml
 id: redis-for-a-queue-producer
-name: Redis for a queue producer
+name: Redis queue producer
 deployment:
   type: dockerfile
   context: .
@@ -51,9 +59,10 @@ secrets:
     - QUEUE_URL
 ```
 
-```yaml title=".towbar/services/redis-for-a-queue-worker.service.yml"
+```yaml title="worker"
+# .towbar/services/redis-for-a-queue-worker.service.yml
 id: redis-for-a-queue-worker
-name: Redis for a queue worker
+name: Redis queue worker
 deployment:
   type: dockerfile
   context: .
@@ -70,6 +79,8 @@ secrets:
   runtime:
     - QUEUE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

@@ -77,6 +77,15 @@ test("fixture deliveries preserve status metadata and paginate", async () => {
       [...new Set(categories.items.map((item) => item.category))].sort(),
       ["backups", "restores"],
     );
+    const deploymentFailures = await (
+      await request("notifications/deliveries?category=deploymentFailures")
+    ).json();
+    assert(deploymentFailures.items.length > 0);
+    assert(
+      deploymentFailures.items.every((item) =>
+        ["deployment.failed", "preview.failed"].includes(item.type),
+      ),
+    );
     const combined = await (
       await request(
         "notifications/deliveries?category=backupsAndRestores&provider=discord&state=failed",

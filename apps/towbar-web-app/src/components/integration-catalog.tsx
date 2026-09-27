@@ -143,8 +143,10 @@ function EnvironmentProvider({
       <FormCard title="Runtime configuration" help={false}>
         <div className="grid gap-3">
           <div className="grid gap-2">
-            <p className="text-sm text-muted">{metadata.description}</p>
-            <p className="text-xs text-muted">
+            <p className="text-sm font-medium text-muted">
+              {metadata.description}
+            </p>
+            <p className="text-sm text-muted">
               This integration is configured by the Towbar runtime environment.
               Refer to documentation for more info on the usage of this
               integration.

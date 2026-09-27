@@ -5,6 +5,7 @@ import {
   type NotificationEventType,
   notificationCategoryForEvent,
   notificationEventPayloadSchema,
+  notificationMatchesSubscription,
 } from "@workspace/towbar-core";
 import {
   notificationDeliveries,
@@ -92,8 +93,7 @@ export async function emitNotificationEvent(input: {
       (route) =>
         (!input.targetDestinationId ||
           route.id === input.targetDestinationId) &&
-        (category === "test" ||
-          route.categories.some((routeCategory) => routeCategory === category)),
+        notificationMatchesSubscription(input.type, route.categories),
     );
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [createdEvent] = await transaction

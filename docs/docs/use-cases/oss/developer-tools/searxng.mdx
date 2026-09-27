@@ -1,0 +1,74 @@
+---
+title: "SearXNG"
+description: "SearXNG combines results from multiple search engines in a self-hosted search interface."
+icon: "/assets/use-case-logos/searxng.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/searxng.svg"
+  alt="SearXNG logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://docs.searxng.org/admin/installation-docker.html).
+
+SearXNG can load its bundled default settings and override the signing key and URL through environment variables, so a configuration file is not needed for this first instance. The cache volume keeps its local cache. Public bot protection needs Valkey and an explicitly configured limiter; do not treat this minimal setup as a public search service.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/searxng.service.yml"
+id: searxng
+name: SearXNG
+buildServer: null
+deployment:
+  type: image
+  image: searxng/searxng@sha256:5286edb35782454ab8a102c5eff6b54bff745853191b46aeead95f225aa6dfb6
+container:
+  port: 8080
+  network: application
+  volumes:
+    - name: searxng
+      mountPath: /var/cache/searxng
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - SEARXNG_SECRET
+    - SEARXNG_BASE_URL
+    - SEARXNG_LIMITER
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+3. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+4. This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.
+5. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                | Value to save                       |
+| ------------------ | ----------------------------------- |
+| `SEARXNG_SECRET`   | Generate a long random signing key. |
+| `SEARXNG_BASE_URL` | https://searxng.example.com/        |
+| `SEARXNG_LIMITER`  | false                               |
+
+## Verify
+
+Run a search from a trusted connection. Before assigning a public domain, configure the upstream Valkey-backed limiter or an access gateway and verify that the base URL matches the route.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

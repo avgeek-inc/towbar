@@ -1,13 +1,17 @@
 ---
-title: "MongoDB app-specific user"
+title: "MongoDB user"
 description: "Create a least-privilege database user after initialization."
 icon: "/assets/database-logos/mongodb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mongodb.webp"
-  alt="MongoDB app-specific user logo"
+  alt="MongoDB user logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mongodb.webp"
 
 ```yaml title=".towbar/datastores/mongodb-app-specific-user.datastore.yml"
 id: mongodb-app-specific-user
-name: MongoDB app-specific user
+name: MongoDB user
 type: mongodb
 container:
   network: application

@@ -1,13 +1,17 @@
 ---
-title: "KeyDB on an amd64 server"
+title: "KeyDB amd64"
 description: "Use type: keydb and REDIS_PASSWORD."
 icon: "/assets/database-logos/keydb.svg"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/keydb.svg"
-  alt="KeyDB on an amd64 server logo"
+  alt="KeyDB amd64 logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/keydb.svg"
 
 ```yaml title=".towbar/datastores/keydb-on-an-amd64-server.datastore.yml"
 id: keydb-on-an-amd64-server
-name: KeyDB on an amd64 server
+name: KeyDB amd64
 type: keydb
 container:
   network: application

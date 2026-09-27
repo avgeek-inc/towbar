@@ -9,21 +9,11 @@
     "href": "/"
   },
   "favicon": "/assets/towbar-favicon.png",
-  "colors": {
-    "primary": "#A16207",
-    "light": "#B08505",
-    "dark": "#B9872C"
-  },
-  "appearance": {
-    "default": "system"
-  },
-  "icons": {
-    "library": "lucide"
-  },
-  "styling": {
-    "eyebrows": "breadcrumbs",
-    "codeblocks": "system"
-  },
+  "colors": { "primary": "#A16207", "light": "#B08505", "dark": "#B9872C" },
+  "appearance": { "default": "system" },
+  "icons": { "library": "lucide" },
+  "styling": { "eyebrows": "breadcrumbs", "codeblocks": "system" },
+  "interaction": { "drilldown": false },
   "navigation": {
     "dropdowns": [
       {
@@ -82,17 +72,6 @@
         "icon": "rocket",
         "groups": [
           {
-            "group": "Repositories",
-            "pages": [
-              "docs/repositories",
-              "docs/repositories/connect",
-              "docs/repositories/environments",
-              "docs/repositories/sync",
-              "docs/repositories/delete",
-              "docs/deployment-manifest"
-            ]
-          },
-          {
             "group": "Servers",
             "pages": [
               "docs/servers",
@@ -101,6 +80,17 @@
               "docs/servers/operations",
               "docs/scout",
               "docs/servers/remove"
+            ]
+          },
+          {
+            "group": "Repositories",
+            "pages": [
+              "docs/repositories",
+              "docs/repositories/connect",
+              "docs/repositories/environments",
+              "docs/repositories/sync",
+              "docs/repositories/delete",
+              "docs/deployment-manifest"
             ]
           },
           {
@@ -204,10 +194,7 @@
         "dropdown": "Integrations",
         "icon": "plug",
         "groups": [
-          {
-            "group": "Overview",
-            "pages": ["docs/integrations/index"]
-          },
+          { "group": "Overview", "pages": ["docs/integrations/index"] },
           {
             "group": "Source control",
             "icon": "git-branch",
@@ -263,23 +250,117 @@
         "dropdown": "Use cases",
         "icon": "lightbulb",
         "groups": [
-          {
-            "group": "Start here",
-            "pages": ["docs/use-cases/index"]
-          },
+          { "group": "Start here", "pages": ["docs/use-cases/index"] },
           {
             "group": "Open-source software",
             "pages": [
-              "docs/use-cases/oss/001-umami",
-              "docs/use-cases/oss/002-grafana",
-              "docs/use-cases/oss/003-gitea",
-              "docs/use-cases/oss/004-forgejo",
-              "docs/use-cases/oss/005-vaultwarden",
-              "docs/use-cases/oss/006-uptime-kuma",
-              "docs/use-cases/oss/007-metabase",
-              "docs/use-cases/oss/008-paperless-ngx",
-              "docs/use-cases/oss/009-meilisearch",
-              "docs/use-cases/oss/010-jellyfin"
+              {
+                "group": "AI tools",
+                "pages": [
+                  "docs/use-cases/oss/ai/localai",
+                  "docs/use-cases/oss/ai/ollama"
+                ]
+              },
+              {
+                "group": "Analytics",
+                "pages": [
+                  "docs/use-cases/oss/analytics/matomo",
+                  "docs/use-cases/oss/analytics/metabase",
+                  "docs/use-cases/oss/analytics/plausible-ce",
+                  "docs/use-cases/oss/analytics/umami"
+                ]
+              },
+              {
+                "group": "Automation",
+                "pages": [
+                  "docs/use-cases/oss/automation/changedetection",
+                  "docs/use-cases/oss/automation/huginn",
+                  "docs/use-cases/oss/automation/node-red"
+                ]
+              },
+              {
+                "group": "Collaboration",
+                "pages": [
+                  "docs/use-cases/oss/collaboration/excalidraw",
+                  "docs/use-cases/oss/collaboration/kanboard",
+                  "docs/use-cases/oss/collaboration/memos",
+                  "docs/use-cases/oss/collaboration/vikunja"
+                ]
+              },
+              {
+                "group": "Content & media",
+                "pages": [
+                  "docs/use-cases/oss/content-media/audiobookshelf",
+                  "docs/use-cases/oss/content-media/bookstack",
+                  "docs/use-cases/oss/content-media/calibre-web",
+                  "docs/use-cases/oss/content-media/freshrss",
+                  "docs/use-cases/oss/content-media/ghost",
+                  "docs/use-cases/oss/content-media/hedgedoc",
+                  "docs/use-cases/oss/content-media/immich",
+                  "docs/use-cases/oss/content-media/jellyfin",
+                  "docs/use-cases/oss/content-media/linkding",
+                  "docs/use-cases/oss/content-media/miniflux",
+                  "docs/use-cases/oss/content-media/navidrome",
+                  "docs/use-cases/oss/content-media/paperless-ngx",
+                  "docs/use-cases/oss/content-media/photoprism",
+                  "docs/use-cases/oss/content-media/wiki-js",
+                  "docs/use-cases/oss/content-media/wordpress"
+                ]
+              },
+              {
+                "group": "Developer tools",
+                "pages": [
+                  "docs/use-cases/oss/developer-tools/forgejo",
+                  "docs/use-cases/oss/developer-tools/gitea",
+                  "docs/use-cases/oss/developer-tools/jenkins",
+                  "docs/use-cases/oss/developer-tools/meilisearch",
+                  "docs/use-cases/oss/developer-tools/searxng",
+                  "docs/use-cases/oss/developer-tools/typesense"
+                ]
+              },
+              {
+                "group": "Files & storage",
+                "pages": [
+                  "docs/use-cases/oss/files/copyparty",
+                  "docs/use-cases/oss/files/file-browser",
+                  "docs/use-cases/oss/files/nextcloud"
+                ]
+              },
+              {
+                "group": "Notifications",
+                "pages": [
+                  "docs/use-cases/oss/notifications/gotify",
+                  "docs/use-cases/oss/notifications/ntfy"
+                ]
+              },
+              {
+                "group": "Observability",
+                "pages": [
+                  "docs/use-cases/oss/observability/gatus",
+                  "docs/use-cases/oss/observability/glitchtip",
+                  "docs/use-cases/oss/observability/grafana",
+                  "docs/use-cases/oss/observability/prometheus",
+                  "docs/use-cases/oss/observability/uptime-kuma",
+                  "docs/use-cases/oss/observability/victoriametrics"
+                ]
+              },
+              {
+                "group": "Security",
+                "pages": [
+                  "docs/use-cases/oss/security/authentik",
+                  "docs/use-cases/oss/security/keycloak",
+                  "docs/use-cases/oss/security/vaultwarden"
+                ]
+              },
+              {
+                "group": "Utilities",
+                "pages": [
+                  "docs/use-cases/oss/utilities/actual-budget",
+                  "docs/use-cases/oss/utilities/cyberchef",
+                  "docs/use-cases/oss/utilities/it-tools",
+                  "docs/use-cases/oss/utilities/stirling-pdf"
+                ]
+              }
             ]
           },
           {
@@ -773,13 +854,11 @@
                 "group": "System health",
                 "pages": [
                   "api-reference/get_system_health",
-                  "api-reference/post_system_health_actions_check"
+                  "api-reference/post_system_health_actions_check",
+                  "api-reference/get_version"
                 ]
               },
-              {
-                "group": "Identity",
-                "pages": ["api-reference/get_identity"]
-              }
+              { "group": "Identity", "pages": ["api-reference/get_identity"] }
             ]
           },
           {
@@ -827,78 +906,46 @@
   },
   "navbar": {
     "links": [
-      {
-        "type": "github",
-        "href": "https://github.com/avgeek-inc/towbar"
-      }
+      { "type": "github", "href": "https://github.com/avgeek-inc/towbar" }
     ],
-    "primary": {
-      "type": "button",
-      "label": "Docs",
-      "href": "/docs"
-    }
+    "primary": { "type": "button", "label": "Docs", "href": "/docs" }
   },
   "footer": {
-    "socials": {
-      "github": "https://github.com/avgeek-inc/towbar"
-    },
+    "socials": { "github": "https://github.com/avgeek-inc/towbar" },
     "links": [
       {
         "header": "Documentation",
         "items": [
-          {
-            "label": "Your first deployment",
-            "href": "/docs/getting-started"
-          },
+          { "label": "Your first deployment", "href": "/docs/getting-started" },
           {
             "label": "Install Towbar",
             "href": "/docs/self-hosting/installation"
           },
-          {
-            "label": "Manifest reference",
-            "href": "/docs/deployment-manifest"
-          }
+          { "label": "Manifest reference", "href": "/docs/deployment-manifest" }
         ]
       },
       {
         "header": "Project",
         "items": [
-          {
-            "label": "GitHub",
-            "href": "https://github.com/avgeek-inc/towbar"
-          },
+          { "label": "GitHub", "href": "https://github.com/avgeek-inc/towbar" },
           {
             "label": "Changelog",
             "href": "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md"
           },
-          {
-            "label": "Security",
-            "href": "/docs/self-hosting/security"
-          }
+          { "label": "Security", "href": "/docs/self-hosting/security" }
         ]
       },
       {
         "header": "Legal",
         "items": [
-          {
-            "label": "Privacy",
-            "href": "/privacy"
-          },
-          {
-            "label": "Terms",
-            "href": "/terms"
-          },
-          {
-            "label": "Status",
-            "href": "/status"
-          }
+          { "label": "Privacy", "href": "/privacy" },
+          { "label": "Terms", "href": "/terms" },
+          { "label": "Status", "href": "/status" }
         ]
       }
     ]
   },
-  "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
-  },
+  "contextual": { "options": ["copy", "view", "chatgpt", "claude"] },
   "seo": {
     "indexing": "all",
     "metatags": {
@@ -919,10 +966,7 @@
     }
   },
   "redirects": [
-    {
-      "source": "/docs/managed-databases",
-      "destination": "/docs/databases"
-    },
+    { "source": "/docs/managed-databases", "destination": "/docs/databases" },
     {
       "source": "/docs/reference/deployment-manifest",
       "destination": "/docs/deployment-manifest"
@@ -936,7 +980,5 @@
       "destination": "/docs/architecture"
     }
   ],
-  "metadata": {
-    "timestamp": true
-  }
+  "metadata": { "timestamp": true }
 }

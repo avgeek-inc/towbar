@@ -233,16 +233,33 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
             ) : null)
           }
         >
-          <span className="flex min-w-0 flex-col gap-0.5 lg:flex-row lg:items-baseline lg:gap-2.5">
+          <span
+            className={cn(
+              "flex min-w-0 flex-col gap-0.5",
+              !config.brandUpdateVersion &&
+                "lg:flex-row lg:items-baseline lg:gap-2.5",
+            )}
+          >
             <span className="truncate">{config.brand.title}</span>
-            {config.brandVersion ? (
-              <span
-                aria-label={`Version ${config.brandVersion}`}
-                className="shrink-0 font-mono text-xs font-normal text-muted"
-              >
-                v{config.brandVersion}
-              </span>
-            ) : null}
+            <span className="flex min-w-0 items-baseline gap-2">
+              {config.brandVersion ? (
+                <span
+                  aria-label={`Version ${config.brandVersion}`}
+                  className="shrink-0 font-mono text-xs font-normal text-muted"
+                >
+                  v{config.brandVersion}
+                </span>
+              ) : null}
+              {config.brandUpdateVersion ? (
+                <span
+                  aria-label={`Update available: version ${config.brandUpdateVersion}`}
+                  className="truncate text-xs font-medium text-warning-soft-foreground"
+                  title={`Towbar v${config.brandUpdateVersion} is available`}
+                >
+                  v{config.brandUpdateVersion} available
+                </span>
+              ) : null}
+            </span>
           </span>
         </BrandLockup>
       </RoutedLink>

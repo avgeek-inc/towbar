@@ -1,13 +1,17 @@
 ---
-title: "Dragonfly private endpoint"
+title: "Dragonfly endpoint"
 description: "Share container.network with the consuming Service."
 icon: "/assets/database-logos/dragonfly.svg"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/dragonfly.svg"
-  alt="Dragonfly private endpoint logo"
+  alt="Dragonfly endpoint logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/dragonfly.svg"
 
 ```yaml title=".towbar/datastores/dragonfly-private-endpoint.datastore.yml"
 id: dragonfly-private-endpoint
-name: Dragonfly private endpoint
+name: Dragonfly endpoint
 type: dragonfly
 container:
   network: application

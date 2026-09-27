@@ -1,13 +1,17 @@
 ---
-title: "MySQL application schema"
+title: "MySQL schema"
 description: "Declare MYSQL_DATABASE, MYSQL_USER, and MYSQL_PASSWORD before first deployment."
 icon: "/assets/database-logos/mysql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mysql.webp"
-  alt="MySQL application schema logo"
+  alt="MySQL schema logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mysql.webp"
 
 ```yaml title=".towbar/datastores/mysql-application-schema.datastore.yml"
 id: mysql-application-schema
-name: MySQL application schema
+name: MySQL schema
 type: mysql
 container:
   network: application

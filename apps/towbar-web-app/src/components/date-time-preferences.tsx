@@ -120,7 +120,7 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
         variant="secondary"
       />
       <div
-        className="grid min-h-16 gap-0"
+        className="grid min-h-16 content-start gap-0"
         aria-live="polite"
         aria-busy={previewPending}
       >

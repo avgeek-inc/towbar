@@ -1,0 +1,107 @@
+---
+title: "Miniflux"
+description: "Miniflux is a minimal feed reader for following articles from websites you choose."
+icon: "/assets/use-case-logos/miniflux.png"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/miniflux.png"
+  alt="Miniflux logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://miniflux.app/docs/docker.html).
+
+Miniflux requires PostgreSQL for feeds, accounts, and read state. `RUN_MIGRATIONS=1` initializes schema; the first-run administrator values should be removed after creation.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/miniflux-postgres.datastore.yml"
+id: miniflux-postgres
+name: Miniflux PostgreSQL
+type: postgres
+container:
+  network: application
+  networkAlias: miniflux-postgres
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - POSTGRES_USER
+    - POSTGRES_DB
+    - POSTGRES_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/miniflux.service.yml"
+id: miniflux
+name: Miniflux
+buildServer: null
+deployment:
+  type: image
+  image: miniflux/miniflux:2.2.12
+container:
+  port: 8080
+  network: application
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - DATABASE_URL
+    - RUN_MIGRATIONS
+    - CREATE_ADMIN
+    - ADMIN_USERNAME
+    - ADMIN_PASSWORD
+domains:
+  primary: miniflux.example.com
+tls:
+  mode: direct
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Save the initialization values in the table below for the postgres Datastore under **Datastore → Settings → Secrets**. Deploy it first and wait for readiness. These values create the database and user only on an empty volume.
+3. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Datastore values
+
+Save these in each Datastore's **Settings → Secrets** before deploying it. Use the suggested names or choose your own, then use the same names and passwords in the Service connection values below.
+
+| Datastore         | Key                 | Suggested value                                                                           |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| Miniflux postgres | `POSTGRES_DB`       | miniflux                                                                                  |
+| Miniflux postgres | `POSTGRES_USER`     | miniflux                                                                                  |
+| Miniflux postgres | `POSTGRES_PASSWORD` | Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value. |
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key              | Value to save                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | `postgres://miniflux:PASSWORD@miniflux-postgres:5432/miniflux?sslmode=disable` (replace `PASSWORD` with `POSTGRES_PASSWORD`) |
+| `RUN_MIGRATIONS` | 1                                                                                                                            |
+| `CREATE_ADMIN`   | 1                                                                                                                            |
+| `ADMIN_USERNAME` | Choose the initial username.                                                                                                 |
+| `ADMIN_PASSWORD` | Generate the initial password.                                                                                               |
+
+## Verify
+
+Add a feed, refresh it, and confirm subscription and read state survive redeployment. After the administrator exists, remove `CREATE_ADMIN`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` from the manifest and Service secrets, sync, and redeploy; they are first-run values only.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

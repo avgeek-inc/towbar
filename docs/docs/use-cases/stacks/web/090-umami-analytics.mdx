@@ -4,6 +4,10 @@ description: "Umami image Service + postgres Datastore; DATABASE_URL is a runtim
 icon: "/assets/use-case-logos/umami.svg"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/use-case-logos/umami.svg"
@@ -16,6 +20,8 @@ icon: "/assets/use-case-logos/umami.svg"
 These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title=".towbar/datastores/umami-postgres.datastore.yml"
 id: umami-postgres
@@ -44,12 +50,9 @@ buildServer: null
 deployment:
   type: image
   image: ghcr.io/umami-software/umami:3.4@sha256:6cd9d24a836fac5c226c3c90cb25141d4560b7270b7827f393ccf09bf3f83b18
-  platform: linux/amd64
 container:
   port: 3000
   network: application
-health:
-  path: /
 environments:
   production:
     server: 192.0.2.10
@@ -61,6 +64,8 @@ domains:
 tls:
   mode: direct
 ```
+
+</CodeGroup>
 
 ## Configure
 

@@ -1,7 +1,11 @@
 ---
-title: "Private build dependency"
+title: "Build dependency"
 description: "Declare a build-stage key and use a Dockerfile BuildKit secret mount."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Towbar secrets](/docs/secrets/towbar).
 
@@ -11,7 +15,7 @@ description: "Declare a build-stage key and use a Dockerfile BuildKit secret mou
 
 ```yaml title=".towbar/services/private-build-dependency.service.yml"
 id: private-build-dependency
-name: Private build dependency
+name: Build dependency
 deployment:
   type: dockerfile
   context: .

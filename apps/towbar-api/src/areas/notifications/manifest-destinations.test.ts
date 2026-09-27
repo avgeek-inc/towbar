@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { manifestNotificationsSchema } from "@workspace/towbar-core";
 
 import { getRuntimeNotifications } from "../../infrastructure/runtime-notifications.js";
 import {
@@ -27,6 +28,30 @@ const runtime = getRuntimeNotifications({
     },
     routes: [],
   }),
+});
+
+void test("manifest deployment choices accept both and route as all", () => {
+  const notifications = manifestNotificationsSchema.parse({
+    email: [
+      {
+        address: "all@example.com",
+        deployments: true,
+        deploymentFailures: true,
+        backupsAndRestores: false,
+        alertsAndIncidents: false,
+      },
+      {
+        address: "failures@example.com",
+        deployments: false,
+        deploymentFailures: true,
+        backupsAndRestores: false,
+        alertsAndIncidents: false,
+      },
+    ],
+  });
+  const routes = manifestNotificationRoutes(appId, notifications, runtime);
+  assert.deepEqual(routes[0]?.categories, ["deployments"]);
+  assert.deepEqual(routes[1]?.categories, ["deploymentFailures"]);
 });
 
 void test("routes manifest destinations through runtime credentials", () => {

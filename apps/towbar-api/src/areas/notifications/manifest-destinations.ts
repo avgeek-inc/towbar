@@ -19,11 +19,15 @@ type ManifestRoute = {
 
 function categories(row: {
   deployments: boolean;
+  deploymentFailures?: boolean;
   backupsAndRestores: boolean;
   alertsAndIncidents: boolean;
 }): NotificationCategory[] {
   return [
     ...(row.deployments ? ["deployments" as const] : []),
+    ...(row.deploymentFailures && !row.deployments
+      ? ["deploymentFailures" as const]
+      : []),
     ...(row.backupsAndRestores
       ? ["backups" as const, "restores" as const]
       : []),

@@ -1,0 +1,58 @@
+---
+title: "VictoriaMetrics"
+description: "VictoriaMetrics stores and queries metrics for monitoring and analysis."
+icon: "/assets/use-case-logos/victoriametrics.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/victoriametrics.svg"
+  alt="VictoriaMetrics logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://docs.victoriametrics.com/victoriametrics/quick-start/).
+
+Single-node VictoriaMetrics stores metrics in its own data directory; no SQL Datastore is needed. Keep ingestion private unless an external agent must reach it.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/victoriametrics.service.yml"
+id: victoriametrics
+name: VictoriaMetrics
+buildServer: null
+deployment:
+  type: image
+  image: victoriametrics/victoria-metrics:v1.152.0
+container:
+  port: 8428
+  network: application
+  volumes:
+    - name: victoria-metrics-data
+      mountPath: /victoria-metrics-data
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+From a trusted client on the same application network, write a sample metric and query it back. Add an authenticated route only if external agents need access; check retention and the volume before treating this as a production metrics store.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

@@ -27,6 +27,8 @@ Open `http://localhost:3000` and check `http://localhost:3000/health`.
 Create `towbar.yml` and `.towbar/services/hello-towbar.service.yml`, replacing the server IP and domain.
 For a first deployment to production, use:
 
+<CodeGroup>
+
 ```yaml title="towbar.yml" highlight={2-3}
 version: 2
 environments:
@@ -57,6 +59,8 @@ environments:
       mode: direct
 ```
 
+</CodeGroup>
+
 Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your service. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
 Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
@@ -69,10 +73,10 @@ A successful sync imports **Hello Towbar** into the Repository's Services list. 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/repositories-light.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="3200" height="1800" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/repositories-dark.jpg" alt="Repositories show their imported service and datastore inventories and latest sync time." width="3200" height="1800" loading="lazy" />
   </div>
   <p>Repositories show their imported service and datastore inventories and latest sync time.</p>
 </div>
@@ -99,10 +103,10 @@ If a stage fails, open its output and correct that failure before retrying. The 
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
-    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/deployments-light.jpg" alt="Filter deployment history by status, trigger, and workload." width="3200" height="1800" loading="lazy" />
   </div>
   <div className="towbar-product-dark">
-    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="2560" height="1440" loading="lazy" />
+    <img src="/assets/release-v2/deployments-dark.jpg" alt="Filter deployment history by status, trigger, and workload." width="3200" height="1800" loading="lazy" />
   </div>
   <p>Filter deployment history by status, trigger, and workload.</p>
 </div>

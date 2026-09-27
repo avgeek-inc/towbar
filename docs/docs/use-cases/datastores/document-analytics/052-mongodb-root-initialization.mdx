@@ -1,13 +1,17 @@
 ---
-title: "MongoDB root initialization"
+title: "MongoDB initialization"
 description: "Declare MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PASSWORD."
 icon: "/assets/database-logos/mongodb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mongodb.webp"
-  alt="MongoDB root initialization logo"
+  alt="MongoDB initialization logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mongodb.webp"
 
 ```yaml title=".towbar/datastores/mongodb-root-initialization.datastore.yml"
 id: mongodb-root-initialization
-name: MongoDB root initialization
+name: MongoDB initialization
 type: mongodb
 container:
   network: application

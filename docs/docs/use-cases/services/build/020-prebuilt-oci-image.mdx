@@ -1,15 +1,11 @@
 ---
-title: "Prebuilt OCI image"
+title: "OCI image"
 description: "Run a reviewed OCI image with an explicit digest."
-icon: "/assets/integration-logos/docker.webp"
 ---
 
-<img
-  className="towbar-doc-brand-logo"
-  src="/assets/integration-logos/docker.webp"
-  alt="Prebuilt OCI image logo"
-  aria-hidden="true"
-/>
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Image deployment](/docs/services/modes/image).
 
@@ -19,7 +15,7 @@ Use the image's actual listening port and health endpoint. Towbar does not build
 
 ```yaml title=".towbar/services/prebuilt-oci-image.service.yml"
 id: prebuilt-oci-image
-name: Prebuilt OCI image
+name: OCI image
 buildServer: null
 deployment:
   type: image

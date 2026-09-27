@@ -22,6 +22,7 @@ const readRoutes = [
   "/v1/core/deployments/history",
   "/v1/core/monitoring/vulnerabilities",
   "/v1/core/system-health",
+  "/v1/core/version",
   "/v1/core/integrations",
   "/v1/core/settings/secrets",
   `/v1/core/sources/${fixtureIds.source}`,
@@ -146,6 +147,7 @@ test("email destinations are editable while provider credentials remain runtime-
           {
             email: initialDestination.email,
             deployments: false,
+            deploymentFailures: false,
             backupsAndRestores: true,
             scout: true,
           },
@@ -165,6 +167,7 @@ test("email destinations are editable while provider credentials remain runtime-
           {
             email: "alerts@example.com",
             deployments: true,
+            deploymentFailures: false,
             backupsAndRestores: false,
             scout: true,
           },
@@ -267,6 +270,7 @@ test("Slack channels use runtime credentials and control-plane subscriptions", a
           {
             channelId: initial.channelId,
             deployments: false,
+            deploymentFailures: false,
             backupsAndRestores: false,
             scout: true,
           },
@@ -443,6 +447,7 @@ test("Telegram destinations support a main chat and multiple topics", async () =
         chatId: main.chatId,
         messageThreadId: 42,
         deployments: true,
+        deploymentFailures: false,
         backupsAndRestores: false,
         alertsAndIncidents: false,
       },

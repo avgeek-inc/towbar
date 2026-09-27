@@ -3,11 +3,17 @@ title: "Pull-request preview"
 description: "Enable previews in root towbar.yml, then set the Service preview block."
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 **Related reading:** [Previews](/docs/previews).
 
 `context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title="towbar.yml"
 version: 2
@@ -36,6 +42,8 @@ preview:
   domain: preview.example.com
   ttlHours: 72
 ```
+
+</CodeGroup>
 
 ## Configure
 

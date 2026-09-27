@@ -28,6 +28,7 @@ export function ResourceTable<T>({
   emptyAction,
   emptyClassName,
   emptyDescription,
+  emptyMedia,
   emptyTitle,
   footer,
   getRowHref,
@@ -42,6 +43,7 @@ export function ResourceTable<T>({
   emptyAction?: ReactNode;
   emptyClassName?: string;
   emptyDescription: string;
+  emptyMedia?: ReactNode;
   emptyTitle: string;
   footer?: ReactNode;
   getRowHref?: (item: T) => string;
@@ -54,6 +56,7 @@ export function ResourceTable<T>({
   if (items.length === 0) {
     return (
       <EmptyState className={emptyClassName}>
+        {emptyMedia ? <EmptyState.Media>{emptyMedia}</EmptyState.Media> : null}
         <EmptyState.Header>
           <EmptyState.Title>{emptyTitle}</EmptyState.Title>
           <EmptyState.Description>{emptyDescription}</EmptyState.Description>

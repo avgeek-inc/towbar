@@ -23,8 +23,8 @@ Managed engines have reviewed digest-pinned defaults. Custom managed images must
     <img
       src="/assets/release-v2/resource-overview-light.jpg"
       alt="Datastore state and the latest deployment attempt are shown separately."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -32,8 +32,8 @@ Managed engines have reviewed digest-pinned defaults. Custom managed images must
     <img
       src="/assets/release-v2/resource-overview-dark.jpg"
       alt="Datastore state and the latest deployment attempt are shown separately."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -41,6 +41,8 @@ Managed engines have reviewed digest-pinned defaults. Custom managed images must
 </div>
 
 ## Add a database
+
+<CodeGroup>
 
 ```yaml title="towbar.yml"
 version: 2
@@ -69,6 +71,8 @@ environments:
   production:
     server: 192.0.2.10
 ```
+
+</CodeGroup>
 
 Register the server, then save values for the declared keys under **Datastore →
 Settings → Secrets**. The manifest contains their names, while production and

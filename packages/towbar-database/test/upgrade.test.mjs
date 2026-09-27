@@ -11,7 +11,7 @@ import { runTowbarMigrations } from "../dist/migrate.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
 
-test("migration journal keeps the baseline and notification destinations", async () => {
+test("migration journal keeps notification destinations and failure subscriptions", async () => {
   const files = (await readdir(migrationsFolder)).filter((name) =>
     name.endsWith(".sql"),
   );
@@ -25,12 +25,14 @@ test("migration journal keeps the baseline and notification destinations", async
     "0008_remove_observability_integrations.sql",
     "0009_server_names.sql",
     "0010_services_datastores.sql",
+    "0011_notification_deployment_failures.sql",
+    "0012_database_storage_samples.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 10);
+  assert.equal(journal.entries.length, 12);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -44,6 +46,29 @@ test("migration journal keeps the baseline and notification destinations", async
   );
   assert.equal(journal.entries[8].tag, "0009_server_names");
   assert.equal(journal.entries[9].tag, "0010_services_datastores");
+  assert.equal(
+    journal.entries[10].tag,
+    "0011_notification_deployment_failures",
+  );
+  assert.equal(journal.entries[11].tag, "0012_database_storage_samples");
+  const failureSubscriptions = await readFile(
+    `${migrationsFolder}/0011_notification_deployment_failures.sql`,
+    "utf8",
+  );
+  for (const destination of [
+    "email_destinations",
+    "slack_destinations",
+    "telegram_destinations",
+    "discord_route_settings",
+    "webhook_route_settings",
+  ])
+    assert.match(
+      failureSubscriptions,
+      new RegExp(
+        `ALTER TABLE "towbar_notification_${destination}" ADD COLUMN "deployment_failures"`,
+        "u",
+      ),
+    );
   assert.match(
     await readFile(`${migrationsFolder}/0009_server_names.sql`, "utf8"),
     /ADD COLUMN "name" varchar\(120\)/u,
@@ -172,7 +197,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 10);
+      assert.equal(count, 12);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
@@ -192,6 +217,9 @@ test(
         ["towbar_users", "must_change_password"],
         ["towbar_sessions", "authenticated_at"],
         ["towbar_preview_environments", "cleanup_requested_by_actor"],
+        ["towbar_database_storage_samples", "sampled_at"],
+        ["towbar_database_storage_samples", "towbar_bytes"],
+        ["towbar_database_storage_samples", "monitoring_bytes"],
       ])
         assert(
           columns.some(

@@ -1,11 +1,17 @@
 ---
-title: "Static frontend and routed API"
+title: "Frontend API"
 description: "Deploy a static Service and a separately routed API Service."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title=".towbar/services/static-frontend-and-routed-api-frontend.service.yml"
 id: static-frontend-and-routed-api-frontend
@@ -56,6 +62,8 @@ domains:
 tls:
   mode: direct
 ```
+
+</CodeGroup>
 
 ## Configure
 

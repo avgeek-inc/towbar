@@ -244,7 +244,9 @@ export function NotificationDeliveries() {
     {
       key: "category",
       header: "Category",
-      cell: (item) => <DeliveryCategory category={item.category} />,
+      cell: (item) => (
+        <DeliveryCategory category={item.category} type={item.type} />
+      ),
     },
     { key: "status", header: "Status", cell: deliveryStatus },
     {
@@ -355,7 +357,12 @@ export function NotificationDeliveries() {
             <EventDetail label="Destination" value={selected.destination} />
             <EventDetail
               label="Category"
-              value={<DeliveryCategory category={selected.category} />}
+              value={
+                <DeliveryCategory
+                  category={selected.category}
+                  type={selected.type}
+                />
+              }
             />
             <EventDetail label="Event type" value={selected.type} />
             <EventDetail
@@ -421,8 +428,14 @@ export function NotificationDeliveries() {
   );
 }
 
-function DeliveryCategory({ category }: { category: string }) {
-  const presentation = notificationCategoryPresentation(category);
+function DeliveryCategory({
+  category,
+  type,
+}: {
+  category: string;
+  type: string;
+}) {
+  const presentation = notificationCategoryPresentation(category, type);
   return (
     <span className="inline-flex min-w-24 max-w-40 items-center gap-1.5 whitespace-normal">
       {presentation ? (

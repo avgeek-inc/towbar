@@ -1,13 +1,17 @@
 ---
-title: "Independent stacks on separate servers"
+title: "Isolated stacks"
 description: "Place each Service and its Datastore on one server, with a second independent pair on another server."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="Independent stacks on separate servers logo"
+  alt="Isolated stacks logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,10 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
-```yaml title=".towbar/datastores/orders-postgres.datastore.yml"
+<CodeGroup>
+
+```yaml title="orders-postgres"
+# .towbar/datastores/orders-postgres.datastore.yml
 id: orders-postgres
 name: Orders PostgreSQL
 type: postgres
@@ -35,7 +42,8 @@ environments:
     server: 192.0.2.10
 ```
 
-```yaml title=".towbar/services/orders-api.service.yml"
+```yaml title="orders-api"
+# .towbar/services/orders-api.service.yml
 id: orders-api
 name: Orders API
 deployment:
@@ -55,7 +63,8 @@ secrets:
     - DATABASE_URL
 ```
 
-```yaml title=".towbar/datastores/billing-postgres.datastore.yml"
+```yaml title="billing-postgres"
+# .towbar/datastores/billing-postgres.datastore.yml
 id: billing-postgres
 name: Billing PostgreSQL
 type: postgres
@@ -75,7 +84,8 @@ environments:
     server: 192.0.2.11
 ```
 
-```yaml title=".towbar/services/billing-api.service.yml"
+```yaml title="billing-api"
+# .towbar/services/billing-api.service.yml
 id: billing-api
 name: Billing API
 deployment:
@@ -94,6 +104,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

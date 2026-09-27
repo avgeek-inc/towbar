@@ -120,6 +120,7 @@ const Item = forwardRef<HTMLDivElement, AttributesItemProps>(
             : cn(
                 "flex min-w-0 items-center justify-between gap-4 border-b border-separator py-3 last:border-0",
                 variant === "list" && "px-4",
+                variant === "embedded" && "first:pt-0 last:pb-0",
               ),
           className,
         )}

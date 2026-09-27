@@ -1,13 +1,19 @@
 ---
-title: "Pull-request preview for web"
+title: "Web previews"
 description: "Enable root environment previews and Service preview settings."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Previews](/docs/previews).
 
 These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title="towbar.yml"
 version: 2
@@ -19,7 +25,7 @@ environments:
 
 ```yaml title=".towbar/services/pull-request-preview-for-web-api.service.yml"
 id: pull-request-preview-for-web-api
-name: Pull-request preview for web
+name: Web previews
 deployment:
   type: dockerfile
   context: .
@@ -37,6 +43,8 @@ preview:
   domain: preview.example.com
   ttlHours: 72
 ```
+
+</CodeGroup>
 
 ## Configure
 

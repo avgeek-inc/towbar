@@ -32,7 +32,11 @@ Use `deployment.type: image` with an explicit non-`latest` tag or digest. Towbar
 ## Build servers
 
 Set `buildServer` in `towbar.yml` to use one prepared server for every service in an
-environment. `direct` streams the verified image archive to the runtime server:
+environment. `direct` streams the verified image archive to the runtime server.
+An environment or service can override the default; the Service file below uses
+`null` to build on its runtime server:
+
+<CodeGroup>
 
 ```yaml title="towbar.yml" highlight={2-5}
 version: 2
@@ -43,9 +47,6 @@ buildServer:
 environments:
   production: {}
 ```
-
-An environment or service can override the default. Use `null` when one service should
-build on its runtime server:
 
 ```yaml title=".towbar/services/worker.service.yml" highlight={3}
 id: worker
@@ -61,6 +62,8 @@ environments:
   production:
     server: 192.0.2.10
 ```
+
+</CodeGroup>
 
 For registry transfer, set `transfer: registry` and add the enabled registry
 integration name. The build server must belong to the team, have trusted SSH

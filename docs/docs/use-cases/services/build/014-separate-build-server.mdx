@@ -1,15 +1,11 @@
 ---
-title: "Separate build server"
+title: "Build server"
 description: "Set buildServer for a source-build Service."
-icon: "/assets/integration-logos/docker.webp"
 ---
 
-<img
-  className="towbar-doc-brand-logo"
-  src="/assets/integration-logos/docker.webp"
-  alt="Separate build server logo"
-  aria-hidden="true"
-/>
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Modes](/docs/platform-deployments).
 
@@ -19,7 +15,7 @@ icon: "/assets/integration-logos/docker.webp"
 
 ```yaml title=".towbar/services/separate-build-server.service.yml"
 id: separate-build-server
-name: Separate build server
+name: Build server
 deployment:
   type: dockerfile
   context: .

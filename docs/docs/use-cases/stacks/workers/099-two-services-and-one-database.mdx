@@ -1,13 +1,17 @@
 ---
-title: "Two Services and one database"
+title: "Shared database"
 description: "Deploy the database, save a separate URL in each Service, then deploy them."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="Two Services and one database logo"
+  alt="Shared database logo"
   aria-hidden="true"
 />
 
@@ -15,9 +19,12 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
-```yaml title=".towbar/datastores/two-services-and-one-database-postgres.datastore.yml"
+<CodeGroup>
+
+```yaml title="postgres"
+# .towbar/datastores/two-services-and-one-database-postgres.datastore.yml
 id: two-services-and-one-database-postgres
-name: Two Services and one database PostgreSQL
+name: Shared database PostgreSQL
 type: postgres
 container:
   network: application
@@ -35,9 +42,10 @@ environments:
     server: 192.0.2.10
 ```
 
-```yaml title=".towbar/services/two-services-and-one-database-api.service.yml"
+```yaml title="api"
+# .towbar/services/two-services-and-one-database-api.service.yml
 id: two-services-and-one-database-api
-name: Two Services and one database
+name: Shared database
 deployment:
   type: dockerfile
   context: .
@@ -55,7 +63,8 @@ secrets:
     - DATABASE_URL
 ```
 
-```yaml title=".towbar/services/two-services-and-one-database-worker.service.yml"
+```yaml title="worker"
+# .towbar/services/two-services-and-one-database-worker.service.yml
 id: two-services-and-one-database-worker
 name: Worker
 deployment:
@@ -74,6 +83,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

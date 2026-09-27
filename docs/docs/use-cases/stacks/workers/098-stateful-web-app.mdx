@@ -1,13 +1,17 @@
 ---
-title: "Stateful web app"
+title: "Stateful web"
 description: "Use a single-writer Service volume with recreate rollout plus a Datastore."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="Stateful web app logo"
+  alt="Stateful web logo"
   aria-hidden="true"
 />
 
@@ -15,9 +19,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/stateful-web-app-postgres.datastore.yml"
 id: stateful-web-app-postgres
-name: Stateful web app PostgreSQL
+name: Stateful web PostgreSQL
 type: postgres
 container:
   network: application
@@ -37,7 +43,7 @@ environments:
 
 ```yaml title=".towbar/services/stateful-web-app-api.service.yml"
 id: stateful-web-app-api
-name: Stateful web app
+name: Stateful web
 deployment:
   type: dockerfile
   context: .
@@ -62,6 +68,8 @@ rollout:
   maintenanceMode: true
   reason: Single-writer uploads
 ```
+
+</CodeGroup>
 
 ## Configure
 

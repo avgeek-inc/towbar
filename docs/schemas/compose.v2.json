@@ -12,6 +12,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "address": {
@@ -37,6 +38,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "channelId": {
@@ -60,6 +62,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
@@ -80,6 +83,7 @@
             "type": "object",
             "properties": {
               "deployments": { "type": "boolean" },
+              "deploymentFailures": { "type": "boolean" },
               "backupsAndRestores": { "type": "boolean" },
               "alertsAndIncidents": { "type": "boolean" },
               "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },
@@ -268,6 +272,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "address": {
@@ -293,6 +298,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "channelId": {
@@ -316,6 +322,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "webhookId": { "type": "string", "pattern": "^\\d{1,20}$" }
@@ -336,6 +343,7 @@
                   "type": "object",
                   "properties": {
                     "deployments": { "type": "boolean" },
+                    "deploymentFailures": { "type": "boolean" },
                     "backupsAndRestores": { "type": "boolean" },
                     "alertsAndIncidents": { "type": "boolean" },
                     "chatId": { "type": "string", "pattern": "^-?\\d{1,20}$" },

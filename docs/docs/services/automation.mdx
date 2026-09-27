@@ -21,6 +21,8 @@ Include shared libraries, lockfiles, build scripts, and Dockerfiles as needed. T
 
 Enable previews for an environment in `towbar.yml`, then opt the Service in with a base domain:
 
+<CodeGroup>
+
 ```yaml title="towbar.yml"
 version: 2
 environments:
@@ -38,6 +40,8 @@ environments:
   staging:
     server: 192.0.2.11
 ```
+
+</CodeGroup>
 
 Eligible pull requests target the branch mapped to `staging`. Preview secrets are isolated from persistent environment values; datastores do not create previews. Read [Preview environments](/docs/previews) for expiry and cleanup.
 

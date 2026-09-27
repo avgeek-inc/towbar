@@ -1,13 +1,17 @@
 ---
-title: "Google Cloud destination"
+title: "Google Cloud"
 description: "Select an enabled gcs provider."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="Google Cloud destination logo"
+  alt="Google Cloud logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/google-cloud-destination.datastore.yml"
 id: google-cloud-destination
-name: Google Cloud destination
+name: Google Cloud
 type: postgres
 container:
   network: application

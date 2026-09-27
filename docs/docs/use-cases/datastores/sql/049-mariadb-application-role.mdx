@@ -1,13 +1,17 @@
 ---
-title: "MariaDB application role"
+title: "MariaDB role"
 description: "Declare MYSQL_DATABASE, MYSQL_USER, and MYSQL_PASSWORD at creation."
 icon: "/assets/database-logos/mariadb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mariadb.webp"
-  alt="MariaDB application role logo"
+  alt="MariaDB role logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mariadb.webp"
 
 ```yaml title=".towbar/datastores/mariadb-application-role.datastore.yml"
 id: mariadb-application-role
-name: MariaDB application role
+name: MariaDB role
 type: mariadb
 container:
   network: application

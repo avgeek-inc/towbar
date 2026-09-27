@@ -1,7 +1,11 @@
 ---
-title: "Staging and production"
+title: "Staging production"
 description: "Map each environment to its branch and server."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Environment branches](/docs/repositories/environments).
 
@@ -9,7 +13,7 @@ description: "Map each environment to its branch and server."
 
 ```yaml title=".towbar/services/staging-and-production-api.service.yml"
 id: staging-and-production-api
-name: Staging and production
+name: Staging production
 deployment:
   type: dockerfile
   context: .

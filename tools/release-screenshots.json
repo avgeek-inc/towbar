@@ -1,7 +1,7 @@
 {
-  "capturedAt": "2026-09-26T20:39:01.055Z",
+  "capturedAt": "2026-09-27T07:51:22.621Z",
   "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
-  "viewport": "1280 × 720 CSS pixels rendered at 2× density (2560 × 1440); every image is limited to the visible viewport",
+  "viewport": "1600 × 900 CSS pixels by default, rendered at 2× density; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport",
   "screenshots": [
     {
       "name": "app-external-secrets",
@@ -11,14 +11,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/app-external-secrets-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/app-external-secrets-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -30,14 +30,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/app-overview-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/app-overview-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -49,14 +49,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/app-runtime-secrets-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/app-runtime-secrets-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -68,14 +68,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/aws-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/aws-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -87,14 +87,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/backups-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/backups-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -106,14 +106,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/cloudflare-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/cloudflare-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -125,14 +125,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/deployment-comparison-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/deployment-comparison-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -144,14 +144,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/deployment-vulnerabilities-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/deployment-vulnerabilities-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -163,14 +163,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/deployments-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/deployments-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -182,14 +182,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/discord-notifications-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/discord-notifications-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -201,14 +201,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/doppler-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/doppler-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -220,14 +220,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/email-notifications-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/email-notifications-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -239,14 +239,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/email-password-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/email-password-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -258,14 +258,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/gcp-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/gcp-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -277,14 +277,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/github-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/github-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -296,14 +296,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/gitlab-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/gitlab-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -315,14 +315,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/incident-detail-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/incident-detail-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -334,33 +334,34 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/infisical-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/infisical-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
     {
       "name": "overview",
       "route": "/",
+      "viewport": { "width": 1600, "height": 1100 },
       "guides": ["docs/index.mdx", "docs/blog/introducing-towbar.mdx"],
       "themes": [
         {
           "theme": "light",
           "file": "docs/assets/release-v2/overview-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 2200
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/overview-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 2200
         }
       ]
     },
@@ -376,14 +377,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/performance-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/performance-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -400,14 +401,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/previews-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/previews-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -419,14 +420,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/r2-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/r2-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -438,14 +439,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/registry-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/registry-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -462,14 +463,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/repositories-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/repositories-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -481,14 +482,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/repository-environments-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/repository-environments-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -500,14 +501,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/resource-overview-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/resource-overview-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -519,14 +520,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/resource-external-secrets-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/resource-external-secrets-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -538,14 +539,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/restore-source-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/restore-source-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -557,14 +558,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/s3-setup-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/s3-setup-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -576,14 +577,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/scout-alerts-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/scout-alerts-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -595,14 +596,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/scout-settings-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/scout-settings-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -614,14 +615,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/server-credentials-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/server-credentials-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -633,14 +634,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/server-overview-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/server-overview-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -652,14 +653,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/server-preparation-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/server-preparation-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -671,14 +672,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/server-workloads-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/server-workloads-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -690,14 +691,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/shared-secrets-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/shared-secrets-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -709,14 +710,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/slack-notifications-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/slack-notifications-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -728,14 +729,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/ssh-keys-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/ssh-keys-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -750,14 +751,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/system-health-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/system-health-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -769,14 +770,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/team-members-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/team-members-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -788,14 +789,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/telegram-notifications-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/telegram-notifications-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -807,14 +808,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/vulnerabilities-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/vulnerabilities-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     },
@@ -826,14 +827,14 @@
         {
           "theme": "light",
           "file": "docs/assets/release-v2/webhook-notifications-light.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/webhook-notifications-dark.jpg",
-          "width": 2560,
-          "height": 1440
+          "width": 3200,
+          "height": 1800
         }
       ]
     }

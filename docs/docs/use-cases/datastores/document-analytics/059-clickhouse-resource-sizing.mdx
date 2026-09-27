@@ -1,13 +1,17 @@
 ---
-title: "ClickHouse resource sizing"
+title: "ClickHouse sizing"
 description: "Set container.resources for measured ingest and query load."
 icon: "/assets/database-logos/clickhouse.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/clickhouse.webp"
-  alt="ClickHouse resource sizing logo"
+  alt="ClickHouse sizing logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/clickhouse.webp"
 
 ```yaml title=".towbar/datastores/clickhouse-resource-sizing.datastore.yml"
 id: clickhouse-resource-sizing
-name: ClickHouse resource sizing
+name: ClickHouse sizing
 type: clickhouse
 container:
   network: application

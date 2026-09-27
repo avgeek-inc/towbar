@@ -38,8 +38,8 @@ The runtime provider identity needs read access to the declared backup storage:
 The target Server must be prepared, have a healthy current Datastore release, use one Towbar-owned database volume, and have free Docker storage of at least three times the backup size (with a 1 GiB minimum).
 
 <div className="towbar-doc-screenshot">
-<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
-<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="2560" height="1440" loading="lazy" /></div>
+<div className="towbar-product-light"><img src="/assets/release-v2/restore-source-light.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="3200" height="1800" loading="lazy" /></div>
+<div className="towbar-product-dark"><img src="/assets/release-v2/restore-source-dark.jpg" alt="A restorable backup still needs configured provider credentials before Restore is available." width="3200" height="1800" loading="lazy" /></div>
 <p>A restorable backup still needs configured provider credentials before Restore is available.</p>
 </div>
 

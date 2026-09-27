@@ -1,0 +1,130 @@
+---
+title: "Plausible CE"
+description: "Plausible Community Edition is a privacy-focused website analytics platform."
+icon: "/assets/use-case-logos/plausibleanalytics.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/plausibleanalytics.svg"
+  alt="Plausible CE logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://github.com/plausible/community-edition).
+
+Plausible Community Edition uses PostgreSQL for accounts and sites, ClickHouse for events, and its own application data directory. They share one Compose network. This example keeps both databases private; Towbar does not treat their Compose volumes as managed Datastores.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/plausible-ce.compose.yml"
+id: plausible-ce
+name: Plausible CE
+file: deploy/plausible-ce/compose.yml
+strategy: maintenance
+services:
+  plausible:
+    port: 8000
+    domains:
+      - plausible-ce.example.com
+    ingress:
+      type: proxy
+  plausible_db: {}
+  plausible_events_db: {}
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - POSTGRES_PASSWORD
+    - BASE_URL
+    - SECRET_KEY_BASE
+```
+
+## Compose project
+
+```yaml title="deploy/plausible-ce/compose.yml"
+services:
+  plausible_db:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      POSTGRES_USER: plausible
+      POSTGRES_DB: plausible
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U plausible -d plausible
+      interval: 10s
+      retries: 10
+  plausible_events_db:
+    image: clickhouse/clickhouse-server:24.12-alpine@sha256:cd450891db46cc6ffe313ca2b0fb7dbfb897a6873ca74a724cbe050a2cf62621
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    volumes:
+      - events-data:/var/lib/clickhouse
+      - events-logs:/var/log/clickhouse-server
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:8123/ping || exit 1
+      interval: 10s
+      retries: 10
+  plausible:
+    image: ghcr.io/plausible/community-edition:v3.2.1@sha256:33e60bfb40f2df5da00f8753b76fad04f67dba3abe6d73eb516e440e3fb62985
+    command:
+      - sh
+      - -c
+      - /entrypoint.sh db createdb && /entrypoint.sh db migrate &&
+        /entrypoint.sh run
+    depends_on:
+      plausible_db:
+        condition: service_healthy
+      plausible_events_db:
+        condition: service_healthy
+    environment:
+      BASE_URL: ${BASE_URL}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      HTTP_PORT: "8000"
+      TMPDIR: /var/lib/plausible/tmp
+      DATABASE_URL: postgres://plausible:${POSTGRES_PASSWORD}@plausible_db:5432/plausible
+      CLICKHOUSE_DATABASE_URL: http://plausible_events_db:8123/plausible_events_db
+    volumes:
+      - plausible-data:/var/lib/plausible
+volumes:
+  postgres-data: {}
+  events-data: {}
+  events-logs: {}
+  plausible-data: {}
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these files. Replace the example server IP and domain.
+2. Commit every file shown below under `deploy/plausible-ce/`. The Towbar manifest points to the Compose file; it does not create it for you.
+3. Sync the repository and inspect the resolved Compose project. Save the runtime values below if this example declares any.
+4. Give the server enough memory for ClickHouse as well as the application; the official low-memory configuration is a separate tuning step.
+5. Back up PostgreSQL, ClickHouse, and Plausible's own data volume together. These Compose databases do not receive Towbar Datastore backup/restore operations.
+6. Deploy it manually and run the verification below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Compose project after the repository sync. The manifest declares required keys, not their values.
+
+| Key                 | Value to save                                                  |
+| ------------------- | -------------------------------------------------------------- |
+| `POSTGRES_PASSWORD` | Generate a unique PostgreSQL password.                         |
+| `BASE_URL`          | https://plausible-ce.example.com                               |
+| `SECRET_KEY_BASE`   | Generate at least 64 random bytes for sessions and encryption. |
+
+## Verify
+
+Create an account and a site, install its tracking snippet on a test page, and confirm a visit appears. Then restart the project and verify historical visits remain.
+
+For field constraints, see [Compose guide](/docs/services/modes/compose).

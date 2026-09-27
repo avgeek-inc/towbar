@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { ScoutIcon } from "./scout-icons";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
@@ -15,6 +16,7 @@ import { TypographyCode } from "@workspace/web-design-system/typography/typograp
 import { useApiQuery } from "@/hooks/use-api-query";
 import { RelativeTime } from "./last-synced-time";
 import {
+  hasNoAdvisories,
   severityVariant,
   severityTooltip,
   VulnerabilitySeverityWidgets,
@@ -130,6 +132,17 @@ export function DeployableVulnerabilities({
         columns={columns}
         getRowKey={(finding) => finding.id}
         items={query.data.findings}
+        emptyMedia={
+          hasNoAdvisories(query.data.summary) ? (
+            <Image
+              src="/mascots/happy.png"
+              alt=""
+              width={160}
+              height={160}
+              className="size-32 object-contain"
+            />
+          ) : undefined
+        }
         emptyTitle="No advisories"
         emptyDescription="Findings from the latest scan of this App's production image appear here ranked by severity."
       />

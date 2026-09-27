@@ -1,13 +1,17 @@
 ---
-title: "ClickHouse for event analytics"
+title: "ClickHouse analytics"
 description: "Use type: clickhouse on the analytics Service's private network."
 icon: "/assets/database-logos/clickhouse.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/clickhouse.webp"
-  alt="ClickHouse for event analytics logo"
+  alt="ClickHouse analytics logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/clickhouse.webp"
 
 ```yaml title=".towbar/datastores/clickhouse-for-event-analytics.datastore.yml"
 id: clickhouse-for-event-analytics
-name: ClickHouse for event analytics
+name: ClickHouse analytics
 type: clickhouse
 container:
   network: application

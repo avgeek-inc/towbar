@@ -1,13 +1,17 @@
 ---
-title: "API, worker, and Redis"
+title: "API-worker stack"
 description: "Deploy redis, then private API and worker Services on its network."
 icon: "/assets/database-logos/redis.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/redis.webp"
-  alt="API, worker, and Redis logo"
+  alt="API-worker stack logo"
   aria-hidden="true"
 />
 
@@ -15,9 +19,12 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
-```yaml title=".towbar/datastores/api-worker-and-redis-redis.datastore.yml"
+<CodeGroup>
+
+```yaml title="redis"
+# .towbar/datastores/api-worker-and-redis-redis.datastore.yml
 id: api-worker-and-redis-redis
-name: API, worker, and Redis Redis
+name: API-worker stack Redis
 type: redis
 container:
   network: application
@@ -33,9 +40,10 @@ environments:
     server: 192.0.2.10
 ```
 
-```yaml title=".towbar/services/api-worker-and-redis-api.service.yml"
+```yaml title="api"
+# .towbar/services/api-worker-and-redis-api.service.yml
 id: api-worker-and-redis-api
-name: API, worker, and Redis
+name: API-worker stack
 deployment:
   type: dockerfile
   context: .
@@ -53,7 +61,8 @@ secrets:
     - CACHE_URL
 ```
 
-```yaml title=".towbar/services/api-worker-and-redis-worker.service.yml"
+```yaml title="worker"
+# .towbar/services/api-worker-and-redis-worker.service.yml
 id: api-worker-and-redis-worker
 name: Worker
 deployment:
@@ -72,6 +81,8 @@ secrets:
   runtime:
     - QUEUE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

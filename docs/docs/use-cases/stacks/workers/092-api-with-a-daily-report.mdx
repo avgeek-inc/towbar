@@ -1,13 +1,17 @@
 ---
-title: "API with a daily report"
+title: "Daily reports"
 description: "Declare a on the API's deployed image."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="API with a daily report logo"
+  alt="Daily reports logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/api-with-a-daily-report-postgres.datastore.yml"
 id: api-with-a-daily-report-postgres
-name: API with a daily report PostgreSQL
+name: Daily reports PostgreSQL
 type: postgres
 container:
   network: application
@@ -39,7 +45,7 @@ environments:
 
 ```yaml title=".towbar/services/api-with-a-daily-report-api.service.yml"
 id: api-with-a-daily-report-api
-name: API with a daily report
+name: Daily reports
 deployment:
   type: dockerfile
   context: .
@@ -66,6 +72,8 @@ jobs:
     timeoutSeconds: 300
     enabled: true
 ```
+
+</CodeGroup>
 
 ## Configure
 

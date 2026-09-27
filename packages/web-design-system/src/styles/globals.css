@@ -342,7 +342,7 @@ a {
   }
 
   .widget__footer {
-    @apply flex min-h-8 flex-wrap items-center gap-3 px-[17px] pt-1 pb-[9px];
+    @apply flex min-h-7 flex-wrap items-center gap-3 px-[17px] pt-1 pb-[7px];
   }
 
   .widget__legend {

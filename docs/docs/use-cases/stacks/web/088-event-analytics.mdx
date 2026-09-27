@@ -4,6 +4,10 @@ description: "Ingest Service + clickhouse Datastore on one private network."
 icon: "/assets/database-logos/clickhouse.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/clickhouse.webp"
@@ -16,6 +20,8 @@ icon: "/assets/database-logos/clickhouse.webp"
 These are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title=".towbar/datastores/event-analytics-clickhouse.datastore.yml"
 id: event-analytics-clickhouse
@@ -56,6 +62,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

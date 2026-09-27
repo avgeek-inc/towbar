@@ -65,8 +65,8 @@ Open **Manage → Integrations → GitHub** and choose **Install GitHub App**. S
     <img
       src="/assets/release-v2/github-setup-light.jpg"
       alt="GitHub shows runtime App availability before an installation is connected."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -74,8 +74,8 @@ Open **Manage → Integrations → GitHub** and choose **Install GitHub App**. S
     <img
       src="/assets/release-v2/github-setup-dark.jpg"
       alt="GitHub shows runtime App availability before an installation is connected."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

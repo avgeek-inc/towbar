@@ -1,13 +1,17 @@
 ---
-title: "API with MongoDB"
+title: "MongoDB stack"
 description: "API Service + mongodb Datastore; create an app user apart from Towbar's root user."
 icon: "/assets/database-logos/mongodb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mongodb.webp"
-  alt="API with MongoDB logo"
+  alt="MongoDB stack logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/api-with-mongodb-mongodb.datastore.yml"
 id: api-with-mongodb-mongodb
-name: API with MongoDB MongoDB
+name: MongoDB stack MongoDB
 type: mongodb
 container:
   network: application
@@ -38,7 +44,7 @@ environments:
 
 ```yaml title=".towbar/services/api-with-mongodb-api.service.yml"
 id: api-with-mongodb-api
-name: API with MongoDB
+name: MongoDB stack
 deployment:
   type: dockerfile
   context: .
@@ -55,6 +61,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

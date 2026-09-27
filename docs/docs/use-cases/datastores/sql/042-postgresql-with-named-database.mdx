@@ -1,13 +1,17 @@
 ---
-title: "PostgreSQL with named database"
+title: "Named PostgreSQL"
 description: "Declare POSTGRES_USER and POSTGRES_DB alongside the password."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="PostgreSQL with named database logo"
+  alt="Named PostgreSQL logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/postgresql-with-named-database.datastore.yml"
 id: postgresql-with-named-database
-name: PostgreSQL with named database
+name: Named PostgreSQL
 type: postgres
 container:
   network: application

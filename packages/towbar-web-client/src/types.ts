@@ -114,7 +114,13 @@ export type SecretMetadata = {
 };
 
 export type NotificationCategory =
-  "deployments" | "previews" | "health" | "backups" | "restores" | "scout";
+  | "deployments"
+  | "deploymentFailures"
+  | "previews"
+  | "health"
+  | "backups"
+  | "restores"
+  | "scout";
 
 export type NotificationDestination = {
   categories: NotificationCategory[];

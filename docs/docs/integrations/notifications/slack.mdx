@@ -19,10 +19,9 @@ notifications:
   providers:
     slack:
       botToken: "xoxb-..."
-  routes: []
 ```
 
-Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Slack** and add a destination for each channel ID. Select **Deployments**, **Backup & Restore**, and **Alerts & Incidents** per channel; preview events follow Deployments. Checkbox changes save immediately.
+Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Slack** and add a destination for each channel ID. Choose **All** or **Failures only** for deployments; failed previews also count as failures. **Backup & Restore** and **Incidents** remain independent. Changes save immediately.
 
 ## Test and troubleshoot
 
@@ -35,8 +34,8 @@ For a single workload, additional Slack channel IDs can be declared in its [mani
     <img
       src="/assets/release-v2/slack-notifications-light.jpg"
       alt="Slack notification destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -44,8 +43,8 @@ For a single workload, additional Slack channel IDs can be declared in its [mani
     <img
       src="/assets/release-v2/slack-notifications-dark.jpg"
       alt="Slack notification destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

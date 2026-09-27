@@ -698,13 +698,152 @@ body:has(.towbar-home) {
 ) {
   --towbar-doc-brand: url("/assets/use-case-logos/jellyfin.svg");
 }
-.dark img[src^="/assets/use-case-logos/"],
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/plausibleanalytics.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/plausibleanalytics.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/matomo.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/matomo.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/prometheus.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/prometheus.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/victoriametrics.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/victoriametrics.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/keycloak.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/keycloak.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/authentik.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/authentik.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ghost.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ghost.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/wordpress.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/wordpress.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/nodered.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/nodered.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/searxng.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/searxng.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/freshrss.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/freshrss.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/hedgedoc.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/hedgedoc.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/nextcloud.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/nextcloud.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/immich.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/immich.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/bookstack.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/bookstack.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/calibreweb.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/calibreweb.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/photoprism.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/photoprism.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/miniflux.png"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/miniflux.png");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ntfy.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ntfy.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/jenkins.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/jenkins.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/vikunja.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/vikunja.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/excalidraw.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/excalidraw.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/actualbudget.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/actualbudget.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/audiobookshelf.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/audiobookshelf.svg");
+}
+#content-area:has(
+  .towbar-doc-brand-logo[src="/assets/use-case-logos/ollama.svg"]
+) {
+  --towbar-doc-brand: url("/assets/use-case-logos/ollama.svg");
+}
 .dark
-  #content-area:has(.towbar-doc-brand-logo[src^="/assets/use-case-logos/"])
+  img[src^="/assets/use-case-logos/"]:not([src$="photoprism.svg"]):not(
+    [src$="miniflux.png"]
+  ),
+.dark
+  #content-area:has(
+    .towbar-doc-brand-logo[src^="/assets/use-case-logos/"]:not(
+        [src$="photoprism.svg"]
+      ):not([src$="miniflux.png"])
+  )
   #page-title::before {
   filter: invert(1);
 }
-a[href^="/docs/use-cases/"] img[src^="/assets/use-case-logos/"] {
+a[href^="/docs/use-cases/"] img[src^="/assets/use-case-logos/"],
+a[href^="/docs/use-cases/"] img[src^="/assets/integration-logos/docker.webp"],
+a[href^="/docs/use-cases/"] img[src^="/assets/database-logos/"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
   object-fit: contain;
-  padding: 1px;
+  object-position: center;
+  transition: none;
+  animation: none;
 }

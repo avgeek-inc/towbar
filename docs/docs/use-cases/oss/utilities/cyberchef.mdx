@@ -1,0 +1,43 @@
+---
+title: "CyberChef"
+description: "CyberChef is a browser-based toolkit for encoding, decoding, and transforming data."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://github.com/gchq/CyberChef#running-locally).
+
+The official CyberChef image serves the web application directly. This recipe has no server-side database, user accounts, or persistent Service volume.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/cyberchef.service.yml"
+id: cyberchef
+name: CyberChef
+buildServer: null
+deployment:
+  type: image
+  image: ghcr.io/gchq/cyberchef@sha256:f04a39926344faf8e4cbbc8c92fb125d2b466f9be62db09aff23c7c406101a51
+container:
+  port: 8080
+environments:
+  production:
+    server: 192.0.2.10
+domains:
+  primary: cyberchef.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Open the page, run a simple Base64 encode/decode operation, and confirm it also works after redeployment.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

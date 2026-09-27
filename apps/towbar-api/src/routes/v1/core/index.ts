@@ -31,6 +31,7 @@ import { resourceRoutes } from "./resources.js";
 import { previewRoutes } from "./previews.js";
 import { sourceRoutes } from "./sources.js";
 import { systemHealthRoutes } from "./system-health.js";
+import { versionRoutes } from "./version.js";
 import { notificationRoutes } from "./notifications.js";
 import { notificationCenterRoutes } from "./notification-center.js";
 
@@ -84,6 +85,7 @@ controlPlaneRoutes.route("/servers", serverTerminalRoutes);
 controlPlaneRoutes.route("/servers", serverRoutes);
 controlPlaneRoutes.route("/deployments", deploymentRoutes);
 controlPlaneRoutes.route("/system-health", systemHealthRoutes);
+controlPlaneRoutes.route("/version", versionRoutes);
 controlPlaneRoutes.route("/", accountRoutes);
 
 export const coreRoutes = new Hono<TowbarHonoEnvironment>();

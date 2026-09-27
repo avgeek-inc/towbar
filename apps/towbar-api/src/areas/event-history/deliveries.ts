@@ -96,9 +96,14 @@ export async function listNotificationDeliveries(
         input.state ? eq(notificationDeliveries.state, input.state) : undefined,
         input.category === "backupsAndRestores"
           ? inArray(notificationEvents.category, ["backups", "restores"])
-          : input.category
-            ? eq(notificationEvents.category, input.category)
-            : undefined,
+          : input.category === "deploymentFailures"
+            ? inArray(notificationEvents.type, [
+                "deployment.failed",
+                "preview.failed",
+              ])
+            : input.category
+              ? eq(notificationEvents.category, input.category)
+              : undefined,
         historyCursor(
           notificationDeliveries.createdAt,
           notificationDeliveries.id,

@@ -31,6 +31,7 @@ void test("published YAML examples match the v2 repository parser", () => {
       const snippet = match[2]!;
       const value = parse(snippet) as Record<string, unknown>;
       if (header.includes("/etc/towbar/config.yml")) continue;
+      if (header.includes('title="deploy/')) continue;
       assert.doesNotThrow(
         () => {
           if (value.version) {

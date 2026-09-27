@@ -1,13 +1,17 @@
 ---
-title: "API with PostgreSQL"
+title: "PostgreSQL stack"
 description: "Dockerfile Service + scoped PostgreSQL Datastore; the secret URL uses the Datastore's declared network alias on port 5432."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="API with PostgreSQL logo"
+  alt="PostgreSQL stack logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/api-with-postgresql-postgres.datastore.yml"
 id: api-with-postgresql-postgres
-name: API with PostgreSQL PostgreSQL
+name: PostgreSQL stack PostgreSQL
 type: postgres
 container:
   network: application
@@ -39,7 +45,7 @@ environments:
 
 ```yaml title=".towbar/services/api-with-postgresql-api.service.yml"
 id: api-with-postgresql-api
-name: API with PostgreSQL
+name: PostgreSQL stack
 deployment:
   type: dockerfile
   context: .
@@ -56,6 +62,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

@@ -6,6 +6,7 @@ import { runMaintenanceSweep } from "../../../areas/resource-operations/maintena
 import { recordMaintenanceHeartbeat } from "../../../areas/system-health/service.js";
 import { collectScoutHttpChecks } from "../../../areas/monitoring/http-checks.js";
 import { evaluateScoutAlerts } from "../../../areas/monitoring/alert-evaluator.js";
+import { recordDatabaseStorageSample } from "../../../areas/system-health/database-storage.js";
 
 const heartbeatSchema = z
   .object({ version: z.string().min(1).max(64) })
@@ -26,6 +27,10 @@ internalMaintenanceRoutes.post("/sweep", async (context) => {
   await recordMaintenanceHeartbeat({ details: result, version: body.version });
   return context.json(result);
 });
+
+internalMaintenanceRoutes.post("/database-storage", async (context) =>
+  context.json(await recordDatabaseStorageSample()),
+);
 
 internalMaintenanceRoutes.post("/app-jobs", async (context) =>
   context.json(await queueScheduledAppJobs()),

@@ -1,0 +1,107 @@
+---
+title: "Immich"
+description: "Immich backs up, organizes, and browses photos and videos from your devices."
+icon: "/assets/use-case-logos/immich.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/immich.svg"
+  alt="Immich logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://docs.immich.app/install/docker-compose/).
+
+Immich needs its server, machine-learning service, Valkey, and a PostgreSQL image with the vector extensions Immich expects. Towbar's generic PostgreSQL Datastore preset is not a substitute for that image. All persistent data stays in named Compose volumes.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/immich.compose.yml"
+id: immich
+name: Immich
+file: deploy/immich/compose.yml
+strategy: maintenance
+services:
+  immich-server:
+    port: 2283
+    domains:
+      - immich.example.com
+    ingress:
+      type: proxy
+  immich-machine-learning: {}
+  redis: {}
+  database: {}
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - DB_PASSWORD
+```
+
+## Compose project
+
+```yaml title="deploy/immich/compose.yml"
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v3@sha256:79cc1623323d5894922686d8743b4780181428f98eecbfb58ce12c41ef02d1ea
+    depends_on:
+      - redis
+      - database
+    environment:
+      DB_HOSTNAME: database
+      DB_USERNAME: immich
+      DB_DATABASE_NAME: immich
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOSTNAME: redis
+    volumes:
+      - library:/data
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v3@sha256:60dfcf266a9ef3b7376f5678e8c980d4fb61db5fc48c078fe8a326ab1535d60d
+    volumes:
+      - model-cache:/cache
+  redis:
+    image: valkey/valkey:9@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd
+  database:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: immich
+      POSTGRES_DB: immich
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+volumes:
+  library: {}
+  model-cache: {}
+  postgres: {}
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these files. Replace the example server IP and domain.
+2. Commit every file shown below under `deploy/immich/`. The Towbar manifest points to the Compose file; it does not create it for you.
+3. Sync the repository and inspect the resolved Compose project. Save the runtime values below if this example declares any.
+4. Use a server that meets Immich's published CPU, memory, and storage requirements. Set `DB_PASSWORD` before deployment and keep the PostgreSQL volume on local storage, not a network share.
+5. The Compose project database is not a Towbar-managed Datastore. Back up both the `library` and `postgres` volumes; a database backup alone cannot restore photos.
+6. Deploy it manually and run the verification below before enabling auto-deploy.
+
+## Runtime values
+
+Save these values on the Compose project after the repository sync. The manifest declares required keys, not their values.
+
+| Key           | Value to save                                                                   |
+| ------------- | ------------------------------------------------------------------------------- |
+| `DB_PASSWORD` | Generate an alphanumeric PostgreSQL password, as the upstream guide recommends. |
+
+## Verify
+
+Upload a few photos, wait for thumbnails and search jobs, then redeploy and verify both media and metadata remain.
+
+For field constraints, see [Compose guide](/docs/services/modes/compose).

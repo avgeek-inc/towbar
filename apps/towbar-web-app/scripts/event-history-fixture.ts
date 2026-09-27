@@ -208,7 +208,10 @@ export function eventHistoryFixture(
               (q.get("category") === "backupsAndRestores"
                 ? delivery.category === "backups" ||
                   delivery.category === "restores"
-                : q.get("category") === delivery.category)) &&
+                : q.get("category") === "deploymentFailures"
+                  ? delivery.type === "deployment.failed" ||
+                    delivery.type === "preview.failed"
+                  : q.get("category") === delivery.category)) &&
             (!search ||
               [
                 delivery.type,

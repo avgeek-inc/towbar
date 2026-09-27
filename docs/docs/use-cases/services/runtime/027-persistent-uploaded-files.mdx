@@ -1,7 +1,11 @@
 ---
-title: "Persistent uploaded files"
+title: "Persistent files"
 description: "Add a named container.volumes mount and a recreate rollout."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Storage](/docs/services/configuration#persistent-storage).
 
@@ -11,7 +15,7 @@ description: "Add a named container.volumes mount and a recreate rollout."
 
 ```yaml title=".towbar/services/persistent-uploaded-files.service.yml"
 id: persistent-uploaded-files
-name: Persistent uploaded files
+name: Persistent files
 deployment:
   type: dockerfile
   context: .

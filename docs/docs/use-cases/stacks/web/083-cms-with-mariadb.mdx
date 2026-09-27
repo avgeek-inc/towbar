@@ -1,13 +1,17 @@
 ---
-title: "CMS with MariaDB"
+title: "MariaDB stack"
 description: "CMS Service + mariadb Datastore; share a network and use an app user."
 icon: "/assets/database-logos/mariadb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mariadb.webp"
-  alt="CMS with MariaDB logo"
+  alt="MariaDB stack logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/cms-with-mariadb-mariadb.datastore.yml"
 id: cms-with-mariadb-mariadb
-name: CMS with MariaDB MariaDB
+name: MariaDB stack MariaDB
 type: mariadb
 container:
   network: application
@@ -40,7 +46,7 @@ environments:
 
 ```yaml title=".towbar/services/cms-with-mariadb-api.service.yml"
 id: cms-with-mariadb-api
-name: CMS with MariaDB
+name: MariaDB stack
 deployment:
   type: dockerfile
   context: .
@@ -57,6 +63,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

@@ -1,13 +1,17 @@
 ---
-title: "MariaDB for a CMS"
+title: "MariaDB CMS"
 description: "Use type: mariadb, private networking, and MYSQL_ROOT_PASSWORD."
 icon: "/assets/database-logos/mariadb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mariadb.webp"
-  alt="MariaDB for a CMS logo"
+  alt="MariaDB CMS logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mariadb.webp"
 
 ```yaml title=".towbar/datastores/mariadb-for-a-cms.datastore.yml"
 id: mariadb-for-a-cms
-name: MariaDB for a CMS
+name: MariaDB CMS
 type: mariadb
 container:
   network: application

@@ -26,3 +26,4 @@ export async function registerSentry() {
   if (process.env.NEXT_RUNTIME === "edge") initializeSentry("edge");
 }
 export const captureRequestError = Sentry.captureRequestError;
+export const captureException = Sentry.captureException;

@@ -1,13 +1,19 @@
 ---
-title: "Service plus PostgreSQL"
+title: "PostgreSQL service"
 description: "Give both workloads container.network: application; use the Datastore alias and port in a secret URL."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [PostgreSQL](/docs/databases/postgresql).
 
 `context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title=".towbar/datastores/service-plus-postgresql-postgres.datastore.yml"
 id: service-plus-postgresql-postgres
@@ -31,7 +37,7 @@ environments:
 
 ```yaml title=".towbar/services/service-plus-postgresql.service.yml"
 id: service-plus-postgresql
-name: Service plus PostgreSQL
+name: PostgreSQL service
 deployment:
   type: dockerfile
   context: .
@@ -48,6 +54,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

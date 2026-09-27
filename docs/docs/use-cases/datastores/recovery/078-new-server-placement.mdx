@@ -1,13 +1,17 @@
 ---
-title: "New server placement"
+title: "Server placement"
 description: "Override the Datastore's server in another environment."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="New server placement logo"
+  alt="Server placement logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/new-server-placement.datastore.yml"
 id: new-server-placement
-name: New server placement
+name: Server placement
 type: postgres
 container:
   network: application

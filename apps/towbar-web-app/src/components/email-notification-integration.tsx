@@ -28,23 +28,21 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { NotificationProviderIcon } from "./notification-provider-icon";
 import { PageSelectionTitle } from "./page-selection-title";
+import { DeploymentNotificationChoice } from "./deployment-notification-choice";
 
 type EmailDestination = {
   id?: string;
   email: string;
   deployments: boolean;
+  deploymentFailures: boolean;
   backupsAndRestores: boolean;
   scout: boolean;
 };
-type Column = keyof Pick<
-  EmailDestination,
-  "deployments" | "backupsAndRestores" | "scout"
->;
+type Column = keyof Pick<EmailDestination, "backupsAndRestores" | "scout">;
 
 const columns: Array<{ key: Column; label: string }> = [
-  { key: "deployments", label: "Deployments" },
   { key: "backupsAndRestores", label: "Backup & Restore" },
-  { key: "scout", label: "Alerts & Incidents" },
+  { key: "scout", label: "Incidents" },
 ];
 const endpoint = "/v1/core/notifications/email/destinations";
 
@@ -125,9 +123,16 @@ export function EmailNotificationIntegration() {
         endpoint,
         {
           destinations: next.map(
-            ({ email, deployments, backupsAndRestores, scout }) => ({
+            ({
               email,
               deployments,
+              deploymentFailures,
+              backupsAndRestores,
+              scout,
+            }) => ({
+              email,
+              deployments,
+              deploymentFailures,
               backupsAndRestores,
               scout,
             }),
@@ -165,6 +170,7 @@ export function EmailNotificationIntegration() {
         {
           email: normalized,
           deployments: true,
+          deploymentFailures: false,
           backupsAndRestores: true,
           scout: true,
         },
@@ -200,6 +206,34 @@ export function EmailNotificationIntegration() {
       header: "Email address",
       className: "min-w-48 whitespace-nowrap !py-1.5",
       cell: (row) => row.email,
+    },
+    {
+      key: "deployments",
+      header: "Deployments",
+      className: "min-w-64 !py-1.5",
+      cell: (row) => (
+        <DeploymentNotificationChoice
+          name={`email-deployments-${row.id ?? row.email}`}
+          label={row.email}
+          disabled={saving}
+          value={
+            row.deployments ? "all" : row.deploymentFailures ? "failures" : null
+          }
+          onChange={(value) =>
+            void persist(
+              destinations.map((item) =>
+                item.email === row.email
+                  ? {
+                      ...item,
+                      deployments: value === "all",
+                      deploymentFailures: value === "failures",
+                    }
+                  : item,
+              ),
+            )
+          }
+        />
+      ),
     },
     ...columns.map(({ key, label }) => ({
       key,

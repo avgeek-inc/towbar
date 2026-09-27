@@ -22,10 +22,9 @@ notifications:
         webhookToken: "<webhook-token>"
       - webhookId: "234567890123456789"
         webhookToken: "<second-token>"
-  routes: []
 ```
 
-Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Discord**. Towbar shows one row per webhook ID. Choose **Deployments**, **Backup & Restore**, and **Alerts & Incidents** independently for each row. New webhooks start with no subscriptions, so select a category before expecting operational events.
+Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Discord**. Towbar shows one row per webhook ID. Choose **All** or **Failures only** for deployments, then select **Backup & Restore** and **Incidents** independently. New webhooks start with no subscriptions, so select a category before expecting operational events.
 
 ## Verify and maintain
 
@@ -38,8 +37,8 @@ Additional Discord destinations for one service or datastore can be declared in 
     <img
       src="/assets/release-v2/discord-notifications-light.jpg"
       alt="Discord webhook IDs and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -47,8 +46,8 @@ Additional Discord destinations for one service or datastore can be declared in 
     <img
       src="/assets/release-v2/discord-notifications-dark.jpg"
       alt="Discord webhook IDs and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

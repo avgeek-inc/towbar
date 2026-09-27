@@ -19,10 +19,9 @@ notifications:
   providers:
     telegram:
       botToken: "123456:<bot-token>"
-  routes: []
 ```
 
-Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Telegram**, add a chat ID, and leave Topic ID blank for the main chat. Choose **Deployments**, **Backup & Restore**, and **Alerts & Incidents** for that destination. New rows have no categories selected; checkbox changes save immediately.
+Run `sudo towbar config validate` and `sudo towbar restart`. Open **Manage → Notifications → Telegram**, add a chat ID, and leave Topic ID blank for the main chat. Choose **All** or **Failures only** for deployments, and select **Backup & Restore** and **Incidents** separately. New rows have no categories selected; changes save immediately.
 
 ## Verify and troubleshoot
 
@@ -35,8 +34,8 @@ Service and datastore manifests can declare extra Telegram chat/topic destinatio
     <img
       src="/assets/release-v2/telegram-notifications-light.jpg"
       alt="Telegram chat destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -44,8 +43,8 @@ Service and datastore manifests can declare extra Telegram chat/topic destinatio
     <img
       src="/assets/release-v2/telegram-notifications-dark.jpg"
       alt="Telegram chat destinations and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

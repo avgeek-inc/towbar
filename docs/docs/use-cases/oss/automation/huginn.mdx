@@ -1,0 +1,113 @@
+---
+title: "Huginn"
+description: "Huginn runs agents that watch events online and trigger automated actions."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://github.com/huginn/huginn/blob/master/doc/docker/install.md).
+
+The official multi-process Huginn image runs its web app and agent workers together. Point it at a Towbar MySQL Datastore so the built-in database is not lost with the container.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/huginn-mysql.datastore.yml"
+id: huginn-mysql
+name: Huginn MySQL
+type: mysql
+container:
+  network: application
+  networkAlias: huginn-mysql
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/huginn.service.yml"
+id: huginn
+name: Huginn
+buildServer: null
+deployment:
+  type: image
+  image: ghcr.io/huginn/huginn@sha256:5bb5bdd17b49b7cf0ccd7ffdd5535abe1c8a684272037b34b438c4739908bf01
+container:
+  port: 3000
+  network: application
+environments:
+  production:
+    server: 192.0.2.10
+secrets:
+  runtime:
+    - HUGINN_DATABASE_ADAPTER
+    - HUGINN_DATABASE_HOST
+    - HUGINN_DATABASE_PORT
+    - HUGINN_DATABASE_NAME
+    - HUGINN_DATABASE_USERNAME
+    - HUGINN_DATABASE_PASSWORD
+    - DO_NOT_CREATE_DATABASE
+    - SEED_USERNAME
+    - SEED_PASSWORD
+    - APP_SECRET_TOKEN
+    - DOMAIN
+domains:
+  primary: huginn.example.com
+tls:
+  mode: direct
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Save the initialization values in the table below for the mysql Datastore under **Datastore → Settings → Secrets**. Deploy it first and wait for readiness. These values create the database and user only on an empty volume.
+3. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Datastore values
+
+Save these in each Datastore's **Settings → Secrets** before deploying it. Use the suggested names or choose your own, then use the same names and passwords in the Service connection values below.
+
+| Datastore    | Key                   | Suggested value                                                                           |
+| ------------ | --------------------- | ----------------------------------------------------------------------------------------- |
+| Huginn mysql | `MYSQL_DATABASE`      | huginn                                                                                    |
+| Huginn mysql | `MYSQL_USER`          | huginn                                                                                    |
+| Huginn mysql | `MYSQL_PASSWORD`      | Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value. |
+| Huginn mysql | `MYSQL_ROOT_PASSWORD` | Run `openssl rand -hex 32` again for a separate root password.                            |
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key                        | Value to save                                                               |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `HUGINN_DATABASE_ADAPTER`  | mysql2                                                                      |
+| `HUGINN_DATABASE_HOST`     | huginn-mysql                                                                |
+| `HUGINN_DATABASE_PORT`     | 3306                                                                        |
+| `HUGINN_DATABASE_NAME`     | Same value as MYSQL_DATABASE.                                               |
+| `HUGINN_DATABASE_USERNAME` | Same value as MYSQL_USER.                                                   |
+| `HUGINN_DATABASE_PASSWORD` | Same value as MYSQL_PASSWORD.                                               |
+| `DO_NOT_CREATE_DATABASE`   | true                                                                        |
+| `SEED_USERNAME`            | Choose the first administrator username.                                    |
+| `SEED_PASSWORD`            | Generate the first administrator password.                                  |
+| `APP_SECRET_TOKEN`         | Generate with `openssl rand -hex 64` and keep it unchanged across restarts. |
+| `DOMAIN`                   | huginn.example.com                                                          |
+
+## Verify
+
+Sign in with the seeded account, create a test agent, and confirm it runs after a redeploy. Back up the MySQL Datastore.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

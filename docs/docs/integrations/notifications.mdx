@@ -26,18 +26,20 @@ notifications:
   email:
     - address: web-ops@example.com
       deployments: true
+      deploymentFailures: false
       backupsAndRestores: false
       alertsAndIncidents: true
   slack:
     - channelId: C12345678
-      deployments: true
+      deployments: false
+      deploymentFailures: true
       backupsAndRestores: false
       alertsAndIncidents: true
 ```
 
 Each destination must enable at least one category. These subscriptions take effect after a successful environment sync; no deployment is needed. Keep provider credentials in `/etc/towbar/config.yml`. The workload's **Monitor → Notifications** page shows synced destinations and subscriptions without edit controls.
 
-Each destination can subscribe to **Deployments**, **Backup & Restore**, and **Alerts & Incidents**. Preview events follow Deployments; service health and Scout incidents follow Alerts & Incidents. New runtime-managed Discord and webhook destinations start with no subscriptions, so select at least one category before expecting routine events.
+For deployments, choose **All** to receive every deployment and preview event or **Failures only** to receive `deployment.failed` and `preview.failed`. Workspace destinations offer one choice at a time; clear the selection to turn deployment notifications off. In manifests, set `deploymentFailures: true` for failures only. If both `deployments` and `deploymentFailures` are true, **All** takes precedence. **Backup & Restore** and **Incidents** are independent subscriptions. Service health and Scout events follow Incidents. New runtime-managed Discord and webhook destinations start with no subscriptions, so select at least one category before expecting routine events.
 
 ## Apply runtime changes
 

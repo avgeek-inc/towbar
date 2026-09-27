@@ -1,13 +1,17 @@
 ---
-title: "API with MySQL"
+title: "MySQL stack"
 description: "Dockerfile Service + scoped MySQL Datastore; the secret URL uses the Datastore's declared network alias on port 3306."
 icon: "/assets/database-logos/mysql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mysql.webp"
-  alt="API with MySQL logo"
+  alt="MySQL stack logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/api-with-mysql-mysql.datastore.yml"
 id: api-with-mysql-mysql
-name: API with MySQL MySQL
+name: MySQL stack MySQL
 type: mysql
 container:
   network: application
@@ -40,7 +46,7 @@ environments:
 
 ```yaml title=".towbar/services/api-with-mysql-api.service.yml"
 id: api-with-mysql-api
-name: API with MySQL
+name: MySQL stack
 deployment:
   type: dockerfile
   context: .
@@ -57,6 +63,8 @@ secrets:
   runtime:
     - DATABASE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

@@ -1,13 +1,17 @@
 ---
-title: "Dragonfly for a Redis-protocol client"
+title: "Dragonfly client"
 description: "Use type: dragonfly and REDIS_PASSWORD."
 icon: "/assets/database-logos/dragonfly.svg"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/dragonfly.svg"
-  alt="Dragonfly for a Redis-protocol client logo"
+  alt="Dragonfly client logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/dragonfly.svg"
 
 ```yaml title=".towbar/datastores/dragonfly-for-a-redis-protocol-client.datastore.yml"
 id: dragonfly-for-a-redis-protocol-client
-name: Dragonfly for a Redis-protocol client
+name: Dragonfly client
 type: dragonfly
 container:
   network: application

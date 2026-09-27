@@ -1,7 +1,10 @@
 import { attachServerTerminal } from "./areas/servers/terminal-transport.js";
 import { runTemporalHealthCheck } from "./areas/system-health/service.js";
 import type { Server } from "node:http";
-import { wakeAppJobsWorkflow } from "./infrastructure/temporal.js";
+import {
+  ensureDatabaseStorageWorkflow,
+  wakeAppJobsWorkflow,
+} from "./infrastructure/temporal.js";
 import { serve } from "@hono/node-server";
 
 import { app, internalApp } from "./app.js";
@@ -57,6 +60,12 @@ function checkTemporalHealth() {
     .finally(() => {
       temporalHealthCheckRunning = false;
     });
+  void ensureDatabaseStorageWorkflow().catch((error: unknown) => {
+    console.error(
+      "Database storage sampling workflow could not be started",
+      error,
+    );
+  });
 }
 checkTemporalHealth();
 const temporalHealthCheckTimer = setInterval(checkTemporalHealth, 5 * 60_000);

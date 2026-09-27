@@ -176,8 +176,12 @@ async function checkReleaseScreenshots() {
     ),
   );
   const names = new Set();
-  const requiredDimensions = { width: 2560, height: 1440 };
   for (const screenshot of manifest.screenshots) {
+    const viewport = screenshot.viewport ?? { width: 1600, height: 900 };
+    const requiredDimensions = {
+      width: viewport.width * 2,
+      height: viewport.height * 2,
+    };
     if (names.has(screenshot.name))
       failures.push(`Duplicate release screenshot: ${screenshot.name}`);
     names.add(screenshot.name);

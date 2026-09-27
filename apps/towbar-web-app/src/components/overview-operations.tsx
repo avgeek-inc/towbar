@@ -51,7 +51,7 @@ export function OverviewIncidents() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className={`${illustrationStyles.card} relative flex min-h-30 items-center overflow-hidden py-3.5 pr-[38%]`}
+        className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3.5 pr-[38%]`}
         style={
           !query.error && count !== undefined
             ? {

@@ -1,7 +1,11 @@
 ---
-title: "Existing Nixpacks project"
+title: "Nixpacks project"
 description: "Use the pinned nixpacks builder and optional configFile."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Example](/docs/services/modes/nixpacks).
 
@@ -11,7 +15,7 @@ description: "Use the pinned nixpacks builder and optional configFile."
 
 ```yaml title=".towbar/services/existing-nixpacks-project.service.yml"
 id: existing-nixpacks-project
-name: Existing Nixpacks project
+name: Nixpacks project
 deployment:
   type: nixpacks
   context: .

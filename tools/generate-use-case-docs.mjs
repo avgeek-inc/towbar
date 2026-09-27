@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { format, resolveConfig } from "prettier";
 import { parse, stringify } from "yaml";
+import { ossRecipes } from "./oss-use-case-recipes.mjs";
+import { ossComposeRecipes } from "./oss-compose-recipes.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const docs = path.join(root, "docs/docs/use-cases");
@@ -14,7 +16,17 @@ const check = process.argv.includes("--check");
 const server = "192.0.2.10";
 const otherServer = "192.0.2.11";
 const categories = new Set([
-  "oss",
+  "oss/ai",
+  "oss/analytics",
+  "oss/observability",
+  "oss/developer-tools",
+  "oss/security",
+  "oss/content-media",
+  "oss/automation",
+  "oss/collaboration",
+  "oss/files",
+  "oss/notifications",
+  "oss/utilities",
   "services/build",
   "services/runtime",
   "services/operations",
@@ -26,16 +38,27 @@ const categories = new Set([
   "stacks/workers",
 ]);
 
-assert.equal(catalog.length, 100);
 assert.deepEqual(
   catalog.map(({ id }) => id),
-  Array.from({ length: 100 }, (_, index) => index + 1),
+  Array.from({ length: catalog.length }, (_, index) => index + 1),
 );
 assert.equal(
   new Set(catalog.map(({ category, slug }) => `${category}/${slug}`)).size,
-  100,
+  catalog.length,
 );
-for (const entry of catalog) assert.ok(categories.has(entry.category));
+for (const entry of catalog) {
+  assert.ok(categories.has(entry.category));
+  if (entry.category.startsWith("oss/"))
+    assert.doesNotMatch(
+      entry.slug,
+      /^\d+-/,
+      `Numbered OSS slug: ${entry.slug}`,
+    );
+  assert.ok(
+    entry.title.trim().split(/\s+/).length <= 2,
+    `Use-case title is too long: ${entry.title}`,
+  );
+}
 
 function firstYaml(file) {
   const source = fileCache.get(file);
@@ -87,11 +110,36 @@ const productLogos = {
   87: "meilisearch",
   89: "metabase",
   90: "umami",
+  101: "plausibleanalytics",
+  102: "matomo",
+  104: "prometheus",
+  105: "victoriametrics",
+  107: "keycloak",
+  108: "authentik",
+  109: "ghost",
+  110: "wordpress",
+  113: "nodered",
+  115: "searxng",
+  116: "freshrss",
+  118: "hedgedoc",
+  121: "nextcloud",
+  122: "immich",
+  123: "bookstack",
+  124: "calibreweb",
+  125: "photoprism",
+  126: "miniflux.png",
+  127: "ntfy",
+  128: "jenkins",
+  129: "vikunja",
+  131: "excalidraw",
+  135: "actualbudget",
+  136: "audiobookshelf",
+  140: "ollama",
 };
 
 function logoFor(entry) {
   if (productLogos[entry.id])
-    return `/assets/use-case-logos/${productLogos[entry.id]}.svg`;
+    return `/assets/use-case-logos/${productLogos[entry.id]}${productLogos[entry.id].endsWith(".png") ? "" : ".svg"}`;
   if (entry.category.startsWith("datastores/")) {
     const engine = engineGuide[datastoreEngine(entry.id)];
     return `/assets/database-logos/${engine}.${["dragonfly", "keydb"].includes(engine) ? "svg" : "webp"}`;
@@ -115,7 +163,7 @@ function logoFor(entry) {
     return `/assets/database-logos/${stackEngine}.${stackEngine === "dragonfly" ? "svg" : "webp"}`;
   if (entry.id === 33) return "/assets/integration-logos/infisical.webp";
   if (entry.id === 34) return "/assets/integration-logos/doppler.ico";
-  if ([11, 12, 13, 14, 20, 95].includes(entry.id))
+  if ([11, 12, 95].includes(entry.id))
     return "/assets/integration-logos/docker.webp";
   return null;
 }
@@ -216,55 +264,68 @@ function rootFile(previews = false) {
 }
 
 function ossFiles(entry) {
-  const products = {
-    2: ["grafana", 3000],
-    3: ["server", 3000],
-    4: ["server", 3000],
-    5: ["vaultwarden", 80],
-    7: ["metabase", 3000],
-    8: ["webserver", 8000],
-    9: ["meilisearch", 7700],
-    10: ["jellyfin", 8096],
-  };
-  if (entry.id === 1) {
-    const app = service("umami", "Umami", "image");
-    app.deployment.image =
-      "ghcr.io/umami-software/umami:3.4@sha256:6cd9d24a836fac5c226c3c90cb25141d4560b7270b7827f393ccf09bf3f83b18";
-    app.deployment.platform = "linux/amd64";
-    app.container.port = 3000;
-    app.container.network = "application";
-    app.health = { path: "/" };
-    app.secrets = { runtime: ["DATABASE_URL"] };
-    app.domains = { primary: "umami.example.com" };
-    app.tls = { mode: "direct" };
-    const db = datastore("postgres", "umami-postgres");
-    db.name = "Umami PostgreSQL";
-    return [datastoreFile(db), serviceFile(app)];
+  const composeRecipe = ossComposeRecipes[entry.id];
+  if (composeRecipe) {
+    const manifest = compose(
+      caseId(entry),
+      entry.title,
+      composeRecipe.routedService,
+      composeRecipe.port,
+    );
+    if (composeRecipe.private)
+      manifest.services = { [composeRecipe.routedService]: {} };
+    for (const name of composeRecipe.internalServices ?? []) {
+      manifest.services ??= {};
+      manifest.services[name] = {};
+    }
+    if (composeRecipe.values)
+      manifest.secrets = { runtime: Object.keys(composeRecipe.values) };
+    return [composeFile(manifest)];
   }
-  if (entry.id === 6) {
-    const app = service("uptime-kuma", "Uptime Kuma", "image");
-    app.deployment.image = "louislam/uptime-kuma:2";
-    app.container.port = 3001;
-    app.container.volumes = [
-      { name: "data", mountPath: "/app/data", initialData: "image" },
-    ];
-    app.health = { path: "/" };
-    app.rollout = {
-      type: "recreate",
-      maintenanceMode: true,
-      reason: "Single-writer data volume",
-    };
-    app.domains = { primary: "uptime-kuma.example.com" };
-    app.tls = { mode: "direct" };
-    return [serviceFile(app)];
+  const recipe = ossRecipes[entry.id];
+  if (recipe) {
+    const id = caseId(entry);
+    const app = service(id, entry.title, "image");
+    app.deployment.image = recipe.image;
+    delete app.deployment.platform;
+    app.container.port = recipe.port;
+    if (recipe.resources) app.container.resources = recipe.resources;
+    delete app.health;
+    const files = [];
+    for (const engine of recipe.datastores ?? []) {
+      const database = datastore(engine, `${id}-${engine}`);
+      database.name = `${entry.title} ${database.name}`;
+      files.push(datastoreFile(database));
+    }
+    if (recipe.datastores?.length || recipe.public === false)
+      app.container.network = "application";
+    if (recipe.networkAlias) app.container.networkAlias = id;
+    if (recipe.volumes?.length) {
+      app.container.volumes = recipe.volumes.map((mountPath) => ({
+        name: mountPath
+          .split("/")
+          .at(-1)
+          .toLowerCase()
+          .replace(/^[^a-z0-9]+/, ""),
+        mountPath,
+        initialData: "image",
+      }));
+      app.rollout = {
+        type: "recreate",
+        maintenanceMode: true,
+        reason: "Persistent application data uses a single writer",
+      };
+    }
+    if (Object.keys(recipe.values ?? {}).length)
+      app.secrets = { runtime: Object.keys(recipe.values) };
+    if (recipe.public !== false) {
+      app.domains = { primary: `${id}.example.com` };
+      app.tls = { mode: "direct" };
+    }
+    files.push(serviceFile(app));
+    return files;
   }
-  const [serviceName, port] = products[entry.id];
-  const files = [
-    composeFile(
-      compose(entry.slug.replace(/^\d+-/, ""), entry.title, serviceName, port),
-    ),
-  ];
-  return files;
+  throw new Error(`Missing OSS deployment recipe: ${entry.slug}`);
 }
 
 function serviceFiles(entry) {
@@ -369,7 +430,8 @@ function serviceFiles(entry) {
       email: [
         {
           address: "ops@example.com",
-          deployments: true,
+          deployments: false,
+          deploymentFailures: true,
           backupsAndRestores: false,
           alertsAndIncidents: true,
         },
@@ -483,7 +545,7 @@ function stackFiles(entry) {
   }
   if ([89, 90].includes(id)) {
     const product = id === 89 ? "metabase" : "umami";
-    if (id === 90) return ossFiles({ id: 1 });
+    if (id === 90) return ossFiles(catalog.find((item) => item.id === 1));
     files.length = 0;
     const app = compose(product, entry.title, product, 3000);
     files.push(composeFile(app));
@@ -565,17 +627,73 @@ function stackFiles(entry) {
 }
 
 function filesFor(entry) {
-  if (entry.category === "oss") return ossFiles(entry);
+  if (entry.category.startsWith("oss/")) return ossFiles(entry);
   if (entry.category.startsWith("services/")) return serviceFiles(entry);
   if (entry.category.startsWith("datastores/")) return datastoreFiles(entry);
   return stackFiles(entry);
 }
 
-function yamlBlock([file, manifest]) {
-  return `\`\`\`yaml title="${file}"\n${stringify(manifest).trimEnd()}\n\`\`\``;
+function yamlBlock([file, manifest], label = file) {
+  const pathComment = label === file ? "" : `# ${file}\n`;
+  return `\`\`\`yaml title="${label}"\n${pathComment}${stringify(manifest).trimEnd()}\n\`\`\``;
+}
+
+function manifestBlocks(entry, files) {
+  const prefix = entry.slug.replace(/^\d+-/, "");
+  const blocks = files
+    .map(([file, manifest]) => {
+      if (files.length <= 2) return yamlBlock([file, manifest]);
+      let label = manifest.id;
+      if (manifest.id.startsWith(`${prefix}-`))
+        label = manifest.id.slice(prefix.length + 1);
+      else if (manifest.id === prefix)
+        label = file.includes("/datastores/") ? "datastore" : "service";
+      return yamlBlock([file, manifest], label);
+    })
+    .join("\n\n");
+  if (files.length === 1) return blocks;
+  return `<CodeGroup>\n\n${blocks}\n\n</CodeGroup>`;
 }
 
 function configure(entry, files) {
+  const composeRecipe = ossComposeRecipes[entry.id];
+  if (composeRecipe) {
+    const steps = [
+      `Prepare the example server, connect the repository, and map \`production\` to the branch containing these files. Replace the example server IP${composeRecipe.private ? "" : " and domain"}.`,
+      `Commit every file shown below under \`deploy/${caseId(entry)}/\`. The Towbar manifest points to the Compose file; it does not create it for you.`,
+      "Sync the repository and inspect the resolved Compose project. Save the runtime values below if this example declares any.",
+      ...(composeRecipe.steps ?? []),
+      "Deploy it manually and run the verification below before enabling auto-deploy.",
+    ];
+    return steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
+  }
+  const recipe = ossRecipes[entry.id];
+  if (recipe) {
+    const steps = [
+      `Prepare the example server, connect the repository, and map \`production\` to the branch containing these manifests. Replace the example server IP${recipe.public === false ? "" : " and domain"}. Commit the manifests, then sync the repository and inspect the resolved configuration.`,
+    ];
+    if (recipe.datastores?.length)
+      steps.push(
+        `Save the initialization values in the table below for ${recipe.datastores.map((engine) => `the ${engine} Datastore`).join(" and ")} under **Datastore → Settings → Secrets**. Deploy ${recipe.datastores.length === 1 ? "it" : "them"} first and wait for readiness. These values create the database and user only on an empty volume.`,
+      );
+    if (Object.keys(recipe.values ?? {}).length)
+      steps.push(
+        "Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.",
+      );
+    if (recipe.volumes?.length)
+      steps.push(
+        "Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.",
+      );
+    if (recipe.public === false)
+      steps.push(
+        "This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.",
+      );
+    steps.push(
+      "Deploy the Service, then perform the checks below before enabling auto-deploy.",
+    );
+    steps.push(...(recipe.steps ?? []));
+    return steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
+  }
   const steps = [
     "Register and prepare the example server or servers, connect the repository, and map `production` to the branch containing these files.",
   ];
@@ -583,18 +701,13 @@ function configure(entry, files) {
     steps.push(
       "Map `staging` to its repository branch, register its target server, and save staging credentials separately from production.",
     );
-  if (entry.category === "oss" && ![1, 6].includes(entry.id))
+  if (entry.setup) steps.push(...entry.setup);
+  for (const [, manifest] of files.filter(([file]) =>
+    file.endsWith(".compose.yml"),
+  ))
     steps.push(
-      `Copy the current [upstream installation](${entry.upstream}) into the repository at \`deploy/${entry.slug.replace(/^\d+-/, "")}/compose.yml\`. Pin its images, match the Compose service name shown above, and adapt mounts, ports, and networks to [Towbar's Compose restrictions](/docs/services/modes/compose).`,
+      `Commit a Compose file at \`${manifest.file}\` with the declared service name and port. Adapt it to [Towbar's Compose restrictions](/docs/services/modes/compose) before syncing.`,
     );
-  if (entry.category !== "oss") {
-    for (const [, manifest] of files.filter(([file]) =>
-      file.endsWith(".compose.yml"),
-    ))
-      steps.push(
-        `Commit a Compose file at \`${manifest.file}\` with the declared service name and port. Adapt it to [Towbar's Compose restrictions](/docs/services/modes/compose) before syncing.`,
-      );
-  }
   if (files.some(([file]) => file.endsWith(".datastore.yml")))
     steps.push(
       "Save each Datastore credential value under **Datastore → Settings → Secrets**, deploy it first, and verify engine readiness before starting a dependent Service.",
@@ -634,13 +747,9 @@ function configure(entry, files) {
     steps.push(
       "Set `orders-api`'s `DATABASE_URL` to the `orders-postgres` alias and `billing-api`'s URL to `billing-postgres`. Save each value on its own Service; the two Docker networks are local to their servers.",
     );
-  if (entry.id === 1 || entry.id === 90)
+  if (entry.id === 90)
     steps.push(
       "Set the Service's `DATABASE_URL` to `postgresql://<user>:<password>@umami-postgres:5432/<database>`, using the user, name, and password you configured on the Datastore. A Docker network does not copy those values. Change Umami's default administrator password after first login.",
-    );
-  if (entry.id === 10)
-    steps.push(
-      "Add persistent configuration, cache, and media volumes in the upstream Compose file. This example covers HTTP access; DLNA, host networking, and hardware transcoding need capabilities outside this manifest.",
     );
   if (entry.id === 89)
     steps.push(
@@ -654,18 +763,59 @@ function configure(entry, files) {
     steps.push(
       "Create an application-specific user with only the required privileges after the database is ready. Save its connection URL on the consuming Service instead of reusing the Datastore's administrator credentials.",
     );
-  if (entry.category === "oss" && ![1, 6].includes(entry.id))
-    steps.push(
-      "Supply the software's own required environment values and persistent storage according to its upstream guide. A valid Towbar manifest does not make an unadapted upstream Compose file deployable.",
-    );
   steps.push(
     "Sync the repository, inspect the resolved configuration, deploy manually, and perform the verification below before enabling automation.",
   );
   return steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
 }
 
+function datastoreValues(entry, recipe) {
+  if (!recipe?.datastores?.length) return "";
+  const name = caseId(entry).replaceAll("-", "_");
+  const rows = recipe.datastores.flatMap((engine) => {
+    const label = `${entry.title} ${engine}`;
+    if (engine === "postgres")
+      return [
+        [label, "POSTGRES_DB", name],
+        [label, "POSTGRES_USER", name],
+        [
+          label,
+          "POSTGRES_PASSWORD",
+          "Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value.",
+        ],
+      ];
+    if (engine === "mysql" || engine === "mariadb")
+      return [
+        [label, "MYSQL_DATABASE", name],
+        [label, "MYSQL_USER", name],
+        [
+          label,
+          "MYSQL_PASSWORD",
+          "Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value.",
+        ],
+        [
+          label,
+          "MYSQL_ROOT_PASSWORD",
+          "Run `openssl rand -hex 32` again for a separate root password.",
+        ],
+      ];
+    if (engine === "redis")
+      return [
+        [
+          label,
+          "REDIS_PASSWORD",
+          "Run `openssl rand -hex 32`; save its output and use it in the Service broker URL.",
+        ],
+      ];
+    throw new Error(`Missing Datastore secret guidance for ${engine}`);
+  });
+  return `\n## Datastore values\n\nSave these in each Datastore's **Settings → Secrets** before deploying it. Use the suggested names or choose your own, then use the same names and passwords in the Service connection values below.\n\n| Datastore | Key | Suggested value |\n| --- | --- | --- |\n${rows.map(([label, key, value]) => `| ${label} | \`${key}\` | ${value} |`).join("\n")}\n`;
+}
+
 function renderCase(entry) {
   const files = filesFor(entry);
+  const ossRecipe = ossRecipes[entry.id];
+  const ossComposeRecipe = ossComposeRecipes[entry.id];
   const logo = logoFor(entry);
   const logoHeader = logo ? `icon: ${JSON.stringify(logo)}\n` : "";
   const logoElement = logo
@@ -680,9 +830,12 @@ function renderCase(entry) {
   const relatedNote = related.length
     ? `\n**Related reading:** ${related.join(", ")}.\n`
     : "";
-  const composeNote = files.some(([file]) => file.endsWith(".compose.yml"))
-    ? "\nThe Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.\n"
-    : "";
+  const composeNote =
+    !ossRecipe &&
+    !ossComposeRecipe &&
+    files.some(([file]) => file.endsWith(".compose.yml"))
+      ? "\nThe Compose file itself must be committed at the path in the manifest. This page shows Towbar's declaration, not an invented upstream Compose specification. Match the actual service name and internal port when adapting the upstream file.\n"
+      : "";
   const stackNote =
     entry.category.startsWith("stacks/") && files.length > 1
       ? "\nThese are separate files in one repository. A shared Docker network works only when the workloads run on the same server; Towbar does not automatically order their deployments or copy secret values between them.\n"
@@ -703,12 +856,38 @@ function renderCase(entry) {
     guideLinks.push("[Datastore manifest](/docs/datastores/manifest)");
   if (files.some(([file]) => file.endsWith(".compose.yml")))
     guideLinks.push("[Compose guide](/docs/services/modes/compose)");
-  return `---\ntitle: ${JSON.stringify(entry.title)}\ndescription: ${JSON.stringify(
+  const values = ossRecipe?.values ?? ossComposeRecipe?.values;
+  const runtimeValues = values
+    ? `\n## Runtime values\n\nSave these values on the ${ossComposeRecipe ? "Compose project" : "Service"} after the repository sync. The manifest declares required keys, not their values.\n\n| Key | Value to save |\n| --- | --- |\n${Object.entries(
+        values,
+      )
+        .map(([key, value]) => `| \`${key}\` | ${value} |`)
+        .join("\n")}\n`
+    : "";
+  const databaseValues = datastoreValues(entry, ossRecipe);
+  const introduction =
+    ossRecipe || ossComposeRecipe
+      ? `\n${(ossRecipe ?? ossComposeRecipe).why}\n`
+      : "";
+  const verification =
+    ossRecipe?.check ?? ossComposeRecipe?.check ?? entry.verify;
+  const composeFiles = ossComposeRecipe
+    ? `\n## Compose project\n\n${ossComposeRecipe.files.length > 1 ? "<CodeGroup>\n\n" : ""}${ossComposeRecipe.files.map((file) => yamlBlock(file)).join("\n\n")}${ossComposeRecipe.files.length > 1 ? "\n\n</CodeGroup>" : ""}\n`
+    : "";
+  if (entry.category.startsWith("oss/"))
+    assert.ok(entry.description, `Missing OSS description: ${entry.slug}`);
+  const description = (
+    entry.description ??
+    ossRecipe?.why ??
+    ossComposeRecipe?.why ??
     entry.approach
-      .replace(/\s*\[[^\]]+\]\([^)]+\)/g, "")
-      .replaceAll("`", "")
-      .trim(),
-  )}\n${logoHeader}---\n\n${logoElement}${source}${relatedNote}${composeNote}${stackNote}${modeNote}\n## Towbar manifest${files.length > 1 ? "s" : ""}\n\n${files.map(yamlBlock).join("\n\n")}\n\n## Configure\n\n${configure(entry, files)}\n\n## Verify\n\n${entry.verify}\n\nFor field constraints, see ${guideLinks.join(" and ")}.\n`;
+  )
+    .replace(/\s*\[[^\]]+\]\([^)]+\)/g, "")
+    .replaceAll("`", "")
+    .trim();
+  return `---\ntitle: ${JSON.stringify(entry.title)}\ndescription: ${JSON.stringify(
+    description,
+  )}\n${logoHeader}---\n\nimport { UseCaseNavigation } from '/snippets/use-case-navigation.jsx';\n\n<UseCaseNavigation />\n\n${logoElement}${source}${relatedNote}${introduction}${composeNote}${stackNote}${modeNote}\n## Towbar manifest${files.length > 1 ? "s" : ""}\n\n${manifestBlocks(entry, files)}\n${composeFiles}\n## Configure\n\n${configure(entry, files)}\n${databaseValues}${runtimeValues}\n## Verify\n\n${verification}\n\nFor field constraints, see ${guideLinks.join(" and ")}.\n`;
 }
 
 const expected = new Map();

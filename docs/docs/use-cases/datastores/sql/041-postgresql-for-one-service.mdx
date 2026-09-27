@@ -1,13 +1,17 @@
 ---
-title: "PostgreSQL for one Service"
+title: "Single-service PostgreSQL"
 description: "Set type: postgres, a private network, and the required POSTGRES_PASSWORD."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="PostgreSQL for one Service logo"
+  alt="Single-service PostgreSQL logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/postgresql-for-one-service.datastore.yml"
 id: postgresql-for-one-service
-name: PostgreSQL for one Service
+name: Single-service PostgreSQL
 type: postgres
 container:
   network: application

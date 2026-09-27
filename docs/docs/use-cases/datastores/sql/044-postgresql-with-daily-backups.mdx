@@ -1,13 +1,17 @@
 ---
-title: "PostgreSQL with daily backups"
+title: "PostgreSQL backups"
 description: "Add a with an enabled provider, daily cron, and retention."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="PostgreSQL with daily backups logo"
+  alt="PostgreSQL backups logo"
   aria-hidden="true"
 />
 
@@ -17,7 +21,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/postgresql-with-daily-backups.datastore.yml"
 id: postgresql-with-daily-backups
-name: PostgreSQL with daily backups
+name: PostgreSQL backups
 type: postgres
 container:
   network: application

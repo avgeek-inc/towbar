@@ -1,0 +1,122 @@
+---
+title: "BookStack"
+description: "BookStack organizes documentation into books, chapters, and pages for teams."
+icon: "/assets/use-case-logos/bookstack.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/bookstack.svg"
+  alt="BookStack logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://docs.linuxserver.io/images/docker-bookstack/).
+
+MariaDB stores books and users; `/config` holds application files and uploads. Keep the generated `APP_KEY` stable after first deployment.
+
+## Towbar manifests
+
+<CodeGroup>
+
+```yaml title=".towbar/datastores/bookstack-mariadb.datastore.yml"
+id: bookstack-mariadb
+name: BookStack MariaDB
+type: mariadb
+container:
+  network: application
+  networkAlias: bookstack-mariadb
+  resources:
+    cpus: 1
+    memory: 1g
+secrets:
+  runtime:
+    - MYSQL_ROOT_PASSWORD
+    - MYSQL_DATABASE
+    - MYSQL_USER
+    - MYSQL_PASSWORD
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+```yaml title=".towbar/services/bookstack.service.yml"
+id: bookstack
+name: BookStack
+buildServer: null
+deployment:
+  type: image
+  image: lscr.io/linuxserver/bookstack:25.07.3
+container:
+  port: 80
+  network: application
+  volumes:
+    - name: config
+      mountPath: /config
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+secrets:
+  runtime:
+    - APP_URL
+    - APP_KEY
+    - DB_HOST
+    - DB_PORT
+    - DB_DATABASE
+    - DB_USERNAME
+    - DB_PASSWORD
+domains:
+  primary: bookstack.example.com
+tls:
+  mode: direct
+```
+
+</CodeGroup>
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Save the initialization values in the table below for the mariadb Datastore under **Datastore → Settings → Secrets**. Deploy it first and wait for readiness. These values create the database and user only on an empty volume.
+3. Set the Service's declared runtime values under **Service → Settings → Secrets** using the table below. Replace descriptions and placeholders with actual values; do not commit passwords or keys.
+4. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+5. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Datastore values
+
+Save these in each Datastore's **Settings → Secrets** before deploying it. Use the suggested names or choose your own, then use the same names and passwords in the Service connection values below.
+
+| Datastore         | Key                   | Suggested value                                                                           |
+| ----------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| BookStack mariadb | `MYSQL_DATABASE`      | bookstack                                                                                 |
+| BookStack mariadb | `MYSQL_USER`          | bookstack                                                                                 |
+| BookStack mariadb | `MYSQL_PASSWORD`      | Run `openssl rand -hex 32`; save its output and reuse it in the Service connection value. |
+| BookStack mariadb | `MYSQL_ROOT_PASSWORD` | Run `openssl rand -hex 32` again for a separate root password.                            |
+
+## Runtime values
+
+Save these values on the Service after the repository sync. The manifest declares required keys, not their values.
+
+| Key           | Value to save                               |
+| ------------- | ------------------------------------------- |
+| `APP_URL`     | https://bookstack.example.com               |
+| `APP_KEY`     | Generate with the image's `appkey` command. |
+| `DB_HOST`     | bookstack-mariadb                           |
+| `DB_PORT`     | 3306                                        |
+| `DB_DATABASE` | Same value as MYSQL_DATABASE.               |
+| `DB_USERNAME` | Same value as MYSQL_USER.                   |
+| `DB_PASSWORD` | Same value as MYSQL_PASSWORD.               |
+
+## Verify
+
+Create a page with an attachment, redeploy, and confirm both are still available.
+
+For field constraints, see [Service manifest](/docs/services/manifest) and [Datastore manifest](/docs/datastores/manifest).

@@ -1,13 +1,19 @@
 ---
-title: "Service plus Redis"
+title: "Redis service"
 description: "Share a private network and save an authenticated Redis URL as a runtime secret."
 ---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Redis](/docs/databases/redis).
 
 `context: .` means the repository root. The source project, start command, and health endpoint must match the selected build mode.
 
 ## Towbar manifests
+
+<CodeGroup>
 
 ```yaml title=".towbar/datastores/service-plus-redis-redis.datastore.yml"
 id: service-plus-redis-redis
@@ -29,7 +35,7 @@ environments:
 
 ```yaml title=".towbar/services/service-plus-redis.service.yml"
 id: service-plus-redis
-name: Service plus Redis
+name: Redis service
 deployment:
   type: dockerfile
   context: .
@@ -46,6 +52,8 @@ secrets:
   runtime:
     - REDIS_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

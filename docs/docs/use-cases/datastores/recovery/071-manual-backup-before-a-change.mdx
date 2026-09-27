@@ -1,13 +1,17 @@
 ---
-title: "Manual backup before a change"
+title: "Manual backup"
 description: "Configure an enabled storage provider and choose **Back up now**."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/postgresql.webp"
-  alt="Manual backup before a change logo"
+  alt="Manual backup logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/postgresql.webp"
 
 ```yaml title=".towbar/datastores/manual-backup-before-a-change.datastore.yml"
 id: manual-backup-before-a-change
-name: Manual backup before a change
+name: Manual backup
 type: postgres
 container:
   network: application

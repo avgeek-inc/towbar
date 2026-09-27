@@ -1,13 +1,17 @@
 ---
-title: "Redis with operator tunnel"
+title: "Redis tunnel"
 description: "Add access.sshTunnel.hostPort."
 icon: "/assets/database-logos/redis.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/redis.webp"
-  alt="Redis with operator tunnel logo"
+  alt="Redis tunnel logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/redis.webp"
 
 ```yaml title=".towbar/datastores/redis-with-operator-tunnel.datastore.yml"
 id: redis-with-operator-tunnel
-name: Redis with operator tunnel
+name: Redis tunnel
 type: redis
 container:
   network: application

@@ -1,1 +1,3 @@
 Logos sourced from Simple Icons (https://github.com/simple-icons/simple-icons), CC0 1.0. Product names and trademarks belong to their respective owners.
+PhotoPrism logo from the PhotoPrism project (https://github.com/photoprism/photoprism).
+Miniflux logo from the official Miniflux GitHub organization (https://github.com/miniflux).

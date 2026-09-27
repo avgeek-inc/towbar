@@ -1,0 +1,60 @@
+---
+title: "Uptime Kuma"
+description: "Uptime Kuma monitors websites and services and displays their availability on status pages."
+icon: "/assets/use-case-logos/uptimekuma.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/uptimekuma.svg"
+  alt="Uptime Kuma logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install).
+
+Uptime Kuma stores users, monitors, and status pages in its SQLite database under `/app/data`. It does not need a separate Datastore for a small instance; keep the Service volume on local storage that supports file locking.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/uptime-kuma.service.yml"
+id: uptime-kuma
+name: Uptime Kuma
+buildServer: null
+deployment:
+  type: image
+  image: louislam/uptime-kuma:2
+container:
+  port: 3001
+  volumes:
+    - name: data
+      mountPath: /app/data
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: uptime-kuma.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Create a monitor and a status page, redeploy, and verify both and their history remain. Keep a backup of the `/app/data` volume.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

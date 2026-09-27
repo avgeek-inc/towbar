@@ -45,11 +45,11 @@ export function PasskeySettings() {
         }
       >
         <div className="content-grid">
-          <FieldDescription>
+          <p className="text-sm text-muted">
             Verify your sign-in after entering your password with your
             fingerprint, face, or device PIN. Passkeys can be stored on your
             device or in your password manager.
-          </FieldDescription>
+          </p>
           {keys.error ? (
             <QueryError message={keys.error} />
           ) : !keys.data ? (
@@ -66,7 +66,7 @@ export function PasskeySettings() {
                       {key.name || "Passkey"}
                     </p>
                     <time
-                      className="text-sm text-muted"
+                      className="text-xs text-muted"
                       dateTime={key.createdAt}
                     >
                       Created {displayDate(key.createdAt)}

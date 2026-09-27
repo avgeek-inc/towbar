@@ -20,7 +20,7 @@ import {
   EmailPasswordSettings,
   SessionSettings,
 } from "./settings-pages";
-import { hasHttpsExternalAccess } from "@/lib/config";
+import { canShowApiMcpSettings } from "@/lib/config";
 
 type AccountSettingsPage =
   | "profile"
@@ -39,7 +39,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
   }> = [
     { title: "Account", pages: ["profile", "preferences"] },
     { title: "Security", pages: ["email-password", "2fa", "sessions"] },
-    ...(hasHttpsExternalAccess()
+    ...(canShowApiMcpSettings()
       ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
       : []),
   ];

@@ -1,5 +1,6 @@
 import {
   boolean,
+  bigint,
   check,
   foreignKey,
   index,
@@ -963,6 +964,7 @@ export const notificationEmailDestinations = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     email: varchar("email", { length: 320 }).notNull(),
     deployments: boolean("deployments").default(false).notNull(),
+    deploymentFailures: boolean("deployment_failures").default(false).notNull(),
     health: boolean("health").default(false).notNull(),
     backupsAndRestores: boolean("backups_and_restores")
       .default(false)
@@ -1005,6 +1007,7 @@ export const notificationSlackDestinations = pgTable(
       .default([])
       .notNull(),
     deployments: boolean("deployments").default(false).notNull(),
+    deploymentFailures: boolean("deployment_failures").default(false).notNull(),
     health: boolean("health").default(false).notNull(),
     backupsAndRestores: boolean("backups_and_restores")
       .default(false)
@@ -1031,6 +1034,7 @@ export const notificationDiscordRouteSettings = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     routeId: varchar("route_id", { length: 255 }).notNull(),
     deployments: boolean("deployments").default(false).notNull(),
+    deploymentFailures: boolean("deployment_failures").default(false).notNull(),
     backupsAndRestores: boolean("backups_and_restores")
       .default(false)
       .notNull(),
@@ -1055,6 +1059,7 @@ export const notificationWebhookRouteSettings = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     routeId: varchar("route_id", { length: 255 }).notNull(),
     deployments: boolean("deployments").default(false).notNull(),
+    deploymentFailures: boolean("deployment_failures").default(false).notNull(),
     backupsAndRestores: boolean("backups_and_restores")
       .default(false)
       .notNull(),
@@ -1097,6 +1102,7 @@ export const notificationTelegramDestinations = pgTable(
       .default([])
       .notNull(),
     deployments: boolean("deployments").default(false).notNull(),
+    deploymentFailures: boolean("deployment_failures").default(false).notNull(),
     backupsAndRestores: boolean("backups_and_restores")
       .default(false)
       .notNull(),
@@ -2343,6 +2349,17 @@ export const systemHealthSignals = pgTable(
       table.component,
     ),
   ],
+);
+
+export const databaseStorageSamples = pgTable(
+  "towbar_database_storage_samples",
+  {
+    sampledAt: timestamp("sampled_at", { withTimezone: true })
+      .defaultNow()
+      .primaryKey(),
+    towbarBytes: bigint("towbar_bytes", { mode: "number" }).notNull(),
+    monitoringBytes: bigint("monitoring_bytes", { mode: "number" }).notNull(),
+  },
 );
 
 // Secret configuration is independent of manifest snapshots. Foreign keys retain

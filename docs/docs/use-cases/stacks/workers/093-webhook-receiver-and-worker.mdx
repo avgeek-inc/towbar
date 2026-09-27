@@ -1,13 +1,17 @@
 ---
-title: "Webhook receiver and worker"
+title: "Webhook worker"
 description: "Keep the receiver public, worker private, and share a cache or database on one server."
 icon: "/assets/database-logos/redis.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/redis.webp"
-  alt="Webhook receiver and worker logo"
+  alt="Webhook worker logo"
   aria-hidden="true"
 />
 
@@ -15,9 +19,12 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
-```yaml title=".towbar/datastores/webhook-receiver-and-worker-redis.datastore.yml"
+<CodeGroup>
+
+```yaml title="redis"
+# .towbar/datastores/webhook-receiver-and-worker-redis.datastore.yml
 id: webhook-receiver-and-worker-redis
-name: Webhook receiver and worker Redis
+name: Webhook worker Redis
 type: redis
 container:
   network: application
@@ -33,9 +40,10 @@ environments:
     server: 192.0.2.10
 ```
 
-```yaml title=".towbar/services/webhook-receiver-and-worker-api.service.yml"
+```yaml title="api"
+# .towbar/services/webhook-receiver-and-worker-api.service.yml
 id: webhook-receiver-and-worker-api
-name: Webhook receiver and worker
+name: Webhook worker
 deployment:
   type: dockerfile
   context: .
@@ -57,7 +65,8 @@ tls:
   mode: direct
 ```
 
-```yaml title=".towbar/services/webhook-receiver-and-worker-worker.service.yml"
+```yaml title="worker"
+# .towbar/services/webhook-receiver-and-worker-worker.service.yml
 id: webhook-receiver-and-worker-worker
 name: Worker
 deployment:
@@ -76,6 +85,8 @@ secrets:
   runtime:
     - QUEUE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

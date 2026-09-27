@@ -1,13 +1,17 @@
 ---
-title: "MariaDB with SSH access"
+title: "MariaDB tunnel"
 description: "Add a loopback-only SSH tunnel port and keep regular app traffic private."
 icon: "/assets/database-logos/mariadb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mariadb.webp"
-  alt="MariaDB with SSH access logo"
+  alt="MariaDB tunnel logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mariadb.webp"
 
 ```yaml title=".towbar/datastores/mariadb-with-ssh-access.datastore.yml"
 id: mariadb-with-ssh-access
-name: MariaDB with SSH access
+name: MariaDB tunnel
 type: mariadb
 container:
   network: application

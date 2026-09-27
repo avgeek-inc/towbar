@@ -1,0 +1,63 @@
+---
+title: "LocalAI"
+description: "LocalAI runs AI models locally behind an API compatible with common model clients."
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+**Upstream source:** [Current installation guide](https://localai.io/docs/getting-started/).
+
+LocalAI's CPU image needs persistent locations for models, backend files, configuration, and application data. Keep its API private until you configure authentication and choose a model that fits the server's hardware.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/localai.service.yml"
+id: localai
+name: LocalAI
+buildServer: null
+deployment:
+  type: image
+  image: localai/localai@sha256:0632c21ddbe440bb71bc7aa744796c227a51658641b216290e86d6894e1c705b
+container:
+  port: 8080
+  resources:
+    cpus: 4
+    memory: 8g
+  network: application
+  networkAlias: localai
+  volumes:
+    - name: models
+      mountPath: /models
+      initialData: image
+    - name: backends
+      mountPath: /backends
+      initialData: image
+    - name: configuration
+      mountPath: /configuration
+      initialData: image
+    - name: data
+      mountPath: /data
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. This manifest has no public domain. Use a trusted connection to the server for the first check. Add a public route only after configuring the product's authentication or an access gateway.
+4. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Access the private UI from a trusted connection, install a small compatible model, and query `/v1/models`. Verify the model remains installed after redeployment.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

@@ -1,0 +1,60 @@
+---
+title: "Actual Budget"
+description: "Actual Budget helps you plan spending and track personal finances."
+icon: "/assets/use-case-logos/actualbudget.svg"
+---
+
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
+<img
+  className="towbar-doc-brand-logo"
+  src="/assets/use-case-logos/actualbudget.svg"
+  alt="Actual Budget logo"
+  aria-hidden="true"
+/>
+
+**Upstream source:** [Current installation guide](https://actualbudget.org/docs/install/docker/).
+
+Actual stores its server files and user budgets under `/data`. The example HTTPS route provides the secure browser context its web app needs; no external Datastore is required.
+
+## Towbar manifest
+
+```yaml title=".towbar/services/actual-budget.service.yml"
+id: actual-budget
+name: Actual Budget
+buildServer: null
+deployment:
+  type: image
+  image: actualbudget/actual-server@sha256:552beab3dec8c93d46b8b9245612d63c3f123b8a45063a474f53e229b17621d3
+container:
+  port: 5006
+  volumes:
+    - name: data
+      mountPath: /data
+      initialData: image
+environments:
+  production:
+    server: 192.0.2.10
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Persistent application data uses a single writer
+domains:
+  primary: actual-budget.example.com
+tls:
+  mode: direct
+```
+
+## Configure
+
+1. Prepare the example server, connect the repository, and map `production` to the branch containing these manifests. Replace the example server IP and domain. Commit the manifests, then sync the repository and inspect the resolved configuration.
+2. Keep the Service's named volumes attached across deployments. Towbar's Datastore backup policy does not back up Service volumes, so include them in your own recovery plan.
+3. Deploy the Service, then perform the checks below before enabling auto-deploy.
+
+## Verify
+
+Create a budget and sample transaction, redeploy, and confirm both remain. Back up the `/data` volume before changing versions.
+
+For field constraints, see [Service manifest](/docs/services/manifest).

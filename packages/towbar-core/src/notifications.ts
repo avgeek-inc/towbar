@@ -12,6 +12,7 @@ export type NotificationProvider = z.infer<typeof notificationProviderSchema>;
 
 export const notificationCategories = [
   "deployments",
+  "deploymentFailures",
   "health",
   "backups",
   "restores",
@@ -195,6 +196,7 @@ export const telegramNotificationConfigSchema = z
 const manifestSubscriptionSchema = z
   .object({
     deployments: z.boolean(),
+    deploymentFailures: z.boolean().optional(),
     backupsAndRestores: z.boolean(),
     alertsAndIncidents: z.boolean(),
   })
@@ -562,4 +564,17 @@ export function notificationCategoryForEvent(
   if (type.startsWith("scout.")) return "scout";
   if (type.startsWith("restore.")) return "restores";
   return "test";
+}
+
+export function notificationMatchesSubscription(
+  type: NotificationEventType,
+  categories: readonly NotificationCategory[],
+): boolean {
+  const category = notificationCategoryForEvent(type);
+  return (
+    category === "test" ||
+    categories.includes(category) ||
+    ((type === "deployment.failed" || type === "preview.failed") &&
+      categories.includes("deploymentFailures"))
+  );
 }

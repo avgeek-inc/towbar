@@ -1,13 +1,17 @@
 ---
-title: "MySQL for an API"
+title: "MySQL API"
 description: "Use type: mysql, a private network, and MYSQL_ROOT_PASSWORD."
 icon: "/assets/database-logos/mysql.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mysql.webp"
-  alt="MySQL for an API logo"
+  alt="MySQL API logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mysql.webp"
 
 ```yaml title=".towbar/datastores/mysql-for-an-api.datastore.yml"
 id: mysql-for-an-api
-name: MySQL for an API
+name: MySQL API
 type: mysql
 container:
   network: application

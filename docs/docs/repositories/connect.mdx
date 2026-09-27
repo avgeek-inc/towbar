@@ -13,6 +13,8 @@ A Repository is a connection to one GitHub or GitLab project. Towbar reads its c
 
 For example, the root file declares environment names, while the Service file declares a workload:
 
+<CodeGroup>
+
 ```yaml title="towbar.yml"
 version: 2
 environments:
@@ -33,6 +35,8 @@ environments:
   production:
     server: 192.0.2.10
 ```
+
+</CodeGroup>
 
 Replace the example IP with a registered server. The entity's `id` is its durable identity; `name` is a display label.
 

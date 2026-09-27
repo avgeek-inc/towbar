@@ -1,13 +1,17 @@
 ---
-title: "Web sessions with Redis"
+title: "Session stack"
 description: "Web Service + redis Datastore; use a secret authenticated URL."
 icon: "/assets/database-logos/redis.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/redis.webp"
-  alt="Web sessions with Redis logo"
+  alt="Session stack logo"
   aria-hidden="true"
 />
 
@@ -17,9 +21,11 @@ These are separate files in one repository. A shared Docker network works only w
 
 ## Towbar manifests
 
+<CodeGroup>
+
 ```yaml title=".towbar/datastores/web-sessions-with-redis-redis.datastore.yml"
 id: web-sessions-with-redis-redis
-name: Web sessions with Redis Redis
+name: Session stack Redis
 type: redis
 container:
   network: application
@@ -37,7 +43,7 @@ environments:
 
 ```yaml title=".towbar/services/web-sessions-with-redis-api.service.yml"
 id: web-sessions-with-redis-api
-name: Web sessions with Redis
+name: Session stack
 deployment:
   type: dockerfile
   context: .
@@ -54,6 +60,8 @@ secrets:
   runtime:
     - CACHE_URL
 ```
+
+</CodeGroup>
 
 ## Configure
 

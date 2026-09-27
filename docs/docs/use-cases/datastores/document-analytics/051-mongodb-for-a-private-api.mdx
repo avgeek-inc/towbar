@@ -1,13 +1,17 @@
 ---
-title: "MongoDB for a private API"
+title: "MongoDB API"
 description: "Use type: mongodb and the same container.network as the API."
 icon: "/assets/database-logos/mongodb.webp"
 ---
 
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/database-logos/mongodb.webp"
-  alt="MongoDB for a private API logo"
+  alt="MongoDB API logo"
   aria-hidden="true"
 />
 
@@ -15,7 +19,7 @@ icon: "/assets/database-logos/mongodb.webp"
 
 ```yaml title=".towbar/datastores/mongodb-for-a-private-api.datastore.yml"
 id: mongodb-for-a-private-api
-name: MongoDB for a private API
+name: MongoDB API
 type: mongodb
 container:
   network: application

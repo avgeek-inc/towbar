@@ -16,10 +16,9 @@ notifications:
         headers:
           Authorization: "Bearer <receiver-token>"
         signingSecret: "<at-least-32-character-signing-secret>"
-  routes: []
 ```
 
-IDs must be unique and stable because queued deliveries refer to them. Run `sudo towbar config validate` and `sudo towbar restart`, then open **Manage → Notifications → Webhook push**. Towbar displays the label and hostname, not the full URL or secrets. Select **Deployments**, **Backup & Restore**, and **Alerts & Incidents** for each endpoint. New endpoints start with no subscriptions.
+IDs must be unique and stable because queued deliveries refer to them. Run `sudo towbar config validate` and `sudo towbar restart`, then open **Manage → Notifications → Webhook push**. Towbar displays the label and hostname, not the full URL or secrets. Choose **All** or **Failures only** for deployments, and select **Backup & Restore** and **Incidents** independently for each endpoint. New endpoints start with no subscriptions.
 
 ## Verify the receiver
 
@@ -32,8 +31,8 @@ Towbar rejects credentials embedded in URLs, custom ports, private-network desti
     <img
       src="/assets/release-v2/webhook-notifications-light.jpg"
       alt="Webhook push endpoints and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>
@@ -41,8 +40,8 @@ Towbar rejects credentials embedded in URLs, custom ports, private-network desti
     <img
       src="/assets/release-v2/webhook-notifications-dark.jpg"
       alt="Webhook push endpoints and category subscriptions in Towbar."
-      width="2560"
-      height="1440"
+      width="3200"
+      height="1800"
       loading="lazy"
     />
   </div>

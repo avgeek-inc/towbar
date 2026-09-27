@@ -12,6 +12,10 @@ import { slackNotificationRoutes } from "./slack-destinations.js";
 import { discordNotificationRoutes } from "./discord-destinations.js";
 import { telegramNotificationRoutes } from "./telegram-destinations.js";
 import { webhookNotificationRoutes } from "./webhook-destinations.js";
+import {
+  deploymentSubscriptionCategories,
+  hasOneDeploymentSubscription,
+} from "./deployment-subscriptions.js";
 
 export const emailDestinationsSchema = z
   .object({
@@ -21,10 +25,15 @@ export const emailDestinationsSchema = z
           .object({
             email: z.string().trim().email().max(320),
             deployments: z.boolean(),
+            deploymentFailures: z.boolean(),
             backupsAndRestores: z.boolean(),
             scout: z.boolean(),
           })
-          .strict(),
+          .strict()
+          .refine(
+            hasOneDeploymentSubscription,
+            "Choose one deployment subscription",
+          ),
       )
       .max(100)
       .refine(
@@ -49,10 +58,14 @@ function legacyEmailDestinations(): EmailDestinationInput[] {
       const row = byEmail.get(email) ?? {
         email,
         deployments: false,
+        deploymentFailures: false,
         backupsAndRestores: false,
         scout: false,
       };
       row.deployments ||= route.categories.includes("deployments");
+      row.deploymentFailures ||=
+        route.categories.includes("deploymentFailures");
+      if (row.deployments) row.deploymentFailures = false;
       row.backupsAndRestores ||=
         route.categories.includes("backups") ||
         route.categories.includes("restores");
@@ -158,7 +171,7 @@ export async function emailNotificationRoutes(workspaceId: string) {
     provider: "smtp" as const,
     enabled: true,
     categories: [
-      ...(row.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(row),
       ...(row.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),
@@ -209,7 +222,7 @@ export async function emailNotificationRoute(
     provider: "smtp" as const,
     enabled: true,
     categories: [
-      ...(row.deployments ? ["deployments" as const] : []),
+      ...deploymentSubscriptionCategories(row),
       ...(row.backupsAndRestores
         ? ["backups" as const, "restores" as const]
         : []),

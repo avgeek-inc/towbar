@@ -118,7 +118,6 @@ class RuntimeConfigTests(unittest.TestCase):
                             }
                         ]
                     },
-                    "routes": [],
                 },
             }
             yml.write_text(config_tool.yaml.safe_dump(config))

@@ -360,6 +360,10 @@ export function documentationTopic(pathname: string): Topic | undefined {
 }
 
 export const widgetDocumentation: Record<string, HeadingDocumentation> = {
+  "database storage": guide(
+    "monitoring#database-storage",
+    "See what Towbar Data and Monitoring Data include, how often they are sampled, and what the chart excludes.",
+  ),
   "server setup": documentationTopics.preparation,
   "server inspection": guide(
     "servers#prepare-the-runtime",

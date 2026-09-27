@@ -1,15 +1,11 @@
 ---
-title: "Private package at build time"
+title: "Private packages"
 description: "Declare secrets.build and mount it through BuildKit in a Dockerfile."
-icon: "/assets/integration-logos/docker.webp"
 ---
 
-<img
-  className="towbar-doc-brand-logo"
-  src="/assets/integration-logos/docker.webp"
-  alt="Private package at build time logo"
-  aria-hidden="true"
-/>
+import { UseCaseNavigation } from "/snippets/use-case-navigation.jsx";
+
+<UseCaseNavigation />
 
 **Related reading:** [Secrets](/docs/secrets/towbar).
 
@@ -19,7 +15,7 @@ icon: "/assets/integration-logos/docker.webp"
 
 ```yaml title=".towbar/services/private-package-at-build-time.service.yml"
 id: private-package-at-build-time
-name: Private package at build time
+name: Private packages
 deployment:
   type: dockerfile
   context: .
