@@ -1,5 +1,3 @@
-import { useLayoutEffect } from "react";
-
 export const UseCaseNavigation = () => {
   useLayoutEffect(() => {
     const storageKey = "towbar-use-case-open-groups";
