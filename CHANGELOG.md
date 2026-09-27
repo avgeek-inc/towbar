@@ -5,12 +5,16 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.16] - 2026-09-27
+
 ### Added
 
 - MCP clients can sign in through OAuth with explicit consent and personal
   tokens that expire after 30 days. API keys show the token type and saved MCP
   client attribution; audit actions include that attribution. Existing API keys
   keep their permissions and expiry.
+- An opt-in public demo gives each visitor an isolated, ten-minute sandbox with
+  sample Services, Datastores, servers, and safe simulated actions.
 
 ## [2.0.15] - 2026-09-27
 
