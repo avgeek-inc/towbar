@@ -117,11 +117,18 @@ export function ScoutAnalytics({
         field,
         kind,
         days: String(days),
-        search,
+        search: field === "country" ? "" : search,
       });
-      return api.get<string[]>(
+      const options = await api.get<string[]>(
         `/v1/core/apps/${appId}/analytics/filter-options?${params}`,
       );
+      return field === "country"
+        ? options.filter((code) =>
+            `${code} ${/^[A-Z]{2}$/u.test(code) ? (countryNames.of(code) ?? "") : ""}`
+              .toLowerCase()
+              .includes(search.toLowerCase()),
+          )
+        : options;
     },
     [appId, days, kind],
   );
@@ -162,6 +169,28 @@ export function ScoutAnalytics({
             value={filters}
             onChange={setFilters}
             getOptions={getFilterOptions}
+            renderOption={(field, value) => (
+              <span className="flex min-w-0 items-center gap-2">
+                {field === "country" ? (
+                  <span aria-hidden="true" className="w-5 shrink-0 text-center">
+                    {/^[A-Z]{2}$/u.test(value)
+                      ? String.fromCodePoint(
+                          ...[...value].map(
+                            (letter) => 0x1f1e6 + letter.charCodeAt(0) - 65,
+                          ),
+                        )
+                      : "🌐"}
+                  </span>
+                ) : (
+                  <AnalyticsRowIcon dimension={field} value={value} />
+                )}
+                <span className="truncate">
+                  {field === "country" && value !== "Unknown"
+                    ? (countryNames.of(value) ?? value)
+                    : value}
+                </span>
+              </span>
+            )}
           />
         }
       />

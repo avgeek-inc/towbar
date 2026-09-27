@@ -291,7 +291,7 @@ export async function getAnalyticsFilterOptions(input: {
       and s.collected_at<${end.toISOString()}::timestamptz
       and c->>'kind'=${input.kind}
       and position(lower(${input.search}::text) in lower(${field})) > 0
-    group by 1 order by sum((c->>'count')::bigint) desc,1 limit 50`);
+    group by 1 order by sum((c->>'count')::bigint) desc,1 limit ${input.field === "country" ? 250 : 50}`);
   return rows.map((row) => row.value);
 }
 

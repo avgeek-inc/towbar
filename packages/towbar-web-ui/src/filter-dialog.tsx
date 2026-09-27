@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { Cancel01Icon, FilterIcon } from "@hugeicons/core-free-icons";
+import type { ReactNode } from "react";
+import {
+  ArrowDown01Icon,
+  Cancel01Icon,
+  FilterIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -10,6 +15,7 @@ import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import { SearchField } from "@workspace/web-design-system/pickers/autocomplete";
+import { Popover } from "@workspace/web-design-system/overlays/popover";
 
 export type FilterCondition<Field extends string, Operator extends string> = {
   field: Field;
@@ -31,12 +37,14 @@ export function FilterDialog<Field extends string, Operator extends string>({
   value,
   onChange,
   getOptions,
+  renderOption,
   maxConditions = 8,
 }: {
   fields: readonly FilterField<Field, Operator>[];
   value: FilterCondition<Field, Operator>[];
   onChange: (value: FilterCondition<Field, Operator>[]) => void;
   getOptions?: (field: Field, search: string) => Promise<string[]>;
+  renderOption?: (field: Field, value: string) => ReactNode;
   maxConditions?: number;
 }) {
   const formId = useId();
@@ -95,7 +103,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
             <Modal.Body>
               <form
                 id={formId}
-                className="space-y-4"
+                className="space-y-2"
                 onSubmit={(event) => {
                   event.preventDefault();
                   onChange(
@@ -168,6 +176,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                                 : []
                             }
                             getOptions={getOptions}
+                            renderOption={renderOption}
                             onChange={(value) =>
                               update(index, { ...condition, value })
                             }
@@ -310,6 +319,7 @@ function FilterValueSelect<Field extends string>({
   value,
   onChange,
   getOptions,
+  renderOption,
 }: {
   field: Field;
   label: string;
@@ -317,6 +327,7 @@ function FilterValueSelect<Field extends string>({
   value: string[];
   onChange: (value: string[]) => void;
   getOptions: (field: Field, search: string) => Promise<string[]>;
+  renderOption?: (field: Field, value: string) => ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<string[]>([]);
@@ -344,84 +355,70 @@ function FilterValueSelect<Field extends string>({
       clearTimeout(timer);
     };
   }, [field, getOptions, search]);
-  const visible = options.filter((item) => !value.includes(item));
+  const visible = [...new Set([...value, ...options])];
   return (
-    <div className="grid min-w-0 gap-2">
-      <Select
-        className="min-w-0"
-        aria-label={label}
-        selectedKey={null}
-        variant="secondary"
-        isDisabled={value.length >= 20}
-        onSelectionChange={(key) => {
-          if (key !== null && !value.includes(String(key)))
-            onChange([...value, String(key)]);
-        }}
-      >
-        <Label className={hideLabel ? "sr-only" : ""}>Value</Label>
-        <Select.Trigger>
-          <Select.Value>
+    <div className="select select--secondary min-w-0">
+      <span className={`label ${hideLabel ? "sr-only" : ""}`}>Value</span>
+      <Popover>
+        <Popover.Trigger className="select__trigger" aria-label={label}>
+          <span className="select__value">
             {value.length ? `${value.length} selected` : "Choose values"}
-          </Select.Value>
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover className="w-(--trigger-width) min-w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden">
-          <SearchField
-            aria-label="Search values"
-            className="px-2 pt-2"
-            variant="secondary"
-            value={search}
-            onChange={setSearch}
-          >
-            <SearchField.Group className="rounded-md">
-              <SearchField.SearchIcon />
-              <SearchField.Input
-                className="text-base sm:text-sm"
-                placeholder="Search values…"
-                maxLength={100}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <SearchField.ClearButton aria-label="Clear value search" />
-            </SearchField.Group>
-          </SearchField>
-          {error ? (
-            <p className="px-3 py-2 text-sm text-danger">
-              Couldn’t load values. Try again.
-            </p>
-          ) : null}
-          <ListBox>
-            {visible.map((item) => (
-              <ListBox.Item key={item} id={item} textValue={item}>
-                {item}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </Select.Popover>
-      </Select>
-      {value.length ? (
-        <div className="flex flex-wrap gap-1" aria-label="Selected values">
-          {value.map((item) => (
-            <Button
-              key={item}
+          </span>
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            className="size-4 text-muted"
+            aria-hidden="true"
+          />
+        </Popover.Trigger>
+        <Popover.Content
+          placement="bottom start"
+          className="select__popover w-[min(22rem,calc(100vw-2rem))] overflow-hidden p-0"
+        >
+          <Popover.Dialog className="outline-none">
+            <SearchField
+              aria-label="Search values"
+              className="px-2 pt-2"
               variant="secondary"
-              className="h-6 gap-1 px-2 text-xs"
-              aria-label={`Remove ${item}`}
-              onPress={() =>
-                onChange(value.filter((selected) => selected !== item))
-              }
+              value={search}
+              onChange={setSearch}
             >
-              <span className="max-w-36 truncate">{item}</span>
-              <HugeiconsIcon
-                icon={Cancel01Icon}
-                className="size-3"
-                aria-hidden="true"
-              />
-            </Button>
-          ))}
-        </div>
-      ) : null}
+              <SearchField.Group className="rounded-md">
+                <SearchField.SearchIcon />
+                <SearchField.Input
+                  className="text-base sm:text-sm"
+                  placeholder="Search values…"
+                  maxLength={100}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <SearchField.ClearButton aria-label="Clear value search" />
+              </SearchField.Group>
+            </SearchField>
+            {error ? (
+              <p className="px-3 py-2 text-sm text-danger">
+                Couldn’t load values. Try again.
+              </p>
+            ) : null}
+            <ListBox
+              aria-label={label}
+              selectionMode="multiple"
+              selectedKeys={value}
+              onSelectionChange={(keys) => {
+                if (keys === "all") return;
+                const selected = [...keys].map(String);
+                if (selected.length <= 20) onChange(selected);
+              }}
+            >
+              {visible.map((item) => (
+                <ListBox.Item key={item} id={item} textValue={item}>
+                  {renderOption ? renderOption(field, item) : item}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Popover.Dialog>
+        </Popover.Content>
+      </Popover>
     </div>
   );
 }
