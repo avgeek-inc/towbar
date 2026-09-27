@@ -64,6 +64,15 @@ void test("analytics filters validate bounded AND conditions", async () => {
     analyticsQuerySchema.parse({ filters: JSON.stringify(filters) }).filters,
     filters,
   );
+  const selected = [
+    { field: "referrer", operator: "in", value: ["example.com", "Unknown"] },
+    { field: "country", operator: "in", value: ["IN", "US"] },
+    { field: "browser", operator: "in", value: ["Chrome"] },
+  ];
+  assert.deepEqual(
+    analyticsQuerySchema.parse({ filters: JSON.stringify(selected) }).filters,
+    selected,
+  );
   for (const value of [
     "{",
     "{}",
@@ -78,6 +87,15 @@ void test("analytics filters validate bounded AND conditions", async () => {
       { ...filters[0], value: "/docs\n" },
       { ...filters[0], value: "/" + "a".repeat(256) },
       { ...filters[0], extra: true },
+      { field: "referrer", operator: "in", value: [] },
+      { field: "country", operator: "in", value: ["IND"] },
+      { field: "browser", operator: "in", value: ["chrome"] },
+      { field: "browser", operator: "in", value: ["Safari", "Safari"] },
+      {
+        field: "referrer",
+        operator: "in",
+        value: Array(21).fill("example.com"),
+      },
     ].map((filter) => JSON.stringify([filter])),
   ])
     assert.equal(

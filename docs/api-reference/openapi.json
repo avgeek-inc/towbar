@@ -11,14 +11,27 @@
       "Response_2": {
         "type": "object",
         "properties": {
-          "field": { "type": "string", "const": "path" },
+          "field": {
+            "anyOf": [
+              { "type": "string", "const": "path" },
+              { "type": "string", "const": "referrer" },
+              { "type": "string", "const": "country" },
+              { "type": "string", "const": "browser" }
+            ]
+          },
           "operator": {
             "anyOf": [
               { "type": "string", "const": "startsWith" },
+              { "type": "string", "const": "in" },
               { "type": "string", "const": "equals" }
             ]
           },
-          "value": { "type": "string" }
+          "value": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          }
         },
         "required": ["field", "operator", "value"]
       },
@@ -12803,6 +12816,154 @@
         }
       }
     },
+    "/apps/{appId}/analytics/filter-options": {
+      "get": {
+        "operationId": "get_apps_by_id_analytics_filter_options",
+        "summary": "Find analytics filter values",
+        "tags": ["Services / Scout Agent"],
+        "description": "Required permissions: scout.read. Personal keys are capped by the current member role; team keys use explicit grants.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "request",
+              "type": "string",
+              "enum": ["request", "pageview"]
+            }
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["referrer", "country", "browser"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "default": "", "type": "string", "maxLength": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching referrer websites, countries, or browsers within retention.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "type": "array", "items": { "type": "string" } },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "localization": {
+                          "$schema": "https://json-schema.org/draft/2020-12/schema",
+                          "type": "object",
+                          "properties": {
+                            "dateFormat": {
+                              "type": "string",
+                              "enum": [
+                                "day-short-month-year",
+                                "short-month-day-year",
+                                "year-month-day",
+                                "day-month-year",
+                                "month-day-year"
+                              ]
+                            },
+                            "timeFormat": {
+                              "type": "string",
+                              "enum": [
+                                "24-hour",
+                                "12-hour",
+                                "24-hour-seconds",
+                                "12-hour-seconds"
+                              ]
+                            },
+                            "timeZone": { "type": "string" },
+                            "timestamps": {
+                              "type": "object",
+                              "propertyNames": { "type": "string" },
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "date": { "type": "string" },
+                                  "time": { "type": ["string", "null"] },
+                                  "dateTime": { "type": ["string", "null"] },
+                                  "timeZone": { "type": "string" },
+                                  "zoneLabel": { "type": "string" },
+                                  "epochMilliseconds": { "type": "number" },
+                                  "inputDateTime": {
+                                    "type": ["string", "null"]
+                                  }
+                                },
+                                "required": [
+                                  "date",
+                                  "time",
+                                  "dateTime",
+                                  "timeZone",
+                                  "zoneLabel",
+                                  "epochMilliseconds",
+                                  "inputDateTime"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "dateFormat",
+                            "timeFormat",
+                            "timeZone",
+                            "timestamps"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": ["localization"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ApiError" },
+          "401": { "$ref": "#/components/responses/ApiError" },
+          "403": { "$ref": "#/components/responses/ApiError" },
+          "404": { "$ref": "#/components/responses/ApiError" },
+          "409": { "$ref": "#/components/responses/ApiError" },
+          "413": { "$ref": "#/components/responses/ApiError" },
+          "422": { "$ref": "#/components/responses/ApiError" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ApiError" }
+        }
+      }
+    },
     "/apps/{appId}/analytics": {
       "get": {
         "operationId": "get_apps_by_id_analytics",
@@ -12851,7 +13012,7 @@
               "default": "[]",
               "type": "string",
               "maxLength": 8192,
-              "description": "JSON array of AND conditions, for example [{\"field\":\"path\",\"operator\":\"startsWith\",\"value\":\"/docs\"}]. Supports path with equals or startsWith; at most 8 conditions."
+              "description": "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, country, and browser support in with an array of up to 20 values."
             }
           }
         ],

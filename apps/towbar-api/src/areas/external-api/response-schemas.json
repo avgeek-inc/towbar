@@ -1,5 +1,75 @@
 {
   "schemas": {
+    "analytics.ts:get:\"/apps/:appId/analytics/filter-options\"": {
+      "allOf": [
+        { "type": "array", "items": { "type": "string" } },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
+    },
     "analytics.ts:get:\"/apps/:appId/analytics\"": {
       "allOf": [
         { "$ref": "#/components/schemas/AnalyticsReport_1" },
@@ -12162,14 +12232,27 @@
     "Response_2": {
       "type": "object",
       "properties": {
-        "field": { "type": "string", "const": "path" },
+        "field": {
+          "anyOf": [
+            { "type": "string", "const": "path" },
+            { "type": "string", "const": "referrer" },
+            { "type": "string", "const": "country" },
+            { "type": "string", "const": "browser" }
+          ]
+        },
         "operator": {
           "anyOf": [
             { "type": "string", "const": "startsWith" },
+            { "type": "string", "const": "in" },
             { "type": "string", "const": "equals" }
           ]
         },
-        "value": { "type": "string" }
+        "value": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        }
       },
       "required": ["field", "operator", "value"]
     },

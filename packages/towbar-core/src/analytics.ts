@@ -95,22 +95,57 @@ export const analyticsCellSchema = z
 export type AnalyticsCell = z.infer<typeof analyticsCellSchema>;
 export const analyticsFilterSchema = z
   .object({
-    field: z.enum(["path"]),
-    operator: z.enum(["equals", "startsWith"]),
-    value: z
-      .string()
-      .startsWith("/")
-      .max(256)
-      .regex(/^[^?#\r\n]*$/u),
+    field: z.enum(["path", "referrer", "country", "browser"]),
+    operator: z.enum(["equals", "startsWith", "in"]),
+    value: z.union([
+      z.string().max(256),
+      z.array(z.string().max(253)).min(1).max(20),
+    ]),
   })
-  .strict();
+  .strict()
+  .superRefine((filter, ctx) => {
+    if (filter.field === "path") {
+      if (
+        filter.operator === "in" ||
+        typeof filter.value !== "string" ||
+        !/^\/[^?#\r\n]*$/u.test(filter.value)
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Choose a valid path and match.",
+        });
+      return;
+    }
+    const pattern =
+      filter.field === "referrer"
+        ? /^(?:Unknown|[a-z0-9.:[\]-]+)$/u
+        : filter.field === "country"
+          ? /^(?:Unknown|[A-Z]{2})$/u
+          : /^(?:Unknown|Chrome|Firefox|Safari|Edge|Other)$/u;
+    if (
+      filter.operator !== "in" ||
+      !Array.isArray(filter.value) ||
+      filter.value.some((value) => !pattern.test(value)) ||
+      new Set(filter.value).size !== filter.value.length
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose valid, distinct values.",
+      });
+  });
 export type AnalyticsFilter = z.infer<typeof analyticsFilterSchema>;
 export const analyticsFiltersSchema = z.array(analyticsFilterSchema).max(8);
+export const analyticsFilterOptionsQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(7),
+  kind: z.enum(["request", "pageview"]).default("request"),
+  field: z.enum(["referrer", "country", "browser"]),
+  search: z.string().max(100).default(""),
+});
 const encodedAnalyticsFiltersSchema = z
   .string()
   .max(8192)
   .describe(
-    'JSON array of AND conditions, for example [{"field":"path","operator":"startsWith","value":"/docs"}]. Supports path with equals or startsWith; at most 8 conditions.',
+    "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, country, and browser support in with an array of up to 20 values.",
   )
   .default("[]")
   .transform((value, ctx) => {

@@ -5,12 +5,9 @@ import {
   monitoringEventColor,
 } from "./monitoring-events";
 import { PageSelectionTitle } from "./page-selection-title";
-import {
-  Analytics01Icon,
-  FilterHorizontalIcon,
-} from "@hugeicons/core-free-icons";
+import { Analytics01Icon, FilterIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import styles from "./scout-analytics.module.css";
 import type {
   AnalyticsReport,
@@ -34,6 +31,7 @@ import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { api } from "@/lib/api";
 
 const axisTick = { fill: "var(--muted)", fontSize: 10 };
 const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
@@ -57,22 +55,20 @@ const latencyLabels = [
   ">2.5 s",
 ];
 const format = (n: number) => n.toLocaleString();
-const filterFields: FilterField<
+const pathFilterField: FilterField<
   AnalyticsFilter["field"],
   AnalyticsFilter["operator"]
->[] = [
-  {
-    field: "path",
-    label: "Path",
-    operators: [
-      { value: "equals", label: "is" },
-      { value: "startsWith", label: "starts with" },
-    ],
-    placeholder: "/docs",
-    pattern: "/[^?#\\r\\n]*",
-    maxLength: 256,
-  },
-];
+> = {
+  field: "path",
+  label: "Path",
+  operators: [
+    { value: "equals", label: "is" },
+    { value: "startsWith", label: "starts with" },
+  ],
+  placeholder: "/docs",
+  pattern: "/[^?#\\r\\n]*",
+  maxLength: 256,
+};
 
 export function ScoutAnalytics({
   appId,
@@ -86,6 +82,49 @@ export function ScoutAnalytics({
   const [kind, setKind] = useState<"request" | "pageview">("request");
   const [days, setDays] = useState(7);
   const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
+  const filterFields: FilterField<
+    AnalyticsFilter["field"],
+    AnalyticsFilter["operator"]
+  >[] = [
+    pathFilterField,
+    {
+      field: "referrer",
+      label: "Referring website",
+      operators: [{ value: "in", label: "is one of" }],
+      searchable: true,
+    },
+    ...(kind === "pageview"
+      ? [
+          {
+            field: "country" as const,
+            label: "Country",
+            operators: [{ value: "in" as const, label: "is one of" }],
+            searchable: true,
+          },
+          {
+            field: "browser" as const,
+            label: "Browser",
+            operators: [{ value: "in" as const, label: "is one of" }],
+            searchable: true,
+          },
+        ]
+      : []),
+  ];
+  const getFilterOptions = useCallback(
+    async (field: AnalyticsFilter["field"], search: string) => {
+      if (field === "path") return [];
+      const params = new URLSearchParams({
+        field,
+        kind,
+        days: String(days),
+        search,
+      });
+      return api.get<string[]>(
+        `/v1/core/apps/${appId}/analytics/filter-options?${params}`,
+      );
+    },
+    [appId, days, kind],
+  );
   const params = new URLSearchParams({ kind, days: String(days) });
   if (filters.length) params.set("filters", JSON.stringify(filters));
   const query = useApiQuery<AnalyticsReport>(
@@ -122,6 +161,7 @@ export function ScoutAnalytics({
             fields={filterFields}
             value={filters}
             onChange={setFilters}
+            getOptions={getFilterOptions}
           />
         }
       />
@@ -135,7 +175,16 @@ export function ScoutAnalytics({
           domain={domain}
           days={days}
           setDays={setDays}
-          setKind={setKind}
+          setKind={(next) => {
+            if (next === "request")
+              setFilters((current) =>
+                current.filter(
+                  (filter) =>
+                    filter.field !== "country" && filter.field !== "browser",
+                ),
+              );
+            setKind(next);
+          }}
           onFilterPath={(path) =>
             setFilters((current) => {
               if (
@@ -245,11 +294,6 @@ export function AnalyticsView({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <p className="max-w-prose text-sm text-muted">
-          {pageviews
-            ? "Counts pages opened in the browser, including navigation without a full reload. Blocked scripts and disabled JavaScript are not counted."
-            : "Requests that reach this service, including API calls, images, scripts, and bots. Some requests may not be counted."}
-        </p>
         <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
           <ScoutSelect
             label="Measure"
@@ -717,10 +761,10 @@ function AnalyticsRowLabel({
             isIconOnly
             variant="ghost"
             aria-label={`Filter by path ${value}`}
-            className={`hidden size-5 min-w-0 shrink-0 rounded-sm p-0 sm:inline-flex ${styles.rowAction}`}
+            className={`hidden size-5 min-w-0 shrink-0 rounded-sm bg-transparent! p-0 hover:bg-transparent! sm:inline-flex ${styles.rowAction}`}
             onPress={() => onFilterPath(value)}
           >
-            <HugeiconsIcon icon={FilterHorizontalIcon} className="size-3.5" />
+            <HugeiconsIcon icon={FilterIcon} className="size-3.5" />
           </Button>
           <Tooltip.Content>Filter by this path</Tooltip.Content>
         </Tooltip>

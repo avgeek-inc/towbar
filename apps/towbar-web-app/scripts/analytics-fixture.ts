@@ -1,6 +1,9 @@
 import { fixtureJson } from "./fixture-localization.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { analyticsQuerySchema } from "@workspace/towbar-core";
+import {
+  analyticsFilterOptionsQuerySchema,
+  analyticsQuerySchema,
+} from "@workspace/towbar-core";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
 
 export function analyticsFixture(
@@ -8,6 +11,36 @@ export function analyticsFixture(
   response: ServerResponse,
   url: URL,
 ) {
+  if (
+    /^\/v1\/core\/apps\/[^/]+\/analytics\/filter-options$/u.test(url.pathname)
+  ) {
+    const query = analyticsFilterOptionsQuerySchema.safeParse(
+      Object.fromEntries(url.searchParams),
+    );
+    if (!query.success) {
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({ error: { message: "Invalid filter options" } }),
+      );
+      return true;
+    }
+    const choices =
+      query.data.field === "referrer"
+        ? ["google.com", "github.com", "Unknown"]
+        : query.data.field === "country"
+          ? ["IN", "US", "Unknown"]
+          : ["Chrome", "Safari", "Unknown"];
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(
+      fixtureJson(
+        response,
+        choices.filter((choice) =>
+          choice.toLowerCase().includes(query.data.search.toLowerCase()),
+        ),
+      ),
+    );
+    return true;
+  }
   if (!/^\/v1\/core\/apps\/[^/]+\/analytics$/u.test(url.pathname)) return false;
   const query = analyticsQuerySchema.safeParse(
     Object.fromEntries(url.searchParams),
@@ -33,23 +66,63 @@ export function analyticsFixture(
     return true;
   }
   const paths = [
-    { value: "/", share: 0.45 },
-    { value: "/docs/getting-started", share: 0.24 },
-    { value: "/pricing", share: 0.12 },
+    {
+      value: "/",
+      share: 0.45,
+      referrer: "google.com",
+      country: "IN",
+      browser: "Chrome",
+    },
+    {
+      value: "/docs/getting-started",
+      share: 0.24,
+      referrer: "github.com",
+      country: "US",
+      browser: "Safari",
+    },
+    {
+      value: "/pricing",
+      share: 0.12,
+      referrer: "Unknown",
+      country: "IN",
+      browser: "Chrome",
+    },
     {
       value:
         "/blog/a-long-article-path-that-must-truncate-without-breaking-the-table",
       share: 0.05,
+      referrer: "github.com",
+      country: "US",
+      browser: "Safari",
     },
-    { value: "/docs/api", share: 0.09 },
-    { value: "/contact", share: 0.05 },
+    {
+      value: "/docs/api",
+      share: 0.09,
+      referrer: "google.com",
+      country: "IN",
+      browser: "Chrome",
+    },
+    {
+      value: "/contact",
+      share: 0.05,
+      referrer: "Unknown",
+      country: "Unknown",
+      browser: "Unknown",
+    },
   ];
   const matchingPaths = paths.filter((path) =>
-    filters.every((filter) =>
-      filter.operator === "equals"
-        ? path.value === filter.value
-        : path.value.startsWith(filter.value),
-    ),
+    filters.every((filter) => {
+      if (filter.field === "path")
+        return (
+          typeof filter.value === "string" &&
+          (filter.operator === "equals"
+            ? path.value === filter.value
+            : path.value.startsWith(filter.value))
+        );
+      return (
+        Array.isArray(filter.value) && filter.value.includes(path[filter.field])
+      );
+    }),
   );
   const fraction = matchingPaths.reduce((sum, path) => sum + path.share, 0);
   const end = Date.now();
@@ -90,6 +163,15 @@ export function analyticsFixture(
   );
   histogram[0] = total - histogram.reduce((a, b) => a + b, 0);
   const share = (fraction: number) => Math.floor(total * fraction);
+  const dimensionCounts = (field: "referrer" | "country" | "browser") => {
+    const counts = new Map<string, number>();
+    for (const rows of currentBuckets)
+      for (const row of rows) {
+        const value = paths.find((path) => path.value === row.value)![field];
+        counts.set(value, (counts.get(value) ?? 0) + row.count);
+      }
+    return [...counts].map(([value, count]) => ({ value, count }));
+  };
   const report: AnalyticsReport = {
     enabled: true,
     config: {
@@ -162,11 +244,7 @@ export function analyticsFixture(
           0,
         ),
       })),
-      referrer: [
-        { value: "google.com", count: share(0.35) },
-        { value: "github.com", count: share(0.2) },
-        { value: "Unknown", count: total - share(0.35) - share(0.2) },
-      ],
+      referrer: dimensionCounts("referrer"),
       ...(kind === "request"
         ? {
             status: [
@@ -183,15 +261,8 @@ export function analyticsFixture(
             ],
           }
         : {
-            country: [
-              { value: "IN", count: share(0.6) },
-              { value: "US", count: share(0.25) },
-              { value: "Unknown", count: total - share(0.6) - share(0.25) },
-            ],
-            browser: [
-              { value: "Chrome", count: share(0.6) },
-              { value: "Safari", count: share(0.3) },
-            ],
+            country: dimensionCounts("country"),
+            browser: dimensionCounts("browser"),
             device: [
               { value: "Desktop", count: share(0.58) },
               { value: "Mobile", count: share(0.4) },

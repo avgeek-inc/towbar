@@ -420,6 +420,104 @@ void test(
         }
       }
       await verifyPathFilters();
+      await db.insert(analyticsSamples).values({
+        serverId,
+        appId,
+        sampleId: randomBytes(16).toString("hex"),
+        collectedAt: new Date(),
+        cells: [
+          {
+            ...page,
+            path: "/referrer-test",
+            referrer: "example.com",
+            country: "US",
+            browser: "Chrome",
+            count: 1,
+          },
+        ],
+      });
+      const { getAnalyticsFilterOptions } = await import("./service.js");
+      const optionInput = {
+        appId,
+        workspaceId,
+        days: 1,
+        kind: "pageview" as const,
+      };
+      assert.deepEqual(
+        await getAnalyticsFilterOptions({
+          ...optionInput,
+          field: "referrer",
+          search: "EXAMPLE",
+        }),
+        ["example.com"],
+      );
+      assert.deepEqual(
+        await getAnalyticsFilterOptions({
+          ...optionInput,
+          field: "country",
+          search: "US",
+        }),
+        ["US"],
+      );
+      assert.deepEqual(
+        await getAnalyticsFilterOptions({
+          ...optionInput,
+          field: "browser",
+          search: "Chrome",
+        }),
+        ["Chrome"],
+      );
+      assert.deepEqual(
+        await getAnalyticsFilterOptions({
+          ...optionInput,
+          field: "referrer",
+          search: "unknown",
+        }),
+        ["Unknown"],
+      );
+      await assert.rejects(
+        getAnalyticsFilterOptions({
+          ...optionInput,
+          workspaceId: randomUUID(),
+          field: "referrer",
+          search: "",
+        }),
+      );
+      for (const filters of [
+        [
+          {
+            field: "referrer" as const,
+            operator: "in" as const,
+            value: ["example.com"],
+          },
+        ],
+        [
+          {
+            field: "country" as const,
+            operator: "in" as const,
+            value: ["US", "IN"],
+          },
+          {
+            field: "browser" as const,
+            operator: "in" as const,
+            value: ["Chrome"],
+          },
+        ],
+      ]) {
+        const filtered = await getAnalyticsReport({ ...optionInput, filters });
+        assert.equal(filtered.total, 1);
+        assert.deepEqual(
+          filtered.dimensions.path?.map((row) => row.value),
+          ["/referrer-test"],
+        );
+      }
+      await assert.rejects(
+        getAnalyticsReport({
+          ...optionInput,
+          kind: "request",
+          filters: [{ field: "browser", operator: "in", value: ["Chrome"] }],
+        }),
+      );
       await db
         .update(apps)
         .set({
