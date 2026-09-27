@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
+import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
@@ -10,6 +11,7 @@ import { Table } from "@workspace/web-design-system/data-display/table";
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 
+const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
 const labels: Record<string, string> = {
   path: "Paths",
   referrer: "Referring websites",
@@ -264,14 +266,29 @@ export function AnalyticsView({
           {Object.entries(report.dimensions).map(([key, rows]) => (
             <Widget
               key={key}
-              className={key === "path" ? "lg:col-span-2" : undefined}
+              className={
+                ["path", "referrer"].includes(key) ? "lg:col-span-2" : undefined
+              }
             >
               <Widget.Header>
                 <Widget.Title>{labels[key] ?? key}</Widget.Title>
                 <span className="text-xs text-muted">Top 20</span>
               </Widget.Header>
               <Widget.Content>
-                <AnalyticsRows rows={rows} total={report.total} />
+                <AnalyticsRows
+                  rows={
+                    key === "country"
+                      ? rows.map((row) => ({
+                          ...row,
+                          value: /^[A-Z]{2}$/u.test(row.value)
+                            ? (countryNames.of(row.value) ?? row.value)
+                            : row.value,
+                        }))
+                      : rows
+                  }
+                  total={report.total}
+                  showShare={key !== "country"}
+                />
               </Widget.Content>
             </Widget>
           ))}
@@ -311,11 +328,11 @@ export function AnalyticsView({
       {pageviews ? (
         <div className="space-y-2 text-sm text-muted">
           <p>Add once to your page template:</p>
-          <pre className="overflow-x-auto rounded-lg bg-surface p-3 text-xs text-foreground">
+          <CodePanel ariaLabel="Pageview script" language="html">
             {
               '<script defer src="/.well-known/towbar-analytics/script.js"></script>'
             }
-          </pre>
+          </CodePanel>
           <p>
             {report.config?.visitorIdentity
               ? "Visitor and session estimates are on."
