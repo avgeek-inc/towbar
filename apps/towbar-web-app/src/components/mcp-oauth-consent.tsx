@@ -7,7 +7,7 @@ import {
 } from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
-import { AuthFrame } from "./auth-frame";
+import { AuthFrame, authTextActionClassName } from "./auth-frame";
 import { McpClientLogo } from "./mcp-client-logo";
 import { config } from "@/lib/config";
 
@@ -97,23 +97,25 @@ function ConsentRequest({ id }: { id: string | null }) {
       )}
       {login ? (
         <ButtonLink
-          className="min-h-11 w-fit"
+          className="w-fit"
           href={`/login?next=${encodeURIComponent(self)}`}
         >
           Sign in to continue
         </ButtonLink>
       ) : details ? (
         <form
-          className="grid gap-6"
+          className="grid gap-6 pt-4"
           onSubmit={(event: FormEvent) => {
             event.preventDefault();
             void decide(true);
           }}
         >
           <div className="grid gap-2">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2 text-sm/5">
               <McpClientLogo client={details.clientLogo ?? "unknown"} />
-              <span className="font-medium">{details.clientName}</span>
+              <span className="min-w-0 break-words font-normal">
+                {details.clientName}
+              </span>
             </div>
             <p className="text-sm text-muted">
               Wants to {write ? "read and edit" : "read"} your Towbar data.
@@ -146,12 +148,6 @@ function ConsentRequest({ id }: { id: string | null }) {
               Access expires in <strong>30 days</strong>. Revoke it anytime in
               your personal API keys.
             </p>
-            <p>
-              Return to{" "}
-              <strong className="break-all">
-                {new URL(details.redirectUri).host}
-              </strong>
-            </p>
             {["localhost", "127.0.0.1", "[::1]"].includes(
               new URL(details.redirectUri).hostname,
             ) && (
@@ -162,7 +158,9 @@ function ConsentRequest({ id }: { id: string | null }) {
             )}
           </div>
           <details className="text-sm">
-            <summary className="flex min-h-11 cursor-pointer items-center text-muted underline underline-offset-4">
+            <summary
+              className={`${authTextActionClassName} w-fit cursor-pointer`}
+            >
               Connection details
             </summary>
             <div className="grid gap-3 pt-2 text-muted">
@@ -188,9 +186,8 @@ function ConsentRequest({ id }: { id: string | null }) {
               read-only access.
             </p>
           )}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <Button
-              className="min-h-11"
               type="submit"
               isDisabled={busy || (write && details.user.role === "viewer")}
               isPending={busy}
@@ -198,7 +195,6 @@ function ConsentRequest({ id }: { id: string | null }) {
               Allow access
             </Button>
             <Button
-              className="min-h-11"
               type="button"
               variant="secondary"
               isDisabled={busy}

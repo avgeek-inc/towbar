@@ -27,8 +27,10 @@ Open `http://localhost:4420`. The fixture binds IPv6 loopback (`::1`) so it can 
 | `/oauth/consent`                    | Incomplete link                                 |
 | `/settings/api-keys`                | Known app, unverified app and existing API key  |
 
+To compare with the existing sign-in screen, restart this fixture with `--signed-out` and open `/login`. Restart without the flag before reviewing the key inventory.
+
 For the empty key inventory, stop only this review fixture, restart it with `--empty-keys`, and reload `/settings/api-keys`. Next can remain running. Restart without that flag to restore the sample keys.
 
-Review at desktop (1280 or 1440 × 900) and narrow (390 × 844) sizes. On narrow screens, scroll the table sideways to reach expiry, status and Revoke. Expand **Connection details** with Enter or Space and verify that complete URLs wrap without horizontal page overflow. The disclosure and decision buttons have 44px minimum heights. The auth content keeps the existing 384px maximum width.
+Review at desktop (1280 or 1440 × 900) and narrow (390 × 844) sizes. On narrow screens, scroll the table sideways to reach expiry, status and Revoke. Expand **Connection details** with Enter or Space and verify that complete URLs wrap without horizontal page overflow. The controls use Towbar’s shared compact sizing without local height overrides. App identities use 16px icons and 14px regular text in both consent and key rows. The consent form starts 32px below the introduction. The auth content keeps the existing 384px maximum width. The return URL is available only inside Connection details.
 
 These are visual fixtures. Protocol, token exchange, expiry, revocation, redirect and permission guarantees are covered separately by the API integration tests in `src/areas/mcp-oauth`.

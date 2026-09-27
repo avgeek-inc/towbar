@@ -4,7 +4,11 @@ import { createFixtureApiServer } from "./fixture-api.ts";
 import { fixtureJson } from "./fixture-localization.ts";
 
 // Local visual review only: no OAuth credentials are created or exchanged.
-const fixture = createFixtureApiServer();
+const fixture = createFixtureApiServer({
+  authState: process.argv.includes("--signed-out")
+    ? "signed-out"
+    : "authenticated",
+});
 const fixtureHandler = fixture.listeners("request")[0]!;
 const nextPort = 4038;
 const host = process.argv.includes("--ipv4") ? "127.0.0.1" : "::1";

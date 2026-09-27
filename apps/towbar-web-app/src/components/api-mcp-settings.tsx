@@ -580,7 +580,9 @@ function McpSetup({ url }: { url: string }) {
             label="Client"
             value={client}
             onChange={setClient}
-            renderIcon={(id) => <McpClientLogo client={id} />}
+            renderIcon={(id) => (
+              <McpClientLogo client={id} className="size-5" />
+            )}
             options={[
               ["codex", "ChatGPT"],
               ["claude", "Claude Code"],
