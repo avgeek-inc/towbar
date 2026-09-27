@@ -113,7 +113,7 @@ function ConsentRequest({ id }: { id: string | null }) {
           <div className="grid gap-2">
             <div className="flex min-w-0 items-center gap-2 text-sm/5">
               <McpClientLogo client={details.clientLogo ?? "unknown"} />
-              <span className="min-w-0 break-words font-normal">
+              <span className="min-w-0 break-words font-medium">
                 {details.clientName}
               </span>
             </div>
