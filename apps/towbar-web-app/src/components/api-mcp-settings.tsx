@@ -206,11 +206,13 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             )}
             {key.oauthClientName ?? key.name}
           </span>
-          <TableCellDescription>
-            {key.tokenType === "mcp-oauth"
-              ? `MCP connection${key.oauthClientTrust === "metadata-document" && key.oauthClientId ? ` (${new URL(key.oauthClientId).hostname})` : ""}`
-              : "API key"}
-          </TableCellDescription>
+          {key.tokenType === "mcp-oauth" && (
+            <TableCellDescription>
+              {key.oauthClientTrust === "metadata-document" && key.oauthClientId
+                ? new URL(key.oauthClientId).hostname
+                : "Unknown client"}
+            </TableCellDescription>
+          )}
         </TableCellStack>
       ),
     },
