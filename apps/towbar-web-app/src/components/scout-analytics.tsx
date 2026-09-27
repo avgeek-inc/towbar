@@ -2,7 +2,7 @@
 
 import { PageSelectionTitle } from "./page-selection-title";
 import {
-  Activity01Icon,
+  Analytics01Icon,
   FilterHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -92,7 +92,7 @@ export function ScoutAnalytics({
       <>
         <PageSelectionTitle
           label="Analytics"
-          icon={<HugeiconsIcon icon={Activity01Icon} />}
+          icon={<HugeiconsIcon icon={Analytics01Icon} />}
           keepEntityName
         />
         <EmptyState>
@@ -111,7 +111,7 @@ export function ScoutAnalytics({
     <>
       <PageSelectionTitle
         label="Analytics"
-        icon={<HugeiconsIcon icon={Activity01Icon} />}
+        icon={<HugeiconsIcon icon={Analytics01Icon} />}
         keepEntityName
         actions={
           <FilterDialog
