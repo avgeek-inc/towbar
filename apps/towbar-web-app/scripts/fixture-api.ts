@@ -32,6 +32,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { pathToFileURL } from "node:url";
+import { isMainThread } from "node:worker_threads";
 
 import type {
   App,
@@ -105,6 +106,7 @@ const fixtureNow = "2026-08-22T09:00:00.000Z";
 const systemHealthFixtureNow = new Date().toISOString();
 const commitSha = "c".repeat(40);
 const manifestDigest = "d".repeat(64);
+const simulatedDeployments = new WeakSet<Deployment>();
 const terminalStates = new Set<DeploymentState>([
   "cancelled",
   "failed",
@@ -1447,6 +1449,7 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer({
+  publicDemo = false,
   githubAppConnected = false,
   notificationProvidersConfigured = false,
   smtpConfigured = notificationProvidersConfigured,
@@ -1459,6 +1462,7 @@ export function createFixtureApiServer({
   smtpAvailable,
   emailVerified,
 }: TeamFixtureOptions & {
+  publicDemo?: boolean;
   githubAppConnected?: boolean;
   notificationProvidersConfigured?: boolean;
   smtpConfigured?: boolean;
@@ -1467,6 +1471,17 @@ export function createFixtureApiServer({
   telegramConfigured?: boolean;
   webhookConfigured?: boolean;
 } = {}) {
+  if (publicDemo) {
+    user.email = "visitor@example.com";
+    user.name = "Demo visitor";
+    user.teamName = "Example team";
+    for (const server of servers) {
+      server.setupStatus = "ready";
+      server.preparedAt = fixtureNow;
+    }
+    for (const deployable of [...apps, ...resources])
+      deployable.serverReady = true;
+  }
   const teamAccess = createTeamAccessFixture(user, {
     role,
     authState,
@@ -3329,6 +3344,24 @@ export function createFixtureApiServer({
         new Date().toISOString(),
       );
       deployments.unshift(deployment);
+      if (publicDemo) {
+        simulatedDeployments.add(deployment);
+        deployment.startedAt = deployment.createdAt;
+        for (const [index, state] of (
+          ["building", "starting_candidate", "succeeded"] as const
+        ).entries()) {
+          setTimeout(
+            () => {
+              deployment.state = state;
+              deployment.updatedAt = new Date().toISOString();
+              deployment.startedAt ??= deployment.updatedAt;
+              if (state === "succeeded")
+                deployment.finishedAt = deployment.updatedAt;
+            },
+            (index + 1) * 2_000,
+          ).unref();
+        }
+      }
       return writeJson(response, 202, { deployment });
     }
     const vulnerabilityRescanMatch = path.match(
@@ -3357,7 +3390,7 @@ export function createFixtureApiServer({
     if (eventMatch) {
       const deployment = deployments.find((item) => item.id === eventMatch[1]);
       if (!deployment) return writeNotFound(response);
-      return writeDeploymentEvents(response, deployment);
+      return writeDeploymentEvents(response, deployment, publicDemo);
     }
 
     if (
@@ -4748,6 +4781,25 @@ function createVulnerabilityScanFixture(input: {
 }
 
 function getDeploymentSteps(deployment: Deployment): DeploymentStep[] {
+  if (simulatedDeployments.has(deployment)) {
+    const states: DeploymentState[] = [
+      "queued",
+      "building",
+      "starting_candidate",
+      "succeeded",
+    ];
+    const current = states.indexOf(deployment.state);
+    return states
+      .slice(0, current + 1)
+      .map((state, index) =>
+        createStep(
+          deployment,
+          state,
+          index,
+          index === current && state !== "succeeded" ? "running" : "succeeded",
+        ),
+      );
+  }
   if (terminalStates.has(deployment.state)) {
     return [
       createStep(deployment, "queued", 0, "succeeded"),
@@ -4788,7 +4840,7 @@ function createStep(
     id: `${deployment.id.slice(0, 24)}${String(index).padStart(12, "0")}`,
     message:
       status === "running"
-        ? `Fixture deployment is currently ${state.replaceAll("_", " ")}`
+        ? `Deployment is currently ${state.replaceAll("_", " ")}`
         : null,
     sequence: index,
     startedAt: deployment.startedAt,
@@ -4800,7 +4852,7 @@ function createStep(
 function getDeploymentLogs(deployment: Deployment): DeploymentLog[] {
   return [
     {
-      content: "Preparing deployment fixture\n",
+      content: "Preparing deployment\n",
       createdAt: deployment.createdAt,
       id: `${deployment.id.slice(0, 24)}900000000001`,
       sequence: 1,
@@ -4822,23 +4874,28 @@ function getDeploymentLogs(deployment: Deployment): DeploymentLog[] {
 function writeDeploymentEvents(
   response: ServerResponse,
   deployment: Deployment,
+  liveDemo = false,
 ) {
   response.writeHead(200, {
     "cache-control": "no-cache",
     connection: "keep-alive",
     "content-type": "text/event-stream",
   });
-  const event: DeploymentEvent = {
-    deployment,
-    logs: getDeploymentLogs(deployment),
-    steps: getDeploymentSteps(deployment),
+  let sequence = 0;
+  const send = () => {
+    const event: DeploymentEvent = {
+      deployment,
+      logs: getDeploymentLogs(deployment),
+      steps: getDeploymentSteps(deployment),
+    };
+    response.write(
+      `id: ${++sequence}\nevent: deployment\ndata: ${fixtureJson(response, event)}\n\n`,
+    );
   };
-  response.write(
-    `id: 1\nevent: deployment\ndata: ${fixtureJson(response, event)}\n\n`,
-  );
+  send();
   const keepAlive = setInterval(
-    () => response.write(": keep-alive\n\n"),
-    15_000,
+    liveDemo ? send : () => response.write(": keep-alive\n\n"),
+    liveDemo ? 1_000 : 15_000,
   );
   response.on("close", () => clearInterval(keepAlive));
 }
@@ -4885,7 +4942,11 @@ function writeNotFound(response: ServerResponse) {
 }
 
 const entrypoint = process.argv[1];
-if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
+if (
+  isMainThread &&
+  entrypoint &&
+  import.meta.url === pathToFileURL(entrypoint).href
+) {
   const port = 4420;
   const requestedRole = process.env.TOWBAR_FIXTURE_ROLE;
   const requestedState = process.env.TOWBAR_FIXTURE_AUTH_STATE;

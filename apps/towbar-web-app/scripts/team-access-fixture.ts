@@ -112,7 +112,10 @@ export function createTeamAccessFixture(
       role === "admin"
         ? baseUser.id
         : `71111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
-    name: `Towbar ${role[0]!.toUpperCase()}${role.slice(1)}`,
+    name:
+      role === "admin"
+        ? baseUser.name
+        : `Towbar ${role[0]!.toUpperCase()}${role.slice(1)}`,
     email: role === "admin" ? baseUser.email : `${role}@example.com`,
     role,
     mustChangePassword: false,

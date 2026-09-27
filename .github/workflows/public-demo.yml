@@ -1,0 +1,68 @@
+name: Publish public demo image
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Released Towbar tag to build, for example v2.0.16
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-public-demo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: public-demo
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Resolve a released main-branch commit
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$RELEASE_TAG" =~ ^v2\.[0-9]+\.[0-9]+$ ]]
+          gh release view "$RELEASE_TAG" --json isDraft,isPrerelease --jq '(.isDraft == false) and (.isPrerelease == false)' | grep -qx true
+          commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          git merge-base --is-ancestor "$commit" origin/main
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          git checkout --detach "$commit"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - run: node --test tools/demo-deploy.test.mjs
+      - name: Build and verify the public demo artifact
+        env:
+          SOURCE_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          docker build --target demo --build-arg "SOURCE_COMMIT=$SOURCE_COMMIT" --tag towbar-demo:test --file apps/towbar-web-app/Dockerfile .
+          bash tools/test-public-demo.sh
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish the tested amd64 artifact and record its immutable digest
+        env:
+          SOURCE_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/towbar-demo"
+          docker tag towbar-demo:test "$image:$SOURCE_COMMIT"
+          docker push "$image:$SOURCE_COMMIT"
+          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$image:$SOURCE_COMMIT")"
+          echo "TOWBAR_DEMO_IMAGE=$digest" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Use infra/demo/README.md to activate or update the dedicated demo host.' >> "$GITHUB_STEP_SUMMARY"

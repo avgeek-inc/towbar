@@ -1,0 +1,130 @@
+import assert from "node:assert/strict";
+
+const origin = process.argv[2] ?? "http://localhost:4880";
+const serverPath = "/v1/core/servers/21111111-1111-4111-8111-111111111111";
+const appPath = "/v1/core/apps/31111111-1111-4111-8111-222222222222";
+const cookies = new Set();
+async function call(path, cookie, method = "GET", body) {
+  return fetch(`${origin}${path}`, {
+    method,
+    redirect: "manual",
+    signal: AbortSignal.timeout(15_000),
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      ...(method === "GET" ? {} : { origin }),
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+}
+async function start() {
+  const response = await call("/__demo/start", null, "POST");
+  assert.equal(response.status, 201, await response.clone().text());
+  const cookie = response.headers.get("set-cookie").split(";")[0];
+  cookies.add(cookie);
+  return cookie;
+}
+try {
+  assert.equal((await call("/health")).status, 200);
+  assert.equal((await call("/")).headers.get("location"), "/demo");
+  const welcome = await call("/demo");
+  assert.match(await welcome.text(), /Explore Towbar for 10 minutes/);
+  const a = await start(),
+    b = await start();
+  const prefetch = await fetch(`${origin}/services`, {
+    headers: {
+      cookie: a,
+      rsc: "1",
+      "next-router-prefetch": "1",
+      "next-router-segment-prefetch": "/_tree",
+    },
+  });
+  assert.equal(prefetch.status, 200);
+  assert.match(prefetch.headers.get("content-type"), /text\/x-component/);
+  assert.equal(prefetch.headers.get("x-nextjs-prerender"), "1");
+  assert.equal(prefetch.headers.get("x-nextjs-postponed"), "2");
+  const before = (await (await call(serverPath, b)).json()).server.name;
+  assert.equal(
+    (
+      await call(`${serverPath}/name`, a, "PATCH", {
+        name: "Demo smoke visitor A",
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await (await call(serverPath, a)).json()).server.name,
+    "Demo smoke visitor A",
+  );
+  assert.equal((await (await call(serverPath, b)).json()).server.name, before);
+  for (const path of [
+    "/",
+    "/services",
+    "/datastores",
+    "/servers",
+    "/deployments",
+  ])
+    assert.equal((await call(path, a)).status, 200, path);
+  for (const path of [
+    "/v1/core/apps",
+    "/v1/core/resources",
+    "/v1/core/servers",
+    "/v1/core/sources",
+    "/v1/core/deployments/history",
+    "/v1/core/system-health",
+    "/v1/core/monitoring/summary",
+  ])
+    assert.equal((await call(path, a)).status, 200, path);
+  for (const path of [
+    "/v1/core/sources/connect",
+    "/v1/core/github/actions/installation-url",
+    "/v1/core/gitlab/oauth/start",
+    "/v1/core/settings/private-keys",
+    "/v1/core/team/invitations",
+    `${appPath}/terminal`,
+    "/v1/core/notifications/telegram/destinations/test",
+  ])
+    assert.equal(
+      (
+        await call(path, a, "POST", {
+          url: "http://169.254.169.254/latest/meta-data",
+          secret: "smoke-dummy",
+        })
+      ).status,
+      403,
+      path,
+    );
+  assert.equal(
+    (await call("/_next/image?url=http://169.254.169.254/latest/meta-data", a))
+      .status,
+    403,
+  );
+  const deployed = await call(`${appPath}/actions/deploy`, a, "POST");
+  assert.equal(deployed.status, 202);
+  const { deployment } = await deployed.json();
+  assert.equal(
+    (await call(`/v1/core/deployments/${deployment.id}`, b)).status,
+    404,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 6500));
+  assert.equal(
+    (await (await call(`/v1/core/deployments/${deployment.id}`, a)).json())
+      .deployment.state,
+    "succeeded",
+  );
+  const reset = await call("/__demo/reset", a, "POST");
+  assert.equal(reset.status, 201);
+  const fresh = reset.headers.get("set-cookie").split(";")[0];
+  cookies.add(fresh);
+  assert.equal((await call(serverPath, a)).status, 401);
+  assert.equal(
+    (await (await call(serverPath, fresh)).json()).server.name,
+    before,
+  );
+  assert.equal((await call(serverPath, b)).status, 200);
+  console.info(
+    "Demo smoke passed: current UI, isolated mutations, simulated deployment, forbidden operations, reset and revocation.",
+  );
+} finally {
+  for (const cookie of cookies) await call("/__demo/session", cookie, "DELETE");
+}

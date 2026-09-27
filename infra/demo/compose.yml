@@ -1,0 +1,67 @@
+name: towbar-demo
+services:
+  demo:
+    image: ${TOWBAR_DEMO_IMAGE:?Set an immutable demo image digest}
+    restart: unless-stopped
+    init: true
+    environment:
+      DEMO_ORIGIN: ${DEMO_ORIGIN:-https://try.towbar.dev}
+      DEMO_TRUSTED_PROXY: 172.30.44.2
+    networks:
+      sandbox:
+        ipv4_address: 172.30.44.3
+    dns: [127.0.0.1]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  edge:
+    image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    restart: unless-stopped
+    environment:
+      DEMO_ADDRESS: ${DEMO_SITE_ADDRESS:-https://try.towbar.dev}
+    ports:
+      - "${DEMO_HTTP_BIND:-0.0.0.0:80}:80"
+      - "${DEMO_HTTPS_BIND:-0.0.0.0:443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy-config:/config
+    networks:
+      edge: {}
+      sandbox:
+        ipv4_address: 172.30.44.2
+    depends_on:
+      demo:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+networks:
+  edge: {}
+  sandbox:
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+    ipam:
+      config:
+        - subnet: 172.30.44.0/29
+volumes:
+  certificates:
+  caddy-config:
