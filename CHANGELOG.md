@@ -13,6 +13,13 @@ All notable changes to Towbar are documented in this file. This project follows
   tokens that expire after 30 days. API keys show the token type and saved MCP
   client attribution; audit actions include that attribution. Existing API keys
   keep their permissions and expiry.
+- Services can opt in to Scout Analytics for HTTP requests and pageviews. The
+  dashboard shows traffic, response times, errors, paths, referrers, and
+  previous-period comparisons. Optional browser tracking adds pageviews and
+  visitor estimates; local country data is checked for updates daily.
+- Service alert rules can create incidents when HTTP requests or pageviews rise
+  above or fall below a chosen count. Missing collection data is treated as
+  unknown rather than zero traffic.
 - An opt-in public demo gives each visitor an isolated, ten-minute sandbox with
   sample Services, Datastores, servers, and safe simulated actions.
 
