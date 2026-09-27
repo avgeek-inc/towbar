@@ -25,7 +25,7 @@ async function fixture(t, existing) {
   );
   if (existing) await writeFile(join(root, "infra/demo/.env"), previous);
   const mocks = {
-    uname: "echo x86_64",
+    uname: 'echo "${MOCK_UNAME:-aarch64}"',
     flock: "exit 0",
     curl: "exit 0",
     node: 'if [[ "$*" == *demo-smoke.mjs* && "${FAIL_SMOKE:-}" == 1 ]]; then exit 1; fi',
@@ -86,4 +86,12 @@ test("failed first activation removes the new stack and rejects mutable image ta
   const before = await log();
   assert.equal(run({}, "ghcr.io/avgeek-inc/towbar-demo:latest").status, 1);
   assert.equal(await log(), before);
+});
+
+test("rejects an amd64 host before pulling the arm64 image", async (t) => {
+  const { root, run } = await fixture(t, false);
+  const result = run({ MOCK_UNAME: "x86_64" });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /requires an arm64 host/);
+  await assert.rejects(readFile(join(root, "calls")));
 });

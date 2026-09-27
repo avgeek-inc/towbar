@@ -386,16 +386,16 @@ test("UI proxy never forwards caller credentials or accepts writes; all response
   );
 });
 
-test("24 workers fit the configured capacity and the 25th is rejected", async (t) => {
+test("four workers fit the configured capacity and the fifth is rejected", async (t) => {
   const { start, call } = await setup(t, { startsPerNetwork: 30 });
   const started = performance.now();
   const cookies = [];
-  for (let i = 0; i < 24; i++) cookies.push(await start());
-  assert.equal(new Set(cookies).size, 24);
+  for (let i = 0; i < 4; i++) cookies.push(await start());
+  assert.equal(new Set(cookies).size, 4);
   assert.equal((await call("/__demo/start", { method: "POST" })).status, 503);
   const residentMiB = Math.ceil(process.memoryUsage().rss / 1024 ** 2);
   t.diagnostic(
-    `24 fixture workers: ${residentMiB} MiB process RSS; ${Math.round(performance.now() - started)} ms sequential startup (host-specific, excludes Next/Caddy).`,
+    `4 fixture workers: ${residentMiB} MiB process RSS; ${Math.round(performance.now() - started)} ms sequential startup (host-specific, excludes Next/Caddy).`,
   );
 });
 
