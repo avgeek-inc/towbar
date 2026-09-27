@@ -123,7 +123,7 @@ Reports require `scout.read` and are scoped to the authenticated workspace. Data
 
 ### Filter by path
 
-Select **Filters** beside the Analytics title. Choose **Path**, then **is** for an exact path or **starts with** for a prefix, enter the path, and select **Apply**. The button shows the number of active filters. Filters stay active when switching between HTTP requests and pageviews or changing the time range. Use **Clear filters** in the modal to reset them.
+Select **Filters** beside the Analytics title. Choose **Path**, then **is** for an exact path or **starts with** for a prefix, enter the path, and select **Apply**. The button shows the number of active filters. Filters stay active when switching between HTTP requests and pageviews or changing the time range. Use **Clear filters** in the modal to reset them. You can also hover a row in **Paths** and select its filter icon to add an exact-path condition immediately. An already active exact-path condition is not added twice.
 
 All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/docs/api`, and `/docs-old`; use `/docs/` to match only paths beneath that directory. Matching is case-sensitive and treats `%` and `_` literally. Enter paths without query strings or fragments. Filters scope totals, trends, breakdowns, and the previous period consistently. A previous period with no matching activity is shown as unavailable.
 

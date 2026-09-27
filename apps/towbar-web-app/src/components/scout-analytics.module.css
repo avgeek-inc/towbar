@@ -1,4 +1,19 @@
 @layer components {
+  .rowAction {
+    opacity: 0;
+  }
+
+  .breakdown [data-slot="table-row"]:hover .rowAction,
+  .breakdown [data-slot="table-row"]:focus-within .rowAction {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .rowAction {
+      opacity: 1;
+    }
+  }
+
   .countBar {
     border-radius: 0.25rem;
   }

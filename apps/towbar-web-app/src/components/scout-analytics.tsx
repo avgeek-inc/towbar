@@ -1,7 +1,10 @@
 "use client";
 
 import { PageSelectionTitle } from "./page-selection-title";
-import { Activity01Icon } from "@hugeicons/core-free-icons";
+import {
+  Activity01Icon,
+  FilterHorizontalIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import styles from "./scout-analytics.module.css";
@@ -15,11 +18,13 @@ import {
 } from "@workspace/towbar-web-ui/filter-dialog";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { Button } from "@workspace/web-design-system/buttons/button";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
 import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
@@ -127,6 +132,24 @@ export function ScoutAnalytics({
           days={days}
           setDays={setDays}
           setKind={setKind}
+          onFilterPath={(path) =>
+            setFilters((current) => {
+              if (
+                current.length >= 8 ||
+                current.some(
+                  (filter) =>
+                    filter.field === "path" &&
+                    filter.operator === "equals" &&
+                    filter.value === path,
+                )
+              )
+                return current;
+              return [
+                ...current,
+                { field: "path", operator: "equals", value: path },
+              ];
+            })
+          }
         />
       )}
     </>
@@ -139,12 +162,14 @@ export function AnalyticsView({
   days,
   setDays,
   setKind,
+  onFilterPath,
 }: {
   report: AnalyticsReport;
   domain?: string;
   days: number;
   setDays: (n: number) => void;
   setKind: (kind: "request" | "pageview") => void;
+  onFilterPath: (path: string) => void;
 }) {
   if (!report.enabled)
     return (
@@ -439,6 +464,7 @@ export function AnalyticsView({
                 total={report.total}
                 dimension={key}
                 domain={domain}
+                onFilterPath={key === "path" ? onFilterPath : undefined}
               />
             </div>
           ))}
@@ -488,10 +514,12 @@ function AnalyticsRows({
   name,
   dimension = "",
   domain,
+  onFilterPath,
 }: {
   name: string;
   dimension?: string;
   domain?: string;
+  onFilterPath?: (path: string) => void;
   rows: { value: string; count: number }[];
   total: number;
 }) {
@@ -587,6 +615,7 @@ function AnalyticsRows({
                       }
                       dimension={dimension}
                       domain={domain}
+                      onFilterPath={onFilterPath}
                     />
                   </span>
                 </Table.Cell>
@@ -610,11 +639,13 @@ function AnalyticsRowLabel({
   label,
   dimension,
   domain,
+  onFilterPath,
 }: {
   value: string;
   label: string;
   dimension: string;
   domain?: string;
+  onFilterPath?: (path: string) => void;
 }) {
   const href =
     dimension === "path" && domain && value.startsWith("/")
@@ -623,25 +654,41 @@ function AnalyticsRowLabel({
           /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/u.test(value)
         ? `https://${value}`
         : undefined;
-  if (!href)
-    return (
-      <span className="block truncate" title={label}>
-        {label}
-      </span>
-    );
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={label}
-      className="group inline-flex min-w-0 items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
-    >
-      <span className="truncate">{label}</span>
-      <span className="inline-flex shrink-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-        <NewTabIndicator />
-      </span>
-    </a>
+    <span className="inline-flex min-w-0 items-center gap-1">
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={label}
+          className="inline-flex min-w-0 items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          <span className="truncate">{label}</span>
+          <span className={`inline-flex shrink-0 ${styles.rowAction}`}>
+            <NewTabIndicator />
+          </span>
+        </a>
+      ) : (
+        <span className="block truncate" title={label}>
+          {label}
+        </span>
+      )}
+      {onFilterPath && value.startsWith("/") ? (
+        <Tooltip>
+          <Button
+            isIconOnly
+            variant="ghost"
+            aria-label={`Filter by path ${value}`}
+            className={`size-5 min-w-0 shrink-0 rounded-sm p-0 ${styles.rowAction}`}
+            onPress={() => onFilterPath(value)}
+          >
+            <HugeiconsIcon icon={FilterHorizontalIcon} className="size-3.5" />
+          </Button>
+          <Tooltip.Content>Filter by this path</Tooltip.Content>
+        </Tooltip>
+      ) : null}
+    </span>
   );
 }
 
