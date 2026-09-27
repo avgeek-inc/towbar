@@ -72,7 +72,7 @@ export function DemoWelcome() {
             </Alert>
           )}
           <Button
-            className="min-h-11 w-full"
+            className="w-full"
             isDisabled={busy}
             onPress={() => {
               setBusy(true);
@@ -186,7 +186,6 @@ export function DemoBoundary({ children }: { children: React.ReactNode }) {
         </p>
         <div className="flex items-center gap-2">
           <Button
-            className="min-h-11 min-w-11"
             variant="secondary"
             isDisabled={busy}
             onPress={() => action("reset")}
@@ -194,7 +193,6 @@ export function DemoBoundary({ children }: { children: React.ReactNode }) {
             Reset demo
           </Button>
           <Button
-            className="min-h-11 min-w-11"
             variant="tertiary"
             isDisabled={busy}
             onPress={() => action("end")}
