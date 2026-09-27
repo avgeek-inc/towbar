@@ -400,7 +400,10 @@ export function AnalyticsView({
         </div>
       ) : null}
       {pageviews ? (
-        <section className="space-y-3" aria-labelledby="pageview-setup-title">
+        <section
+          className="space-y-5 pt-4"
+          aria-labelledby="pageview-setup-title"
+        >
           <div className="space-y-1">
             <h4 id="pageview-setup-title" className="text-sm font-medium">
               Track pageviews
