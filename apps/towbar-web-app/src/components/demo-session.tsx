@@ -194,7 +194,7 @@ export function DemoBoundary({ children }: { children: React.ReactNode }) {
             Reset demo
           </Button>
           <Button
-            variant="tertiary"
+            variant="danger"
             isDisabled={busy}
             onPress={() => action("end")}
           >
