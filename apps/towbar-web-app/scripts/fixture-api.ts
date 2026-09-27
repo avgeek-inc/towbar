@@ -199,7 +199,7 @@ const additionalServers = [
   {
     provider: "azure",
     type: "Standard_D4s_v5",
-    name: "Build runner · London",
+    name: "Shared services · London",
     cpu: 4,
     memory: 16,
     username: "azureuser",
@@ -207,7 +207,7 @@ const additionalServers = [
   {
     provider: "digitalocean",
     type: "s-4vcpu-8gb",
-    name: "Staging · Amsterdam",
+    name: "Shared services · Amsterdam",
     cpu: 4,
     memory: 8,
     username: "root",
@@ -215,7 +215,7 @@ const additionalServers = [
   {
     provider: "linode",
     type: "g6-standard-4",
-    name: "Edge cache · Frankfurt",
+    name: "Shared services · Frankfurt",
     cpu: 4,
     memory: 8,
     username: "deploy",
