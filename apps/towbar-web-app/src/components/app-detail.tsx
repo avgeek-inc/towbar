@@ -16,6 +16,7 @@ import {
 
 import {
   Activity01Icon,
+  Analytics01Icon,
   Clock01Icon,
   Alert02Icon,
   AlertCircleIcon,
@@ -401,7 +402,7 @@ export function AppDetail() {
           {
             value: "analytics",
             contentOwnsTitle: true,
-            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            icon: <HugeiconsIcon icon={Analytics01Icon} />,
             label: "Analytics",
             group: "Monitor",
             content: (
