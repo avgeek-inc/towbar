@@ -324,7 +324,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             />
             {scope === "personal" && (
               <section
-                className="content-grid"
+                className="content-grid mt-4"
                 aria-labelledby="mcp-connections-title"
               >
                 <h3 id="mcp-connections-title" className="font-medium">
