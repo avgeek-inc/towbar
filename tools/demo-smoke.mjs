@@ -63,8 +63,34 @@ try {
     "/datastores",
     "/servers",
     "/deployments",
+    "/settings/api-keys",
+    "/settings/mcp",
+    "/team-settings/api-keys",
   ])
     assert.equal((await call(path, a)).status, 200, path);
+  const missingPage = await call("/demo-smoke-missing-page", a);
+  const missingPageHtml = await missingPage.text();
+  assert.match(missingPageHtml, /Page not found/);
+  const errorIllustration = await call("/scout/mascot-worried.png", a);
+  assert.equal(errorIllustration.status, 200);
+  assert.match(errorIllustration.headers.get("content-type"), /image\/png/);
+  const createdKey = await call(
+    "/v1/core/settings/api-keys/personal",
+    a,
+    "POST",
+    {
+      name: "Demo smoke inert key",
+      access: "read",
+    },
+  );
+  assert.equal(createdKey.status, 201);
+  const { token: sampleToken } = await createdKey.json();
+  assert.match(sampleToken, /^twb_fixture_only_/);
+  const bearerOnly = await fetch(`${origin}/v1/core/apps`, {
+    headers: { authorization: `Bearer ${sampleToken}` },
+    signal: AbortSignal.timeout(15_000),
+  });
+  assert.equal(bearerOnly.status, 401);
   for (const path of [
     "/v1/core/apps",
     "/v1/core/resources",
