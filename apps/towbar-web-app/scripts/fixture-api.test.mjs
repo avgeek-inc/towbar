@@ -78,8 +78,8 @@ test("renaming a server preserves its IP and preparation state", async () => {
   const address = server.address();
   assert(address && typeof address === "object");
   const url = `http://127.0.0.1:${address.port}/v1/core/servers/${fixtureIds.server}`;
+  const original = (await (await fetch(url)).json()).server;
   try {
-    const original = (await (await fetch(url)).json()).server;
     const response = await fetch(`${url}/name`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -98,6 +98,11 @@ test("renaming a server preserves its IP and preparation state", async () => {
     });
     assert.equal((await cleared.json()).server.name, null);
   } finally {
+    await fetch(`${url}/name`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: original.name }),
+    });
     server.close();
     await once(server, "close");
   }
