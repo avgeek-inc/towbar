@@ -76,13 +76,9 @@ try {
   ])
     assert.equal((await call(path, a)).status, 200, path);
   for (const path of [
-    "/v1/core/sources/connect",
-    "/v1/core/github/actions/installation-url",
-    "/v1/core/gitlab/oauth/start",
-    "/v1/core/settings/private-keys",
-    "/v1/core/team/invitations",
     `${appPath}/terminal`,
-    "/v1/core/notifications/telegram/destinations/test",
+    "/v1/public/auth/identity/sign-in/email",
+    "/v1/mcp",
   ])
     assert.equal(
       (
@@ -98,6 +94,30 @@ try {
     (await call("/_next/image?url=http://169.254.169.254/latest/meta-data", a))
       .status,
     403,
+  );
+  const secretPath = `${appPath}/secrets/production/deployment`;
+  const revealed = await call(`${secretPath}/reveal`, a, "POST", {
+    key: "SESSION_SECRET",
+  });
+  assert.equal(revealed.status, 200);
+  const originalSecret = await revealed.json();
+  assert.equal(originalSecret.value, "demo-only-session-secret");
+  assert.equal(
+    (
+      await call(secretPath, a, "PATCH", {
+        expectedRevision: originalSecret.revision,
+        set: { SESSION_SECRET: "smoke-visitor-a" },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await (
+        await call(`${secretPath}/reveal`, b, "POST", { key: "SESSION_SECRET" })
+      ).json()
+    ).value,
+    originalSecret.value,
   );
   const deployed = await call(`${appPath}/actions/deploy`, a, "POST");
   assert.equal(deployed.status, 202);
@@ -116,6 +136,16 @@ try {
   assert.equal(reset.status, 201);
   const fresh = reset.headers.get("set-cookie").split(";")[0];
   cookies.add(fresh);
+  assert.equal(
+    (
+      await (
+        await call(`${secretPath}/reveal`, fresh, "POST", {
+          key: "SESSION_SECRET",
+        })
+      ).json()
+    ).value,
+    originalSecret.value,
+  );
   assert.equal((await call(serverPath, a)).status, 401);
   assert.equal(
     (await (await call(serverPath, fresh)).json()).server.name,

@@ -1,3 +1,9 @@
+import {
+  type NormalizedApp,
+  appDeploymentSchema,
+  rolloutStrategySchema,
+  managedResourceCompatibility,
+} from "@workspace/towbar-core";
 import { eventHistoryFixture } from "./event-history-fixture.ts";
 import { terminalFixture } from "./terminal-fixture.ts";
 import {
@@ -102,7 +108,7 @@ type FixtureResource = Resource & {
   serverSsh: { port: number; username: string };
 };
 
-const fixtureNow = "2026-08-22T09:00:00.000Z";
+const fixtureNow = new Date(Date.now() - 2 * 60 * 60_000).toISOString();
 const systemHealthFixtureNow = new Date().toISOString();
 const commitSha = "c".repeat(40);
 const manifestDigest = "d".repeat(64);
@@ -172,6 +178,76 @@ const servers: Server[] = [
   createServerFixture(fixtureIds.server, "192.0.2.10", "ubuntu", false),
   createServerFixture(fixtureIds.secondaryServer, "192.0.2.11", "deploy", true),
 ];
+
+const additionalServers = [
+  {
+    provider: "aws",
+    type: "m7i.xlarge",
+    name: "Production · Mumbai",
+    cpu: 4,
+    memory: 16,
+    username: "ubuntu",
+  },
+  {
+    provider: "gcp",
+    type: "e2-standard-4",
+    name: "Analytics · Singapore",
+    cpu: 4,
+    memory: 16,
+    username: "deploy",
+  },
+  {
+    provider: "azure",
+    type: "Standard_D4s_v5",
+    name: "Build runner · London",
+    cpu: 4,
+    memory: 16,
+    username: "azureuser",
+  },
+  {
+    provider: "digitalocean",
+    type: "s-4vcpu-8gb",
+    name: "Staging · Amsterdam",
+    cpu: 4,
+    memory: 8,
+    username: "root",
+  },
+  {
+    provider: "linode",
+    type: "g6-standard-4",
+    name: null,
+    cpu: 4,
+    memory: 8,
+    username: "deploy",
+  },
+  {
+    provider: "alibaba",
+    type: "ecs.g7.xlarge",
+    name: "APAC · Hong Kong",
+    cpu: 4,
+    memory: 16,
+    username: "root",
+  },
+] as const;
+servers[0]!.name = "Core services · Hyderabad";
+servers[1]!.name = "Web services · Helsinki";
+for (const [index, spec] of additionalServers.entries()) {
+  const server = createServerFixture(
+    `21111111-1111-4111-8111-${String(index + 3).repeat(12)}`,
+    `192.0.2.${12 + index}`,
+    spec.username,
+    true,
+  );
+  server.name = spec.name;
+  server.hardware = {
+    instance: { provider: spec.provider, type: spec.type },
+    cpuCount: spec.cpu,
+    memoryBytes: spec.memory * 1024 ** 3,
+  };
+  server.config.buildConcurrency = index === 2 ? 4 : 2;
+  server.config.ssh.port = index === 4 ? 2222 : 22;
+  servers.push(server);
+}
 
 const apps: FixtureApp[] = [
   createAppFixture(
@@ -411,6 +487,217 @@ resources.push({
   sourceId: fixtureIds.analyticsSource,
 });
 
+const serviceDomains = [
+  "www.towbar.dev",
+  "nextjs.org",
+  "directus.io",
+  "docs.docker.com",
+  "www.wikipedia.org",
+  "nextcloud.com",
+  "shopware.com",
+];
+for (const [index, app] of apps.entries()) {
+  app.config.domains = { primary: serviceDomains[index]!, redirects: [] };
+  if (app.kind === "app")
+    (app.config as NormalizedApp).tls = { mode: "direct" };
+  app.description = app.config.description = [
+    "Control plane API with rolling releases, health checks, and vulnerability scans.",
+    "Customer website with pull-request previews and deployment notifications.",
+    "Internal administration with secrets supplied by Infisical.",
+    "Static documentation built from the documentation repository.",
+    "Public knowledge base with a recognizable site favicon.",
+    "Persistent file uploads with scheduled reports and a migration hook.",
+    "Storefront and cache deployed together using Docker Compose.",
+  ][index]!;
+}
+(apps[0]!.config as NormalizedApp).buildServer = {
+  ip: servers[4]!.canonicalIp,
+  transfer: "direct",
+  allowRuntimeFallback: false,
+  architecture: "arm64",
+};
+(apps[0]!.config as NormalizedApp).rollout = rolloutStrategySchema.parse({
+  type: "rolling",
+  replicas: 3,
+});
+apps[1]!.config.hooks = {
+  preDeploy: { command: ["node", "scripts/migrate.js"], timeoutSeconds: 120 },
+  postDeploy: { command: ["node", "scripts/smoke.js"], timeoutSeconds: 60 },
+};
+const docsApp = apps.find(
+  (app) => app.manifestId === "documentation",
+)! as FixtureApp & { config: NormalizedApp };
+docsApp.config.deployment = appDeploymentSchema.parse({
+  type: "static",
+  output: "dist",
+  buildCommand: ["npm", "run", "build"],
+  nodeImage:
+    "node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81",
+  spaFallback: true,
+});
+delete docsApp.config.dockerfile;
+
+storageApp.config.rollout = rolloutStrategySchema.parse({
+  type: "recreate",
+  reason: "Single writer for persistent uploads",
+  maintenanceMode: true,
+});
+storageApp.config.hooks = {
+  preDeploy: { command: ["node", "scripts/migrate.js"], timeoutSeconds: 120 },
+};
+const imageServices = [
+  {
+    name: "Umami Analytics",
+    slug: "umami",
+    image: "ghcr.io/umami-software/umami:postgresql-v2.19.0",
+    domain: "umami.is",
+    port: 3000,
+    data: "/app/data",
+    sourceId: fixtureIds.analyticsSource,
+  },
+  {
+    name: "Grafana Dashboards",
+    slug: "grafana",
+    image: "grafana/grafana:12.1.0",
+    domain: "grafana.com",
+    port: 3000,
+    data: "/var/lib/grafana",
+    sourceId: fixtureIds.analyticsSource,
+  },
+  {
+    name: "Gitea",
+    slug: "gitea",
+    image: "gitea/gitea:1.24.6",
+    domain: "about.gitea.com",
+    port: 3000,
+    data: "/data",
+    sourceId: fixtureIds.source,
+  },
+  {
+    name: "n8n Automations",
+    slug: "n8n",
+    image: "n8nio/n8n:1.109.2",
+    domain: "n8n.io",
+    port: 5678,
+    data: "/home/node/.n8n",
+    sourceId: fixtureIds.source,
+  },
+  {
+    name: "Uptime Kuma",
+    slug: "uptime-kuma",
+    image: "louislam/uptime-kuma:1.23.16",
+    domain: "uptime.kuma.pet",
+    port: 3001,
+    data: "/app/data",
+    sourceId: fixtureIds.source,
+  },
+  {
+    name: "Ghost Publishing",
+    slug: "ghost",
+    image: "ghost:6.0.6",
+    domain: "ghost.org",
+    port: 2368,
+    data: "/var/lib/ghost/content",
+    sourceId: fixtureIds.docsSource,
+  },
+  {
+    name: "Metabase",
+    slug: "metabase",
+    image: "metabase/metabase:v0.56.3",
+    domain: "www.metabase.com",
+    port: 3000,
+    data: "/metabase-data",
+    sourceId: fixtureIds.analyticsSource,
+  },
+];
+for (const [index, spec] of imageServices.entries()) {
+  const app = createAppFixture(
+    `31111111-1111-4111-8111-${String(index + 20).padStart(12, "0")}`,
+    spec.name,
+    spec.slug,
+    servers[(index % 6) + 2]!,
+  );
+  app.sourceId = spec.sourceId;
+  app.description =
+    app.config.description = `${spec.name} with persistent data, health checks, and image-based deployments.`;
+  app.config.deployment = appDeploymentSchema.parse({
+    type: "image",
+    image: spec.image,
+  });
+  delete app.config.dockerfile;
+
+  app.config.container.port = spec.port;
+  app.config.container.volumes = [
+    { name: `${spec.slug}-data`, mountPath: spec.data },
+  ];
+  app.config.domains = { primary: spec.domain, redirects: [] };
+  app.config.health = { path: "/", timeoutSeconds: 60 };
+  app.config.rollout = rolloutStrategySchema.parse({
+    type: "recreate",
+    reason: "Persistent application data",
+    maintenanceMode: true,
+  });
+  apps.push(app);
+}
+for (const [index, resource] of resources.entries()) {
+  if (index < 3) continue;
+  const server = servers[2 + (index % 6)]!;
+  resource.serverId = server.id;
+  resource.serverIp = resource.config.server = server.canonicalIp;
+  resource.serverSsh = {
+    port: server.config.ssh.port,
+    username: server.config.ssh.username,
+  };
+}
+
+const buildServices = [
+  {
+    name: "Node.js API",
+    domain: "nodejs.org",
+    deployment: appDeploymentSchema.parse({
+      type: "railpack",
+      image:
+        "ghcr.io/railwayapp/railpack-frontend@sha256:b9166320856c8bbb88789e89077d5a66a7d4cef8afa2e1e232307fb9a92c094e",
+      version: "0.36.1",
+    }),
+  },
+  {
+    name: "Python API",
+    domain: "www.python.org",
+    deployment: appDeploymentSchema.parse({
+      type: "nixpacks",
+      image:
+        "ghcr.io/railwayapp/nixpacks@sha256:9fc9a803373dfdde5b0bab48f26e4d9104f721865d108316eb655ee0214c3e91",
+      version: "1.41.0",
+    }),
+  },
+  {
+    name: "Buildpack Worker",
+    domain: "buildpacks.io",
+    deployment: appDeploymentSchema.parse({
+      type: "buildpack",
+      packImage:
+        "buildpacksio/pack@sha256:a53c4d6c297e10e680404cffda32e557b79a26d1ee4b7e6b18c0d175cb274621",
+      builder:
+        "heroku/builder@sha256:84d80b3c0d242961414a3c4d0a00c3518e6de01ef936423cfbaf1b0aa0f9155c",
+    }),
+  },
+];
+for (const [index, spec] of buildServices.entries()) {
+  const app = createAppFixture(
+    `31111111-1111-4111-8111-${String(index + 30).padStart(12, "0")}`,
+    spec.name,
+    `${spec.deployment.type}-service`,
+    servers[index + 2]!,
+  );
+  app.config.deployment = spec.deployment;
+  delete app.config.dockerfile;
+  app.config.domains = { primary: spec.domain, redirects: [] };
+  app.description =
+    app.config.description = `${spec.name} built from source with ${spec.deployment.type}.`;
+  apps.push(app);
+}
+
 const environmentMappings = sources
   .filter((item) => item.id !== fixtureIds.sandboxSource)
   .flatMap((item) =>
@@ -444,12 +731,14 @@ const stagingEnvironment = environmentMappings.find(
     environment.name === "staging",
 )!;
 apps.push({
-  ...apps.find((item) => item.id === fixtureIds.app)!,
+  ...structuredClone(apps.find((item) => item.id === fixtureIds.app)!),
   id: fixtureIds.stagingApp,
   environment: stagingEnvironment,
 });
 resources.push({
-  ...resources.find((item) => item.id === fixtureIds.resource)!,
+  ...structuredClone(
+    resources.find((item) => item.id === fixtureIds.resource)!,
+  ),
   id: fixtureIds.stagingResource,
   environment: stagingEnvironment,
 });
@@ -489,9 +778,65 @@ fixtureSecretVersions.set(
 fixtureSecretKeys.set(`${source.id}:preview:build`, ["SOURCE_PREVIEW_TOKEN"]);
 fixtureSecretVersions.set(`${source.id}:preview:build`, crypto.randomUUID());
 
-const platformApps = apps.filter(
-  (app) => app.sourceId === source.id && app.environment?.name === "production",
-);
+for (const deployable of [...apps, ...resources]) {
+  const environment = deployable.environment?.name ?? "production";
+  const keys: Record<string, string> =
+    deployable.kind === "app" || deployable.kind === "compose"
+      ? {
+          DATABASE_URL:
+            "postgresql://demo:demo-only-password@primary-postgres:5432/app",
+          SESSION_SECRET: "demo-only-session-secret",
+        }
+      : Object.fromEntries(
+          {
+            postgres: ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"],
+            mysql: ["MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE"],
+            mariadb: ["MARIADB_ROOT_PASSWORD", "MARIADB_DATABASE"],
+            mongodb: [
+              "MONGO_INITDB_ROOT_USERNAME",
+              "MONGO_INITDB_ROOT_PASSWORD",
+            ],
+            redis: ["REDIS_PASSWORD"],
+            dragonfly: ["REDIS_PASSWORD"],
+            keydb: ["REDIS_PASSWORD"],
+            clickhouse: [
+              "CLICKHOUSE_USER",
+              "CLICKHOUSE_PASSWORD",
+              "CLICKHOUSE_DB",
+            ],
+          }[deployable.kind].map((key) => [
+            key,
+            key.endsWith("PASSWORD") ? "demo-only-database-password" : "demo",
+          ]),
+        );
+  applyFixtureSecretMutation(`${deployable.id}:${environment}:deployment`, {
+    set: keys,
+  });
+  if (
+    deployable.kind === "app" &&
+    deployable.config.deployment?.type !== "image"
+  ) {
+    applyFixtureSecretMutation(`${deployable.id}:${environment}:build`, {
+      set: { PACKAGE_REGISTRY_TOKEN: "demo-only-registry-token" },
+    });
+    if (deployable.config.hooks.preDeploy)
+      applyFixtureSecretMutation(`${deployable.id}:${environment}:pre_deploy`, {
+        set: { MIGRATION_DATABASE_URL: keys.DATABASE_URL! },
+      });
+    if (deployable.config.hooks.postDeploy)
+      applyFixtureSecretMutation(
+        `${deployable.id}:${environment}:post_deploy`,
+        { set: { SMOKE_TEST_TOKEN: "demo-only-smoke-token" } },
+      );
+  }
+}
+
+const platformApps = apps
+  .filter(
+    (app) =>
+      app.sourceId === source.id && app.environment?.name === "production",
+  )
+  .slice(0, 4);
 
 const deploymentFixtureNow = Date.now();
 const deploymentDayOffsets = [6, 6, 5, 5, 5, 4, 3, 3, 2, 2, 2, 1, 0, 0];
@@ -563,6 +908,19 @@ deployments.push(
     "queued",
   ),
 );
+
+for (const deployable of [...apps, ...resources]) {
+  if (!deployments.some((item) => item.appId === deployable.id))
+    deployments.push(
+      createDeploymentFixture(
+        randomUUID(),
+        deployable,
+        servers.find((server) => server.id === deployable.serverId)!,
+        "succeeded",
+        new Date(Date.now() - 48 * 60 * 60_000).toISOString(),
+      ),
+    );
+}
 
 const previewDeployment: Deployment = {
   ...createDeploymentFixture(
@@ -831,7 +1189,7 @@ const previews: PreviewEnvironment[] = [
     cleanupAttempts: 0,
     createdAt: fixtureNow,
     errorMessage: null,
-    expiresAt: "2026-08-25T09:00:00.000Z",
+    expiresAt: new Date(Date.now() + 72 * 60 * 60_000).toISOString(),
     gitRef: "refs/heads/feature/preview-fixture",
     hostname: previewDeployment.hostname!,
     id: fixtureIds.preview,
@@ -851,7 +1209,7 @@ const previews: PreviewEnvironment[] = [
     cleanupAttempts: 2,
     createdAt: fixtureNow,
     errorMessage: "The server could not be reached over SSH",
-    expiresAt: "2026-08-25T09:00:00.000Z",
+    expiresAt: new Date(Date.now() + 72 * 60 * 60_000).toISOString(),
     gitRef: "refs/heads/fix/preview-cleanup",
     hostname: "example-website-pr-43.preview.example.com",
     id: "b1111111-1111-4111-8111-222222222222",
@@ -972,6 +1330,16 @@ const hostKeysByServer = new Map<string, TrustedHostKey[]>([
   ],
 ]);
 
+for (const server of servers.slice(2))
+  hostKeysByServer.set(server.id, [
+    {
+      algorithm: "ssh-ed25519",
+      createdAt: fixtureNow,
+      fingerprint: "SHA256:DemoOnlyHostKey",
+      id: randomUUID(),
+    },
+  ]);
+
 const userSessions: UserSession[] = [
   {
     createdAt: fixtureNow,
@@ -1017,6 +1385,8 @@ const serverChecks: ServerCheck[] = [
 ];
 
 type FixtureCredentialVerification = ServerCheck;
+const requestedServerChecks = new Map<string, ServerCheck[]>();
+
 const credentialVerifications = new Map<
   string,
   FixtureCredentialVerification
@@ -1182,6 +1552,49 @@ const runtimeCapacity: RuntimeCapacity[] = [
   },
 ];
 
+for (const server of servers.slice(2)) {
+  const memory = server.hardware!.memoryBytes!;
+  runtimeCapacity.push({
+    ...emptyRuntimeCapacity(server),
+    checkedAt: fixtureNow,
+    latestCheckStatus: "succeeded",
+    status: "healthy",
+    cpu: {
+      loadAverage1m: 0.7,
+      logicalCount: server.hardware!.cpuCount!,
+      usagePercent: 24,
+    },
+    memory: {
+      availableBytes: Math.round(memory * 0.65),
+      totalBytes: memory,
+      usedPercent: 35,
+    },
+    disk: {
+      availableBytes: 80 * 1024 ** 3,
+      totalBytes: 100 * 1024 ** 3,
+      usedPercent: 20,
+    },
+    uptimeSeconds: 864_000,
+  });
+}
+for (const capacity of runtimeCapacity) {
+  capacity.runtimes = [...apps, ...resources]
+    .filter((item) => item.serverId === capacity.id)
+    .map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      kind: item.kind,
+      sourceId: item.sourceId,
+      healthStatus: item.runtimeState.healthStatus,
+      observedState: item.runtimeState.observedState,
+      cpuPercent: 1.5 + index,
+      memoryLimitBytes: 1024 ** 3,
+      memoryUsageBytes: 256 * 1024 ** 2,
+      restartCount: 0,
+      startedAt: fixtureNow,
+    }));
+}
+
 const preparationStepResults: Record<
   ServerPreparation["steps"][number]["id"],
   { message: string; log: string }
@@ -1287,22 +1700,26 @@ const sourceBackups: SourceBackup[] = [
   createBackupFixture(
     "f1111111-1111-4111-8111-111111111111",
     resources[0]!,
-    "2026-08-22T08:42:00.000Z",
+    new Date(Date.now() - 1 * 60 * 60_000).toISOString(),
     248_512_336,
   ),
   createBackupFixture(
     "f1111111-1111-4111-8111-222222222222",
     resources[2]!,
-    "2026-08-21T18:15:00.000Z",
+    new Date(Date.now() - 14 * 60 * 60_000).toISOString(),
     231_902_104,
   ),
   createBackupFixture(
     "f1111111-1111-4111-8111-333333333333",
     resources[1]!,
-    "2026-08-21T14:15:00.000Z",
+    new Date(Date.now() - 18 * 60 * 60_000).toISOString(),
     48_331_776,
   ),
 ];
+for (const resource of resources.slice(3))
+  sourceBackups.push(
+    createBackupFixture(randomUUID(), resource, fixtureNow, 96_512_336),
+  );
 const backupAssurances: BackupAssurance[] = sourceBackups.map((backup) => {
   const s3AccessDenied = backup.resourceId === fixtureIds.secondaryPostgres;
   return {
@@ -1572,6 +1989,8 @@ export function createFixtureApiServer({
   applyFixtureSecretMutation(`credentials:${fixtureIds.secondaryServer}`, {
     set: { privateKey: fixturePrivateKeyValue },
   });
+  for (const server of servers.slice(2))
+    selectedPrivateKeys.set(server.id, privateKeys[0]!.id);
   const terminal = terminalFixture(
     () => teamAccess.getUser()?.workspaceRole === "admin",
   );
@@ -2112,10 +2531,9 @@ export function createFixtureApiServer({
       });
     if (path === "/v1/core/gitlab/oauth/start" && request.method === "POST")
       return writeJson(response, 200, {
-        authorizationUrl: new URL(
-          "/manage/integrations/gitlab?connected=true",
-          request.headers.origin ?? "http://localhost:4021",
-        ).toString(),
+        authorizationUrl: publicDemo
+          ? "/manage/integrations/gitlab?connected=true"
+          : "http://localhost:4021/manage/integrations/gitlab?connected=true",
         expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       });
     if (
@@ -2201,7 +2619,11 @@ export function createFixtureApiServer({
         githubConnection.installationId,
       );
       callback.searchParams.set("state", githubInstallationState);
-      writeJson(response, 200, { url: callback.toString() });
+      writeJson(response, 200, {
+        url: publicDemo
+          ? callback.pathname + callback.search
+          : callback.toString(),
+      });
       return;
     }
     if (
@@ -2609,6 +3031,7 @@ export function createFixtureApiServer({
           hostKeysByServer.set(server.id, []);
           serverPreparationsByServer.set(server.id, []);
           runtimeCapacity.push(emptyRuntimeCapacity(server));
+          monitoring.set(server.id, fixtureMonitoringAgent());
           return writeJson(response, 201, { server });
         })
         .catch(() =>
@@ -2684,7 +3107,8 @@ export function createFixtureApiServer({
     }
     if (
       request.method === "POST" &&
-      path === `/v1/core/sources/${source.id}/actions/sync`
+      /^\/v1\/core\/sources\/[^/]+\/actions\/sync$/.test(path) &&
+      sources.some((item) => item.id === path.split("/")[4])
     ) {
       return writeJson(response, 202, { sync: { id: sourceSync.id } });
     }
@@ -2697,7 +3121,9 @@ export function createFixtureApiServer({
         kind === "sources"
           ? id === source.id
             ? sourceAutoDeployControl
-            : undefined
+            : sources.some((item) => item.id === id)
+              ? getFixtureSourceAutoDeployControl(id!)
+              : undefined
           : getFixtureDeployableAutoDeployControl(kind!, id!);
       if (!control) return writeNotFound(response);
       if (request.method === "GET") {
@@ -2773,10 +3199,10 @@ export function createFixtureApiServer({
       return;
     }
     const revealMatch = path.match(
-      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/([a-z][a-z0-9-]{0,62})\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     const globalRevealMatch = path.match(
-      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
+      /^\/v1\/core\/settings\/secrets\/([a-z][a-z0-9-]{0,62})\/(build|deployment|pre_deploy|post_deploy)\/reveal(?:-all)?$/,
     );
     if (request.method === "POST" && (revealMatch || globalRevealMatch)) {
       const slot = revealMatch
@@ -2815,10 +3241,10 @@ export function createFixtureApiServer({
       return;
     }
     const mutationMatch = path.match(
-      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
+      /^\/v1\/core\/(apps|resources)\/([^/]+)\/secrets\/([a-z][a-z0-9-]{0,62})\/(build|deployment|pre_deploy|post_deploy)$/,
     );
     const globalSecretMutationMatch = path.match(
-      /^\/v1\/core\/settings\/secrets\/(production|preview)\/(build|deployment|pre_deploy|post_deploy)$/,
+      /^\/v1\/core\/settings\/secrets\/([a-z][a-z0-9-]{0,62})\/(build|deployment|pre_deploy|post_deploy)$/,
     );
     const credentialMatch = path.match(
       /^\/v1\/core\/servers\/([^/]+)\/credentials$/,
@@ -2967,6 +3393,7 @@ export function createFixtureApiServer({
       );
       if (!preview) return writeNotFound(response);
       preview.status = "deleting";
+      previews.splice(previews.indexOf(preview), 1);
       preview.updatedAt = new Date().toISOString();
       return writeJson(response, 202, { accepted: true });
     }
@@ -3037,18 +3464,29 @@ export function createFixtureApiServer({
     if (request.method === "POST" && checkServerMatch) {
       const server = servers.find((item) => item.id === checkServerMatch[1]);
       if (!server) return writeNotFound(response);
-      return writeJson(response, 202, {
-        check: {
-          createdAt: new Date().toISOString(),
-          errorCode: null,
-          errorMessage: null,
-          finishedAt: null,
-          id: randomUUID(),
-          result: null,
-          startedAt: null,
-          status: "queued",
-        } satisfies ServerCheck,
-      });
+      const check: ServerCheck = {
+        createdAt: new Date().toISOString(),
+        errorCode: null,
+        errorMessage: null,
+        finishedAt: null,
+        id: randomUUID(),
+        result: null,
+        startedAt: null,
+        status: "queued",
+      };
+      const checks = requestedServerChecks.get(server.id) ?? [];
+      checks.unshift(check);
+      requestedServerChecks.set(server.id, checks);
+      setTimeout(() => {
+        check.status = "succeeded";
+        check.startedAt = check.createdAt;
+        check.finishedAt = new Date().toISOString();
+        check.result = structuredClone(
+          serverChecks.find((item) => item.status === "succeeded")?.result ??
+            null,
+        );
+      }, 1000).unref();
+      return writeJson(response, 202, { check });
     }
     if (request.method === "POST" && prepareServerMatch) {
       const server = servers.find((item) => item.id === prepareServerMatch[1]);
@@ -3190,6 +3628,28 @@ export function createFixtureApiServer({
               sequence: 2,
             },
           ]);
+          setTimeout(() => {
+            if (operation.state !== "running") return;
+            operation.state = "succeeded";
+            operation.phase = "completed";
+            operation.finishedAt = operation.updatedAt =
+              new Date().toISOString();
+            operation.result = {
+              restoreId: operation.id,
+              backupId: backup.id,
+              state: "running",
+            };
+            operationEventsByOperation.get(operation.id)!.push({
+              id: randomUUID(),
+              createdAt: operation.finishedAt,
+              command: null,
+              level: "success",
+              message: "Sample backup restored and health checks passed",
+              metadata: {},
+              phase: "completed",
+              sequence: 3,
+            });
+          }, 2500).unref();
           return writeJson(response, 202, { operation });
         })
         .catch(() =>
@@ -3302,6 +3762,25 @@ export function createFixtureApiServer({
         type,
         updatedAt: now,
       } satisfies ResourceOperation;
+      if (type === "start" || type === "stop" || type === "restart") {
+        deployable.runtimeState.desiredState =
+          type === "stop" ? "stopped" : "running";
+        deployable.runtimeState.observedState =
+          type === "stop" ? "stopped" : "running";
+        deployable.runtimeState.healthStatus =
+          type === "stop" ? "unknown" : "healthy";
+        deployable.runtimeState.checkedAt = now;
+      }
+      if (type === "backup" && kind === "resources") {
+        const backup = createBackupFixture(
+          operation.id,
+          deployable as FixtureResource,
+          now,
+          96_512_336,
+        );
+        sourceBackups.unshift(backup);
+        operation.result = backup.result;
+      }
       runtimeOperations.unshift(operation);
       return writeJson(response, 202, { operation });
     }
@@ -3313,9 +3792,20 @@ export function createFixtureApiServer({
         (item) => item.id === previewDeployMatch[1],
       );
       if (!preview) return writeNotFound(response);
+      const deployment = {
+        ...structuredClone(previewDeployment),
+        id: randomUUID(),
+        appId: preview.appId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        state: "succeeded" as const,
+      };
+      deployments.unshift(deployment);
+      preview.status = "healthy";
       return writeJson(response, 202, {
         accepted: true,
-        deploymentId: randomUUID(),
+        deploymentId: deployment.id,
       });
     }
     const deployActionMatch = path.match(
@@ -3344,7 +3834,7 @@ export function createFixtureApiServer({
         new Date().toISOString(),
       );
       deployments.unshift(deployment);
-      if (publicDemo) {
+      {
         simulatedDeployments.add(deployment);
         deployment.startedAt = deployment.createdAt;
         for (const [index, state] of (
@@ -3352,6 +3842,7 @@ export function createFixtureApiServer({
         ).entries()) {
           setTimeout(
             () => {
+              if (terminalStates.has(deployment.state)) return;
               deployment.state = state;
               deployment.updatedAt = new Date().toISOString();
               deployment.startedAt ??= deployment.updatedAt;
@@ -3362,6 +3853,35 @@ export function createFixtureApiServer({
           ).unref();
         }
       }
+      return writeJson(response, 202, { deployment });
+    }
+    const deploymentAction = path.match(
+      /^\/v1\/core\/deployments\/([^/]+)\/actions\/(cancel|retry)$/,
+    );
+    if (request.method === "POST" && deploymentAction) {
+      const previous = deployments.find(
+        (item) => item.id === deploymentAction[1],
+      );
+      if (!previous) return writeNotFound(response);
+      if (deploymentAction[2] === "cancel") {
+        previous.state = "cancelled";
+        previous.finishedAt = previous.updatedAt = new Date().toISOString();
+        return writeJson(response, 202, {
+          accepted: true,
+          deployment: previous,
+        });
+      }
+      const deployment = {
+        ...structuredClone(previous),
+        id: randomUUID(),
+        state: "succeeded" as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        errorCode: null,
+        errorMessage: null,
+      };
+      deployments.unshift(deployment);
       return writeJson(response, 202, { deployment });
     }
     const vulnerabilityRescanMatch = path.match(
@@ -3381,6 +3901,11 @@ export function createFixtureApiServer({
         startedAt: null,
         state: "pending",
       };
+      setTimeout(() => {
+        if (!deployment.vulnerabilityScan) return;
+        deployment.vulnerabilityScan.state = "findings";
+        deployment.vulnerabilityScan.completedAt = new Date().toISOString();
+      }, 1500).unref();
       return writeJson(response, 202, {
         replayed: false,
         scan: deployment.vulnerabilityScan,
@@ -3520,8 +4045,40 @@ function getFixturePayload(
                 "    port: 3000",
               ]
             : isApp
-              ? ["dockerfile: Dockerfile", "container:", "  port: 3000"]
-              : [`type: ${item.kind}`]),
+              ? [
+                  ...(item.config.deployment
+                    ? [`deployment: ${JSON.stringify(item.config.deployment)}`]
+                    : [
+                        `dockerfile: ${JSON.stringify((item.config as NormalizedApp).dockerfile)}`,
+                        `context: ${JSON.stringify(item.config.context)}`,
+                      ]),
+                  `container: ${JSON.stringify(item.config.container)}`,
+                  ...[
+                    "domains",
+                    "health",
+                    "jobs",
+                    "preview",
+                    "externalSecrets",
+                    "notifications",
+                    "tls",
+                    "rollout",
+                    "buildServer",
+                  ].flatMap((key) => {
+                    const value = (
+                      item.config as unknown as Record<string, unknown>
+                    )[key];
+                    return value === undefined
+                      ? []
+                      : [`${key}: ${JSON.stringify(value)}`];
+                  }),
+                  ...(Object.keys(item.config.hooks).length
+                    ? [`hooks: ${JSON.stringify(item.config.hooks)}`]
+                    : []),
+                ]
+              : [
+                  `type: ${item.kind}`,
+                  `backup: ${JSON.stringify((item as FixtureResource).config.backup)}`,
+                ]),
           "environments:",
           ...members.flatMap((member) => [
             `  ${member.environment!.name}:`,
@@ -3632,9 +4189,19 @@ function getFixturePayload(
     if (child === "apps") return { apps: sourceApps };
     if (child === "resources") return { resources: sourceResources };
     if (child === "syncs") return { syncs: [] };
-    if (child === "deployments") return { deployments: [] };
+    if (child === "deployments")
+      return {
+        deployments: deployments.filter(
+          (item) => item.sourceId === extraSource.id,
+        ),
+      };
     if (child === "previews") return { previews: [] };
-    if (child === "backups") return { backups: [] };
+    if (child === "backups")
+      return {
+        backups: sourceBackups.filter(
+          (item) => item.sourceId === extraSource.id,
+        ),
+      };
     if (child === "capacity")
       return {
         capacities: runtimeCapacity.filter((capacity) =>
@@ -3734,7 +4301,10 @@ function getFixturePayload(
         ),
       },
     ],
-    [`/v1/core/sources/${source.id}/backups`, { backups: sourceBackups }],
+    [
+      `/v1/core/sources/${source.id}/backups`,
+      { backups: sourceBackups.filter((item) => item.sourceId === source.id) },
+    ],
     [
       `/v1/core/sources/${source.id}/notifications/destinations`,
       {
@@ -3850,9 +4420,9 @@ function getFixturePayload(
     return deployable
       ? getFixtureDeployableSecrets(
           deployable,
-          searchParams.get("environment") === "preview"
-            ? "preview"
-            : "production",
+          searchParams.get("environment") ??
+            deployable.environment?.name ??
+            "production",
         )
       : undefined;
   }
@@ -3976,11 +4546,15 @@ function getFixturePayload(
         100,
         readPositiveInteger(searchParams.get("limit"), 10),
       );
-      const total = serverChecks.length;
+      const checks = [
+        ...(requestedServerChecks.get(server.id) ?? []),
+        ...serverChecks,
+      ];
+      const total = checks.length;
       const offset = (page - 1) * limit;
       return {
-        checks: serverChecks.slice(offset, offset + limit),
-        latestCheck: serverChecks[0] ?? null,
+        checks: checks.slice(offset, offset + limit),
+        latestCheck: checks[0] ?? null,
         pagination: {
           limit,
           page,
@@ -4025,6 +4599,19 @@ function getFixturePayload(
   }
 
   return undefined;
+}
+
+const extraSourceAutoDeployControls = new Map<
+  string,
+  AutoDeployControlResponse["autoDeploy"]
+>();
+function getFixtureSourceAutoDeployControl(id: string) {
+  let control = extraSourceAutoDeployControls.get(id);
+  if (!control) {
+    control = createAutoDeployControlFixture("source");
+    extraSourceAutoDeployControls.set(id, control);
+  }
+  return control;
 }
 
 function createAutoDeployControlFixture(
@@ -4116,17 +4703,17 @@ function fixtureMetadata(key: string) {
 }
 function getFixtureDeployableSecrets(
   deployable: FixtureApp | FixtureResource,
-  environment: "production" | "preview" = "production",
+  environment: string = "production",
 ): AppSecretsResponse {
   return getFixtureSecretsResponse(
     deployable.id,
     environment,
     deployable.kind !== "app",
+    "deployable",
+    deployable.environment?.name ?? "production",
   );
 }
-function getFixtureGlobalSecrets(
-  environment: "production" | "preview",
-): AppSecretsResponse {
+function getFixtureGlobalSecrets(environment: string): AppSecretsResponse {
   return getFixtureSecretsResponse(
     user.workspaceId,
     environment,
@@ -4136,9 +4723,10 @@ function getFixtureGlobalSecrets(
 }
 function getFixtureSecretsResponse(
   id: string,
-  environment: "production" | "preview",
+  environment: string,
   resource: boolean,
   scope: "global" | "deployable" = "deployable",
+  baseEnvironment = "production",
 ): AppSecretsResponse {
   const stages = resource
     ? ["deployment" as const]
@@ -4146,8 +4734,8 @@ function getFixtureSecretsResponse(
   return {
     environments:
       resource || scope === "global"
-        ? ["production"]
-        : ["production", "preview"],
+        ? [baseEnvironment]
+        : [baseEnvironment, "preview"],
     canManageSecrets: true,
     bindings: stages.map((stage) => {
       const local = fixtureMetadata(`${id}:${environment}:${stage}`);
@@ -4300,7 +4888,7 @@ function createAppFixture(
   manifestId: string,
   server: Server,
   healthStatus: App["runtimeState"]["healthStatus"] = "healthy",
-): FixtureApp {
+): FixtureApp & { config: NormalizedApp } {
   return {
     entityId: null,
     environment: null,
@@ -4376,42 +4964,39 @@ function createResourceFixture(
             }
           : undefined,
       autoDeploy: true,
-      backup:
-        kind === "postgres"
-          ? {
-              gcs: {
-                bucket: "towbar-fixture-gcs-backups",
-                prefix: manifestId,
-                region: "asia-south1",
-              },
-              restoreFrom: "s3" as const,
-              retention: { keepLast: 7 },
-              s3: {
-                bucket: "towbar-fixture-backups",
-                encryption: "AES256",
-                prefix: manifestId,
-                region: "ap-south-1",
-              },
-              schedule: { cron: "0 2 * * *", timezone: "UTC" },
-            }
-          : undefined,
+      backup: {
+        gcs: {
+          bucket: "towbar-fixture-gcs-backups",
+          prefix: manifestId,
+          region: "asia-south1",
+        },
+        restoreFrom: "s3" as const,
+        retention: { keepLast: 7 },
+        s3: {
+          bucket: "towbar-fixture-backups",
+          encryption: "AES256",
+          prefix: manifestId,
+          region: "ap-south-1",
+        },
+        schedule: { cron: "0 2 * * *", timezone: "UTC" },
+      },
       container: {
         command: [],
         network: "towbar-fixture",
         networkAlias: manifestId,
-        port: kind === "postgres" ? 5432 : kind === "redis" ? 6379 : 8025,
+        port: managedResourceCompatibility[kind].port,
         resources: { cpus: 1, memory: "1g" },
-        volumes: [{ mountPath: "/data", name: `${manifestId}-data` }],
+        volumes: [
+          {
+            mountPath: managedResourceCompatibility[kind].volumePath,
+            name: `${manifestId}-data`,
+          },
+        ],
       },
       description: `${name} fixture`,
       health: { timeoutSeconds: 30, type: "container" },
       id: manifestId,
-      image:
-        kind === "postgres"
-          ? "postgres:17"
-          : kind === "redis"
-            ? "redis:8"
-            : "axllent/mailpit:v1.27",
+      image: managedResourceCompatibility[kind].image,
       kind,
       name,
 
@@ -4606,9 +5191,21 @@ function createBackupFixture(
         },
       ],
       encryption: "AES256",
-      engine: resource.kind === "redis" ? "redis" : "postgres",
-      engineMajorVersion: resource.kind === "redis" ? 8 : 18,
-      format: resource.kind === "redis" ? "redis-rdb" : "postgres-custom",
+      engine: resource.kind,
+      engineMajorVersion:
+        managedResourceCompatibility[resource.kind].majorVersion,
+      format: (
+        {
+          postgres: "postgres-custom",
+          mysql: "mysql-sql",
+          mariadb: "mariadb-sql",
+          mongodb: "mongodb-archive",
+          redis: "redis-rdb",
+          dragonfly: "dragonfly-rdb",
+          keydb: "keydb-rdb",
+          clickhouse: "clickhouse-backup",
+        } as const
+      )[resource.kind],
       key,
       metadataVersion: 1,
       region: "ap-south-1",
@@ -4718,7 +5315,9 @@ function createDeploymentFixture(
         : null,
     imagePlatform:
       state === "succeeded" || state === "succeeded_with_warnings"
-        ? "linux/arm64"
+        ? server.hardware?.instance?.provider === "oracle"
+          ? "linux/arm64"
+          : "linux/amd64"
         : null,
     kind: trigger === "rollback" ? "rollback" : "deploy",
     manifestDigest,

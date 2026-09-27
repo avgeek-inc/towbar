@@ -8,6 +8,7 @@ import {
 
 import Image, { type ImageLoaderProps } from "next/image";
 import { useState } from "react";
+import bundledFavicons from "./service-favicon-catalog.json";
 import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
 import {
   DashboardCircleIcon,
@@ -169,7 +170,10 @@ export function AppLogo({
           decoding="sync"
           unoptimized
           width={pixels}
-          src={`https://${domain}/favicon.ico`}
+          src={
+            (bundledFavicons as Record<string, string>)[domain] ??
+            `https://${domain}/favicon.ico`
+          }
           onError={() => {
             failedAppLogoDomains.add(domain);
             setResult({ domain, status: "failed" });

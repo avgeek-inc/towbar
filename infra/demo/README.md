@@ -48,8 +48,9 @@ and container restrictions below provide the additional runtime boundary.
    for 600 seconds. A separate local-only cookie works on loopback HTTP for QA.
 3. The current dashboard displays repositories, Services, Datastores, server
    monitoring, deployment history, settings, and sample integration status.
-   Server rename, auto-deploy pause, preferences, and selected runtime actions
-   mutate that worker only. Deploy creates a simulated deployment which moves
+   Secret reveal/editing, server and team changes, source connection flows,
+   notification tests, jobs, backups/restores, and runtime actions mutate that
+   worker only. Deploy creates a simulated deployment which moves
    through build/start/success and streams updates in about six seconds.
 4. A persistent notice identifies the demo, shows time remaining, and offers
    Reset demo and End demo. It warns during the final minute. Reset destroys the
@@ -63,9 +64,11 @@ and container restrictions below provide the additional runtime boundary.
    stops the gateway so Docker's restart policy can recover the whole service.
 
 Do not enter personal data or real secrets. Unsupported writes receive a clear
-`DEMO_RESTRICTED` response. Credential entry/reveal, connections/OAuth, team
-changes, API keys/MCP, terminals/WebSockets, notifications, arbitrary jobs,
-image fetching, and unreviewed endpoints cannot pass the gateway policy.
+`DEMO_RESTRICTED` response. Account authentication/security enrollment, live
+terminals/WebSockets, API/MCP execution, arbitrary image fetching, and unreviewed
+endpoints cannot pass the gateway policy. Sample API keys are inert fixture
+values, not credentials accepted by the gateway. Connection callbacks stay
+on this origin. Jobs return simulated output; commands are never executed.
 Displayed integrations and health are fixture data, never provider connections
 or a report of the demo host's health.
 
@@ -139,7 +142,7 @@ bash tools/test-public-demo.sh
 
 The container smoke boots the actual Caddy stack on loopback port 4880, visits
 current UI routes, creates two sessions, verifies independent changes, deploys
-synthetically, denies integration/terminal/secret actions, resets/revokes, and
+synthetically, reveals/edits sample secrets, denies live terminal/auth actions, resets/revokes, and
 restarts the service to verify old-cookie invalidation. It probes internet,
 metadata, DNS, and host-bridge access from the runtime container, then removes
 its test containers/networks/volumes. Do not run it beside another copy of this
@@ -248,3 +251,38 @@ Only Caddy certificate/config volumes persist; no visitor backup/restore or
 cron reset job is needed. Keep Docker security patches and certificate storage
 maintained. Domain TLS issuance and real-host capacity must be verified at
 activation; local tests cannot establish either.
+
+## Shared showcase data and action coverage
+
+The local fixture and public workers use the same seed: 17 services (18 environment
+instances), all eight managed datastore engines (11 instances), four repositories,
+and eight servers. Server names show region/purpose; provider identities use
+Towbar's supported AWS, GCP, Azure, Oracle, Hetzner, DigitalOcean, Linode, and
+Alibaba types. Datastore images, ports, data paths, and backup engine versions
+come from `managedResourceCompatibility`. Service examples cover Dockerfile,
+static, image, Railpack, Nixpacks, buildpack, and Compose deployment modes,
+previews, build servers, rollout strategies, volumes, jobs, hooks, and notifications.
+Branded image services use the existing image logo catalog; site favicons are
+bundled locally so no third-party requests are needed in the demo.
+
+| Interaction                                                                | Demo behavior                                                                 |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Reveal/edit service, datastore, or shared secrets                          | Fake values in the visitor's worker; revision checks, reset, and expiry apply |
+| SSH key creation/reveal/selection, credential verification, host trust     | In-memory fixture keys and simulated verification; no SSH contact             |
+| Server add/edit/remove, prepare, checks, monitoring                        | Mutates sample server records and simulated health                            |
+| Deploy, cancel, retry, runtime start/stop/restart, logs                    | Simulated states, operations, and logs                                        |
+| Scheduled jobs                                                             | Only a configured sample job; returns fixture output without execution        |
+| Backups, restore, cleanup/cancel                                           | Sample backup metadata and a simulated restore timeline                       |
+| Preview deploy/delete, vulnerability rescan                                | Sample records and states                                                     |
+| Auto-deploy, preferences, alert rule CRUD                                  | Updates the visitor's sample configuration                                    |
+| Notification destination edit/test                                         | Saves sample destinations and returns a simulated result; never sends         |
+| Source discovery/connect and new source environment changes                | Fixture repositories and manifests; no Git fetch                              |
+| GitHub/GitLab connection flow                                              | Same-origin fixture callback; no real OAuth grant                             |
+| Team/member/invitation and sample API key management                       | In-memory records and inert sample keys; no email or gateway authentication   |
+| Account sign-in, passkey/2FA enrollment, live terminals, API/MCP execution | Remain unavailable; no fixture-only shortcut changes gateway authentication   |
+| Unknown routes or arbitrary image proxy requests                           | Rejected by the explicit gateway allowlist                                    |
+
+Existing seeded repository environment mappings are read-only; new repository
+connections support the fixture's environment add/edit/disconnect workflow.
+The focused tests exercise catalog consistency, sample secret revision handling,
+visitor isolation, reset/expiry, and representative newly enabled actions.

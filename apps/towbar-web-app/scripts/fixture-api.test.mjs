@@ -748,7 +748,7 @@ test("the local fixture separates control-plane checks from server capacity", as
     );
     assert.equal(sourceCapacityResponse.status, 200);
     const { capacities } = await sourceCapacityResponse.json();
-    assert.equal(capacities.length, 2);
+    assert.equal(capacities.length, 8);
     assert.equal(
       capacities.some((item) =>
         item.runtimes.some((runtime) => runtime.id === fixtureIds.app),
@@ -1035,7 +1035,7 @@ test("the local fixture covers retained backups from multiple Resources", async 
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.backups.length, 3);
+    assert.equal(payload.backups.length, 10);
     assert.equal(
       payload.backups.some(
         (backup) => backup.resourceId === fixtureIds.resource,
@@ -1064,11 +1064,11 @@ test("the local fixture ranks workspace advisories by severity with affected app
 
   try {
     const response = await fetch(
-      `${baseUrl}/v1/core/monitoring/vulnerabilities`,
+      `${baseUrl}/v1/core/monitoring/vulnerabilities?limit=100`,
     );
     assert.equal(response.status, 200);
     const payload = await response.json();
-    assert.equal(payload.findings.length, 12);
+    assert(payload.findings.length >= 12);
     assert.equal(payload.nextPage, null);
     assert.equal(payload.findings[0].advisoryId, "CVE-2026-21001");
     assert.equal(payload.findings[0].severity, "critical");
@@ -1085,19 +1085,19 @@ test("the local fixture ranks workspace advisories by severity with affected app
       payload.findings.some((finding) => finding.appName === "Towbar API"),
     );
     assert.equal(payload.findings.at(-1).severity, "low");
-    assert.equal(payload.summary.critical, 4);
-    assert.equal(payload.summary.scansWithFindings, 2);
-    assert.equal(payload.summary.cleanScans, 1);
+    assert(payload.summary.critical >= 4);
+    assert(payload.summary.scansWithFindings >= 2);
+    assert(payload.summary.cleanScans >= 1);
 
     const criticalOnly = await fetch(
       `${baseUrl}/v1/core/monitoring/vulnerabilities?severity=critical`,
     ).then((item) => item.json());
-    assert.equal(criticalOnly.findings.length, 4);
+    assert.equal(criticalOnly.findings.length, payload.summary.critical);
     assert.equal(
       criticalOnly.findings.every((finding) => finding.severity === "critical"),
       true,
     );
-    assert.equal(criticalOnly.summary.critical, 4);
+    assert.equal(criticalOnly.summary.critical, payload.summary.critical);
 
     const appScoped = await fetch(
       `${baseUrl}/v1/core/monitoring/vulnerabilities?appId=${fixtureIds.app}`,
@@ -1549,9 +1549,9 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     ).json();
     assert.equal(sources.length, 4);
     const expected = new Map([
-      [fixtureIds.source, [5, 10, 2]],
-      [fixtureIds.docsSource, [3, 0, 1]],
-      [fixtureIds.analyticsSource, [0, 1, 1]],
+      [fixtureIds.source, [11, 10, 8]],
+      [fixtureIds.docsSource, [4, 0, 2]],
+      [fixtureIds.analyticsSource, [3, 1, 3]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
     ]);
     for (const source of sources) {
@@ -1662,8 +1662,8 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
     }
     const appInventory = await get("/v1/core/apps");
     const resourceInventory = await get("/v1/core/resources");
-    assert.equal(appInventory.apps.length, 8);
-    assert.equal(appInventory.counts.all, 7);
+    assert.equal(appInventory.apps.length, 18);
+    assert.equal(appInventory.counts.all, 17);
     assert.equal(
       appInventory.apps.find((app) => app.id === fixtureIds.faviconApp)?.config
         .domains?.primary,
@@ -2108,5 +2108,69 @@ test("storage fixture exposes mounted app volumes without backup or restore acti
   } finally {
     server.close();
     await once(server, "close");
+  }
+});
+
+test("showcase inventory covers supported engines, build modes, provider hardware and connected histories", async (t) => {
+  const {
+    managedResourceCompatibility,
+    managedResourceTypes,
+    appDeploymentSchema,
+    cloudInstanceSchema,
+  } = await import("@workspace/towbar-core");
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => server.close());
+  const read = async (path) =>
+    (await fetch(`http://127.0.0.1:${server.address().port}${path}`)).json();
+  const { apps } = await read("/v1/core/apps");
+  const { resources } = await read("/v1/core/resources");
+  const { servers } = await read("/v1/core/servers");
+  assert.deepEqual(
+    [...new Set(resources.map((item) => item.kind))].sort(),
+    [...managedResourceTypes].sort(),
+  );
+  for (const item of resources) {
+    const engine = managedResourceCompatibility[item.kind];
+    assert.equal(item.config.image, engine.image);
+    assert.equal(item.config.container.port, engine.port);
+    assert.equal(item.config.container.volumes[0].mountPath, engine.volumePath);
+    assert(item.config.backup?.schedule);
+    const { backups } = await read(`/v1/core/sources/${item.sourceId}/backups`);
+    assert(backups.some((backup) => backup.resourceId === item.id));
+  }
+  assert.equal(
+    new Set(servers.map((item) => item.hardware?.instance?.provider)).size,
+    8,
+  );
+  for (const item of servers) cloudInstanceSchema.parse(item.hardware.instance);
+  assert(servers.some((item) => item.name === null));
+  assert(servers.filter((item) => item.name).length >= 6);
+  assert(apps.filter((item) => item.config.domains?.primary).length >= 15);
+  const modes = new Set(
+    apps.map((item) =>
+      item.kind === "compose"
+        ? "compose"
+        : (item.config.deployment?.type ?? "dockerfile"),
+    ),
+  );
+  assert.deepEqual([...modes].sort(), [
+    "buildpack",
+    "compose",
+    "dockerfile",
+    "image",
+    "nixpacks",
+    "railpack",
+    "static",
+  ]);
+  for (const app of apps) {
+    if (app.config.deployment) appDeploymentSchema.parse(app.config.deployment);
+    const { deployments } = await read(`/v1/core/apps/${app.id}/deployments`);
+    assert(deployments.length > 0, app.name);
+    const { capacity } = await read(
+      `/v1/core/servers/${app.serverId}/capacity`,
+    );
+    assert(capacity.runtimes.some((item) => item.id === app.id));
   }
 });

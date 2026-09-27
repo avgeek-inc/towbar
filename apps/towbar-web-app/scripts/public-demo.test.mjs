@@ -261,15 +261,8 @@ test("origins, body limits, denied endpoints, WebSockets, and unreviewed routes 
     403,
   );
   for (const [method, path] of [
-    ["POST", "/v1/core/sources/connect"],
-    ["POST", "/v1/core/github/actions/installation-url"],
-    ["POST", "/v1/core/gitlab/oauth/start"],
-    ["POST", "/v1/core/team/invitations"],
-    ["POST", "/v1/core/settings/private-keys"],
     ["GET", "/v1/core/settings/private-keys/test/reveal"],
     ["POST", `/v1/core/apps/${appId}/terminal`],
-    ["PATCH", `${serverPath}/credentials`],
-    ["POST", "/v1/core/notifications/telegram/destinations/test"],
     ["POST", "/v1/public/auth/identity/sign-in/email"],
     ["GET", "/v1/core/new-unreviewed-route"],
     ["POST", "/api/proxy"],
@@ -474,4 +467,163 @@ test("open streams consume the per-session request allowance", async (t) => {
   assert(streams.every((response) => response.status === 200));
   assert.equal((await call(path, { cookie })).status, 429);
   await Promise.all(streams.map((response) => response.body.cancel()));
+});
+
+test("sample secrets can be revealed and edited, remain isolated, and disappear on reset and expiry", async (t) => {
+  let clock = Date.now();
+  const { call, start } = await setup(t, { now: () => clock });
+  const a = await start(),
+    b = await start();
+  const path = `/v1/core/apps/${appId}/secrets/production/deployment`;
+  const reveal = async (cookie) => {
+    const response = await call(`${path}/reveal`, {
+      cookie,
+      method: "POST",
+      body: { key: "SESSION_SECRET" },
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("cache-control"), /no-store/);
+    return response.json();
+  };
+  const original = await reveal(a);
+  assert.equal(original.value, "demo-only-session-secret");
+  const edited = await call(path, {
+    cookie: a,
+    method: "PATCH",
+    body: {
+      expectedRevision: original.revision,
+      set: { SESSION_SECRET: "visitor-a-only" },
+    },
+  });
+  assert.equal(edited.status, 200, await edited.clone().text());
+  assert.equal((await reveal(a)).value, "visitor-a-only");
+  assert.equal((await reveal(b)).value, original.value);
+  assert.equal(
+    (
+      await call(path, {
+        cookie: a,
+        method: "PATCH",
+        body: {
+          expectedRevision: original.revision,
+          set: { SESSION_SECRET: "stale-edit" },
+        },
+      })
+    ).status,
+    409,
+  );
+  const all = await call(`${path}/reveal-all`, { cookie: a, method: "POST" });
+  assert.equal((await all.json()).values.SESSION_SECRET, "visitor-a-only");
+  const reset = await call("/__demo/reset", { cookie: a, method: "POST" });
+  const fresh = reset.headers.get("set-cookie").split(";")[0];
+  assert.equal((await reveal(fresh)).value, original.value);
+  assert.equal(
+    (
+      await call(`${path}/reveal`, {
+        cookie: a,
+        method: "POST",
+        body: { key: "SESSION_SECRET" },
+      })
+    ).status,
+    401,
+  );
+  clock += 600_001;
+  assert.equal(
+    (await call(`${path}/reveal-all`, { cookie: fresh, method: "POST" }))
+      .status,
+    401,
+  );
+});
+
+test("demo supports mocked jobs, runtime controls, backups, notifications, team and server changes", async (t) => {
+  const { call, start } = await setup(t);
+  const a = await start(),
+    b = await start();
+  const action = async (path, method = "POST", body) => {
+    const response = await call(path, { cookie: a, method, body });
+    assert(
+      response.ok,
+      `${method} ${path}: ${response.status} ${await response.clone().text()}`,
+    );
+    return response;
+  };
+  await action(`/v1/core/apps/${appId}/actions/stop`);
+  assert.equal(
+    (await (await call(`/v1/core/apps/${appId}`, { cookie: a })).json()).app
+      .runtimeState.observedState,
+    "stopped",
+  );
+  assert.equal(
+    (await (await call(`/v1/core/apps/${appId}`, { cookie: b })).json()).app
+      .runtimeState.observedState,
+    "running",
+  );
+  await action(`/v1/core/apps/${appId}/actions/start`);
+  const jobPath =
+    "/v1/core/apps/31111111-1111-4111-8111-888888888888/actions/run-job";
+  const job = await (
+    await action(jobPath, "POST", { name: "daily-report" })
+  ).json();
+  assert.equal(job.operation.state, "succeeded");
+  const resourcePath =
+    "/v1/core/resources/41111111-1111-4111-8111-111111111111";
+  const backup = await (await action(`${resourcePath}/actions/backup`)).json();
+  const restore = await (
+    await action(`${resourcePath}/actions/restore`, "POST", {
+      backupId: backup.operation.id,
+      confirmation: "Primary Postgres",
+    })
+  ).json();
+  assert.equal(restore.operation.state, "running");
+  await action("/v1/core/notifications/email/destinations/test", "POST", {
+    email: "operations@example.com",
+  });
+  await action("/v1/core/team", "PATCH", {
+    name: "Visitor A team",
+    description: "Sample team",
+  });
+  assert.notEqual(
+    (await (await call("/v1/core/team", { cookie: b })).json()).team.name,
+    "Visitor A team",
+  );
+  const { rules } = await (
+    await call(`${serverPath}/scout-alerts`, { cookie: a })
+  ).json();
+  const rule = rules[0];
+  await action(`${serverPath}/scout-alerts/rules/${rule.id}`, "PUT", {
+    name: rule.name,
+    enabled: false,
+    severity: rule.severity,
+    deployableId: rule.deployableId,
+    condition: rule.condition,
+  });
+  assert.equal(
+    (
+      await (await call(`${serverPath}/scout-alerts`, { cookie: a })).json()
+    ).rules.find((item) => item.id === rule.id).enabled,
+    false,
+  );
+  const oauth = await (
+    await action("/v1/core/github/actions/installation-url")
+  ).json();
+  assert.match(oauth.url, /^\/manage\/integrations\/github\?/);
+  const created = await (
+    await action("/v1/core/servers", "POST", {
+      ip: "192.0.2.50",
+      ssh: { port: 22, username: "deploy" },
+    })
+  ).json();
+  assert.equal(
+    (await call(`/v1/core/servers/${created.server.id}`, { cookie: b })).status,
+    404,
+  );
+  assert.equal((await call("/v1/core/servers", { cookie: a })).status, 200);
+  await new Promise((resolve) => setTimeout(resolve, 2600));
+  const operations = await (
+    await call(`${resourcePath}/operations`, { cookie: a })
+  ).json();
+  assert.equal(
+    operations.operations.find((item) => item.id === restore.operation.id)
+      .state,
+    "succeeded",
+  );
 });
