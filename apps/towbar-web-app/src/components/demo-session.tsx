@@ -6,7 +6,10 @@ import {
   IdentityAuthHeading,
 } from "@workspace/identity-web-ui/identity-auth-frame";
 import { TowbarLockup } from "@workspace/towbar-web-ui/brand";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import {
+  Button,
+  ButtonLink,
+} from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 
@@ -49,7 +52,7 @@ export function DemoWelcome() {
           >
             Browse services, servers, and deployments. No account needed.
           </IdentityAuthHeading>
-          <p className="text-sm leading-relaxed text-muted">
+          <p className="pt-4 text-sm leading-relaxed text-muted">
             This demo uses sample data. Try a simulated deployment or rename a
             server. Your changes reset when the demo ends.
           </p>
@@ -71,26 +74,24 @@ export function DemoWelcome() {
               </Alert.Content>
             </Alert>
           )}
-          <Button
-            className="w-full"
-            isDisabled={busy}
-            onPress={() => {
-              setBusy(true);
-              setError(undefined);
-              void sessionAction("start").catch((error: Error) => {
-                setError(error.message);
-                setBusy(false);
-              });
-            }}
-          >
-            {busy ? "Starting demo…" : "Start demo"}
-          </Button>
-          <a
-            className="text-center text-sm text-muted underline underline-offset-4"
-            href="https://www.towbar.dev/docs"
-          >
-            Read the docs
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              isDisabled={busy}
+              onPress={() => {
+                setBusy(true);
+                setError(undefined);
+                void sessionAction("start").catch((error: Error) => {
+                  setError(error.message);
+                  setBusy(false);
+                });
+              }}
+            >
+              {busy ? "Starting demo…" : "Start demo"}
+            </Button>
+            <ButtonLink variant="secondary" href="https://www.towbar.dev/docs">
+              Read the docs
+            </ButtonLink>
+          </div>
         </div>
       </IdentityAuthFrame>
     </main>
