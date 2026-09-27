@@ -225,14 +225,9 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             : "Edit",
     },
     {
-      key: "used",
-      header: "Last used",
-      cell: (key) =>
-        key.lastUsedAt ? (
-          <RelativeTime label="Last used" value={key.lastUsedAt} />
-        ) : (
-          <span className="text-muted">Never</span>
-        ),
+      key: "added",
+      header: "Added",
+      cell: (key) => <RelativeTime label="Added" value={key.createdAt} />,
     },
     {
       key: "expires",
@@ -242,6 +237,16 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           <RelativeTime label="Expires" value={key.expiresAt} />
         ) : (
           "No expiry"
+        ),
+    },
+    {
+      key: "used",
+      header: "Last used",
+      cell: (key) =>
+        key.lastUsedAt ? (
+          <RelativeTime label="Last used" value={key.lastUsedAt} />
+        ) : (
+          <span className="text-muted">Never</span>
         ),
     },
     {
