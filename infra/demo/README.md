@@ -91,7 +91,7 @@ and it proxies only to the fixed demo gateway, never visitor-supplied hosts.
 See [Docker's isolated gateway mode](https://docs.docker.com/engine/network/port-publishing/#gateway-modes).
 
 The demo is non-root, read-only, drops all capabilities, has no-new-privileges,
-a bounded `/tmp`, 1.2 GiB memory, 1.5 CPUs, and 128 PIDs. Workers inherit an empty
+a bounded `/tmp`, 1 GiB memory, 1.5 CPUs, and 128 PIDs. Workers inherit an empty
 environment and have V8 heap limits (64 MiB old / 16 MiB young). The UI receives
 only four non-secret runtime variables. The image contains the dashboard and a
 bundled fixture; no production API/worker process or deployment executor runs.
