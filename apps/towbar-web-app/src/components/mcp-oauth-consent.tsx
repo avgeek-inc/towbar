@@ -43,7 +43,7 @@ function ConsentRequest({ id }: { id: string | null }) {
         const body = await response.json();
         if (!response.ok)
           throw new Error(
-            body.error_description ?? "Unable to load authorization",
+            body.error_description ?? "Unable to load this connection",
           );
         setDetails(body);
       })
@@ -52,7 +52,7 @@ function ConsentRequest({ id }: { id: string | null }) {
           setError(
             cause instanceof Error
               ? cause.message
-              : "Unable to load authorization",
+              : "Unable to load this connection",
           );
       });
     return () => controller.abort();
@@ -69,15 +69,11 @@ function ConsentRequest({ id }: { id: string | null }) {
       });
       const body = await response.json();
       if (!response.ok)
-        throw new Error(
-          body.error_description ?? "Unable to authorize this client",
-        );
+        throw new Error(body.error_description ?? "Unable to connect this app");
       window.location.assign(body.redirectTo);
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : "Unable to authorize this client",
+        cause instanceof Error ? cause.message : "Unable to connect this app",
       );
       setBusy(false);
     }
@@ -86,7 +82,7 @@ function ConsentRequest({ id }: { id: string | null }) {
   return (
     <AuthFrame
       title="Connect to Towbar"
-      description="Review the MCP client and the access you want to give it."
+      description="Choose whether to give this app access."
     >
       {(error || !id) && (
         <Alert status="danger">
@@ -94,13 +90,16 @@ function ConsentRequest({ id }: { id: string | null }) {
           <Alert.Content>
             <Alert.Description>
               {error ??
-                "This authorization link is incomplete. Connect again from your MCP client."}
+                "This connection link is incomplete. Start again from your app."}
             </Alert.Description>
           </Alert.Content>
         </Alert>
       )}
       {login ? (
-        <ButtonLink href={`/login?next=${encodeURIComponent(self)}`}>
+        <ButtonLink
+          className="min-h-11 w-fit"
+          href={`/login?next=${encodeURIComponent(self)}`}
+        >
           Sign in to continue
         </ButtonLink>
       ) : details ? (
@@ -117,42 +116,72 @@ function ConsentRequest({ id }: { id: string | null }) {
               <span className="font-medium">{details.clientName}</span>
             </div>
             <p className="text-sm text-muted">
-              {details.clientTrust === "metadata-document"
-                ? `Metadata published by ${new URL(details.clientId).hostname}. This does not verify the running app.`
-                : "Unverified client. Its name was supplied during registration."}
-            </p>
-            <p className="break-all text-sm text-muted">
-              Client ID: {details.clientId}
+              Wants to {write ? "read and edit" : "read"} your Towbar data.
             </p>
           </div>
-          <div className="grid gap-2 text-sm">
+          {details.clientTrust === "unverified" && (
+            <Alert status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  Unverified app. Only continue if you recognize this app and
+                  started this connection yourself.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
+          )}
+          <div className="grid gap-3 text-sm">
             <p>
-              Signed in as <strong>{details.user.email}</strong>
+              Signed in as{" "}
+              <strong className="break-all">{details.user.email}</strong>
               {details.user.teamName ? ` in ${details.user.teamName}` : ""}.
             </p>
             <p>
               {write
-                ? "Read and edit resources allowed by your current Towbar role. This includes operational changes and available secret updates."
-                : "Read resources allowed by your current Towbar role."}{" "}
-              Administrative access is excluded.
+                ? "Can view and make changes allowed by your Towbar role, including updating secrets."
+                : "Can only view data allowed by your Towbar role."}{" "}
+              Cannot manage accounts or reveal stored credentials.
             </p>
             <p>
-              This creates an MCP token that expires in <strong>30 days</strong>
-              . Revoke it anytime in your personal API keys.
+              Access expires in <strong>30 days</strong>. Revoke it anytime in
+              your personal API keys.
             </p>
             <p>
-              Return to <strong>{new URL(details.redirectUri).host}</strong>
+              Return to{" "}
+              <strong className="break-all">
+                {new URL(details.redirectUri).host}
+              </strong>
             </p>
-            <p className="break-all text-muted">{details.redirectUri}</p>
             {["localhost", "127.0.0.1", "[::1]"].includes(
               new URL(details.redirectUri).hostname,
             ) && (
               <p className="text-muted">
-                This callback opens a local app. Continue only if you started
-                this connection from an app you trust.
+                This opens an app on your device. Only continue if you started
+                this connection yourself.
               </p>
             )}
           </div>
+          <details className="text-sm">
+            <summary className="flex min-h-11 cursor-pointer items-center text-muted underline underline-offset-4">
+              Connection details
+            </summary>
+            <div className="grid gap-3 pt-2 text-muted">
+              <p>
+                {details.clientTrust === "metadata-document"
+                  ? `App details published by ${new URL(details.clientId).hostname}. This does not verify the app making this request.`
+                  : "The app supplied its own name. Towbar has not verified its identity."}
+              </p>
+              <p>
+                Client ID
+                <span className="block break-words">{details.clientId}</span>
+              </p>
+              <p>
+                Return URL
+                <span className="block break-words">{details.redirectUri}</span>
+              </p>
+              <p>Administrative access is excluded.</p>
+            </div>
+          </details>
           {write && details.user.role === "viewer" && (
             <p role="alert" className="text-sm text-danger">
               Your Viewer role cannot grant edit access. Reconnect with
@@ -161,6 +190,7 @@ function ConsentRequest({ id }: { id: string | null }) {
           )}
           <div className="flex flex-wrap gap-3">
             <Button
+              className="min-h-11"
               type="submit"
               isDisabled={busy || (write && details.user.role === "viewer")}
               isPending={busy}
@@ -168,6 +198,7 @@ function ConsentRequest({ id }: { id: string | null }) {
               Allow access
             </Button>
             <Button
+              className="min-h-11"
               type="button"
               variant="secondary"
               isDisabled={busy}
@@ -181,7 +212,7 @@ function ConsentRequest({ id }: { id: string | null }) {
         !error &&
         id && (
           <Skeleton
-            aria-label="Loading authorization"
+            aria-label="Loading connection"
             role="status"
             className="h-48 w-full rounded-xl"
           />

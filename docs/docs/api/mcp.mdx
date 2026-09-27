@@ -7,15 +7,16 @@ Towbar's MCP server provides task-oriented tools for discovering infrastructure,
 
 MCP requires an HTTPS Towbar installation. It is unavailable in the default local HTTP installation.
 
-## Connect with OAuth
+## Connect by signing in
 
-Add `https://YOUR_TOWBAR_HOST/v1/mcp` as a Streamable HTTP server in an OAuth-capable MCP client, without an Authorization header. Follow the client's connection prompt, sign in to Towbar, and review the consent screen before choosing **Allow access**.
+1. Add `https://YOUR_TOWBAR_HOST/v1/mcp` to your app's MCP connections. Choose the option to sign in instead of entering an API key.
+2. Follow the connection prompt and sign in to Towbar.
+3. Check the app name and requested access, then choose **Allow access**.
+4. Reconnect after 30 days. To stop access sooner, revoke the connection in **Manage → My Settings → API Keys**.
 
-Each approval creates a personal **MCP OAuth** token that expires 30 days after issuance. There is no refresh token. Authorize again when it expires, or revoke it earlier from **Manage → My Settings → API Keys**. OAuth tokens work only at this instance's MCP endpoint; they cannot authenticate to the REST API.
+Apps can request read-only access or permission to make changes allowed by your Towbar role, including secret updates. Signing in does not give an app administrative access, account management, or permission to reveal stored credentials. Existing API keys keep their permissions and expiry.
 
-The client can request `mcp:read` or `mcp:read mcp:write`. Read is the default. Write grants the Edit operations permitted by your role. OAuth does not grant Administrative access, account management, or credential reveal. Existing API keys keep their permissions and expiry.
-
-The consent screen shows the client name, identity source, callback host, and requested access. Towbar prefers HTTPS Client ID Metadata Documents (CIMD) and retains Dynamic Client Registration (DCR) for older clients. A metadata document establishes its publishing domain, not the identity of the running app. DCR names are unverified, even if they match a familiar agent. Runtime MCP `clientInfo` and User-Agent never establish token attribution. Known metadata domains use bundled logos; unknown clients use the MCP icon. Towbar does not load client-supplied remote logos.
+Only approve connections you started yourself. An **Unverified app** warning means Towbar cannot confirm who supplied the app's name.
 
 ## Connect with an API key
 
@@ -182,7 +183,7 @@ Keep human approval enabled in your client for mutations. Tools permitted by Edi
 | `429`                              | Wait for `Retry-After`; REST scripts and other MCP clients on the IP use the same allowance.      |
 | No mutation tools                  | Use an Edit key with the required grants. Administrative actions need administrative permissions. |
 | Connection or certificate error    | Use the Towbar host, `/v1/mcp`, HTTPS, and a publicly trusted certificate.                        |
-| OAuth login appears                | Configure bearer headers; this endpoint does not implement OAuth discovery or authorization.      |
+| OAuth login appears                | Sign in and approve the connection, or configure an API key if your app supports it.              |
 | `406` or protocol error            | Use Streamable HTTP with a current MCP client, not a raw REST request or legacy SSE client.       |
 | Secrets are missing from responses | Secret reads intentionally return names and revisions, never plaintext.                           |
 
@@ -208,3 +209,13 @@ CIMD clients use `token_endpoint_auth_method=none` with PKCE. Metadata must incl
 Consent requests expire after ten minutes. Approved codes expire after two minutes, are stored as hashes, and can be exchanged once. A correctly authenticated replay revokes the token issued from that code. Access tokens and DCR client secrets are stored as hashes. Revocation, account disablement, membership removal, and current role restrictions apply through Towbar's existing API-key policy controls. API-key creation, revocation, and audited operations include token type and saved MCP client attribution without raw credentials.
 
 OAuth endpoints share the external per-address rate limit. Tokens also have the normal persistent per-key limit. Discovery endpoints are public. The bundled gateway routes discovery paths to the API; custom reverse proxies must forward both `/.well-known/oauth-*` and `/v1/oauth/*` to the API service.
+
+### App identity and access
+
+For client developers: use **Streamable HTTP** with OAuth and no custom Authorization header. Each approval creates a personal token that expires after 30 days. Towbar does not issue refresh tokens. These tokens work only at this instance's MCP endpoint, not the REST API.
+
+Clients can request `mcp:read` or `mcp:read mcp:write`. Read is the default. Write grants the Edit operations permitted by the user's role; Administrative access is excluded.
+
+Towbar prefers HTTPS Client ID Metadata Documents (CIMD) and supports Dynamic Client Registration (DCR) for older clients. A metadata document establishes its publishing domain, not the identity of the running app. DCR names are unverified, even if they match a familiar app. Runtime MCP `clientInfo` and User-Agent never establish token attribution. Known metadata domains use bundled logos; unknown clients use the MCP icon. Towbar does not load client-supplied remote logos.
+
+The consent screen's **Connection details** disclosure shows the identity source, client ID, and full return URL.

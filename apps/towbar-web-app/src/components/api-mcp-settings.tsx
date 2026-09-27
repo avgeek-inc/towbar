@@ -199,7 +199,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           </span>
           <TableCellDescription>
             {key.tokenType === "mcp-oauth"
-              ? `MCP OAuth · ${key.oauthClientTrust === "metadata-document" && key.oauthClientId ? new URL(key.oauthClientId).hostname : "Unverified client"}`
+              ? `MCP connection · ${key.oauthClientTrust === "metadata-document" && key.oauthClientId ? new URL(key.oauthClientId).hostname : "Unverified app"}`
               : "API key"}
           </TableCellDescription>
           <TableCellDescription className="font-mono">
@@ -309,8 +309,17 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
               items={query.data.keys}
               getRowKey={(key) => key.id}
               emptyTitle="No API keys yet"
-              emptyDescription="Create a key for your scripts or MCP client. Its token is shown once."
+              emptyDescription={
+                scope === "personal"
+                  ? "Sign in from your app to connect it, or create an API key for scripts."
+                  : "Create an API key for scripts or apps used by your team."
+              }
             />
+            {query.data.keys.length > 0 && (
+              <p className="text-xs text-muted lg:hidden">
+                Scroll sideways to see expiry, status and actions.
+              </p>
+            )}
           </>
         )
       ) : guide.error ? (
@@ -598,10 +607,10 @@ function McpSetup({ url }: { url: string }) {
           </div>
         ) : null}
         <FieldDescription>
-          For OAuth, add the MCP URL to your client without a bearer header,
-          then sign in to Towbar and approve access. The token expires after 30
-          days and appears in your personal API keys. The configurations above
-          use manually created API keys.
+          To connect by signing in, add the MCP URL to your app, sign in to
+          Towbar and approve access. Reconnect after 30 days. You can revoke
+          access in your personal API keys. The configurations above use
+          manually created API keys.
         </FieldDescription>
         <ButtonLink
           href="https://www.towbar.dev/docs/api/mcp"

@@ -117,7 +117,7 @@ export async function consentDetails(id: string) {
   if (!request)
     throw new OAuthError(
       "invalid_request",
-      "This authorization request has expired or was already used. Connect again from your MCP client.",
+      "This connection link has expired or was already used. Start again from your app.",
     );
   return {
     clientName: request.clientName,
@@ -129,7 +129,7 @@ export async function consentDetails(id: string) {
     expiresIn: tokenLifetimeSeconds,
   };
 }
-export async function decideConsent(
+export function decideConsent(
   id: string,
   user: AuthenticatedUser,
   allow: boolean,
@@ -150,7 +150,7 @@ export async function decideConsent(
     )
       throw new OAuthError(
         "invalid_request",
-        "This authorization request has expired or was already used",
+        "This connection link has expired or was already used. Start again from your app.",
       );
     if (!allow) {
       await tx
