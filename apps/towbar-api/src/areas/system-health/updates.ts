@@ -43,7 +43,9 @@ export async function checkTowbarUpdates(
   installedVersion: string,
   fetcher: typeof fetch = fetch,
 ): Promise<TowbarUpdateInfo> {
+  const checkedAt = new Date().toISOString();
   const unavailable: TowbarUpdateInfo = {
+    checkedAt,
     installedVersion,
     latestVersion: null,
     releaseUrl: null,
@@ -77,6 +79,7 @@ export async function checkTowbarUpdates(
     if (comparison === null) return unavailable;
     const latestVersion = release.tag_name.replace(/^v/u, "");
     return {
+      checkedAt,
       installedVersion,
       latestVersion,
       releaseUrl: `${releasesUrl}v${latestVersion}`,

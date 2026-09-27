@@ -2780,3 +2780,23 @@ export const analyticsRefresh = pgTable(
     check("towbar_analytics_refresh_singleton", sql`${table.id} = 1`),
   ],
 );
+
+// Host-managed upgrades fail closed until the host runner releases admission.
+export const upgradeAdmission = pgTable(
+  "towbar_upgrade_admission",
+  {
+    id: integer("id").primaryKey().default(1),
+    jobId: uuid("job_id"),
+  },
+  (table) => [
+    check("towbar_upgrade_admission_singleton", sql`${table.id} = 1`),
+  ],
+);
+
+export const upgradeLeases = pgTable("towbar_upgrade_leases", {
+  id: uuid("id").primaryKey(),
+  kind: varchar("kind", { length: 120 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

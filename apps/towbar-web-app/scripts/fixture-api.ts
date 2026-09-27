@@ -1,4 +1,8 @@
 import {
+  createUpgradeFixture,
+  type UpgradeScenario,
+} from "./upgrade-fixture.ts";
+import {
   type NormalizedApp,
   appDeploymentSchema,
   rolloutStrategySchema,
@@ -1468,6 +1472,7 @@ function fixtureSystemHealth(): SystemHealth {
 }
 
 const towbarUpdates: TowbarUpdateInfo = {
+  checkedAt: systemHealthFixtureNow,
   installedVersion: "2.0.16",
   latestVersion: "2.0.16",
   releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.16",
@@ -1885,6 +1890,7 @@ const workflowStates: DeploymentState[] = [
 ];
 
 export function createFixtureApiServer({
+  upgradeScenario,
   publicDemo = false,
   githubAppConnected = false,
   notificationProvidersConfigured = false,
@@ -1898,6 +1904,7 @@ export function createFixtureApiServer({
   smtpAvailable,
   emailVerified,
 }: TeamFixtureOptions & {
+  upgradeScenario?: UpgradeScenario;
   publicDemo?: boolean;
   githubAppConnected?: boolean;
   notificationProvidersConfigured?: boolean;
@@ -2208,6 +2215,10 @@ export function createFixtureApiServer({
         },
       ]
     : [];
+  const upgradeFixture = createUpgradeFixture(
+    publicDemo ? undefined : upgradeScenario,
+    fixtureSystemHealth,
+  );
   const fixtureServer = createServer(async (request, response) => {
     useFixtureLocalization(response, teamAccess.getPreferences);
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
@@ -2221,6 +2232,7 @@ export function createFixtureApiServer({
     const path = requestUrl.pathname;
     if (eventHistory(request, response, requestUrl)) return;
     if (await teamAccess.handle(request, response, requestUrl)) return;
+    if (await upgradeFixture(request, response, path)) return;
     if (
       path === "/v1/core/notifications/telegram/destinations/test" &&
       request.method === "POST"

@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { HostUpgrade } from "./host-upgrade";
+import { upgradeIsActive, upgradeNeedsRecovery } from "./host-upgrade-state";
 import {
   Activity01Icon,
   AlertCircleIcon,
@@ -20,6 +23,7 @@ import type {
   SystemHealthCheck,
   SystemHealthStatus,
   TowbarUpdateInfo,
+  TowbarUpgradeJob,
 } from "@workspace/towbar-web-client";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -70,10 +74,11 @@ export function SystemHealthPage() {
     "/v1/core/version",
     15 * 60_000,
   );
-  if (query.error) {
+  if (query.error && !query.data) {
     return (
       <DashboardPage icon={HealthIcon} title="System health">
         <QueryError message={query.error} />
+        <HostUpgrade />
       </DashboardPage>
     );
   }
@@ -343,27 +348,22 @@ function TowbarUpdates({
   updates?: TowbarUpdateInfo;
   error: boolean;
 }) {
+  const [job, setJob] = useState<TowbarUpgradeJob>();
+  const active = upgradeIsActive(job?.state);
+  const recovery = upgradeNeedsRecovery(job?.state);
   const status = error ? "unavailable" : updates?.status;
-  const label =
-    status === "available"
-      ? "Update available"
-      : status === "current"
-        ? "Up to date"
-        : status === "ahead"
-          ? "Ahead of stable"
-          : status === "unavailable"
-            ? "Check unavailable"
-            : "Checking";
   const description =
-    status === "unavailable"
-      ? "The latest release could not be checked. Try again later."
-      : !updates
-        ? "Checking the latest published stable release."
-        : status === "available"
-          ? `Towbar v${updates.latestVersion} is available. This installation runs v${updates.installedVersion}.`
-          : status === "current"
-            ? `This installation runs the latest stable release, v${updates.installedVersion}.`
-            : `This installation runs v${updates.installedVersion}, ahead of the latest stable release v${updates.latestVersion}.`;
+    active && job
+      ? `Towbar is upgrading from ${job.currentVersion} to ${job.targetVersion}.`
+      : status === "unavailable"
+        ? "The latest release could not be checked. Try again later."
+        : !updates
+          ? "Checking the latest published stable release."
+          : status === "available"
+            ? `You’re running Towbar v${updates.installedVersion}. An upgrade to v${updates.latestVersion} is available.`
+            : status === "current"
+              ? `This installation runs the latest stable release, v${updates.installedVersion}.`
+              : `This installation runs v${updates.installedVersion}, ahead of the latest stable release v${updates.latestVersion}.`;
   return (
     <div className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="flex min-w-0 items-start gap-3">
@@ -371,8 +371,8 @@ function TowbarUpdates({
           aria-hidden="true"
           className={cn(
             "mt-0.5 size-5 shrink-0",
-            status === "available"
-              ? "text-warning"
+            recovery
+              ? "text-danger-soft-foreground"
               : status === "current"
                 ? "text-success-soft-foreground"
                 : "text-muted",
@@ -381,37 +381,29 @@ function TowbarUpdates({
         />
         <div className="grid min-w-0 gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-medium">Towbar Updates</h3>
-            <Chip
-              variant={
-                status === "available"
-                  ? "warning"
-                  : status === "current"
-                    ? "success"
-                    : "secondary"
-              }
-            >
-              {label}
-            </Chip>
+            <h3 className="text-sm font-medium">Towbar version</h3>
+            {recovery ? (
+              <Chip variant="destructive">Recovery required</Chip>
+            ) : active ? (
+              <Chip variant="warning" loading>
+                Upgrade in progress
+              </Chip>
+            ) : status === "available" ? (
+              <Chip variant="warning">Update available</Chip>
+            ) : null}
           </div>
           <p className="text-sm text-muted">{description}</p>
+          {updates?.checkedAt ? (
+            <p className="text-xs text-muted">
+              Checked {formatDate(updates.checkedAt)}
+            </p>
+          ) : null}
         </div>
       </div>
-      {status === "available" && updates?.releaseUrl ? (
-        <ButtonLink
-          href={updates.releaseUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="secondary"
-        >
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={ArrowRight01Icon}
-            className="size-4 shrink-0"
-          />
-          View release
-        </ButtonLink>
-      ) : null}
+      <HostUpgrade
+        targetVersion={status === "available" ? updates?.latestVersion : null}
+        onJobChange={setJob}
+      />
     </div>
   );
 }

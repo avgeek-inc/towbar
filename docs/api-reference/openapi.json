@@ -6670,13 +6670,13 @@
           "finishedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
           "id": {
             "anyOf": [
+              { "type": "string", "const": "verifying" },
               { "type": "string", "const": "connecting" },
               { "type": "string", "const": "inspecting" },
               { "type": "string", "const": "installing_prerequisites" },
               { "type": "string", "const": "installing_docker" },
               { "type": "string", "const": "installing_caddy" },
-              { "type": "string", "const": "configuring_access" },
-              { "type": "string", "const": "verifying" }
+              { "type": "string", "const": "configuring_access" }
             ]
           },
           "log": { "type": "string" },
@@ -8033,7 +8033,82 @@
         },
         "required": ["sync"]
       },
-      "SystemHealthCheck_408": {
+      "TowbarUpgradeJob_408": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "planId": { "type": "string" },
+          "currentVersion": { "type": "string" },
+          "targetVersion": { "type": "string" },
+          "commit": { "type": "string" },
+          "state": {
+            "anyOf": [
+              { "type": "string", "const": "failed" },
+              { "type": "string", "const": "blocked" },
+              { "type": "string", "const": "succeeded" },
+              { "type": "string", "const": "recovered" },
+              { "type": "string", "const": "checking" },
+              { "type": "string", "const": "downloading" },
+              { "type": "string", "const": "applying" },
+              { "type": "string", "const": "verifying" },
+              { "type": "string", "const": "restoring" },
+              { "type": "string", "const": "interrupted" }
+            ]
+          },
+          "message": { "type": "string" },
+          "blockers": { "type": "array", "items": { "type": "string" } },
+          "updatedAt": { "type": "number" }
+        },
+        "required": [
+          "id",
+          "planId",
+          "currentVersion",
+          "targetVersion",
+          "commit",
+          "state",
+          "message",
+          "blockers",
+          "updatedAt"
+        ]
+      },
+      "TowbarUpgradeStatus_407": {
+        "type": "object",
+        "properties": {
+          "supported": { "type": "boolean" },
+          "reason": { "type": "string" },
+          "job": {
+            "anyOf": [
+              { "type": "null" },
+              { "$ref": "#/components/schemas/TowbarUpgradeJob_408" }
+            ]
+          }
+        },
+        "required": ["supported", "job"]
+      },
+      "TowbarUpgradePlan_409": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "currentVersion": { "type": "string" },
+          "targetVersion": { "type": "string" },
+          "commit": { "type": "string" },
+          "releaseUrl": { "type": "string" },
+          "releaseNotes": { "type": "string" },
+          "blockers": { "type": "array", "items": { "type": "string" } },
+          "expiresAt": { "type": "number" }
+        },
+        "required": [
+          "id",
+          "currentVersion",
+          "targetVersion",
+          "commit",
+          "releaseUrl",
+          "releaseNotes",
+          "blockers",
+          "expiresAt"
+        ]
+      },
+      "SystemHealthCheck_411": {
         "type": "object",
         "properties": {
           "checkedAt": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
@@ -8071,7 +8146,7 @@
           "title"
         ]
       },
-      "Response_409": {
+      "Response_412": {
         "type": "object",
         "properties": {
           "sampledAt": { "type": "string" },
@@ -8080,17 +8155,17 @@
         },
         "required": ["sampledAt", "towbarBytes", "monitoringBytes"]
       },
-      "SystemHealth_407": {
+      "SystemHealth_410": {
         "type": "object",
         "properties": {
           "checkedAt": { "type": "string" },
           "checks": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/SystemHealthCheck_408" }
+            "items": { "$ref": "#/components/schemas/SystemHealthCheck_411" }
           },
           "databaseStorage": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_409" }
+            "items": { "$ref": "#/components/schemas/Response_412" }
           },
           "status": {
             "anyOf": [
@@ -8110,9 +8185,10 @@
           "version"
         ]
       },
-      "TowbarUpdateInfo_410": {
+      "TowbarUpdateInfo_413": {
         "type": "object",
         "properties": {
+          "checkedAt": { "type": "string" },
           "installedVersion": { "type": "string" },
           "latestVersion": {
             "anyOf": [{ "type": "null" }, { "type": "string" }]
@@ -8128,13 +8204,14 @@
           }
         },
         "required": [
+          "checkedAt",
           "installedVersion",
           "latestVersion",
           "releaseUrl",
           "status"
         ]
       },
-      "Response_412": {
+      "Response_415": {
         "type": "object",
         "properties": {
           "chatId": { "type": "string" },
@@ -8157,32 +8234,32 @@
           "id"
         ]
       },
-      "Response_411": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_412" }
-          }
-        },
-        "required": ["destinations"]
-      },
-      "Response_413": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_412" }
-          }
-        },
-        "required": ["destinations"]
-      },
       "Response_414": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_415" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_416": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_415" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_417": {
         "type": "object",
         "properties": { "status": { "type": "string", "const": "accepted" } },
         "required": ["status"]
       },
-      "Response_416": {
+      "Response_419": {
         "type": "object",
         "properties": {
           "routeId": { "type": "string" },
@@ -8201,32 +8278,32 @@
           "alertsAndIncidents"
         ]
       },
-      "Response_415": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_416" }
-          }
-        },
-        "required": ["destinations"]
-      },
-      "Response_417": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_416" }
-          }
-        },
-        "required": ["destinations"]
-      },
       "Response_418": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_419" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_420": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_419" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_421": {
         "type": "object",
         "properties": { "status": { "type": "string", "const": "accepted" } },
         "required": ["status"]
       },
-      "Response_420": {
+      "Response_423": {
         "type": "object",
         "properties": {
           "routeId": { "type": "string" },
@@ -8247,32 +8324,32 @@
           "alertsAndIncidents"
         ]
       },
-      "Response_419": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_420" }
-          }
-        },
-        "required": ["destinations"]
-      },
-      "Response_421": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_420" }
-          }
-        },
-        "required": ["destinations"]
-      },
       "Response_422": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_423" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_424": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_423" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_425": {
         "type": "object",
         "properties": { "status": { "type": "string", "const": "accepted" } },
         "required": ["status"]
       },
-      "Response_424": {
+      "Response_427": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8291,32 +8368,32 @@
           "scout"
         ]
       },
-      "Response_423": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_424" }
-          }
-        },
-        "required": ["destinations"]
-      },
-      "Response_425": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_424" }
-          }
-        },
-        "required": ["destinations"]
-      },
       "Response_426": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_427" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_428": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_427" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_429": {
         "type": "object",
         "properties": { "status": { "type": "string", "const": "accepted" } },
         "required": ["status"]
       },
-      "Response_428": {
+      "Response_431": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8335,32 +8412,32 @@
           "scout"
         ]
       },
-      "Response_427": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_428" }
-          }
-        },
-        "required": ["destinations"]
-      },
-      "Response_429": {
-        "type": "object",
-        "properties": {
-          "destinations": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_428" }
-          }
-        },
-        "required": ["destinations"]
-      },
       "Response_430": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_431" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_432": {
+        "type": "object",
+        "properties": {
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Response_431" }
+          }
+        },
+        "required": ["destinations"]
+      },
+      "Response_433": {
         "type": "object",
         "properties": { "status": { "type": "string", "const": "accepted" } },
         "required": ["status"]
       },
-      "Response_432": {
+      "Response_435": {
         "type": "object",
         "properties": {
           "categories": {
@@ -8396,19 +8473,19 @@
         },
         "required": ["categories", "enabled", "id", "provider", "source"]
       },
-      "Response_431": {
+      "Response_434": {
         "type": "object",
         "properties": {
           "canManageNotifications": { "type": "boolean" },
           "destinations": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_432" }
+            "items": { "$ref": "#/components/schemas/Response_435" }
           },
           "providers": { "$ref": "#/components/schemas/Response_80" }
         },
         "required": ["canManageNotifications", "destinations", "providers"]
       },
-      "Response_434": {
+      "Response_437": {
         "type": "object",
         "properties": {
           "destination": { "type": "string" },
@@ -8526,7 +8603,7 @@
           "entityName"
         ]
       },
-      "Response_435": {
+      "Response_438": {
         "type": "object",
         "properties": {
           "before": { "type": "string" },
@@ -8534,30 +8611,37 @@
         },
         "required": ["before", "beforeId"]
       },
-      "Response_433": {
+      "Response_436": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_434" }
+            "items": { "$ref": "#/components/schemas/Response_437" }
           },
           "nextCursor": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_435" }
+              { "$ref": "#/components/schemas/Response_438" }
             ]
           }
         },
         "required": ["items", "nextCursor"]
       },
-      "Response_438": {
+      "Response_441": {
         "type": "object",
         "properties": {
           "source": { "type": "string", "const": "environment" }
         },
         "required": ["source"]
       },
-      "Response_439": {
+      "Response_442": {
+        "type": "object",
+        "properties": {
+          "source": { "type": "string", "const": "environment" }
+        },
+        "required": ["source"]
+      },
+      "Response_443": {
         "type": "object",
         "properties": {
           "source": { "type": "string", "const": "environment" }
@@ -8567,43 +8651,36 @@
       "Response_440": {
         "type": "object",
         "properties": {
-          "source": { "type": "string", "const": "environment" }
-        },
-        "required": ["source"]
-      },
-      "Response_437": {
-        "type": "object",
-        "properties": {
           "slack": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_438" }
+              { "$ref": "#/components/schemas/Response_441" }
             ]
           },
           "smtp": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_439" }
+              { "$ref": "#/components/schemas/Response_442" }
             ]
           },
           "telegram": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_440" }
+              { "$ref": "#/components/schemas/Response_443" }
             ]
           }
         },
         "required": ["slack", "smtp", "telegram"]
       },
-      "Response_436": {
+      "Response_439": {
         "type": "object",
         "properties": {
-          "configurations": { "$ref": "#/components/schemas/Response_437" },
+          "configurations": { "$ref": "#/components/schemas/Response_440" },
           "providers": { "$ref": "#/components/schemas/Response_80" }
         },
         "required": ["configurations", "providers"]
       },
-      "Response_444": {
+      "Response_447": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8624,7 +8701,7 @@
         },
         "required": ["id", "kind", "name"]
       },
-      "Response_445": {
+      "Response_448": {
         "type": "object",
         "properties": {
           "id": { "type": "string" },
@@ -8632,17 +8709,17 @@
         },
         "required": ["id", "name"]
       },
-      "Response_443": {
+      "Response_446": {
         "type": "object",
         "properties": {
           "details": { "$ref": "#/components/schemas/Record_253" },
-          "entity": { "$ref": "#/components/schemas/Response_444" },
+          "entity": { "$ref": "#/components/schemas/Response_447" },
           "message": { "type": "string" },
           "occurredAt": { "type": "string" },
           "source": {
             "anyOf": [
               { "type": "null" },
-              { "$ref": "#/components/schemas/Response_445" }
+              { "$ref": "#/components/schemas/Response_448" }
             ]
           },
           "title": { "type": "string" }
@@ -8656,7 +8733,7 @@
           "title"
         ]
       },
-      "Response_442": {
+      "Response_445": {
         "type": "object",
         "properties": {
           "category": {
@@ -8673,7 +8750,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "id": { "type": "string" },
           "occurredAt": { "type": "string", "format": "date-time" },
-          "payload": { "$ref": "#/components/schemas/Response_443" },
+          "payload": { "$ref": "#/components/schemas/Response_446" },
           "type": {
             "anyOf": [
               { "type": "string", "const": "deployment.queued" },
@@ -8713,12 +8790,12 @@
           "type"
         ]
       },
-      "Response_441": {
+      "Response_444": {
         "type": "object",
         "properties": {
           "notifications": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/Response_442" }
+            "items": { "$ref": "#/components/schemas/Response_445" }
           }
         },
         "required": ["notifications"]
@@ -27568,7 +27645,7 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SystemHealth_407" },
+                    { "$ref": "#/components/schemas/SystemHealth_410" },
                     {
                       "type": "object",
                       "properties": {
@@ -27668,7 +27745,7 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SystemHealth_407" },
+                    { "$ref": "#/components/schemas/SystemHealth_410" },
                     {
                       "type": "object",
                       "properties": {
@@ -27768,7 +27845,7 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/TowbarUpdateInfo_410" },
+                    { "$ref": "#/components/schemas/TowbarUpdateInfo_413" },
                     {
                       "type": "object",
                       "properties": {
