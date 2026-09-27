@@ -16,6 +16,7 @@ import { TooltipArrowShape } from "./tooltip";
 export type HeadingDocumentation = {
   description: string;
   href: string;
+  linkLabel?: string;
 };
 export type HeadingKind = "page" | "widget";
 export const HeadingHelpContext = createContext<
@@ -73,7 +74,7 @@ export function HeadingHelp({
             className="w-fit font-medium !text-foreground !underline decoration-current underline-offset-4"
           >
             <span>
-              Open documentation
+              {documentation.linkLabel ?? "Open documentation"}
               <NewTabIndicator />
             </span>
           </Link>

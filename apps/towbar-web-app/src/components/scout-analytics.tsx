@@ -9,6 +9,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
+import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
 import { ScoutSelect } from "./scout-controls";
@@ -392,20 +393,6 @@ export function AnalyticsView({
         </div>
       ) : null}
       {pageviews ? (
-        <p className="text-xs text-muted">
-          Note:{" "}
-          <a
-            className="underline"
-            href="https://db-ip.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            IP Geolocation by DB-IP
-          </a>
-          .
-        </p>
-      ) : null}
-      {pageviews ? (
         <section className="space-y-3" aria-labelledby="pageview-setup-title">
           <div className="space-y-1">
             <h4 id="pageview-setup-title" className="text-sm font-medium">
@@ -447,7 +434,21 @@ function AnalyticsRows({
           className={`w-full table-fixed ${styles.breakdown}`}
         >
           <Table.Header>
-            <Table.Column isRowHeader>{name}</Table.Column>
+            <Table.Column isRowHeader textValue={name}>
+              <span className="inline-flex items-center gap-1">
+                {name}
+                {country ? (
+                  <HeadingHelp
+                    title="Countries"
+                    help={{
+                      description: "IP Geolocation provided by DB-IP database.",
+                      href: "/docs/analytics",
+                      linkLabel: "Learn more in documentation.",
+                    }}
+                  />
+                ) : null}
+              </span>
+            </Table.Column>
             <Table.Column className="text-right">Count</Table.Column>
             <Table.Column className="text-right">%</Table.Column>
           </Table.Header>
