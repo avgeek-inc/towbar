@@ -265,6 +265,9 @@ static, image, Railpack, Nixpacks, buildpack, and Compose deployment modes,
 previews, build servers, rollout strategies, volumes, jobs, hooks, and notifications.
 Branded image services use the existing image logo catalog; site favicons are
 bundled locally so no third-party requests are needed in the demo.
+API Keys includes an inert ChatGPT MCP connection with the bundled OpenAI logo,
+client identity, recent activity, and a 30-day expiry. Its revocation is local to
+the visitor; OAuth authorization, token issuance, and MCP execution stay blocked.
 
 | Interaction                                                                | Demo behavior                                                                 |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |

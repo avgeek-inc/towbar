@@ -91,6 +91,17 @@ try {
     signal: AbortSignal.timeout(15_000),
   });
   assert.equal(bearerOnly.status, 401);
+  const { keys } = await (
+    await call("/v1/core/settings/api-keys/personal", a)
+  ).json();
+  const mcpConnection = keys.find((key) => key.tokenType === "mcp-oauth");
+  assert.equal(mcpConnection.oauthClientName, "ChatGPT");
+  assert.equal(mcpConnection.oauthClientLogo, "openai");
+  assert.equal(
+    Date.parse(mcpConnection.expiresAt) - Date.parse(mcpConnection.createdAt),
+    30 * 86400_000,
+  );
+  assert.equal((await call("/v1/oauth/authorize", a)).status, 403);
   for (const path of [
     "/v1/core/apps",
     "/v1/core/resources",
@@ -105,6 +116,7 @@ try {
     `${appPath}/terminal`,
     "/v1/public/auth/identity/sign-in/email",
     "/v1/mcp",
+    "/v1/oauth/token",
   ])
     assert.equal(
       (

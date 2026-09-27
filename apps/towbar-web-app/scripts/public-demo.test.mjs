@@ -37,15 +37,18 @@ async function setup(t, options = {}) {
         },
         (response) =>
           resolve(
-            new Response(Readable.toWeb(response), {
-              status: response.statusCode,
-              headers: Object.fromEntries(
-                Object.entries(response.headers).map(([key, value]) => [
-                  key,
-                  Array.isArray(value) ? value.join(", ") : value,
-                ]),
-              ),
-            }),
+            new Response(
+              response.statusCode === 204 ? null : Readable.toWeb(response),
+              {
+                status: response.statusCode,
+                headers: Object.fromEntries(
+                  Object.entries(response.headers).map(([key, value]) => [
+                    key,
+                    Array.isArray(value) ? value.join(", ") : value,
+                  ]),
+                ),
+              },
+            ),
           ),
       );
       request.on("error", reject);
@@ -467,6 +470,45 @@ test("open streams consume the per-session request allowance", async (t) => {
   assert(streams.every((response) => response.status === 200));
   assert.equal((await call(path, { cookie })).status, 429);
   await Promise.all(streams.map((response) => response.body.cancel()));
+});
+
+test("sample MCP connection has client attribution and a 30-day expiry without OAuth execution", async (t) => {
+  const { call, start } = await setup(t);
+  const a = await start(),
+    b = await start();
+  const path = "/v1/core/settings/api-keys/personal";
+  const readKeys = async (cookie) =>
+    (await (await call(path, { cookie })).json()).keys;
+  const keys = await readKeys(a);
+  assert(keys.some((key) => key.name === "Local tools"));
+  const connection = keys.find((key) => key.tokenType === "mcp-oauth");
+  assert.equal(connection.oauthClientName, "ChatGPT");
+  assert.equal(connection.oauthClientLogo, "openai");
+  assert.equal(connection.oauthClientId, "https://chatgpt.com/mcp/client.json");
+  assert.equal(connection.oauthClientTrust, "metadata-document");
+  assert.equal(connection.access, "read");
+  assert.equal(
+    Date.parse(connection.expiresAt) - Date.parse(connection.createdAt),
+    30 * 86400_000,
+  );
+  assert.equal(connection.token, undefined);
+  for (const [method, endpoint] of [
+    ["GET", "/v1/oauth/authorize"],
+    ["POST", "/v1/oauth/token"],
+    ["POST", "/v1/mcp"],
+  ]) {
+    assert.equal((await call(endpoint, { cookie: a, method })).status, 403);
+  }
+  assert.equal(
+    (await call(`${path}/${connection.id}`, { cookie: a, method: "DELETE" }))
+      .status,
+    204,
+  );
+  assert((await readKeys(a)).find((key) => key.id === connection.id).revokedAt);
+  assert.equal(
+    (await readKeys(b)).find((key) => key.tokenType === "mcp-oauth").revokedAt,
+    null,
+  );
 });
 
 test("sample secrets can be revealed and edited, remain isolated, and disappear on reset and expiry", async (t) => {
