@@ -7,20 +7,20 @@ import { TableCellDescription } from "./table-cell-text.js";
 
 Object.assign(globalThis, { React });
 
-void test("table descriptions preserve up to 64 characters and cap longer text including the ellipsis", () => {
-  for (const length of [63, 64, 65]) {
+void test("table descriptions preserve up to 48 characters and cap longer text including the ellipsis", () => {
+  for (const length of [47, 48, 49]) {
     const text = "a".repeat(length);
     const markup = renderToStaticMarkup(
       React.createElement(TableCellDescription, null, text),
     );
-    const expected = length > 64 ? `${"a".repeat(63)}…` : text;
+    const expected = length > 48 ? `${"a".repeat(47)}…` : text;
     assert(markup.endsWith(`>${expected}</span>`));
-    assert.equal(markup.includes(`title="${text}"`), length > 64);
+    assert.equal(markup.includes(`title="${text}"`), length > 48);
   }
 });
 
 void test("truncation keeps Unicode characters intact and preserves an explicit hover title", () => {
-  const text = "🚀".repeat(65);
+  const text = "🚀".repeat(49);
   const markup = renderToStaticMarkup(
     React.createElement(
       TableCellDescription,
@@ -28,7 +28,7 @@ void test("truncation keeps Unicode characters intact and preserves an explicit 
       text,
     ),
   );
-  assert(markup.endsWith(`>${"🚀".repeat(63)}…</span>`));
+  assert(markup.endsWith(`>${"🚀".repeat(47)}…</span>`));
   assert.match(markup, /title="Full description"/);
 });
 

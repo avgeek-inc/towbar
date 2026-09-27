@@ -20,6 +20,7 @@ import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -78,9 +79,9 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
           )}
           <TableCellStack className="min-w-0">
             <span className="truncate">{item.deployableName}</span>
-            <TableCellDescription className="truncate">
-              {subtitle}
-            </TableCellDescription>
+            <TooltipText className="min-w-0 truncate" tooltip={subtitle}>
+              <TableCellDescription title="">{subtitle}</TableCellDescription>
+            </TooltipText>
           </TableCellStack>
         </InlineLink>
       );
