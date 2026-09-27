@@ -29,6 +29,12 @@ docker compose config --quiet
 docker compose build
 ```
 
+## Public demo
+
+The public demo uses the current dashboard and session-isolated development
+fixtures. See [its architecture, checks, and activation runbook](infra/demo/README.md).
+Changes to fixture routes must be reviewed against the public gateway allowlist.
+
 ## Documentation
 
 The Mintlify project lives in `docs/`, organized into Guides, Self-hosting, and

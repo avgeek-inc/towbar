@@ -1,4 +1,5 @@
 "use client";
+import { DemoBoundary, isPublicDemo } from "./demo-session";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { ReauthenticationDialog } from "./reauthentication-dialog";
 import { AccessContext, routePermission } from "./access-context";
@@ -47,6 +48,13 @@ import { HeadingHelpContext } from "@workspace/web-design-system/overlays/headin
 import { headingDocumentation } from "@/lib/documentation";
 
 export function ApplicationFrame({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (isPublicDemo && pathname === "/demo") return children;
+  const frame = <AuthenticatedFrame>{children}</AuthenticatedFrame>;
+  return isPublicDemo ? <DemoBoundary>{frame}</DemoBoundary> : frame;
+}
+
+function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const navigate = useCallback((href: string) => router.push(href), [router]);
@@ -158,7 +166,11 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!isPublicAuth && user === null)
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(
+        isPublicDemo
+          ? "/demo?ended=1"
+          : `/login?next=${encodeURIComponent(pathname)}`,
+      );
   }, [isLogin, isPublicAuth, isSessionTransition, pathname, router, user]);
 
   if (isSessionTransition) return children;

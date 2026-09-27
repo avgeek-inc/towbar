@@ -361,6 +361,9 @@ importers:
       "@workspace/typescript-config":
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
       eslint:
         specifier: "catalog:"
         version: 9.39.5(jiti@2.7.0)

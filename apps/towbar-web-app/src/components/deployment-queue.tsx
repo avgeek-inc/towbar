@@ -80,7 +80,7 @@ function DeploymentStateIndicator({ deployment }: { deployment: Deployment }) {
           </ProgressCircle.Track>
         </ProgressCircle>
       )}
-      <span className="typography--body-xs font-normal text-muted">
+      <span className="text-sm font-normal text-muted">
         {formatStatus(getDeploymentDisplayStatus(deployment))}
       </span>
     </span>

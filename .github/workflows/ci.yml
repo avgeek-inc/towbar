@@ -159,10 +159,23 @@ jobs:
           path: tmp/verification/
           retention-days: 14
 
+  public-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+      - run: node --test tools/demo-deploy.test.mjs
+      - run: shellcheck tools/test-public-demo.sh tools/deploy-public-demo.sh
+      - run: docker build --target demo --tag towbar-demo:test --file apps/towbar-web-app/Dockerfile .
+      - run: bash tools/test-public-demo.sh
+
   required-ci:
     name: Required CI
     if: always()
-    needs: [docs, verify, monitoring-agent, compose, integration]
+    needs: [docs, verify, monitoring-agent, compose, integration, public-demo]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

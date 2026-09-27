@@ -71,6 +71,11 @@ type Key = KeyPolicy & {
   expiresAt: string | null;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  tokenType?: "api-key" | "mcp-oauth";
+  oauthClientName?: string;
+  oauthClientId?: string;
+  oauthClientLogo?: string;
+  oauthClientTrust?: "metadata-document" | "unverified";
 };
 const now = () => new Date().toISOString();
 const expiry = (days: number) =>
@@ -112,7 +117,10 @@ export function createTeamAccessFixture(
       role === "admin"
         ? baseUser.id
         : `71111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
-    name: `Towbar ${role[0]!.toUpperCase()}${role.slice(1)}`,
+    name:
+      role === "admin"
+        ? baseUser.name
+        : `Towbar ${role[0]!.toUpperCase()}${role.slice(1)}`,
     email: role === "admin" ? baseUser.email : `${role}@example.com`,
     role,
     mustChangePassword: false,
@@ -208,6 +216,26 @@ export function createTeamAccessFixture(
     revokedAt: null,
   }));
   const keyRequests = new Map<string, string>();
+  const mcpConnectedAt = Date.now() - 5 * 60_000;
+  keys.push({
+    id: randomUUID(),
+    name: "ChatGPT",
+    prefix: "twb_fixture",
+    scope: "personal",
+    access: "read",
+    includeAdmin: false,
+    grants: keyCeiling("viewer", "read", false),
+    ownerUserId: selected.userId,
+    createdAt: new Date(mcpConnectedAt).toISOString(),
+    expiresAt: new Date(mcpConnectedAt + 30 * 86400_000).toISOString(),
+    lastUsedAt: new Date(mcpConnectedAt + 4 * 60_000).toISOString(),
+    revokedAt: null,
+    tokenType: "mcp-oauth",
+    oauthClientName: "ChatGPT",
+    oauthClientId: "https://chatgpt.com/mcp/client.json",
+    oauthClientLogo: "openai",
+    oauthClientTrust: "metadata-document",
+  });
   const preferencesByUser = new Map<string, DateTimePreferences>();
   const getPreferences = () =>
     signedIn

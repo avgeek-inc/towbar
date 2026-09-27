@@ -10,7 +10,9 @@ export const config = {
 export function canShowApiMcpSettings(
   appBaseUrl = config.appBaseUrl,
   isDevelopment = process.env.NODE_ENV === "development",
+  isPublicDemo = process.env.NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO === "true",
 ) {
+  if (isPublicDemo) return true;
   const url = new URL(appBaseUrl);
   if (url.protocol === "https:") return true;
   return (

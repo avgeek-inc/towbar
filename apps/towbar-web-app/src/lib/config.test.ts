@@ -20,3 +20,18 @@ test("HTTP installations cannot expose API and MCP settings", () => {
     false,
   );
 });
+
+test("the isolated public demo can show simulated API and MCP settings over local HTTP", () => {
+  assert.equal(
+    canShowApiMcpSettings("http://localhost:4880", false, true),
+    true,
+  );
+  assert.equal(
+    canShowApiMcpSettings("http://localhost:4021", false, true),
+    true,
+  );
+  assert.equal(
+    canShowApiMcpSettings("http://localhost:4880", false, false),
+    false,
+  );
+});

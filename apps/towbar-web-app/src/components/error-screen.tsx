@@ -28,6 +28,7 @@ export function ErrorScreen({
           height={192}
           alt=""
           className="mb-6 size-40 object-contain sm:size-48"
+          unoptimized
         />
         <p className="mb-2 font-mono text-xs font-medium tracking-widest text-muted">
           {code}

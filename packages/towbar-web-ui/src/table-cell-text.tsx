@@ -20,14 +20,21 @@ export function TableCellStack({
 }
 
 export function TableCellDescription({
+  children,
   className,
+  title,
   ...props
 }: ComponentProps<"span">) {
+  const characters = typeof children === "string" ? Array.from(children) : null;
+  const truncated = characters !== null && characters.length > 48;
   return (
     <span
       {...props}
+      title={title ?? (truncated ? characters.join("") : undefined)}
       data-slot="table-cell-description"
       className={cn(tableCellDescriptionClassName, className)}
-    />
+    >
+      {truncated ? `${characters.slice(0, 47).join("")}…` : children}
+    </span>
   );
 }

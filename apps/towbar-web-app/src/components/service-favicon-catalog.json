@@ -1,0 +1,10 @@
+{
+  "nextjs.org": "/service-favicons/nextjs.ico",
+  "docs.docker.com": "/service-favicons/docker.ico",
+  "www.wikipedia.org": "/service-favicons/wikipedia.ico",
+  "nextcloud.com": "/service-favicons/nextcloud.png",
+  "nodejs.org": "/service-favicons/nodejs.png",
+  "www.python.org": "/service-favicons/python.ico",
+  "directus.io": "/resource-logos/directus.webp",
+  "www.towbar.dev": "/brand/towbar-favicon.png"
+}
