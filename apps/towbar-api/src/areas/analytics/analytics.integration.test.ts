@@ -172,23 +172,21 @@ void test(
         null,
         "previous period exceeds configured retention",
       );
-      await db
-        .insert(analyticsSamples)
-        .values({
-          serverId,
-          appId,
-          sampleId: "e".repeat(32),
-          collectedAt: new Date(Date.now() - 36 * 3600000),
-          cells: [
-            {
-              ...cell,
-              count: 4,
-              status: 200,
-              durationMs: 80,
-              histogram: [0, 4, 0, 0, 0, 0, 0, 0],
-            },
-          ],
-        });
+      await db.insert(analyticsSamples).values({
+        serverId,
+        appId,
+        sampleId: "e".repeat(32),
+        collectedAt: new Date(Date.now() - 36 * 3600000),
+        cells: [
+          {
+            ...cell,
+            count: 4,
+            status: 200,
+            durationMs: 80,
+            histogram: [0, 4, 0, 0, 0, 0, 0, 0],
+          },
+        ],
+      });
       const compared = await getAnalyticsReport({
         appId,
         workspaceId,
