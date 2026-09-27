@@ -1,3 +1,4 @@
+import { maintainAnalytics } from "../../../areas/analytics/service.js";
 import { queueScheduledAppJobs } from "../../../areas/apps/jobs.js";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -34,4 +35,8 @@ internalMaintenanceRoutes.post("/database-storage", async (context) =>
 
 internalMaintenanceRoutes.post("/app-jobs", async (context) =>
   context.json(await queueScheduledAppJobs()),
+);
+
+internalMaintenanceRoutes.post("/analytics", async (context) =>
+  context.json(await maintainAnalytics()),
 );

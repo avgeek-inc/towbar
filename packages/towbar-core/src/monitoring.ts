@@ -1,3 +1,4 @@
+import { analyticsCellSchema } from "./analytics.js";
 import { z } from "zod";
 
 export const monitoringRetentionDays = [7, 15, 30, 60] as const;
@@ -69,6 +70,15 @@ export const monitoringEntitySchema = z
 export const monitoringSampleSchema = z
   .object({
     id: z.string().regex(/^[a-f0-9]{32}$/u),
+    analytics: z.array(analyticsCellSchema).max(512).optional(),
+    analyticsGeoBuiltAt: z.string().datetime().optional(),
+    analyticsListenerReady: z.boolean().optional(),
+    analyticsDropped: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(Number.MAX_SAFE_INTEGER)
+      .optional(),
     collectedAt: z.string().datetime(),
     version: z.string().min(1).max(64),
     collectionDurationMs: z.number().int().nonnegative().max(120_000),

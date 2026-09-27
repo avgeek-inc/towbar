@@ -24,6 +24,7 @@ export default async function Page({
     ![
       "overview",
       "performance",
+      "analytics",
       "alerts",
       "incidents",
       "compare-deployments",

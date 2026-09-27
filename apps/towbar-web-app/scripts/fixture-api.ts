@@ -4,6 +4,7 @@ import {
   rolloutStrategySchema,
   managedResourceCompatibility,
 } from "@workspace/towbar-core";
+import { analyticsFixture } from "./analytics-fixture.ts";
 import { eventHistoryFixture } from "./event-history-fixture.ts";
 import { terminalFixture } from "./terminal-fixture.ts";
 import {
@@ -2676,6 +2677,7 @@ export function createFixtureApiServer({
       return;
     }
 
+    if (analyticsFixture(request, response, requestUrl)) return;
     if (scoutFixture(request, response, requestUrl)) return;
     if (
       request.method === "GET" &&
@@ -5503,6 +5505,7 @@ const allowedFixtureOrigins = new Set([
   "http://127.0.0.1:4021",
   "http://[::1]:4021",
   "http://localhost:4021",
+  "http://localhost:4036",
 ]);
 
 function authorizeFixtureCorsRequest(

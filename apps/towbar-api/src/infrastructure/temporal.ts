@@ -446,3 +446,17 @@ export async function wakeAppJobsWorkflow() {
     workflowIdReusePolicy: "ALLOW_DUPLICATE",
   });
 }
+
+export async function ensureAnalyticsWorkflow() {
+  const client = await getTemporalClient();
+  try {
+    await client.workflow.start("runAnalyticsWorkflow", {
+      args: [],
+      taskQueue: towbarTaskQueue,
+      workflowId: "towbar-analytics/v1",
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    });
+  } catch (error) {
+    if (!isWorkflowAlreadyStarted(error)) throw error;
+  }
+}

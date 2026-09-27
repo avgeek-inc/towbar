@@ -2477,6 +2477,9 @@ export const monitoringAgents = pgTable(
       collectionDurationMs: number;
       collectionErrors: number;
       droppedSamples: number;
+      analyticsDropped?: number;
+      analyticsGeoBuiltAt?: string;
+      analyticsListenerReady?: boolean;
     }>(),
     errorMessage: text("error_message"),
     operationStartedAt: timestamp("operation_started_at", {
@@ -2735,5 +2738,40 @@ export const mcpOAuthRequests = pgTable(
   (table) => [
     uniqueIndex("uq_towbar_mcp_oauth_code").on(table.codeHash),
     index("idx_towbar_mcp_oauth_expiry").on(table.expiresAt),
+  ],
+);
+
+export const analyticsSamples = pgTable(
+  "towbar_analytics_samples",
+  {
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    sampleId: varchar("sample_id", { length: 32 }).notNull(),
+    appId: uuid("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+    collectedAt: timestamp("collected_at", { withTimezone: true }).notNull(),
+    cells: jsonb("cells")
+      .$type<import("@workspace/towbar-core").AnalyticsCell[]>()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.serverId, table.sampleId, table.appId] }),
+    index("towbar_analytics_app_time").on(table.appId, table.collectedAt),
+    index("towbar_analytics_age").on(table.collectedAt),
+  ],
+);
+
+export const analyticsRefresh = pgTable(
+  "towbar_analytics_refresh",
+  {
+    id: integer("id").primaryKey().default(1),
+    requestedAt: timestamp("requested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check("towbar_analytics_refresh_singleton", sql`${table.id} = 1`),
   ],
 );

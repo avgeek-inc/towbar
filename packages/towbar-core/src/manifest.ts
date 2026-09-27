@@ -1,3 +1,4 @@
+import { type AnalyticsConfig, analyticsConfigSchema } from "./analytics.js";
 import { type AppJob, appJobSchema } from "./app-jobs.js";
 import {
   type ManifestNotifications,
@@ -436,6 +437,7 @@ const resourceBackupSchema = z
 
 export const appSchema = z
   .object({
+    analytics: analyticsConfigSchema.optional(),
     jobs: z.array(appJobSchema).max(20).optional(),
     notifications: manifestNotificationsSchema.optional(),
     autoDeploy: appAutoDeploySchema.optional(),
@@ -502,6 +504,13 @@ export const appSchema = z
   .strict()
   // eslint-disable-next-line complexity -- The refinement is a declarative list of independent manifest invariants.
   .superRefine((app, context) => {
+    if (app.analytics && !app.domains) {
+      context.addIssue({
+        code: "custom",
+        path: ["analytics"],
+        message: "Analytics requires a public service domain",
+      });
+    }
     if (!app.deployment && !app.dockerfile) {
       context.addIssue({
         code: "custom",
@@ -1067,6 +1076,7 @@ export type NormalizedDeploymentHook = {
 };
 
 export type NormalizedApp = {
+  analytics?: AnalyticsConfig;
   notifications?: ManifestNotifications;
   jobs?: AppJob[];
   kind?: "app";
@@ -1231,6 +1241,7 @@ export function normalizeDeploymentManifest(
         );
         return {
           kind: "app" as const,
+          ...(app.analytics ? { analytics: app.analytics } : {}),
           ...(app.notifications
             ? {
                 notifications: normalizeManifestNotifications(

@@ -20,9 +20,10 @@ type counter struct {
 	at     time.Time
 }
 type collector struct {
-	proc     string
-	client   *http.Client
-	previous map[string]counter
+	tunnelPeers map[string][]string
+	proc        string
+	client      *http.Client
+	previous    map[string]counter
 }
 
 func newCollector() *collector {
@@ -194,6 +195,7 @@ func (c *collector) collect(ctx context.Context, now time.Time) Sample {
 	defer cancel()
 	entities, counters, errs := c.containers(ctx, now)
 	sample.Entities = append(sample.Entities, entities...)
+	sample.TunnelPeers = c.tunnelPeers
 	sample.CollectionErrors += errs
 	for k, v := range counters {
 		next[k] = v
@@ -220,6 +222,12 @@ func (c *collector) get(ctx context.Context, path string, out any) error {
 }
 
 type dockerContainer struct {
+	NetworkSettings struct {
+		Networks map[string]struct {
+			IPAddress         string `json:"IPAddress"`
+			GlobalIPv6Address string `json:"GlobalIPv6Address"`
+		} `json:"Networks"`
+	} `json:"NetworkSettings"`
 	ID     string            `json:"Id"`
 	Labels map[string]string `json:"Labels"`
 	State  string            `json:"State"`
@@ -264,6 +272,7 @@ type dockerInspection struct {
 }
 
 func (c *collector) containers(ctx context.Context, now time.Time) ([]Entity, map[string]counter, int) {
+	c.tunnelPeers = make(map[string][]string)
 	var list []dockerContainer
 	if e := c.get(ctx, "/containers/json?all=true&filters=%7B%22label%22%3A%5B%22towbar.managed%3Dtrue%22%5D%7D", &list); e != nil {
 		return nil, nil, 1
@@ -280,6 +289,15 @@ func (c *collector) containers(ctx context.Context, now time.Time) ([]Entity, ma
 	slots := make(chan struct{}, 4)
 collectContainers:
 	for _, item := range list {
+		if item.State == "running" && item.Labels["towbar.managed"] == "true" && item.Labels["towbar.ingress"] == "cloudflare-tunnel" && item.Labels["towbar.app"] != "" {
+			for _, network := range item.NetworkSettings.Networks {
+				for _, ip := range []string{network.IPAddress, network.GlobalIPv6Address} {
+					if net.ParseIP(ip) != nil {
+						c.tunnelPeers[item.Labels["towbar.app"]] = append(c.tunnelPeers[item.Labels["towbar.app"]], ip)
+					}
+				}
+			}
+		}
 		if item.Labels["towbar.managed"] != "true" || item.Labels["towbar.deployable"] == "" || item.Labels["towbar.source"] == "" {
 			continue
 		}

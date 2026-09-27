@@ -1,3 +1,4 @@
+import { ingestAnalytics } from "../analytics/service.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
@@ -205,12 +206,16 @@ export async function ingestMonitoringSample(
                 collectionDurationMs: sample.collectionDurationMs,
                 collectionErrors: sample.collectionErrors,
                 droppedSamples: sample.droppedSamples,
+                analyticsDropped: sample.analyticsDropped ?? 0,
+                analyticsGeoBuiltAt: sample.analyticsGeoBuiltAt,
+                analyticsListenerReady: sample.analyticsListenerReady,
               },
             }
           : {}),
         status: sql`case when ${monitoringAgents.status} in ('waiting','online') then 'online' else ${monitoringAgents.status} end`,
       })
       .where(eq(monitoringAgents.serverId, serverId));
+    await ingestAnalytics(transaction, serverId, sample);
     return { accepted: inserted.length, replayed: false };
   });
 }

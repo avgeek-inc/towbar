@@ -131,6 +131,7 @@ export function ScoutOptionIcon({
     if (value === "restarts") return <ScoutIcon name="refresh" />;
     return <MonitoringMetricIcon metric={value} />;
   }
+  if (label === "Measure") return <ScoutIcon name="performance" />;
   if (label === "Method") return <ScoutIcon name="http" />;
   if (["Time range", "Mute duration", "Duration"].includes(label))
     return <ScoutIcon name="time" />;

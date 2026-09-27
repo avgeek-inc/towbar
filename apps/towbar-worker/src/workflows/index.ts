@@ -14,3 +14,5 @@ export * from "./scout-alerts.workflow.js";
 export * from "./transactional-email.workflow.js";
 
 export * from "./app-jobs.workflow.js";
+
+export * from "./analytics.workflow.js";

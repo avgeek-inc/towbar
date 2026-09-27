@@ -80,6 +80,7 @@
               "docs/servers/setup",
               "docs/servers/operations",
               "docs/scout",
+              "docs/analytics",
               "docs/servers/remove"
             ]
           },
@@ -634,7 +635,10 @@
               },
               {
                 "group": "Scout Agent",
-                "pages": ["api-reference/get_apps_by_id_metrics"]
+                "pages": [
+                  "api-reference/get_apps_by_id_metrics",
+                  "api-reference/get_apps_by_id_analytics"
+                ]
               },
               {
                 "group": "Secrets",

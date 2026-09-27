@@ -28,6 +28,7 @@ test("migration journal keeps notification destinations and failure subscription
     "0011_notification_deployment_failures.sql",
     "0012_database_storage_samples.sql",
     "0013_mcp_oauth.sql",
+    "0014_scout_analytics.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(

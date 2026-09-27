@@ -1,4 +1,5 @@
 "use client";
+import { ScoutAnalytics } from "./scout-analytics";
 import { AppJobs } from "./app-jobs";
 import { AppStorage } from "./app-storage";
 import { useAccess } from "./access-context";
@@ -394,6 +395,18 @@ export function AppDetail() {
                     : undefined
                 }
                 type="app"
+              />
+            ),
+          },
+          {
+            value: "analytics",
+            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            label: "Analytics",
+            group: "Monitor",
+            content: (
+              <ScoutAnalytics
+                appId={appId}
+                supported={item.config.kind !== "compose"}
               />
             ),
           },

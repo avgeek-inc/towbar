@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -106,6 +107,32 @@ func sendLoop(ctx context.Context, c Config, snapshot string, q *Queue) error {
 	}
 	q.restoreDropped()
 	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
+	analytics := newAnalyticsCollector()
+	analytics.geo = openGeoDatabase(filepath.Join(q.Dir, "geo"))
+	if err := analytics.listen(ctx); err != nil {
+		log.Print("analytics listeners unavailable; performance collection continues")
+	}
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		var nextGeo time.Time
+		for {
+			marker, err := analytics.refresh(ctx, client, c)
+			if err == nil && time.Now().After(nextGeo) {
+				if analytics.geo.update(ctx, marker, time.Now()) != nil {
+					log.Print("country database refresh failed; keeping last valid database")
+					nextGeo = time.Now().Add(time.Hour)
+				} else {
+					nextGeo = time.Now().Add(time.Minute)
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 	// Collection and uploads have independent schedules: backoff cannot stop bounded buffering.
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
@@ -121,7 +148,7 @@ func sendLoop(ctx context.Context, c Config, snapshot string, q *Queue) error {
 				data, err := os.ReadFile(snapshot)
 				var sample Sample
 				if err == nil && json.Unmarshal(data, &sample) == nil && sample.ID != lastID && now.Sub(sample.CollectedAt) < 2*sampleInterval && sample.CollectedAt.Before(now.Add(time.Minute)) {
-					if q.add(sample, now) == nil {
+					if analytics.flush(&sample, q, now) == nil {
 						lastID = sample.ID
 					} else {
 						log.Print("metrics buffer rejected a sample")

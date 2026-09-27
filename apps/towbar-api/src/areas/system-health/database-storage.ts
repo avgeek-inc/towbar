@@ -14,10 +14,12 @@ export async function recordDatabaseStorageSample() {
       coalesce(sum(pg_total_relation_size(c.oid)) filter (
         where left(c.relname, length('towbar_monitoring_')) <> 'towbar_monitoring_'
           and left(c.relname, length('towbar_scout_')) <> 'towbar_scout_'
+          and left(c.relname, length('towbar_analytics_')) <> 'towbar_analytics_'
       ), 0)::text as "towbarBytes",
       coalesce(sum(pg_total_relation_size(c.oid)) filter (
         where left(c.relname, length('towbar_monitoring_')) = 'towbar_monitoring_'
           or left(c.relname, length('towbar_scout_')) = 'towbar_scout_'
+          or left(c.relname, length('towbar_analytics_')) = 'towbar_analytics_'
       ), 0)::text as "monitoringBytes"
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace

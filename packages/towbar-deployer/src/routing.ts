@@ -1,3 +1,4 @@
+import { renderAnalytics } from "./analytics.js";
 import type { DeploymentExecutionContext } from "./types.js";
 
 export function renderCaddyFragment(
@@ -14,6 +15,7 @@ export function renderCaddyFragment(
   const site = (hostname: string) => (tunnel ? `http://${hostname}` : hostname);
   const lines = [
     `${site(domains.primary)} {`,
+    ...renderAnalytics(context),
     `  reverse_proxy ${upstreams.join(" ")} {`,
     "    lb_policy round_robin",
     "  }",

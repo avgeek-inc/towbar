@@ -86,7 +86,7 @@ const rules: Record<string, Array<[string, RegExp]>> = {
     ["Notifications", /\/notifications\/deliveries$/],
     ["Scheduled jobs", /\/jobs$|\/actions\/run-job$/],
     ["Storage", /\/storage$/],
-    ["Scout Agent", /\/metrics$/],
+    ["Scout Agent", /\/(metrics|analytics)$/],
     ["Secrets", /\/secrets(?:\/|$)/],
     ["Previews", /\/previews$/],
     [
