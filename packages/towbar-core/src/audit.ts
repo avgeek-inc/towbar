@@ -319,7 +319,13 @@ export function auditEventMetadata(
     Object.entries(metadata)
       .filter(
         ([key, value]) =>
-          allowed.includes(key) &&
+          (allowed.includes(key) ||
+            [
+              "tokenType",
+              "oauthClientId",
+              "oauthClientName",
+              "oauthClientTrust",
+            ].includes(key)) &&
           (value === null ||
             typeof value === "boolean" ||
             (typeof value === "number" && Number.isFinite(value)) ||

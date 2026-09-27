@@ -503,6 +503,17 @@ export const apiKeyPolicies = pgTable(
     access: text("access").$type<"read" | "edit">().notNull(),
     includeAdmin: boolean("include_admin").default(false).notNull(),
     grants: jsonb("grants").$type<string[]>().notNull(),
+    tokenType: text("token_type")
+      .$type<"api-key" | "mcp-oauth">()
+      .default("api-key")
+      .notNull(),
+    oauthClientId: text("oauth_client_id"),
+    oauthClientName: text("oauth_client_name"),
+    oauthClientLogo: text("oauth_client_logo"),
+    oauthClientTrust: text("oauth_client_trust").$type<
+      "metadata-document" | "unverified"
+    >(),
+    oauthResource: text("oauth_resource"),
     creationRequestId: uuid("creation_request_id").defaultRandom().notNull(),
     creationDigest: text("creation_digest").notNull(),
     version: integer("version").default(1).notNull(),
@@ -518,6 +529,14 @@ export const apiKeyPolicies = pgTable(
       table.creationRequestId,
     ),
     index("idx_towbar_api_policy_workspace").on(table.workspaceId),
+    check(
+      "towbar_api_policy_token_type",
+      sql`${table.tokenType} in ('api-key', 'mcp-oauth')`,
+    ),
+    check(
+      "towbar_api_policy_oauth",
+      sql`${table.tokenType} = 'api-key' or (${table.scope} = 'personal' and not ${table.includeAdmin} and ${table.oauthClientId} is not null and ${table.oauthResource} is not null and ${table.oauthClientTrust} in ('metadata-document', 'unverified'))`,
+    ),
     check(
       "towbar_api_policy_scope",
       sql`(${table.scope} = 'personal' and ${table.ownerUserId} is not null) or (${table.scope} = 'team' and ${table.ownerUserId} is null)`,
@@ -2670,5 +2689,51 @@ export const scoutHttpChecks = pgTable(
       "towbar_scout_http_state",
       sql`${table.state} in ('pending','healthy','failed','blocked')`,
     ),
+  ],
+);
+
+export const mcpOAuthClients = pgTable("towbar_mcp_oauth_clients", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  secretHash: text("secret_hash"),
+  authMethod: text("auth_method")
+    .$type<"none" | "client_secret_basic" | "client_secret_post">()
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const mcpOAuthRequests = pgTable(
+  "towbar_mcp_oauth_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clientId: text("client_id").notNull(),
+    clientName: text("client_name").notNull(),
+    clientLogo: text("client_logo"),
+    clientTrust: text("client_trust")
+      .$type<"metadata-document" | "unverified">()
+      .notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    resource: text("resource").notNull(),
+    scope: text("scope").notNull(),
+    state: text("state"),
+    challenge: text("challenge").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
+    grants: jsonb("grants").$type<string[]>(),
+    codeHash: text("code_hash"),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    keyId: uuid("key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    uniqueIndex("uq_towbar_mcp_oauth_code").on(table.codeHash),
+    index("idx_towbar_mcp_oauth_expiry").on(table.expiresAt),
   ],
 );

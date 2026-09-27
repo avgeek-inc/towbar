@@ -1,3 +1,4 @@
+import { mcpOAuthRoutes } from "./routes/mcp-oauth.js";
 import { auditRequestContext } from "./infrastructure/audit-context.js";
 import { randomUUID } from "node:crypto";
 
@@ -27,6 +28,7 @@ function createRoutedApp(routeScope: "internal" | "public") {
     context.header("x-request-id", requestId);
     await auditRequestContext.run(requestId, next);
   });
+  if (routeScope === "public") app.route("/", mcpOAuthRoutes);
   app.use(
     "/v1/*",
     cors({
@@ -46,6 +48,7 @@ function createRoutedApp(routeScope: "internal" | "public") {
         "X-RateLimit-Remaining",
         "X-RateLimit-Reset",
         "Retry-After",
+        "WWW-Authenticate",
         "X-Request-Id",
       ],
       credentials: true,

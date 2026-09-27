@@ -6,6 +6,7 @@ import {
 } from "@workspace/towbar-core";
 import { auditEvents } from "@workspace/towbar-database/schema";
 import type { AuthDatabase } from "./database.js";
+import { currentActor } from "../areas/auth/actor-context.js";
 import { auditRequestContext } from "./audit-context.js";
 
 export type AuditEventInput = Omit<
@@ -23,10 +24,21 @@ export async function recordAuditEvent(
 ) {
   if (!isAuditEventSlug(event.action))
     throw new Error("Unregistered audit event");
+  const actor = currentActor();
+  const attribution =
+    actor && "keyId" in actor
+      ? {
+          tokenType: "api-key",
+          ...("tokenAttribution" in actor ? actor.tokenAttribution : {}),
+        }
+      : undefined;
   await database.insert(auditEvents).values({
     ...event,
     actorKind: event.actorKind ?? (event.actorUserId ? "session" : "system"),
     requestId: event.requestId ?? auditRequestContext.getStore() ?? null,
-    metadata: auditEventMetadata(event.action, event.metadata ?? {}),
+    metadata: auditEventMetadata(event.action, {
+      ...attribution,
+      ...event.metadata,
+    }),
   });
 }

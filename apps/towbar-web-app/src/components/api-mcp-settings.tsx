@@ -57,6 +57,11 @@ type ApiKey = {
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
+  tokenType: "api-key" | "mcp-oauth";
+  oauthClientName: string | null;
+  oauthClientId: string | null;
+  oauthClientLogo: string | null;
+  oauthClientTrust: "metadata-document" | "unverified" | null;
 };
 type KeySettings = {
   keys: ApiKey[];
@@ -186,7 +191,17 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
       className: "min-w-52",
       cell: (key) => (
         <TableCellStack as="div">
-          <span>{key.name}</span>
+          <span className="flex items-center gap-2">
+            {key.tokenType === "mcp-oauth" && (
+              <McpClientLogo client={key.oauthClientLogo ?? "unknown"} />
+            )}
+            {key.oauthClientName ?? key.name}
+          </span>
+          <TableCellDescription>
+            {key.tokenType === "mcp-oauth"
+              ? `MCP OAuth · ${key.oauthClientTrust === "metadata-document" && key.oauthClientId ? new URL(key.oauthClientId).hostname : "Unverified client"}`
+              : "API key"}
+          </TableCellDescription>
           <TableCellDescription className="font-mono">
             {key.prefix}••••
           </TableCellDescription>
@@ -583,9 +598,10 @@ function McpSetup({ url }: { url: string }) {
           </div>
         ) : null}
         <FieldDescription>
-          Choose a client that supports Streamable HTTP and bearer headers.
-          Towbar uses API keys; browser-only OAuth connectors cannot connect
-          directly.
+          For OAuth, add the MCP URL to your client without a bearer header,
+          then sign in to Towbar and approve access. The token expires after 30
+          days and appears in your personal API keys. The configurations above
+          use manually created API keys.
         </FieldDescription>
         <ButtonLink
           href="https://www.towbar.dev/docs/api/mcp"

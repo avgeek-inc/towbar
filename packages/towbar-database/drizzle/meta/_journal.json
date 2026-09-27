@@ -85,6 +85,13 @@
       "when": 1790470800000,
       "tag": "0012_database_storage_samples",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790478000000,
+      "tag": "0013_mcp_oauth",
+      "breakpoints": true
     }
   ]
 }

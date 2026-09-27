@@ -85,6 +85,7 @@ export function ApplicationFrame({ children }: { children: React.ReactNode }) {
     isLogin ||
     pathname.startsWith("/invite/") ||
     [
+      "/oauth/consent",
       "/forgot-password",
       "/reset-password",
       "/verify-email",

@@ -1,3 +1,4 @@
+import { resourceMetadataUrl } from "../../areas/mcp-oauth/protocol.js";
 import { actorAllows } from "@workspace/towbar-access";
 import {
   dateTimeLocalizationSchema,
@@ -226,6 +227,26 @@ mcpRoutes.all("/", async (context) => {
       context.req.method === "POST"
         ? await readJson(context, z.unknown())
         : undefined;
+    if (key.tokenType === "mcp-oauth") {
+      const call = CallToolRequestSchema.safeParse(parsedBody);
+      const tool = call.success
+        ? mcpTools.find((tool) => tool.name === call.data.params.name)
+        : undefined;
+      if (tool && !actorAllows(context.get("actor"), tool.permissions)) {
+        context.header(
+          "WWW-Authenticate",
+          `Bearer error="insufficient_scope", resource_metadata="${resourceMetadataUrl()}"${key.access === "read" && !tool.readOnly ? ', scope="mcp:read mcp:write"' : ""}`,
+        );
+        return context.json(
+          {
+            error: "insufficient_scope",
+            error_description:
+              "This token or your current role does not permit this tool",
+          },
+          403,
+        );
+      }
+    }
     return await transport.handleRequest(context.req.raw, { parsedBody });
   } finally {
     await server.close();

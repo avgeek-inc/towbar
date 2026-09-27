@@ -14,7 +14,7 @@ const brandPaths: Record<string, string> = {
 };
 
 export function McpClientLogo({ client }: { client: string }) {
-  const path = brandPaths[client];
+  const path = brandPaths[client === "openai" ? "codex" : client];
   if (!path) {
     return (
       <HugeiconsIcon

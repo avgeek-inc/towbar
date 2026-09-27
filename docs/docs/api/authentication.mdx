@@ -28,6 +28,10 @@ Better Auth's API Key plugin generates and verifies opaque tokens. Towbar stores
 
 API and MCP require Bearer tokens and do not accept browser cookies. Browser sessions use cookies and origin validation. An `Origin` header must match the configured dashboard origin; CLI clients normally omit it. Use HTTPS outside local development, and keep tokens out of URLs, logs and committed files. API-key session emulation is disabled.
 
+## MCP OAuth tokens
+
+OAuth authorization creates a separate personal token with a fixed 30-day expiry and an MCP-only audience. Existing API keys are unchanged. The inventory shows **API key** or **MCP OAuth**, plus the saved agent name, identity source, and available bundled logo. Unverified registrations are labeled explicitly. See [MCP setup](/docs/api/mcp) for browser authorization, scopes, discovery, and client compatibility.
+
 ## Rotation
 
 Create a replacement key, update the consumer, verify a permitted request, then revoke the previous key. Revocation is permanent. Key creation retries use an idempotency key and do not redisplay a previously returned token. API and MCP cannot create more keys.
