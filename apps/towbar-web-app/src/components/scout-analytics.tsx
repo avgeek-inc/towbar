@@ -240,7 +240,14 @@ export function AnalyticsView({
                 }
               />
               <LineChart.YAxis allowDecimals={false} />
-              <LineChart.Tooltip />
+              <LineChart.Tooltip
+                labelFormatter={(label) =>
+                  new Date(String(label)).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    ...(days === 1 ? { timeStyle: "short" } : {}),
+                  })
+                }
+              />
               <LineChart.Line
                 dataKey="count"
                 name={pageviews ? "Pageviews" : "Requests"}
