@@ -107,6 +107,8 @@ const icons = {
   slack: SlackIcon,
   smtp: Mail01Icon,
   http: Globe02Icon,
+  request: Globe02Icon,
+  pageview: ViewIcon,
 };
 export function ScoutIcon({ name }: { name: keyof typeof icons }) {
   return (
@@ -131,7 +133,8 @@ export function ScoutOptionIcon({
     if (value === "restarts") return <ScoutIcon name="refresh" />;
     return <MonitoringMetricIcon metric={value} />;
   }
-  if (label === "Measure") return <ScoutIcon name="performance" />;
+  if (label === "Measure")
+    return <ScoutIcon name={value === "pageview" ? "pageview" : "request"} />;
   if (label === "Method") return <ScoutIcon name="http" />;
   if (["Time range", "Mute duration", "Duration"].includes(label))
     return <ScoutIcon name="time" />;

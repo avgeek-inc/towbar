@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import styles from "./scout-analytics.module.css";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -8,9 +9,11 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
+import { ScoutIcon } from "./scout-icons";
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 
+const axisTick = { fill: "var(--muted)", fontSize: 10 };
 const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
 const labels: Record<string, string> = {
   path: "Paths",
@@ -118,13 +121,13 @@ export function AnalyticsView({
     );
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="space-y-4">
         <p className="max-w-prose text-sm text-muted">
           {pageviews
             ? "Counts pages opened in the browser, including navigation without a full reload. Blocked scripts and disabled JavaScript are not counted."
             : "Requests that reach this service, including API calls, images, scripts, and bots. Some requests may not be counted."}
         </p>
-        <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
           <ScoutSelect
             label="Measure"
             value={report.kind}
@@ -132,7 +135,7 @@ export function AnalyticsView({
             options={[
               { id: "request", label: "HTTP requests" },
               ...(report.config?.pageviews
-                ? [{ id: "pageview", label: "Website pageviews" }]
+                ? [{ id: "pageview", label: "Pageviews" }]
                 : []),
             ]}
           />
@@ -199,7 +202,9 @@ export function AnalyticsView({
       ) : (
         <Widget>
           <Widget.Header>
-            <Widget.Title>
+            <Widget.Title
+              icon={<ScoutIcon name={pageviews ? "pageview" : "request"} />}
+            >
               {pageviews ? "Pageview trend" : "Request trend"}
             </Widget.Title>
           </Widget.Header>
@@ -213,6 +218,9 @@ export function AnalyticsView({
             >
               <LineChart.Grid vertical={false} />
               <LineChart.XAxis
+                tick={axisTick}
+                tickMargin={8}
+                minTickGap={45}
                 dataKey="at"
                 tickFormatter={(value) =>
                   new Date(String(value)).toLocaleDateString(undefined, {
@@ -222,19 +230,30 @@ export function AnalyticsView({
                   })
                 }
               />
-              <LineChart.YAxis allowDecimals={false} />
+              <LineChart.YAxis
+                width="auto"
+                tick={axisTick}
+                tickMargin={4}
+                allowDecimals={false}
+              />
               <LineChart.Tooltip
-                labelFormatter={(label) =>
-                  new Date(String(label)).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    ...(days === 1 ? { timeStyle: "short" } : {}),
-                  })
+                content={
+                  <LineChart.TooltipContent
+                    labelFormatter={(label) =>
+                      new Date(String(label)).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        ...(days === 1 ? { timeStyle: "short" } : {}),
+                      })
+                    }
+                    valueFormatter={(value) => format(Number(value))}
+                  />
                 }
               />
               <LineChart.Line
                 dataKey="count"
                 name={pageviews ? "Pageviews" : "Requests"}
                 stroke="var(--accent)"
+                strokeWidth={1.8}
                 isAnimationActive={false}
                 dot={false}
               />
@@ -243,6 +262,7 @@ export function AnalyticsView({
                   dataKey="errors"
                   name="HTTP errors"
                   stroke="var(--danger)"
+                  strokeWidth={1.8}
                   isAnimationActive={false}
                   dot={false}
                 />
@@ -254,64 +274,47 @@ export function AnalyticsView({
       {report.total > 0 ? (
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {Object.entries(report.dimensions).map(([key, rows]) => (
-            <Widget
+            <div
               key={key}
               className={
-                ["path", "referrer"].includes(key) ? "lg:col-span-2" : undefined
+                ["path", "referrer"].includes(key)
+                  ? "min-w-0 lg:col-span-2"
+                  : "min-w-0"
               }
             >
-              <Widget.Header>
-                <Widget.Title>{labels[key] ?? key}</Widget.Title>
-                <span className="text-xs text-muted">Top 20</span>
-              </Widget.Header>
-              <Widget.Content>
-                <AnalyticsRows
-                  rows={
-                    key === "country"
-                      ? rows.map((row) => ({
-                          ...row,
-                          value: /^[A-Z]{2}$/u.test(row.value)
-                            ? (countryNames.of(row.value) ?? row.value)
-                            : row.value,
-                        }))
-                      : rows
-                  }
-                  total={report.total}
-                  showShare={key !== "country"}
-                />
-              </Widget.Content>
-            </Widget>
+              <AnalyticsRows
+                name={labels[key] ?? key}
+                rows={rows}
+                total={report.total}
+                country={key === "country"}
+                showShare={key === "status"}
+              />
+            </div>
           ))}
           {!pageviews ? (
-            <Widget className="lg:col-span-2">
-              <Widget.Header>
-                <Widget.Title>Response times</Widget.Title>
-              </Widget.Header>
-              <Widget.Content>
-                <p className="mb-3 text-sm text-muted">
-                  {report.p95Ms === null
-                    ? "Some responses took over 60 seconds."
-                    : `95% of responses finished within ${format(report.p95Ms)} ms.`}{" "}
-                  Total data sent: {(report.bytes / 1024 / 1024).toFixed(1)}{" "}
-                  MiB.
-                </p>
-                <AnalyticsRows
-                  name="Time range"
-                  showShare={false}
-                  rows={report.histogram
-                    .map((count, i) => ({
-                      value: latencyLabels[i]!,
-                      count,
-                    }))
-                    .filter((row) => row.count > 0)}
-                  total={report.total}
-                />
-                <p className="mt-3 text-xs text-muted">
-                  Time spent handling and sending each response. The 95% summary
-                  is an estimate based on these ranges.
-                </p>
-              </Widget.Content>
-            </Widget>
+            <div className="min-w-0 space-y-3 lg:col-span-2">
+              <p className="mb-3 text-sm text-muted">
+                {report.p95Ms === null
+                  ? "Some responses took over 60 seconds."
+                  : `95% of responses finished within ${format(report.p95Ms)} ms.`}{" "}
+                Total data sent: {(report.bytes / 1024 / 1024).toFixed(1)} MiB.
+              </p>
+              <AnalyticsRows
+                name="Response times"
+                showShare={false}
+                rows={report.histogram
+                  .map((count, i) => ({
+                    value: latencyLabels[i]!,
+                    count,
+                  }))
+                  .filter((row) => row.count > 0)}
+                total={report.total}
+              />
+              <p className="mt-3 text-xs text-muted">
+                Time spent handling and sending each response. The 95% summary
+                is an estimate based on these ranges.
+              </p>
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -323,80 +326,93 @@ export function AnalyticsView({
               '<script defer src="/.well-known/towbar-analytics/script.js"></script>'
             }
           </CodePanel>
-          <p>
-            {report.config?.visitorIdentity
-              ? "Visitor and session estimates are on."
-              : "Visitor and session estimates are off."}
-          </p>
-          <p>
-            Country estimates:{" "}
-            <a
-              className="underline"
-              href="https://db-ip.com"
-              target="_blank"
-              rel="noreferrer"
-            >
-              IP Geolocation by DB-IP
-            </a>
-            .
-          </p>
         </div>
       ) : null}
-      <p className="text-xs text-muted">
-        History is kept for {report.config?.retentionDays} days.{" "}
-        <a
-          className="underline"
-          href="https://www.towbar.dev/docs/analytics"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Setup and collection details
-        </a>
-      </p>
+      {pageviews ? (
+        <p className="text-xs text-muted">
+          Note:{" "}
+          <a
+            className="underline"
+            href="https://db-ip.com"
+            target="_blank"
+            rel="noreferrer"
+          >
+            IP Geolocation by DB-IP
+          </a>
+          .
+        </p>
+      ) : null}
     </div>
   );
 }
 function AnalyticsRows({
   rows,
   total,
-  name = "Name",
-  showShare = true,
+  name,
+  showShare = false,
+  country = false,
 }: {
-  name?: string;
+  name: string;
+  country?: boolean;
   showShare?: boolean;
   rows: { value: string; count: number }[];
   total: number;
 }) {
-  if (!rows.length) return <p className="text-sm text-muted">No data yet.</p>;
+  const maxCount = Math.max(0, ...rows.map((row) => row.count));
   return (
     <Table>
       <Table.ScrollContainer>
         <Table.Content
-          aria-label="Activity breakdown"
-          className="w-full table-fixed"
+          aria-label={name}
+          className={`w-full table-fixed ${styles.breakdown}`}
         >
           <Table.Header>
             <Table.Column isRowHeader>{name}</Table.Column>
-            <Table.Column className="w-20 text-right">Count</Table.Column>
+            <Table.Column className="text-right">Count</Table.Column>
             {showShare ? (
-              <Table.Column className="hidden text-right sm:table-cell">
-                Share
-              </Table.Column>
+              <Table.Column className="text-right">Percent</Table.Column>
             ) : null}
           </Table.Header>
-          <Table.Body>
+          <Table.Body renderEmptyState={() => "No data yet."}>
             {rows.map((row) => (
               <Table.Row id={row.value} key={row.value}>
-                <Table.Cell>
-                  <span className="block truncate" title={row.value}>
-                    {row.value}
+                <Table.Cell className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-1 left-0 rounded-r bg-accent/10"
+                    style={{
+                      width: `${maxCount ? (row.count / maxCount) * 100 : 0}%`,
+                    }}
+                  />
+                  <span className="relative flex min-w-0 items-center gap-2">
+                    {country && /^[A-Z]{2}$/u.test(row.value) ? (
+                      <span aria-hidden="true">
+                        {String.fromCodePoint(
+                          ...[...row.value].map(
+                            (letter) => 127397 + letter.charCodeAt(0),
+                          ),
+                        )}
+                      </span>
+                    ) : null}
+                    <span
+                      className="block truncate"
+                      title={
+                        country && /^[A-Z]{2}$/u.test(row.value)
+                          ? (countryNames.of(row.value) ?? row.value)
+                          : row.value
+                      }
+                    >
+                      {country && /^[A-Z]{2}$/u.test(row.value)
+                        ? (countryNames.of(row.value) ?? row.value)
+                        : row.value}
+                    </span>
                   </span>
                 </Table.Cell>
                 <Table.Cell className="text-right tabular-nums">
                   {format(row.count)}
                 </Table.Cell>
                 {showShare ? (
-                  <Table.Cell className="hidden text-right tabular-nums text-muted sm:table-cell">
+                  <Table.Cell className="text-right tabular-nums text-muted">
                     {total ? ((row.count / total) * 100).toFixed(1) : "0"}%
                   </Table.Cell>
                 ) : null}

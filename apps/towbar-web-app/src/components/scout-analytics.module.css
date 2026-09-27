@@ -1,0 +1,5 @@
+@layer components {
+  .breakdown [data-slot="table-column"]:not(:first-child) {
+    width: 5rem !important;
+  }
+}
