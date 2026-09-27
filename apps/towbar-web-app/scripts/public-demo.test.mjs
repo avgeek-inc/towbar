@@ -669,3 +669,33 @@ test("demo supports mocked jobs, runtime controls, backups, notifications, team 
     "succeeded",
   );
 });
+
+test("demo analytics supports filtered reads in both modes without adding write access", async (t) => {
+  const { call, start } = await setup(t);
+  const path = `/v1/core/apps/${appId}/analytics`;
+  assert.equal((await call(path)).status, 401);
+  const cookie = await start();
+  const filters = [{ field: "path", operator: "equals", value: "/docs/api" }];
+  for (const kind of ["request", "pageview"]) {
+    const query = new URLSearchParams({
+      kind,
+      filters: JSON.stringify(filters),
+    });
+    const response = await call(`${path}?${query}`, { cookie });
+    assert.equal(response.status, 200);
+    const report = await response.json();
+    assert.equal(report.kind, kind);
+    assert.deepEqual(report.filters, filters);
+    assert.deepEqual(
+      report.dimensions.path.map((row) => row.value),
+      ["/docs/api"],
+    );
+    assert(report.total > 0);
+    assert(report.comparison.total > 0);
+  }
+  assert.equal((await call(`${path}?filters=invalid`, { cookie })).status, 400);
+  assert.equal(
+    (await call(path, { cookie, method: "POST", body: {} })).status,
+    403,
+  );
+});
