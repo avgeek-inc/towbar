@@ -47,7 +47,7 @@ export function DemoWelcome() {
             <TowbarLockup />
           </a>
           <IdentityAuthHeading
-            title="Explore Towbar for 10 minutes"
+            title="Explore Towbar Control Plane"
             titleElementType="h1"
           >
             Browse services, servers, and deployments. No account needed.

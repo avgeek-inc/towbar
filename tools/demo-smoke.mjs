@@ -28,7 +28,7 @@ try {
   assert.equal((await call("/health")).status, 200);
   assert.equal((await call("/")).headers.get("location"), "/demo");
   const welcome = await call("/demo");
-  assert.match(await welcome.text(), /Explore Towbar for 10 minutes/);
+  assert.match(await welcome.text(), /Explore Towbar Control Plane/);
   const a = await start(),
     b = await start();
   const prefetch = await fetch(`${origin}/services`, {
