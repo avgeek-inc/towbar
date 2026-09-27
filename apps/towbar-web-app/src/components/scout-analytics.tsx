@@ -94,17 +94,11 @@ export function AnalyticsView({
             Turn on analytics for this service
           </EmptyState.Title>
           <EmptyState.Description>
-            Add analytics with enabled: true, deploy the service, and install or
-            update Scout Agent on its server. Add pageviews: true and the
-            optional script for website analytics. Data usually appears within a
-            minute.
+            Add this to your service file, deploy, and make sure Scout Agent is
+            installed.
           </EmptyState.Description>
         </EmptyState.Header>
-        <pre className="text-left text-sm">
-          {
-            "analytics:\n  enabled: true\n  pageviews: true\n  retentionDays: 30"
-          }
-        </pre>
+        <pre className="text-left text-sm">{"analytics:\n  enabled: true"}</pre>
         <a
           className="text-sm underline"
           href="https://www.towbar.dev/docs/analytics"
@@ -138,7 +132,7 @@ export function AnalyticsView({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <p className="max-w-prose text-sm text-muted">
           {pageviews
-            ? "Browser-reported pageviews include navigation within a page. Blocked scripts and disabled JavaScript are not counted."
+            ? "Counts pages opened in the browser, including navigation without a full reload. Blocked scripts and disabled JavaScript are not counted."
             : "Requests that reach this service, including API calls, images, scripts, and bots. Some requests may not be counted."}
         </p>
         <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
