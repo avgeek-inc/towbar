@@ -170,11 +170,11 @@ function ConsentRequest({ id }: { id: string | null }) {
                   : "The app supplied its own name. Towbar has not verified its identity."}
               </p>
               <p>
-                Client ID
+                <span className="font-medium">Client ID</span>
                 <span className="block break-words">{details.clientId}</span>
               </p>
               <p>
-                Return URL
+                <span className="font-medium">Return URL</span>
                 <span className="block break-words">{details.redirectUri}</span>
               </p>
               <p>Administrative access is excluded.</p>
