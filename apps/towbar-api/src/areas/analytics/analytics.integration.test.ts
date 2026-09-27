@@ -1,3 +1,4 @@
+import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -161,6 +162,13 @@ void test(
         workspaceId,
         days: 7,
         kind: "request",
+      });
+      await verifyAnalyticsDeploymentMarkers({
+        appId,
+        workspaceId,
+        serverId,
+        sourceId,
+        config,
       });
       assert.equal(report.total, 2);
       assert.equal(report.errors, 2);

@@ -151,6 +151,7 @@ export type AnalyticsReport = {
   sessions: number | null;
   histogram: number[];
   trend: { at: string; count: number; errors: number }[];
+  deployments: { id: string; at: string; state: string; type: "deployment" }[];
   comparison: {
     start: string;
     end: string;

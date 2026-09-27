@@ -22,13 +22,27 @@ function report(kind, filters = []) {
   return data;
 }
 for (const kind of ["request", "pageview"]) {
-  test(`analytics fixture filters ${kind} totals, paths, trend and comparison consistently`, () => {
+  test(`analytics fixture filters ${kind} totals, paths, trend and comparison consistently`, (t) => {
+    t.mock.timers.enable({
+      apis: ["Date"],
+      now: new Date("2026-09-27T12:00:00Z"),
+    });
     const all = report(kind);
     const filters = [
       { field: "path", operator: "startsWith", value: "/docs/" },
     ];
     const filtered = report(kind, filters);
     assert.deepEqual(filtered.filters, filters);
+    assert.deepEqual(filtered.deployments, all.deployments);
+    assert(all.deployments.length > 0);
+    assert(
+      all.deployments.every(
+        (event) =>
+          event.type === "deployment" &&
+          event.at >= all.start &&
+          event.at < all.end,
+      ),
+    );
     assert.equal(
       filtered.total,
       all.dimensions.path

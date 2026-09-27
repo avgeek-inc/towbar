@@ -1,3 +1,4 @@
+import { getDeploymentEvents } from "./deployment-events.js";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   type MonitoringAggregates,
@@ -97,15 +98,14 @@ export async function getMonitoringHistory(
         metrics: row.metrics,
       });
   }
-  const eventScope = input.deployableId
-    ? sql`app_id=${input.deployableId}::uuid and preview_environment_id is null`
-    : sql`true`;
-  const events = await database.execute<{
-    id: string;
-    at: string;
-    state: string;
-  }>(sql`
-    select id,created_at::text at,state from towbar_deployments where server_id=${serverId}::uuid and created_at>=${start.toISOString()}::timestamptz and created_at<${end.toISOString()}::timestamptz and ${eventScope} order by created_at desc,id desc limit 201`);
+  const events = await getDeploymentEvents(database, {
+    workspaceId: input.workspaceId,
+    serverId,
+    deployableId: input.deployableId,
+    start,
+    end,
+    limit: 201,
+  });
   const restartFilter = input.deployableId
     ? filter
     : sql`server_id=${serverId}::uuid and bucket_at>=${start.toISOString()}::timestamptz and bucket_at<${end.toISOString()}::timestamptz and entity_id<>'host'`;
@@ -116,11 +116,7 @@ export async function getMonitoringHistory(
       from towbar_monitoring_samples where ${restartFilter})
     select entity_id id,bucket_at::text at from changes where restarts>previous order by bucket_at desc,id desc limit 201`);
   const combinedEvents = [
-    ...events.map((row) => ({
-      ...row,
-      at: new Date(row.at).toISOString(),
-      type: "deployment" as const,
-    })),
+    ...events,
     ...restarts.map((row) => ({
       ...row,
       at: new Date(row.at).toISOString(),

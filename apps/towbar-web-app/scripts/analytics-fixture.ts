@@ -1,3 +1,4 @@
+import { fixtureJson } from "./fixture-localization.ts";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { analyticsQuerySchema } from "@workspace/towbar-core";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
@@ -118,6 +119,12 @@ export function analyticsFixture(
     visitors: kind === "pageview" ? Math.floor(702 * fraction) : null,
     sessions: kind === "pageview" ? Math.floor(841 * fraction) : null,
     histogram,
+    deployments: [0.7, 0.3].map((fraction, index) => ({
+      id: `61111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
+      at: new Date(end - days * 86400000 * fraction).toISOString(),
+      state: index === 0 ? "succeeded" : "failed",
+      type: "deployment",
+    })),
     trend: counts.map((count, i) => ({
       at: new Date(
         end - (counts.length - i) * (days === 1 ? 3600000 : 86400000),
@@ -210,6 +217,6 @@ export function analyticsFixture(
     report.config = null;
   }
   response.writeHead(200, { "content-type": "application/json" });
-  response.end(JSON.stringify(report));
+  response.end(fixtureJson(response, report));
   return true;
 }

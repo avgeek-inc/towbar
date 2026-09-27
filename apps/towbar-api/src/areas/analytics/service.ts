@@ -1,3 +1,4 @@
+import { getDeploymentEvents } from "../monitoring/deployment-events.js";
 import { type SQL, and, eq, isNull, sql } from "drizzle-orm";
 import {
   type AnalyticsConfig,
@@ -219,6 +220,16 @@ export async function getAnalyticsReport(input: {
     p95Ms: percentile(histogram, 0.95),
     histogram,
     trend,
+    deployments: config
+      ? await getDeploymentEvents(database, {
+          workspaceId: input.workspaceId,
+          serverId: app.serverId,
+          deployableId: app.id,
+          start,
+          end,
+          limit: 20,
+        })
+      : [],
     comparison:
       previous && previousHasData
         ? {
