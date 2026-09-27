@@ -55,7 +55,11 @@ export function AccountMenu({
         window.open(repositoryUrl, "_blank", "noopener,noreferrer");
         break;
       case "feedback":
-        window.location.href = "mailto:feedback@towbar.dev";
+        window.open(
+          `${repositoryUrl}/issues/new`,
+          "_blank",
+          "noopener,noreferrer",
+        );
         break;
       case "logout":
         onLogoutRequest();
@@ -130,9 +134,10 @@ export function AccountMenu({
             </Dropdown.Item>
           </Dropdown.Section>
           <Dropdown.Section
-            aria-label="Help and updates"
+            aria-label="Towbar"
             className="mt-1.5 w-full border-t border-separator pt-1.5"
           >
+            <Header>Towbar</Header>
             <Dropdown.Item id="changelog" textValue="Changelog">
               <HugeiconsIcon
                 aria-hidden="true"

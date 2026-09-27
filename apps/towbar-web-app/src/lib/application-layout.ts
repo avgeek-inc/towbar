@@ -103,6 +103,13 @@ const sidebar = {
       items: [
         {
           kind: "link",
+          id: "servers",
+          label: "Servers",
+          href: "/servers",
+          icon: sidebarIcons.servers,
+        },
+        {
+          kind: "link",
           id: "sources",
           label: "Repositories",
           href: "/repositories",
@@ -121,13 +128,6 @@ const sidebar = {
           label: "Datastores",
           href: "/datastores",
           icon: sidebarIcons.resources,
-        },
-        {
-          kind: "link",
-          id: "servers",
-          label: "Servers",
-          href: "/servers",
-          icon: sidebarIcons.servers,
         },
       ],
     },
@@ -181,6 +181,7 @@ const sidebar = {
           id: "integrations",
           label: "Integrations",
           href: "/manage/integrations",
+          preserveSubroute: true,
           icon: PlugSocketIcon,
         },
         {

@@ -56,6 +56,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
     <>
       <Button
         variant="secondary"
+        className="hidden sm:inline-flex"
         onPress={() =>
           setDraft(
             value.length
@@ -78,7 +79,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
           if (!open) setDraft(null);
         }}
       >
-        <Modal.Container size="lg" scroll="inside">
+        <Modal.Container size="lg" scroll="inside" className="sm:max-w-[56rem]">
           <Modal.Dialog>
             <Modal.CloseTrigger />
             <Modal.Header>
@@ -113,7 +114,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                   )!;
                   return (
                     <div key={index} className="flex items-end gap-2">
-                      <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
+                      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)] gap-3">
                         <FilterSelect
                           label="Field"
                           value={condition.field}
@@ -140,7 +141,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                             update(index, { ...condition, operator })
                           }
                         />
-                        <label className="col-span-2 grid gap-1 text-sm">
+                        <label className="grid gap-1 text-sm">
                           Value
                           <Input
                             aria-label={`Filter value ${index + 1}`}

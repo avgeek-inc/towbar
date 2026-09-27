@@ -35,6 +35,7 @@ import {
 } from "../../../areas/servers/preparations.js";
 import {
   getServerOrphans,
+  hasActiveOrphanCleanup,
   requestOrphanCleanup,
 } from "../../../areas/resource-operations/service.js";
 import { getServerCapacity } from "../../../areas/servers/capacity.js";
@@ -242,6 +243,24 @@ serverRoutes.get(
         context.get("user").workspaceId,
       ),
     }),
+);
+serverRoutes.get(
+  "/:serverId/cleanup",
+  operation({
+    permissions: ["server.read"],
+    responseSchema: 'servers.ts:get:"/:serverId/cleanup"',
+    summary: "Get orphan cleanup status",
+    response: "JSON object indicating whether orphan cleanup is in progress.",
+    status: 200,
+  }),
+  async (context) => {
+    const serverId = context.req.param("serverId");
+    const workspaceId = context.get("user").workspaceId;
+    await getServer(serverId, workspaceId);
+    return context.json({
+      inProgress: await hasActiveOrphanCleanup(serverId, workspaceId),
+    });
+  },
 );
 serverRoutes.get(
   "/:serverId/capacity",

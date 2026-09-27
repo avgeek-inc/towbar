@@ -316,8 +316,11 @@ function OverviewActivity() {
       {activitySummary ? (
         <Widget.Footer>
           <Widget.FooterDescription className="tabular-nums">
-            Last 7 days: {activitySummary.successRate}% successful ·{" "}
-            {activitySummary.failed} failed
+            <span className="font-medium">Last 7 days:</span>{" "}
+            {activitySummary.successRate}% successful
+            {activitySummary.failed > 0
+              ? ` · ${activitySummary.failed} failed`
+              : null}
           </Widget.FooterDescription>
         </Widget.Footer>
       ) : null}

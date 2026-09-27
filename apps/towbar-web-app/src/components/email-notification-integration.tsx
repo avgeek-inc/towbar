@@ -283,7 +283,7 @@ export function EmailNotificationIntegration() {
             Test
           </Button>
           <Button
-            variant="danger-ghost"
+            variant="danger"
             isDisabled={saving}
             onPress={() => setRemoving(row.email)}
           >

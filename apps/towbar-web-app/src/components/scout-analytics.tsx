@@ -717,7 +717,7 @@ function AnalyticsRowLabel({
             isIconOnly
             variant="ghost"
             aria-label={`Filter by path ${value}`}
-            className={`size-5 min-w-0 shrink-0 rounded-sm p-0 ${styles.rowAction}`}
+            className={`hidden size-5 min-w-0 shrink-0 rounded-sm p-0 sm:inline-flex ${styles.rowAction}`}
             onPress={() => onFilterPath(value)}
           >
             <HugeiconsIcon icon={FilterHorizontalIcon} className="size-3.5" />

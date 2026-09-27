@@ -51,8 +51,10 @@ export function AppShellBoundary({ children }: { children: ReactNode }) {
     const activeRegistration = Array.from(registrations.current.values()).at(
       -1,
     );
-    setBreadcrumbItems(activeRegistration?.items ?? null);
-    setPageTitle(activeRegistration?.title ?? null);
+    if (activeRegistration) {
+      setBreadcrumbItems(activeRegistration.items);
+      setPageTitle(activeRegistration.title);
+    }
   }, []);
   const value = useMemo(
     () => ({

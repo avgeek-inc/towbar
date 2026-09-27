@@ -13,6 +13,7 @@ import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 type ResponsiveSubtab = {
   actions?: ReactNode;
   badge?: ReactNode;
+  titleBadge?: ReactNode;
   content: ReactNode;
   destructive?: boolean;
   group?: string;
@@ -107,6 +108,7 @@ export function ResponsiveSubtabs({
       {detailSettings !== false && active ? (
         <PageSelectionTitle
           actions={active.actions}
+          badge={active.titleBadge}
           label={active.label}
           icon={
             active.icon ??

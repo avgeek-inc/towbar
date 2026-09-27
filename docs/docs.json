@@ -713,6 +713,7 @@
               {
                 "group": "Cleanup",
                 "pages": [
+                  "api-reference/get_servers_by_id_cleanup",
                   "api-reference/get_servers_by_id_orphans",
                   "api-reference/post_servers_by_id_actions_cleanup_orphans"
                 ]

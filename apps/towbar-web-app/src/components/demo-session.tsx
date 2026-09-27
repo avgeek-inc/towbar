@@ -53,16 +53,13 @@ export function DemoWelcome() {
             Browse services, servers, and deployments. No account needed.
           </IdentityAuthHeading>
           <p className="pt-4 text-sm leading-relaxed text-muted">
-            This demo uses sample data. Try a simulated deployment or rename a
-            server. Your changes reset when the demo ends.
+            This demo uses sample data. Your changes reset when the demo ends.
           </p>
           {ended && (
             <Alert status="default">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Description>
-                  Your demo has ended. Start again to keep exploring.
-                </Alert.Description>
+                <Alert.Description>Your demo has ended.</Alert.Description>
               </Alert.Content>
             </Alert>
           )}

@@ -56,6 +56,25 @@ export async function listDeployableOperations(
     .orderBy(desc(resourceOperations.createdAt));
 }
 
+export async function hasActiveOrphanCleanup(
+  serverId: string,
+  workspaceId: string,
+) {
+  const [operation] = await getTowbarDatabase()
+    .select({ id: resourceOperations.id })
+    .from(resourceOperations)
+    .where(
+      and(
+        eq(resourceOperations.serverId, serverId),
+        eq(resourceOperations.workspaceId, workspaceId),
+        eq(resourceOperations.type, "cleanup_orphans"),
+        inArray(resourceOperations.state, ["queued", "running"]),
+      ),
+    )
+    .limit(1);
+  return Boolean(operation);
+}
+
 export async function listSourceBackups(sourceId: string, workspaceId: string) {
   return await getTowbarDatabase()
     .select({

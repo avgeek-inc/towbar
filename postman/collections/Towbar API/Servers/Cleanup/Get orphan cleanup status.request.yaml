@@ -1,9 +1,9 @@
 $kind: http-request
-id: e70cf833-3913-546a-aa9e-54c48c4fbfa6
+id: 453ae292-601f-539a-bab0-918541c66d50
 description:
   "Required permissions: server.read. Personal keys are capped by the current member
   role; team keys use explicit grants."
-url: "{{baseUrl}}/servers/:serverId/orphans"
+url: "{{baseUrl}}/servers/:serverId/cleanup"
 method: GET
 headers:
   Accept: application/json
@@ -11,4 +11,4 @@ pathVariables:
   - key: serverId
     value: "{{serverId}}"
     description: Required.
-order: 2000
+order: 1000

@@ -4532,7 +4532,7 @@ function getFixturePayload(
   }
 
   const serverMatch = path.match(
-    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|capacity|checks|host-keys|orphans|preparations))?$/,
+    /^\/v1\/core\/servers\/([^/]+)(?:\/(apps|resources|deployments|capacity|checks|host-keys|orphans|cleanup|preparations))?$/,
   );
   if (serverMatch) {
     const server = servers.find((item) => item.id === serverMatch[1]);
@@ -4610,6 +4610,7 @@ function getFixturePayload(
       return { hostKeys: hostKeysByServer.get(server.id) ?? [] };
     }
     if (child === "orphans") return { orphans: orphanItems };
+    if (child === "cleanup") return { inProgress: false };
     return {
       canCleanupOrphans: true,
       canManageServer: true,

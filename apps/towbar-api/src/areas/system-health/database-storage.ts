@@ -56,10 +56,7 @@ export async function getDatabaseStorage() {
       sql`${databaseStorageSamples.sampledAt} >= now() - interval '90 days'`,
     )
     .orderBy(asc(databaseStorageSamples.sampledAt));
-  const latestByDay = new Map<string, (typeof samples)[number]>();
-  for (const sample of samples)
-    latestByDay.set(sample.sampledAt.toISOString().slice(0, 10), sample);
-  return [...latestByDay.values()].map((sample) => ({
+  return samples.map((sample) => ({
     sampledAt: sample.sampledAt.toISOString(),
     towbarBytes: sample.towbarBytes,
     monitoringBytes: sample.monitoringBytes,

@@ -51,10 +51,6 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { RelativeTime } from "./last-synced-time";
 import { formatDate } from "./dashboard-overview";
-import {
-  SourceNotifications,
-  type NotificationDestinationsResponse,
-} from "./source-notifications";
 import { SourceEnvironmentManifest } from "./source-environment-manifest";
 import { SourceEnvironments } from "./source-environments";
 import { SourceEnvironmentConnect } from "./source-environment-connect";
@@ -390,7 +386,6 @@ export function SourceDetail() {
             content: (
               <SourceSettings
                 canManage={source.data.canManageSource}
-                isActive={detailNavigation.section === "settings"}
                 onDelete={() => router.push("/repositories")}
                 sourceId={sourceId}
               />
@@ -404,23 +399,13 @@ export function SourceDetail() {
 
 function SourceSettings({
   canManage,
-  isActive,
   onDelete,
   sourceId,
 }: {
   canManage: boolean;
-  isActive: boolean;
   onDelete: () => void;
   sourceId: string;
 }) {
-  const { can } = useAccess();
-  const notificationDestinations =
-    useApiQuery<NotificationDestinationsResponse>(
-      isActive && can("notification.manage")
-        ? `/v1/core/sources/${sourceId}/notifications/destinations`
-        : null,
-    );
-
   return (
     <SourceSubtabs
       ariaLabel="Repository settings"
@@ -431,17 +416,6 @@ function SourceSettings({
           value: "auto-deploy",
           label: "Auto-deploy",
           content: <AutoDeployControlEditor id={sourceId} type="source" />,
-        },
-        {
-          value: "notifications",
-          label: "Notifications",
-          content: (
-            <SourceNotifications
-              canManage={canManage}
-              destinations={notificationDestinations}
-              sourceId={sourceId}
-            />
-          ),
         },
         ...(canManage
           ? [

@@ -134,7 +134,7 @@ export function GlobalSecrets() {
   const [stage, setStage] = useQueryChoice(
     "stage",
     ["build", "deployment", "pre_deploy", "post_deploy"],
-    "build",
+    "deployment",
   );
   const binding = query.data?.bindings.find((item) => item.stage === stage);
   return (
@@ -243,7 +243,7 @@ function EnvironmentEditors({
   const [stage, setStage] = useQueryChoice(
     "stage",
     ["build", "deployment", "pre_deploy", "post_deploy"],
-    "build",
+    "deployment",
   );
   const data = query.data;
   const binding =

@@ -2,35 +2,15 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ReloadIcon } from "@hugeicons/core-free-icons";
 
-import { useEffect, useState } from "react";
-
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
 
 export function QueryLoading({
   variant = "detail",
-  immediate = false,
 }: {
   variant?: "dashboard" | "detail" | "list" | "table";
-  immediate?: boolean;
 }) {
-  const [showSkeleton, setShowSkeleton] = useState(immediate);
-
-  useEffect(() => {
-    if (immediate) return;
-    const timeout = window.setTimeout(() => setShowSkeleton(true), 600);
-    return () => window.clearTimeout(timeout);
-  }, [immediate]);
-
-  if (!showSkeleton) {
-    return (
-      <span className="sr-only" role="status">
-        Loading
-      </span>
-    );
-  }
-
   if (variant === "list") {
     return (
       <div aria-label="Loading list" className="grid gap-2" role="status">
