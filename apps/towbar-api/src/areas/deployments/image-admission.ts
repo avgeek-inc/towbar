@@ -89,13 +89,15 @@ function parseReference(value: string): ParsedReference {
   const referenceName = digest ? value.slice(0, -(digest.length + 1)) : value;
   const separator = referenceName.lastIndexOf(":");
   const slash = referenceName.lastIndexOf("/");
-  if (!digest && (separator <= slash || separator === referenceName.length - 1))
+  const hasTag = separator > slash;
+  if (!digest && (!hasTag || separator === referenceName.length - 1))
     throw unprocessable("The application image must use an explicit tag");
-  const name = digest ? referenceName : referenceName.slice(0, separator);
-  const selector = digest ?? referenceName.slice(separator + 1);
+  const name = hasTag ? referenceName.slice(0, separator) : referenceName;
+  const tag = hasTag ? referenceName.slice(separator + 1) : null;
+  const selector = digest ?? tag!;
   if (selector === "latest")
     throw unprocessable("The application image cannot use the latest tag");
-  if (!digest && !/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u.test(selector))
+  if (tag !== null && !/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u.test(tag))
     throw unprocessable("The application image tag is invalid");
   const parts = name.split("/");
   const first = parts[0]!;
