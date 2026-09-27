@@ -434,15 +434,30 @@ function AnalyticsRows({
   total: number;
 }) {
   const country = dimension === "country";
+  const numbered = [
+    "path",
+    "referrer",
+    "country",
+    "browser",
+    "device",
+  ].includes(dimension);
   const maxCount = Math.max(0, ...rows.map((row) => row.count));
   return (
     <Table>
       <Table.ScrollContainer>
         <Table.Content
           aria-label={name}
-          className={`w-full table-fixed ${styles.breakdown}`}
+          className={`w-full table-fixed ${styles.breakdown} ${numbered ? styles.numbered : ""}`}
         >
           <Table.Header>
+            {numbered ? (
+              <Table.Column
+                className={styles.rankColumn}
+                textValue="Row number"
+              >
+                <span className="sr-only">Row number</span>
+              </Table.Column>
+            ) : null}
             <Table.Column isRowHeader textValue={name}>
               <span className="inline-flex items-center gap-1">
                 {name}
@@ -462,8 +477,13 @@ function AnalyticsRows({
             <Table.Column className="text-right">%</Table.Column>
           </Table.Header>
           <Table.Body renderEmptyState={() => "No data yet."}>
-            {rows.map((row) => (
+            {rows.map((row, index) => (
               <Table.Row id={row.value} key={row.value}>
+                {numbered ? (
+                  <Table.Cell className={styles.rankCell}>
+                    {index + 1}
+                  </Table.Cell>
+                ) : null}
                 <Table.Cell className="relative overflow-hidden">
                   <span
                     aria-hidden="true"
