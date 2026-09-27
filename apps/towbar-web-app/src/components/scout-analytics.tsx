@@ -444,6 +444,12 @@ function AnalyticsRows({
     "browser",
     "device",
   ].includes(dimension);
+  const orderedRows = numbered
+    ? [...rows].sort(
+        (left, right) =>
+          right.count - left.count || left.value.localeCompare(right.value),
+      )
+    : rows;
   const maxCount = Math.max(0, ...rows.map((row) => row.count));
   return (
     <Table>
@@ -480,7 +486,7 @@ function AnalyticsRows({
             <Table.Column className="text-right">%</Table.Column>
           </Table.Header>
           <Table.Body renderEmptyState={() => "No data yet."}>
-            {rows.map((row, index) => (
+            {orderedRows.map((row, index) => (
               <Table.Row id={row.value} key={row.value}>
                 {numbered ? (
                   <Table.Cell className={styles.rankCell}>
