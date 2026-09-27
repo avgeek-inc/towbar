@@ -147,6 +147,25 @@ stack using `172.30.44.0/29`. The unit suite separately tests time expiry and
 open-stream termination, capacity races, origin checks, malformed/large bodies,
 header spoofing, crash recovery, and auth-header stripping.
 
+To leave the demo running for browser review after the smoke has cleaned up:
+
+```bash
+TOWBAR_DEMO_IMAGE=towbar-demo:test \
+DEMO_ORIGIN=http://localhost:4880 \
+DEMO_SITE_ADDRESS=http://localhost:80 \
+DEMO_HTTP_BIND=127.0.0.1:4880 \
+DEMO_HTTPS_BIND=127.0.0.1:4881 \
+docker compose --project-name towbar-demo-review -f infra/demo/compose.yml up -d --wait
+```
+
+Open `http://localhost:4880/demo`. Start a demo, then open **Services → Example
+Website → Deploy** to review progress. The standard configuration uses the real
+ten-minute expiry and 24-session capacity. Stop the preview with:
+
+```bash
+TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-review -f infra/demo/compose.yml down --volumes
+```
+
 ## First public activation
 
 1. Merge this PR through normal review and include it in the next release.
