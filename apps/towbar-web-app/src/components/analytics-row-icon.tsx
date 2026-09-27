@@ -68,12 +68,12 @@ export function AnalyticsRowIcon({
       </span>
     );
   return (
-    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded bg-white p-0.5">
+    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-white p-[1.5px]">
       <Image
         alt=""
         width={16}
         height={16}
-        className="size-4 shrink-0 object-contain"
+        className="size-full shrink-0 object-contain"
         src={src}
         unoptimized
         loading="lazy"
