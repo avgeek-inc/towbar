@@ -509,7 +509,7 @@ function MetricChange({
   if (previous === 0 && current !== 0)
     return (
       <p
-        className={`mt-1 text-xs ${lowerIsBetter ? "text-danger" : "text-success"}`}
+        className={`mt-1 text-xs ${lowerIsBetter ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}
         title={`${label}: 0`}
       >
         New
@@ -519,7 +519,7 @@ function MetricChange({
   const improved = lowerIsBetter ? change < 0 : change > 0;
   return (
     <p
-      className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success" : "text-danger"}`}
+      className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
       title={`${label}: ${format(previous)}`}
     >
       {change > 0 ? "+" : ""}
