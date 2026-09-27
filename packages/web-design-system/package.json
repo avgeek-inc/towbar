@@ -18,6 +18,7 @@
     "@sentry/nextjs": "catalog:",
     "clsx": "catalog:",
     "next": "catalog:",
+    "prism-react-renderer": "^2.4.1",
     "react": "catalog:",
     "react-aria-components": "catalog:",
     "react-dom": "catalog:",
