@@ -14,10 +14,13 @@ export function analyticsFixture(
   const counts = Array.from({ length: days === 1 ? 24 : days }, (_, i) =>
     kind === "request" ? 400 + ((i * 137) % 450) : 200 + ((i * 57) % 190),
   );
+  const previousCounts = counts.map((count, i) =>
+    Math.floor(count * (0.65 + (i % 3) * 0.15)),
+  );
   const total = counts.reduce((a, b) => a + b, 0);
-  const histogram = [
-    0, 0.55, 0.27, 0.12, 0.015, 0.005, 0.001, 0.0005, 0, 0, 0,
-  ].map((share) => Math.floor(total * share));
+  const histogram = [0, 0.55, 0.27, 0.12, 0.015, 0.005, 0.001, 0.0005].map(
+    (share) => Math.floor(total * share),
+  );
   histogram[0] = total - histogram.reduce((a, b) => a + b, 0);
   const share = (fraction: number) => Math.floor(total * fraction);
   const report: AnalyticsReport = {
@@ -44,7 +47,7 @@ export function analyticsFixture(
     errors: 34,
     meanMs: 48.2,
     p50Ms: 50,
-    p95Ms: 250,
+    p95Ms: 200,
     visitors: kind === "pageview" ? 702 : null,
     sessions: kind === "pageview" ? 841 : null,
     histogram,
@@ -55,6 +58,27 @@ export function analyticsFixture(
       count,
       errors: i % 3,
     })),
+    comparison:
+      days * 2 > 30
+        ? null
+        : {
+            start: new Date(end - 2 * days * 86400000).toISOString(),
+            end: new Date(end - days * 86400000).toISOString(),
+            total: previousCounts.reduce((sum, count) => sum + count, 0),
+            errors: 50,
+            meanMs: 56.8,
+            visitors: kind === "pageview" ? 640 : null,
+            sessions: kind === "pageview" ? 910 : null,
+            trend: counts.map((_count, i) => ({
+              at: new Date(
+                end -
+                  days * 86400000 -
+                  (counts.length - i) * (days === 1 ? 3600000 : 86400000),
+              ).toISOString(),
+              count: previousCounts[i]!,
+              errors: 2,
+            })),
+          },
     dimensions: {
       path: [
         { value: "/", count: share(0.45) },

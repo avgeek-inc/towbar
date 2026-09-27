@@ -1,4 +1,9 @@
 @layer components {
+  .breakdown [data-slot="table-cell"] {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
   .breakdown [data-slot="table-column"]:not(:first-child) {
     width: 5rem !important;
   }

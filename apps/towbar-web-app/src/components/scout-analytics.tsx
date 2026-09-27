@@ -9,6 +9,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
+import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -25,17 +26,14 @@ const labels: Record<string, string> = {
   device: "Devices",
 };
 const latencyLabels = [
-  "≤10 ms",
-  "10–50 ms",
-  "50–100 ms",
-  "100–250 ms",
-  "250–500 ms",
-  "500 ms–1 s",
-  "1–2.5 s",
-  "2.5–5 s",
-  "5–10 s",
-  "10–60 s",
-  ">60 s",
+  "<10 ms",
+  "10 to 50 ms",
+  "50 to 100 ms",
+  "100 to 200 ms",
+  "200 to 500 ms",
+  "500 ms to 1 s",
+  "1 to 2.5 s",
+  ">2.5 s",
 ];
 const format = (n: number) => n.toLocaleString();
 
@@ -102,23 +100,58 @@ export function AnalyticsView({
       </EmptyState>
     );
   const pageviews = report.kind === "pageview";
-  const metrics: [string, string][] = [
-    [pageviews ? "Pageviews" : "Requests", format(report.total)],
-  ];
-  if (pageviews) {
-    if (report.visitors !== null)
-      metrics.push(
-        ["Estimated visitors", format(report.visitors)],
-        ["Estimated sessions", format(report.sessions ?? 0)],
-      );
-  } else
-    metrics.push(
-      ["HTTP errors (4xx + 5xx)", format(report.errors)],
-      [
-        "Average response time",
-        report.meanMs === null ? "—" : `${report.meanMs.toFixed(1)} ms`,
-      ],
-    );
+  const metrics = pageviews
+    ? [
+        {
+          label: "Pageviews",
+          value: report.total,
+          previous: report.comparison?.total,
+          lowerIsBetter: false,
+        },
+        ...(report.visitors === null
+          ? []
+          : [
+              {
+                label: "Estimated visitors",
+                value: report.visitors,
+                previous: report.comparison?.visitors,
+                lowerIsBetter: false,
+              },
+              {
+                label: "Estimated sessions",
+                value: report.sessions,
+                previous: report.comparison?.sessions,
+                lowerIsBetter: false,
+              },
+            ]),
+      ]
+    : [
+        {
+          label: "Requests",
+          value: report.total,
+          previous: report.comparison?.total,
+          lowerIsBetter: false,
+        },
+        {
+          label: "HTTP errors (4xx + 5xx)",
+          value: report.errors,
+          previous: report.comparison?.errors,
+          lowerIsBetter: true,
+        },
+        {
+          label: "Average response time",
+          value: report.meanMs,
+          previous: report.comparison?.meanMs,
+          lowerIsBetter: true,
+          unit: "ms",
+        },
+      ];
+  const trend = report.trend.map((point, index) => ({
+    ...point,
+    previous: report.comparison?.trend[index]?.count ?? null,
+  }));
+  const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
+  const comparisonLabel = `Previous ${days === 1 ? "24 hours" : `${days} days`}`;
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -143,7 +176,7 @@ export function AnalyticsView({
             label="Time range"
             value={String(days)}
             onChange={(value) => setDays(Number(value))}
-            options={[1, 7, 30, 90]
+            options={[1, 7, 14, 30, 90]
               .filter((n) => n <= (report.config?.retentionDays ?? 30))
               .map((n) => ({
                 id: String(n),
@@ -172,21 +205,35 @@ export function AnalyticsView({
           incomplete.
         </p>
       ) : null}
-      {report.total > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {metrics.map(([label, value]) => (
-            <Widget key={label}>
-              <Widget.Header>
-                <Widget.Title>{label}</Widget.Title>
-              </Widget.Header>
-              <Widget.Content>
-                <p className="text-2xl font-medium tabular-nums">{value}</p>
-              </Widget.Content>
-            </Widget>
-          ))}
+      {hasTrend ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {metrics.map(
+            ({ label, value, previous, lowerIsBetter, ...metric }) => (
+              <Widget key={label} className="min-w-0">
+                <Widget.Header>
+                  <Widget.Title>{label}</Widget.Title>
+                </Widget.Header>
+                <Widget.Content>
+                  <p className="text-2xl font-medium tabular-nums">
+                    {value === null
+                      ? "—"
+                      : "unit" in metric
+                        ? `${value.toFixed(1)} ms`
+                        : format(value)}
+                  </p>
+                  <MetricChange
+                    current={value}
+                    previous={previous}
+                    lowerIsBetter={lowerIsBetter}
+                    label={comparisonLabel}
+                  />
+                </Widget.Content>
+              </Widget>
+            ),
+          )}
         </div>
       ) : null}
-      {!report.total ? (
+      {!hasTrend ? (
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>
@@ -210,7 +257,7 @@ export function AnalyticsView({
           </Widget.Header>
           <Widget.Content>
             <LineChart
-              data={report.trend}
+              data={trend}
               height={240}
               aria-label={
                 pageviews ? "Pageviews over time" : "Requests over time"
@@ -257,6 +304,17 @@ export function AnalyticsView({
                 isAnimationActive={false}
                 dot={false}
               />
+              {pageviews && report.comparison ? (
+                <LineChart.Line
+                  dataKey="previous"
+                  name={comparisonLabel}
+                  stroke="var(--warning)"
+                  strokeDasharray="5 4"
+                  strokeWidth={1.8}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              ) : null}
               {!pageviews ? (
                 <LineChart.Line
                   dataKey="errors"
@@ -268,37 +326,34 @@ export function AnalyticsView({
                 />
               ) : null}
             </LineChart>
+            {pageviews && report.comparison ? (
+              <Widget.Legend className="mt-2 flex-wrap">
+                <Widget.LegendItem color="var(--accent)">
+                  Pageviews
+                </Widget.LegendItem>
+                <Widget.LegendItem color="var(--warning)">
+                  {comparisonLabel} (dashed)
+                </Widget.LegendItem>
+              </Widget.Legend>
+            ) : null}
           </Widget.Content>
         </Widget>
       )}
       {report.total > 0 ? (
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {Object.entries(report.dimensions).map(([key, rows]) => (
-            <div
-              key={key}
-              className={
-                ["path", "referrer"].includes(key)
-                  ? "min-w-0 lg:col-span-2"
-                  : "min-w-0"
-              }
-            >
+            <div key={key} className="min-w-0">
               <AnalyticsRows
                 name={labels[key] ?? key}
                 rows={rows}
                 total={report.total}
-                country={key === "country"}
+                dimension={key}
                 showShare={key === "status"}
               />
             </div>
           ))}
           {!pageviews ? (
-            <div className="min-w-0 space-y-3 lg:col-span-2">
-              <p className="mb-3 text-sm text-muted">
-                {report.p95Ms === null
-                  ? "Some responses took over 60 seconds."
-                  : `95% of responses finished within ${format(report.p95Ms)} ms.`}{" "}
-                Total data sent: {(report.bytes / 1024 / 1024).toFixed(1)} MiB.
-              </p>
+            <div className="min-w-0">
               <AnalyticsRows
                 name="Response times"
                 showShare={false}
@@ -310,22 +365,8 @@ export function AnalyticsView({
                   .filter((row) => row.count > 0)}
                 total={report.total}
               />
-              <p className="mt-3 text-xs text-muted">
-                Time spent handling and sending each response. The 95% summary
-                is an estimate based on these ranges.
-              </p>
             </div>
           ) : null}
-        </div>
-      ) : null}
-      {pageviews ? (
-        <div className="space-y-2 text-sm text-muted">
-          <p>Add once to your page template:</p>
-          <CodePanel ariaLabel="Pageview script" language="html">
-            {
-              '<script defer src="/.well-known/towbar-analytics/script.js"></script>'
-            }
-          </CodePanel>
         </div>
       ) : null}
       {pageviews ? (
@@ -342,6 +383,24 @@ export function AnalyticsView({
           .
         </p>
       ) : null}
+      {pageviews ? (
+        <section className="space-y-3" aria-labelledby="pageview-setup-title">
+          <div className="space-y-1">
+            <h4 id="pageview-setup-title" className="text-sm font-medium">
+              Track pageviews
+            </h4>
+            <p className="text-sm text-muted">
+              Add this script to your site’s shared HTML template to count
+              pageviews and navigation without a full reload.
+            </p>
+          </div>
+          <CodePanel ariaLabel="Pageview script" language="html">
+            {
+              '<script defer src="/.well-known/towbar-analytics/script.js"></script>'
+            }
+          </CodePanel>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -350,14 +409,15 @@ function AnalyticsRows({
   total,
   name,
   showShare = false,
-  country = false,
+  dimension = "",
 }: {
   name: string;
-  country?: boolean;
+  dimension?: string;
   showShare?: boolean;
   rows: { value: string; count: number }[];
   total: number;
 }) {
+  const country = dimension === "country";
   const maxCount = Math.max(0, ...rows.map((row) => row.count));
   return (
     <Table>
@@ -376,15 +436,23 @@ function AnalyticsRows({
           <Table.Body renderEmptyState={() => "No data yet."}>
             {rows.map((row) => (
               <Table.Row id={row.value} key={row.value}>
-                <Table.Cell className="relative">
+                <Table.Cell className="relative overflow-hidden">
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-1 left-0 rounded-r bg-accent/10"
+                    className="pointer-events-none absolute inset-y-1 left-1 rounded bg-accent"
                     style={{
-                      width: `${maxCount ? (row.count / maxCount) * 100 : 0}%`,
+                      width: `calc((100% - 0.5rem) * ${maxCount ? row.count / maxCount : 0})`,
+                      opacity: maxCount
+                        ? 0.04 + 0.16 * (row.count / maxCount)
+                        : 0,
                     }}
                   />
                   <span className="relative flex min-w-0 items-center gap-2">
+                    <AnalyticsRowIcon
+                      key={`${dimension}:${row.value}`}
+                      dimension={dimension}
+                      value={row.value}
+                    />
                     {country && /^[A-Z]{2}$/u.test(row.value) ? (
                       <span aria-hidden="true">
                         {String.fromCodePoint(
@@ -422,5 +490,41 @@ function AnalyticsRows({
         </Table.Content>
       </Table.ScrollContainer>
     </Table>
+  );
+}
+
+function MetricChange({
+  current,
+  previous,
+  lowerIsBetter,
+  label,
+}: {
+  current: number | null;
+  previous: number | null | undefined;
+  lowerIsBetter: boolean;
+  label: string;
+}) {
+  if (current === null || previous === null || previous === undefined)
+    return <p className="mt-1 text-xs text-muted">No prior period data</p>;
+  if (previous === 0 && current !== 0)
+    return (
+      <p
+        className={`mt-1 text-xs ${lowerIsBetter ? "text-danger" : "text-success"}`}
+        title={`${label}: 0`}
+      >
+        New
+      </p>
+    );
+  const change = previous === 0 ? 0 : ((current - previous) / previous) * 100;
+  const improved = lowerIsBetter ? change < 0 : change > 0;
+  return (
+    <p
+      className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success" : "text-danger"}`}
+      title={`${label}: ${format(previous)}`}
+    >
+      {change > 0 ? "+" : ""}
+      {change.toFixed(1)}%{" "}
+      <span className="text-muted">vs previous period</span>
+    </p>
   );
 }

@@ -129,7 +129,7 @@ void test(
         count: 2,
         bytes: 100,
         durationMs: 20,
-        histogram: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        histogram: [2, 0, 0, 0, 0, 0, 0, 0],
       });
       const body = monitoringSampleSchema.parse({
         id: randomBytes(16).toString("hex"),
@@ -167,6 +167,59 @@ void test(
       assert.equal(report.meanMs, 10);
       assert.equal(report.p95Ms, 10);
       assert.equal(report.dimensions.path?.[0]?.value, "/docs");
+      assert.equal(
+        report.comparison,
+        null,
+        "previous period exceeds configured retention",
+      );
+      await db
+        .insert(analyticsSamples)
+        .values({
+          serverId,
+          appId,
+          sampleId: "e".repeat(32),
+          collectedAt: new Date(Date.now() - 36 * 3600000),
+          cells: [
+            {
+              ...cell,
+              count: 4,
+              status: 200,
+              durationMs: 80,
+              histogram: [0, 4, 0, 0, 0, 0, 0, 0],
+            },
+          ],
+        });
+      const compared = await getAnalyticsReport({
+        appId,
+        workspaceId,
+        days: 1,
+        kind: "request",
+      });
+      assert.equal(compared.total, 2);
+      assert.equal(compared.comparison?.total, 4);
+      assert.equal(compared.comparison.errors, 0);
+      assert.equal(compared.comparison.meanMs, 20);
+      assert.equal(compared.comparison.end, compared.start);
+      assert.equal(
+        Date.parse(compared.end) - Date.parse(compared.start),
+        Date.parse(compared.comparison.end) -
+          Date.parse(compared.comparison.start),
+      );
+      assert.equal(compared.trend.length, 24);
+      assert.equal(compared.comparison.trend.length, 24);
+      assert.equal(
+        compared.trend.reduce((sum, point) => sum + point.count, 0),
+        2,
+      );
+      assert.equal(
+        compared.comparison.trend.reduce((sum, point) => sum + point.count, 0),
+        4,
+      );
+      assert.equal(
+        compared.dimensions.status?.[0]?.value,
+        "503",
+        "tables only include the current period",
+      );
       await assert.rejects(
         getAnalyticsReport({
           appId,
@@ -181,7 +234,7 @@ void test(
         status: 0,
         bytes: 0,
         durationMs: 0,
-        histogram: Array(11).fill(0),
+        histogram: Array(8).fill(0),
         visitor: "b".repeat(64),
         session: "c".repeat(64),
         country: "IN",

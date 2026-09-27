@@ -1,5 +1,6 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { type SQL, and, eq, isNull, sql } from "drizzle-orm";
 import {
+  type AnalyticsConfig,
   type AnalyticsReport,
   type MonitoringSample,
   analyticsLatencyBounds,
@@ -140,31 +141,30 @@ export async function getAnalyticsReport(input: {
       Math.min(input.days, config?.retentionDays ?? 30) * 86400_000,
   );
   const filter = sql`s.app_id=${app.id}::uuid and s.collected_at>=${start.toISOString()}::timestamptz and s.collected_at<${end.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
-  const [
-    totals = {
-      count: "0",
-      bytes: "0",
-      duration: "0",
-      errors: "0",
-      visitors: "0",
-      sessions: "0",
-      last: null,
-    },
-  ] = await database.execute<{
-    count: string;
-    bytes: string;
-    duration: string;
-    errors: string;
-    visitors: string;
-    sessions: string;
-    last: string | null;
-  }>(sql`
-    select coalesce(sum((c->>'count')::bigint),0)::text count, coalesce(sum((c->>'bytes')::bigint),0)::text bytes,
-      coalesce(sum((c->>'durationMs')::double precision),0)::text duration,
-      coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int >= 400),0)::text errors,
-      count(distinct nullif(c->>'visitor',''))::text visitors, count(distinct nullif(c->>'session',''))::text sessions,
-      max(s.collected_at)::text last
-    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}`);
+  const step = input.days === 1 ? 3600 : 86400;
+  const { totals, trend } = await periodSummary(
+    database,
+    filter,
+    start,
+    end,
+    step,
+  );
+  const previousStart = new Date(
+    start.getTime() - (end.getTime() - start.getTime()),
+  );
+  const canCompare =
+    Boolean(config) &&
+    previousStart.getTime() >=
+      end.getTime() - (config?.retentionDays ?? 30) * 86400_000;
+  const previous = canCompare
+    ? await periodSummary(
+        database,
+        sql`s.app_id=${app.id}::uuid and s.collected_at>=${previousStart.toISOString()}::timestamptz and s.collected_at<${start.toISOString()}::timestamptz and c->>'kind'=${input.kind}`,
+        previousStart,
+        start,
+        step,
+      )
+    : null;
   const histogramRows = await database.execute<{
     idx: number;
     count: string;
@@ -172,17 +172,8 @@ export async function getAnalyticsReport(input: {
     select h.ordinality::int idx,sum(h.value::text::bigint)::text count from towbar_analytics_samples s
     cross join lateral jsonb_array_elements(s.cells) c cross join lateral jsonb_array_elements(c->'histogram') with ordinality h(value,ordinality)
     where ${filter} group by h.ordinality order by h.ordinality`);
-  const histogram = Array<number>(11).fill(0);
+  const histogram = Array<number>(analyticsLatencyBounds.length + 1).fill(0);
   for (const row of histogramRows) histogram[row.idx - 1] = Number(row.count);
-  const step = input.days === 1 ? 3600 : 86400;
-  const trendRows = await database.execute<{
-    at: string;
-    count: string;
-    errors: string;
-  }>(sql`
-    select to_timestamp(floor(extract(epoch from s.collected_at)/${step})*${step})::text at,
-      sum((c->>'count')::bigint)::text count, coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int>=400),0)::text errors
-    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter} group by at order by at`);
   const dimensions: AnalyticsReport["dimensions"] = {};
   for (const key of input.kind === "request"
     ? ["path", "referrer", "status", "method"]
@@ -196,7 +187,6 @@ export async function getAnalyticsReport(input: {
       count: Number(r.count),
     }));
   }
-  const total = Number(totals.count);
   return {
     enabled: Boolean(config),
     config,
@@ -205,29 +195,21 @@ export async function getAnalyticsReport(input: {
     start: start.toISOString(),
     end: end.toISOString(),
     kind: input.kind,
-    total,
+    ...summaryMetrics(totals, input.kind, config),
     bytes: Number(totals.bytes),
-    errors: Number(totals.errors),
-    meanMs:
-      input.kind === "request" && total
-        ? Number(totals.duration) / total
-        : null,
     p50Ms: percentile(histogram, 0.5),
     p95Ms: percentile(histogram, 0.95),
-    visitors:
-      config?.visitorIdentity && input.kind === "pageview"
-        ? Number(totals.visitors)
-        : null,
-    sessions:
-      config?.visitorIdentity && input.kind === "pageview"
-        ? Number(totals.sessions)
-        : null,
     histogram,
-    trend: trendRows.map((r) => ({
-      at: new Date(r.at).toISOString(),
-      count: Number(r.count),
-      errors: Number(r.errors),
-    })),
+    trend,
+    comparison:
+      previous && previous.totals.last
+        ? {
+            start: previousStart.toISOString(),
+            end: start.toISOString(),
+            ...summaryMetrics(previous.totals, input.kind, config),
+            trend: previous.trend,
+          }
+        : null,
     dimensions,
   };
 }
@@ -264,4 +246,90 @@ function isExcludedPath(path: string, prefixes: string[]) {
   return prefixes.some(
     (prefix) => path.startsWith(prefix) || decoded.startsWith(prefix),
   );
+}
+
+type PeriodTotals = {
+  count: string;
+  bytes: string;
+  duration: string;
+  errors: string;
+  visitors: string;
+  sessions: string;
+  last: string | null;
+};
+function summaryMetrics(
+  totals: PeriodTotals,
+  kind: "request" | "pageview",
+  config: AnalyticsConfig | null,
+) {
+  const total = Number(totals.count);
+  return {
+    total,
+    errors: Number(totals.errors),
+    meanMs:
+      kind === "request" && total ? Number(totals.duration) / total : null,
+    visitors:
+      config?.visitorIdentity && kind === "pageview"
+        ? Number(totals.visitors)
+        : null,
+    sessions:
+      config?.visitorIdentity && kind === "pageview"
+        ? Number(totals.sessions)
+        : null,
+  };
+}
+async function periodSummary(
+  database: AuthDatabase,
+  filter: SQL,
+  start: Date,
+  end: Date,
+  step: number,
+) {
+  const [
+    totals = {
+      count: "0",
+      bytes: "0",
+      duration: "0",
+      errors: "0",
+      visitors: "0",
+      sessions: "0",
+      last: null,
+    },
+  ] = await database.execute<{
+    count: string;
+    bytes: string;
+    duration: string;
+    errors: string;
+    visitors: string;
+    sessions: string;
+    last: string | null;
+  }>(sql`
+    select coalesce(sum((c->>'count')::bigint),0)::text count, coalesce(sum((c->>'bytes')::bigint),0)::text bytes,
+      coalesce(sum((c->>'durationMs')::double precision),0)::text duration,
+      coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int >= 400),0)::text errors,
+      count(distinct nullif(c->>'visitor',''))::text visitors, count(distinct nullif(c->>'session',''))::text sessions,
+      max(s.collected_at)::text last
+    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}`);
+  const trendRows = await database.execute<{
+    at: string;
+    count: string;
+    errors: string;
+  }>(sql`
+    select (${start.toISOString()}::timestamptz + floor(extract(epoch from (s.collected_at - ${start.toISOString()}::timestamptz))/${step}) * ${step} * interval '1 second')::text at,
+      sum((c->>'count')::bigint)::text count, coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int>=400),0)::text errors
+    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter} group by at order by at`);
+
+  const points = new Map(
+    trendRows.map((row) => [new Date(row.at).getTime(), row]),
+  );
+  const trend = [];
+  for (let at = start.getTime(); at < end.getTime(); at += step * 1000) {
+    const row = points.get(at);
+    trend.push({
+      at: new Date(at).toISOString(),
+      count: Number(row?.count ?? 0),
+      errors: Number(row?.errors ?? 0),
+    });
+  }
+  return { totals, trend };
 }

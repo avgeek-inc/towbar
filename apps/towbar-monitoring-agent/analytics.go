@@ -15,24 +15,24 @@ import (
 	"time"
 )
 
-var latencyBounds = []float64{10, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 60000}
+var latencyBounds = []float64{10, 50, 100, 200, 500, 1000, 2500}
 
 type AnalyticsCell struct {
-	AppID      string    `json:"appId"`
-	Kind       string    `json:"kind"`
-	Path       string    `json:"path"`
-	Referrer   string    `json:"referrer"`
-	Method     string    `json:"method"`
-	Status     int       `json:"status"`
-	Country    string    `json:"country"`
-	Browser    string    `json:"browser"`
-	Device     string    `json:"device"`
-	Visitor    string    `json:"visitor"`
-	Session    string    `json:"session"`
-	Count      int64     `json:"count"`
-	Bytes      int64     `json:"bytes"`
-	DurationMs float64   `json:"durationMs"`
-	Histogram  [11]int64 `json:"histogram"`
+	AppID      string   `json:"appId"`
+	Kind       string   `json:"kind"`
+	Path       string   `json:"path"`
+	Referrer   string   `json:"referrer"`
+	Method     string   `json:"method"`
+	Status     int      `json:"status"`
+	Country    string   `json:"country"`
+	Browser    string   `json:"browser"`
+	Device     string   `json:"device"`
+	Visitor    string   `json:"visitor"`
+	Session    string   `json:"session"`
+	Count      int64    `json:"count"`
+	Bytes      int64    `json:"bytes"`
+	DurationMs float64  `json:"durationMs"`
+	Histogram  [8]int64 `json:"histogram"`
 }
 type analyticsService struct {
 	CloudflareProxy  bool     `json:"cloudflareProxy"`
@@ -124,7 +124,7 @@ func (a *analyticsCollector) add(cell AnalyticsCell) {
 	keyCell.Count = 0
 	keyCell.Bytes = 0
 	keyCell.DurationMs = 0
-	keyCell.Histogram = [11]int64{}
+	keyCell.Histogram = [8]int64{}
 	keyBytes, _ := json.Marshal(keyCell)
 	key := string(keyBytes)
 	a.mu.Lock()
@@ -195,7 +195,7 @@ func (a *analyticsCollector) request(data []byte) {
 	}
 	cell := AnalyticsCell{AppID: record.Service, Kind: "request", Referrer: referrerHost("https://" + record.Referrer), Path: record.Path, Method: record.Method, Status: record.Status, Count: 1, Bytes: record.Size, DurationMs: record.Duration * 1000}
 	i := 0
-	for i < len(latencyBounds) && cell.DurationMs > latencyBounds[i] {
+	for i < len(latencyBounds) && (cell.DurationMs > latencyBounds[i] || (i == 0 && cell.DurationMs == 10)) {
 		i++
 	}
 	cell.Histogram[i] = 1

@@ -58,3 +58,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ## DB-IP Country Lite
 
 Scout optionally downloads DB-IP Country Lite at runtime from https://db-ip.com/db/download/ip-to-country-lite. The database is licensed under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/). IP Geolocation by DB-IP (https://db-ip.com). The database is not bundled in Towbar source or images.
+
+## Browser logos
+
+The Chrome, Firefox, Safari and Edge logos in `apps/towbar-web-app/public/browsers` come from [Browser Logos](https://github.com/alrra/browser-logos). Logos and trademarks are the property of their respective owners and are used to identify browsers in analytics.

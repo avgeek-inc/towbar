@@ -285,3 +285,25 @@ func TestCloudflareIPv6CompanionOnlyAppliesToPseudoIPv4(t *testing.T) {
 		t.Fatal("pseudo address should be unknown without original IPv6", got)
 	}
 }
+
+func TestAnalyticsLatencyBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		ms     float64
+		bucket int
+	}{{9.9, 0}, {10, 1}, {50, 1}, {50.1, 2}, {100, 2}, {100.1, 3}, {200, 3}, {200.1, 4}, {500, 4}, {1000, 5}, {2500, 6}, {2500.1, 7}, {90000, 7}} {
+		a := testAnalytics()
+		data, err := json.Marshal(map[string]any{"service": analyticsTestID, "path": "/", "method": "GET", "status": 200, "duration": tc.ms / 1000, "size": 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		a.request(data)
+		if len(a.cells) != 1 {
+			t.Fatal("request not recorded")
+		}
+		for _, cell := range a.cells {
+			if cell.Histogram[tc.bucket] != 1 {
+				t.Fatalf("%g ms: expected bucket %d, got %v", tc.ms, tc.bucket, cell.Histogram)
+			}
+		}
+	}
+}

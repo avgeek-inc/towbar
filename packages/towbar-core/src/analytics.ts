@@ -20,7 +20,7 @@ export const analyticsConfigSchema = z
   });
 export type AnalyticsConfig = z.infer<typeof analyticsConfigSchema>;
 export const analyticsLatencyBounds = [
-  10, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 60000,
+  10, 50, 100, 200, 500, 1000, 2500,
 ] as const;
 export const analyticsCellSchema = z
   .object({
@@ -56,7 +56,7 @@ export const analyticsCellSchema = z
     durationMs: z.number().nonnegative().max(1e15),
     histogram: z
       .array(z.number().int().nonnegative().max(10_000_000))
-      .length(11),
+      .length(8),
   })
   .strict()
   .superRefine((cell, ctx) => {
@@ -120,5 +120,15 @@ export type AnalyticsReport = {
   sessions: number | null;
   histogram: number[];
   trend: { at: string; count: number; errors: number }[];
+  comparison: {
+    start: string;
+    end: string;
+    total: number;
+    errors: number;
+    meanMs: number | null;
+    visitors: number | null;
+    sessions: number | null;
+    trend: { at: string; count: number; errors: number }[];
+  } | null;
   dimensions: Record<string, { value: string; count: number }[]>;
 };

@@ -41,14 +41,14 @@ void test("request payloads reject IP addresses, identities, queries, and incons
     count: 1,
     bytes: 100,
     durationMs: 5,
-    histogram: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    histogram: [1, 0, 0, 0, 0, 0, 0, 0],
   };
   assert(analyticsCellSchema.safeParse(cell).success);
   for (const patch of [
     { ip: "1.2.3.4" },
     { path: "/?secret=x" },
     { visitor: "a".repeat(64) },
-    { histogram: Array(11).fill(0) },
+    { histogram: Array(8).fill(0) },
   ])
     assert(!analyticsCellSchema.safeParse({ ...cell, ...patch }).success);
 });
