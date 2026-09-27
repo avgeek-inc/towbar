@@ -208,7 +208,7 @@ function DatabaseStorage({
               <LineChart.Line
                 dataKey="monitoringBytes"
                 name="Monitoring Data"
-                stroke="var(--chart-succeeded)"
+                stroke="var(--warning)"
                 strokeWidth={2}
                 dot={data.length === 1 ? { r: 3 } : false}
                 isAnimationActive={false}
@@ -227,7 +227,7 @@ function DatabaseStorage({
               <Widget.LegendItem color="var(--chart-requested)">
                 Towbar Data
               </Widget.LegendItem>
-              <Widget.LegendItem color="var(--chart-succeeded)">
+              <Widget.LegendItem color="var(--warning)">
                 Monitoring Data
               </Widget.LegendItem>
             </Widget.Legend>
