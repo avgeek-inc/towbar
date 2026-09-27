@@ -2,6 +2,7 @@ import React from "react";
 import { MailSend01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
 
 import { CloudProviderLogo } from "./cloud-provider-logo";
@@ -22,9 +23,12 @@ export type ProviderItem = {
   value: string;
   provider: string;
   label: string;
-  content: React.ReactNode;
+  content:
+    React.ReactNode | ((details: IntegrationDetail[]) => React.ReactNode);
   contentOwnsTitle?: boolean;
 };
+
+export type IntegrationDetail = { label: string; value: string };
 
 export type ProviderGroup = {
   value: string;
@@ -134,24 +138,34 @@ type EnvironmentProviderName = keyof typeof environmentProviders;
 
 function EnvironmentProvider({
   provider,
+  details,
 }: {
   provider: EnvironmentProviderName;
+  details: IntegrationDetail[];
 }) {
   const metadata = environmentProviders[provider];
   return (
     <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard title="Runtime configuration" help={false}>
         <div className="grid gap-3">
-          <div className="grid gap-2">
-            <p className="text-sm font-medium text-muted">
-              {metadata.description}
-            </p>
+          <p className="text-sm font-medium text-muted">
+            {metadata.description}
+          </p>
+          {details.length ? (
+            <Attributes columns={1} variant="embedded">
+              {details.map(({ label, value }) => (
+                <Attributes.Item key={label} label={label}>
+                  {value}
+                </Attributes.Item>
+              ))}
+            </Attributes>
+          ) : (
             <p className="text-sm text-muted">
-              This integration is configured by the Towbar runtime environment.
-              Refer to documentation for more info on the usage of this
-              integration.
+              {provider === "doppler"
+                ? "Doppler uses a runtime token; there are no account details to show."
+                : "No public configuration details are available."}
             </p>
-          </div>
+          )}
           <ButtonLink
             className="w-fit"
             href={metadata.documentation}
@@ -176,7 +190,9 @@ const environmentProvider = (
   value,
   provider,
   label,
-  content: <EnvironmentProvider provider={value} />,
+  content: (details) => (
+    <EnvironmentProvider provider={value} details={details} />
+  ),
 });
 
 export const integrationGroups = [

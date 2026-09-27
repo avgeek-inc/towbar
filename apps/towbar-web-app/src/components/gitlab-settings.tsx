@@ -40,11 +40,7 @@ export function GitLabSettings() {
       >
         {connection ? (
           <div className="content-grid">
-            <Attributes
-              columns={1}
-              title="Connection details"
-              variant="embedded"
-            >
+            <Attributes columns={1} variant="embedded">
               <Attributes.Item label="Account">
                 {connection.name}
               </Attributes.Item>

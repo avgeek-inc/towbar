@@ -2,7 +2,54 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 
-import { parseRuntimeIntegrations } from "./runtime-integrations.js";
+import {
+  getPublicIntegrationCapabilities,
+  parseRuntimeIntegrations,
+} from "./runtime-integrations.js";
+
+void test("publishes only allowlisted integration details", () => {
+  const capabilities = getPublicIntegrationCapabilities({
+    TOWBAR_CLOUDFLARE_ENABLED: "true",
+    TOWBAR_CLOUDFLARE_ACCOUNT_ID: "account-123",
+    TOWBAR_CLOUDFLARE_ZONE_ID: "zone-456",
+    TOWBAR_CLOUDFLARE_API_TOKEN: "private-cloudflare-token",
+    TOWBAR_S3_ENABLED: "true",
+    TOWBAR_S3_REGION: "us-east-1",
+    TOWBAR_S3_BUCKET: "towbar-backups",
+    TOWBAR_S3_ACCESS_KEY_ID: "private-access-key-id",
+    TOWBAR_S3_SECRET_ACCESS_KEY: "private-secret-access-key",
+    TOWBAR_INFISICAL_ENABLED: "true",
+    TOWBAR_INFISICAL_BASE_URL:
+      "https://name:private-pass@secrets.example.com/?token=private-query",
+    TOWBAR_INFISICAL_CLIENT_ID: "private-client-id",
+    TOWBAR_INFISICAL_CLIENT_SECRET: "private-client-secret",
+  });
+
+  assert.deepEqual(capabilities, [
+    {
+      category: "backup",
+      provider: "s3",
+      details: [
+        { label: "Region", value: "us-east-1" },
+        { label: "Bucket", value: "towbar-backups" },
+      ],
+    },
+    {
+      category: "external-secrets",
+      provider: "infisical",
+      details: [{ label: "Server", value: "https://secrets.example.com" }],
+    },
+    {
+      category: "platform",
+      provider: "cloudflare",
+      details: [
+        { label: "Account ID", value: "account-123" },
+        { label: "Zone ID", value: "zone-456" },
+      ],
+    },
+  ]);
+  assert.doesNotMatch(JSON.stringify(capabilities), /private-/u);
+});
 
 void test("returns only integrations explicitly enabled by the environment", () => {
   const runtime = parseRuntimeIntegrations({

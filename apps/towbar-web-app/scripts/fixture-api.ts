@@ -2532,16 +2532,61 @@ export function createFixtureApiServer({
     if (path === "/v1/core/integrations" && request.method === "GET") {
       return writeJson(response, 200, {
         integrations: [
-          { category: "source-control", provider: "github" },
-          { category: "source-control", provider: "gitlab" },
-          { category: "registry", provider: "registry" },
-          { category: "backup", provider: "aws" },
-          { category: "backup", provider: "gcs" },
-          { category: "backup", provider: "s3" },
-          { category: "backup", provider: "r2" },
-          { category: "secrets", provider: "infisical" },
-          { category: "secrets", provider: "doppler" },
-          { category: "platform", provider: "cloudflare" },
+          { category: "source-control", provider: "github", details: [] },
+          { category: "source-control", provider: "gitlab", details: [] },
+          {
+            category: "registry",
+            provider: "registry",
+            details: [
+              { label: "Registry host", value: "registry.example.com" },
+            ],
+          },
+          {
+            category: "backup",
+            provider: "aws",
+            details: [{ label: "Region", value: "us-east-1" }],
+          },
+          {
+            category: "backup",
+            provider: "gcs",
+            details: [
+              { label: "Project ID", value: "towbar-example" },
+              { label: "Bucket", value: "towbar-backups" },
+            ],
+          },
+          {
+            category: "backup",
+            provider: "s3",
+            details: [
+              { label: "Region", value: "us-east-1" },
+              { label: "Bucket", value: "towbar-backups" },
+            ],
+          },
+          {
+            category: "backup",
+            provider: "r2",
+            details: [
+              {
+                label: "Endpoint",
+                value: "https://example.r2.cloudflarestorage.com",
+              },
+              { label: "Bucket", value: "towbar-backups" },
+            ],
+          },
+          {
+            category: "secrets",
+            provider: "infisical",
+            details: [{ label: "Server", value: "https://app.infisical.com" }],
+          },
+          { category: "secrets", provider: "doppler", details: [] },
+          {
+            category: "platform",
+            provider: "cloudflare",
+            details: [
+              { label: "Account ID", value: "example-account" },
+              { label: "Zone ID", value: "example-zone" },
+            ],
+          },
         ],
       });
     }

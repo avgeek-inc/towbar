@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import { getRuntimeIntegrations } from "../../../infrastructure/runtime-integrations.js";
+import { getPublicIntegrationCapabilities } from "../../../infrastructure/runtime-integrations.js";
 import { operation } from "../../../http/operation.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -14,11 +14,11 @@ integrationRoutes.get(
     summary: "List environment-configured integrations",
     responseSchema: 'integrations.ts:get:"/"',
     response:
-      "Configured integration capabilities. Environment values and secrets are never returned.",
+      "Configured integration capabilities and selected non-secret details. Credentials are never returned.",
     status: 200,
   }),
   (context) =>
     context.json({
-      integrations: getRuntimeIntegrations().capabilities,
+      integrations: getPublicIntegrationCapabilities(),
     }),
 );
