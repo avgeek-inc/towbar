@@ -16,6 +16,11 @@
     padding-bottom: 0.375rem;
   }
 
+  .breakdown [data-slot="table-column"] {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
   .breakdown [data-slot="table-column"]:not(:first-child) {
     width: 5rem !important;
   }
