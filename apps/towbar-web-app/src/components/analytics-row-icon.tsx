@@ -59,23 +59,27 @@ export function AnalyticsRowIcon({
         : null;
   if (!src || failed)
     return (
-      <HugeiconsIcon
-        aria-hidden="true"
-        className="size-4 shrink-0 text-muted"
-        icon={Globe02Icon}
-      />
+      <span className="inline-flex size-5 shrink-0 items-center justify-center text-foreground">
+        <HugeiconsIcon
+          aria-hidden="true"
+          className="size-4"
+          icon={Globe02Icon}
+        />
+      </span>
     );
   return (
-    <Image
-      alt=""
-      width={16}
-      height={16}
-      className="size-4 shrink-0 object-contain"
-      src={src}
-      unoptimized
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-    />
+    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded bg-white p-0.5">
+      <Image
+        alt=""
+        width={16}
+        height={16}
+        className="size-4 shrink-0 object-contain"
+        src={src}
+        unoptimized
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    </span>
   );
 }

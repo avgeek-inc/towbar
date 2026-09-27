@@ -372,7 +372,6 @@ export function AnalyticsView({
                 rows={rows}
                 total={report.total}
                 dimension={key}
-                showShare={key === "status"}
               />
             </div>
           ))}
@@ -380,7 +379,6 @@ export function AnalyticsView({
             <div className="min-w-0">
               <AnalyticsRows
                 name="Response times"
-                showShare={false}
                 rows={report.histogram
                   .map((count, i) => ({
                     value: latencyLabels[i]!,
@@ -432,12 +430,10 @@ function AnalyticsRows({
   rows,
   total,
   name,
-  showShare = false,
   dimension = "",
 }: {
   name: string;
   dimension?: string;
-  showShare?: boolean;
   rows: { value: string; count: number }[];
   total: number;
 }) {
@@ -453,9 +449,7 @@ function AnalyticsRows({
           <Table.Header>
             <Table.Column isRowHeader>{name}</Table.Column>
             <Table.Column className="text-right">Count</Table.Column>
-            {showShare ? (
-              <Table.Column className="text-right">Percent</Table.Column>
-            ) : null}
+            <Table.Column className="text-right">%</Table.Column>
           </Table.Header>
           <Table.Body renderEmptyState={() => "No data yet."}>
             {rows.map((row) => (
@@ -503,11 +497,9 @@ function AnalyticsRows({
                 <Table.Cell className="text-right tabular-nums">
                   {format(row.count)}
                 </Table.Cell>
-                {showShare ? (
-                  <Table.Cell className="text-right tabular-nums text-muted">
-                    {total ? ((row.count / total) * 100).toFixed(1) : "0"}%
-                  </Table.Cell>
-                ) : null}
+                <Table.Cell className="text-right tabular-nums text-muted">
+                  {total ? ((row.count / total) * 100).toFixed(1) : "0"}%
+                </Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
