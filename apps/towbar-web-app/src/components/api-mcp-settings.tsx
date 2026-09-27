@@ -38,7 +38,6 @@ import {
   ResourceTable,
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ActionButton, FormCard } from "./page-parts";
@@ -153,6 +152,12 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
   const guide = useApiQuery<KeySettings>(
     section === "mcp" ? `${baseEndpoint}/personal` : null,
   );
+  const [revokedKeyIds, setRevokedKeyIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const visibleKeys = (query.data?.keys ?? []).filter(
+    (key) => !key.revokedAt && !revokedKeyIds.has(key.id),
+  );
   const [creatingPrivateKey, setCreatingPrivateKey] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -239,21 +244,6 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
         ),
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (key) => (
-        <StatusBadge
-          status={
-            key.revokedAt
-              ? "revoked"
-              : key.expiresAt && Date.parse(key.expiresAt) <= Date.now()
-                ? "expired"
-                : "active"
-          }
-        />
-      ),
-    },
-    {
       key: "actions",
       header: "",
       cell: (key) =>
@@ -261,6 +251,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           <ActionButton
             action={async () => {
               await api.delete(`${endpoint}/${key.id}`);
+              setRevokedKeyIds((ids) => new Set(ids).add(key.id));
               query.refresh();
             }}
             confirm={{
@@ -307,7 +298,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             <ResourceTable
               ariaLabel={sectionLabels[section]}
               columns={columns}
-              items={query.data.keys}
+              items={visibleKeys}
               getRowKey={(key) => key.id}
               emptyTitle="No API keys yet"
               emptyDescription={
@@ -316,9 +307,9 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
                   : "Create an API key for scripts or apps used by your team."
               }
             />
-            {query.data.keys.length > 0 && (
+            {visibleKeys.length > 0 && (
               <p className="text-xs text-muted lg:hidden">
-                Scroll sideways to see expiry, status and actions.
+                Scroll sideways to see expiry and actions.
               </p>
             )}
           </>

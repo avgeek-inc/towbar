@@ -118,6 +118,19 @@ const server = createServer((req, res) => {
       rateLimit: { requests: 60, windowSeconds: 60 },
     });
   }
+  if (
+    url.pathname.startsWith("/v1/core/settings/api-keys/personal/") &&
+    req.method === "DELETE"
+  ) {
+    const index = keys.findIndex(
+      (key) => key.id === url.pathname.split("/").at(-1),
+    );
+    if (index < 0) return send({ error: { message: "Key not found" } }, 404);
+    keys.splice(index, 1);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
   if (url.pathname.startsWith("/v1/")) {
     delete req.headers.origin;
     fixtureHandler(req, res);
