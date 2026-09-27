@@ -158,6 +158,10 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
   const visibleKeys = (query.data?.keys ?? []).filter(
     (key) => !key.revokedAt && !revokedKeyIds.has(key.id),
   );
+  const apiKeys = visibleKeys.filter((key) => key.tokenType !== "mcp-oauth");
+  const mcpConnections = visibleKeys.filter(
+    (key) => key.tokenType === "mcp-oauth",
+  );
   const [creatingPrivateKey, setCreatingPrivateKey] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -252,13 +256,22 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
               query.refresh();
             }}
             confirm={{
-              title: `Revoke ${key.name}?`,
+              title: `Revoke ${key.oauthClientName ?? key.name}?`,
               description:
-                "Any script or MCP client using this key will lose access immediately. Create a replacement key to reconnect.",
-              actionLabel: "Revoke key",
+                key.tokenType === "mcp-oauth"
+                  ? "This app will lose access immediately. Sign in again from the app to reconnect."
+                  : "Any script or app using this key will lose access immediately. Create a replacement key to reconnect.",
+              actionLabel:
+                key.tokenType === "mcp-oauth"
+                  ? "Revoke connection"
+                  : "Revoke key",
             }}
             variant="danger"
-            success="Key revoked"
+            success={
+              key.tokenType === "mcp-oauth"
+                ? "Connection revoked"
+                : "Key revoked"
+            }
           >
             <HugeiconsIcon
               aria-hidden="true"
@@ -295,19 +308,36 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
             <ResourceTable
               ariaLabel={sectionLabels[section]}
               columns={columns}
-              items={visibleKeys}
+              items={apiKeys}
               getRowKey={(key) => key.id}
               emptyTitle="No API keys yet"
               emptyDescription={
                 scope === "personal"
-                  ? "Sign in from your app to connect it, or create an API key for scripts."
+                  ? "Create an API key for your scripts or apps."
                   : "Create an API key for scripts or apps used by your team."
               }
             />
-            {visibleKeys.length > 0 && (
-              <p className="text-xs text-muted lg:hidden">
-                Scroll sideways to see expiry and actions.
-              </p>
+            {scope === "personal" && (
+              <section
+                className="content-grid"
+                aria-labelledby="mcp-connections-title"
+              >
+                <h3 id="mcp-connections-title" className="font-medium">
+                  MCP Connections
+                </h3>
+                <ResourceTable
+                  ariaLabel="MCP Connections"
+                  columns={columns.map((column) =>
+                    column.key === "name"
+                      ? { ...column, header: "App" }
+                      : column,
+                  )}
+                  items={mcpConnections}
+                  getRowKey={(key) => key.id}
+                  emptyTitle="No MCP connections yet"
+                  emptyDescription="Connect an app to Towbar by signing in from the app."
+                />
+              </section>
             )}
           </>
         )

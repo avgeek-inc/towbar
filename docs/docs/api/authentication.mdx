@@ -5,7 +5,7 @@ description: Scope, rotate and revoke personal and team API keys with live role 
 
 ## Keys and permissions
 
-Create personal keys in **Manage → My Settings → API Keys**. Admins create team keys in **Manage → Team Settings → API Keys**. The inventory shows name, identifying prefix, access, expiry and last use. The raw token is shown only when created.
+Create personal keys in **Manage → My Settings → API Keys**. Admins create team keys in **Manage → Team Settings → API Keys**. The API Keys table shows name, access, expiry and last use. The raw token is shown only when created.
 
 | Setting                    | Options                                              |
 | -------------------------- | ---------------------------------------------------- |
@@ -30,7 +30,7 @@ API and MCP require Bearer tokens and do not accept browser cookies. Browser ses
 
 ## MCP OAuth tokens
 
-OAuth authorization creates a separate personal token with a fixed 30-day expiry and an MCP-only audience. Existing API keys are unchanged. The inventory labels these as **MCP connection** and shows the app name, publishing domain, and available logo. Apps whose identity is not confirmed are labeled **Unverified app**. See [MCP setup](/docs/api/mcp) for browser authorization, scopes, discovery, and client compatibility.
+OAuth authorization creates a separate personal token with a fixed 30-day expiry and an MCP-only audience. Existing API keys are unchanged. A separate **MCP Connections** table on your personal API Keys page shows the app name, publishing domain when available, and logo. The consent screen warns when an app is unverified. See [MCP setup](/docs/api/mcp) for browser authorization, scopes, discovery, and client compatibility.
 
 ## Rotation
 
