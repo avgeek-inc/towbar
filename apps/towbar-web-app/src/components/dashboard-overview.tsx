@@ -126,7 +126,7 @@ export function DashboardOverview() {
       icon: DashboardCircleIcon,
       href: "/services",
       label: "Services",
-      image: "/scout/overview-apps-charcoal.png",
+      image: "/mascots/services.webp",
       status: "running",
       detailCount: activeApps.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -138,7 +138,7 @@ export function DashboardOverview() {
       icon: CubeIcon,
       href: "/datastores",
       label: "Datastores",
-      image: "/scout/overview-resources-charcoal.png",
+      image: "/mascots/datastores.webp",
       status: "running",
       detailCount: activeResources.filter(
         (item) => item.runtimeState.observedState === "running",
@@ -150,7 +150,7 @@ export function DashboardOverview() {
       icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
-      image: "/scout/overview-servers-charcoal.png",
+      image: "/mascots/servers.webp",
       status: "ready",
       detailCount: activeServers.filter(
         (server) => server.setupStatus === "ready",
