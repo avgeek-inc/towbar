@@ -1,3 +1,4 @@
+import { getAnalyticsEngagement } from "./engagement.js";
 import { getDeploymentEvents } from "../monitoring/deployment-events.js";
 import { type SQL, and, eq, isNull, sql } from "drizzle-orm";
 import {
@@ -66,7 +67,7 @@ export async function ingestAnalytics(
       .filter(
         (cell) =>
           cell.appId === app.id &&
-          (cell.kind !== "pageview" || config.pageviews) &&
+          (cell.kind === "request" || config.pageviews) &&
           !isExcludedPath(cell.path, config.excludePaths) &&
           !cell.path.startsWith("/.well-known/towbar-analytics"),
       )
@@ -215,7 +216,26 @@ export async function getAnalyticsReport(input: {
       count: Number(r.count),
     }));
   }
+  const engagement = await getAnalyticsEngagement(database, {
+    appId: app.id,
+    kind: input.kind,
+    config,
+    start,
+    end,
+    conditions,
+  });
+  const previousEngagement = await getAnalyticsEngagement(database, {
+    appId: app.id,
+    kind: input.kind,
+    config,
+    available: previousHasData,
+    start: previousStart,
+    end: start,
+    retentionEnd: end,
+    conditions,
+  });
   return {
+    ...engagement,
     filters: input.filters ?? [],
     enabled: Boolean(config),
     config,
@@ -246,6 +266,8 @@ export async function getAnalyticsReport(input: {
             start: previousStart.toISOString(),
             end: start.toISOString(),
             ...summaryMetrics(previous.totals, input.kind, config),
+            bounceRate: previousEngagement.bounceRate,
+            averageTimeMs: previousEngagement.averageTimeMs,
             trend: previous.trend,
           }
         : null,

@@ -12325,6 +12325,10 @@
         "meanMs": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
         "visitors": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
         "sessions": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "bounceRate": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "averageTimeMs": {
+          "anyOf": [{ "type": "null" }, { "type": "number" }]
+        },
         "trend": {
           "type": "array",
           "items": { "$ref": "#/components/schemas/Response_8" }
@@ -12338,6 +12342,8 @@
         "meanMs",
         "visitors",
         "sessions",
+        "bounceRate",
+        "averageTimeMs",
         "trend"
       ]
     },
@@ -12412,7 +12418,21 @@
             { "$ref": "#/components/schemas/Response_7" }
           ]
         },
-        "dimensions": { "$ref": "#/components/schemas/Record_9" }
+        "dimensions": { "$ref": "#/components/schemas/Record_9" },
+        "bounceRate": { "anyOf": [{ "type": "null" }, { "type": "number" }] },
+        "averageTimeMs": {
+          "anyOf": [{ "type": "null" }, { "type": "number" }]
+        },
+        "exits": { "type": "number" },
+        "outboundClicks": { "type": "number" },
+        "exitPages": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_10" }
+        },
+        "outboundLinks": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/Response_10" }
+        }
       },
       "required": [
         "filters",
@@ -12440,7 +12460,13 @@
         "trend",
         "deployments",
         "comparison",
-        "dimensions"
+        "dimensions",
+        "bounceRate",
+        "averageTimeMs",
+        "exits",
+        "outboundClicks",
+        "exitPages",
+        "outboundLinks"
       ]
     },
     "PublicIntegrationDetail_13": {

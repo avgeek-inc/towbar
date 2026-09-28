@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "1.1.0"
+const Version = "1.2.0"
 const sampleInterval = 30 * time.Second
 const maxQueueBytes = 10 * 1024 * 1024
 const maxQueueAge = time.Hour

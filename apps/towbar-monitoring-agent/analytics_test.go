@@ -330,3 +330,61 @@ func TestAnalyticsCollectionReadiness(t *testing.T) {
 		}
 	}
 }
+
+func TestBrowserEngagementAndOutboundValidation(t *testing.T) {
+	started := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339Nano)
+	for _, tc := range []struct {
+		kind, page, destination string
+		duration                any
+		want                    int
+	}{
+		{"engagement", strings.Repeat("a", 32), "", 15000, 204},
+		{"engagement", "", "", 15000, 400},
+		{"engagement", strings.Repeat("a", 32), "", -1, 400},
+		{"engagement", strings.Repeat("a", 32), "", 86400001, 400},
+		{"outbound", strings.Repeat("a", 32), "https://user:secret@OTHER.example/path?secret=yes", nil, 204},
+		{"outbound", strings.Repeat("a", 32), "javascript:alert(1)", nil, 400},
+		{"outbound", strings.Repeat("a", 32), "https://example.com/a", nil, 400},
+		{"request", strings.Repeat("a", 32), "", nil, 400},
+	} {
+		a := testAnalytics()
+		event := map[string]any{"kind": tc.kind, "path": "/docs", "pageId": tc.page, "destination": tc.destination}
+		if tc.page != "" {
+			event["pageStartedAt"] = started
+		}
+		if tc.duration != nil {
+			event["visibleMs"] = tc.duration
+		}
+		body, _ := json.Marshal(event)
+		req := httptest.NewRequest("POST", "https://example.com/.well-known/towbar-analytics/event", strings.NewReader(string(body)))
+		req.Header.Set("Origin", "https://example.com")
+		req.Header.Set("X-Towbar-Service", analyticsTestID)
+		res := httptest.NewRecorder()
+		a.browser(res, req)
+		if res.Code != tc.want {
+			t.Fatalf("%s: %d %s", tc.kind, res.Code, res.Body.String())
+		}
+		for _, cell := range a.cells {
+			if cell.Kind != tc.kind || len(cell.PageID) != 64 {
+				t.Fatal(cell)
+			}
+			if cell.Kind == "outbound" && cell.Destination != "other.example" {
+				t.Fatal(cell)
+			}
+		}
+	}
+}
+func TestCumulativeEngagementIsNotAddedTwice(t *testing.T) {
+	a := testAnalytics()
+	for _, duration := range []int64{15000, 30000, 15000} {
+		a.add(AnalyticsCell{AppID: analyticsTestID, Kind: "engagement", Path: "/", PageID: strings.Repeat("a", 64), Count: 1, VisibleMs: &duration})
+	}
+	if len(a.cells) != 1 {
+		t.Fatal(a.cells)
+	}
+	for _, cell := range a.cells {
+		if cell.VisibleMs == nil || *cell.VisibleMs != 30000 {
+			t.Fatal(cell)
+		}
+	}
+}

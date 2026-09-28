@@ -34,7 +34,7 @@ Put this script once in your site’s shared page template:
 <script defer src="/.well-known/towbar-analytics/script.js"></script>
 ```
 
-Select **Website pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It does not measure clicks, conversions, or engagement time. Blocked scripts and disabled JavaScript reduce the count.
+Select **Website pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It also measures time spent while a page is visible and clicks to other websites. It does not measure conversions or scroll depth. Blocked scripts and disabled JavaScript reduce the count.
 
 ## Optional visitor and session estimates
 
@@ -48,6 +48,19 @@ analytics:
 ```
 
 This adds random IDs in the browser’s local storage. Counts represent browser identities, not people: shared browsers, blocked storage, and deleted IDs affect the estimate. IDs are never derived from an IP address or a browser fingerprint. Leave `visitorIdentity` out to keep visitor and session estimates off.
+
+## Understand visits and exits
+
+With the same pageview script, Analytics also shows:
+
+- **Time spent:** average time a page was visible in a browser tab. Switching tabs or apps stops the timer. This is an estimate of viewing time, not a measure of attention.
+- **Bounce rate:** the percentage of finished visits that viewed only one page. A visit finishes after 30 minutes without reported activity. This requires `visitorIdentity: true`.
+- **Exit pages:** the last page viewed in a finished visit. This also requires visitor estimates. Towbar cannot tell whether someone closed a tab, typed a new address, or opened another app.
+- **Outbound websites:** websites whose links visitors clicked. Only the destination hostname is stored. This includes links opened in a new tab; a click does not prove that the destination loaded or that the visitor left your site.
+
+Update Scout Agent to version 1.2.0 or later to collect viewing time, ordered exit pages, and outbound clicks. Keep the same script URL; no template change is needed. Older pageviews remain in the totals but cannot supply viewing time or a reliable final page when several pages arrived in the same batch. Exit pages use visits with the new page timestamps. If no new viewing-time records or finished visits are available, the metric shows a dash.
+
+Filters select matching pages and visits. Bounce rate counts all pages in each matching visit so a visit with several pages does not become a bounce when a path filter matches just one. Visits that started before the selected range are excluded from bounce rate and exits. Exit page rows must also match the filters.
 
 ## Technical details
 
@@ -76,24 +89,26 @@ Scout needs free loopback ports 9468 (UDP) and 9469 (TCP). If they are unavailab
 
 ### Browser behavior and identity storage
 
-The script reports the initial page and pathname changes through `pushState`, `replaceState`, and browser back/forward navigation. Changes limited to a query string or fragment do not create another pageview. A page restored from the browser’s back/forward cache counts as a new pageview. Scroll depth and bounce rate are not measured.
+The script reports the initial page and pathname changes through `pushState`, `replaceState`, and browser back/forward navigation. Changes limited to a query string or fragment do not create another pageview. A page restored from the browser’s back/forward cache counts as a new pageview. The script sends cumulative viewing time every 15 seconds while visible, when the tab becomes hidden, and before a pathname change. A `pagehide` handler covers normal navigation without blocking it. It does not install `unload` or `beforeunload` handlers. Cumulative snapshots use the highest recorded value for each page so retries and repeated visibility events do not add the same time twice. Abrupt browser termination or failed uploads can lose the final interval. This follows the browser’s [page visibility guidance](https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event) and uses small [keepalive requests](https://developer.mozilla.org/en-US/docs/Web/API/Request/keepalive).
 
 Allow your own origin in your Content Security Policy’s `script-src` and `connect-src`. The script honors Do Not Track and Global Privacy Control. Privacy signals, offline browsers, and failed requests reduce reported pageviews. Public analytics endpoints cannot prove that every event came from a human.
 
-When visitor identity is enabled, cryptographically random visitor IDs expire after 30 days and session IDs expire after 30 minutes without a reported pageview. Scout hashes each ID with the service ID before upload, so stored identities are scoped to one service. Removing `visitorIdentity` stops accepting new identity data; existing history expires with retention. Removing the script stops browser collection.
+When visitor identity is enabled, cryptographically random visitor IDs expire after 30 days and session IDs expire after 30 minutes without reported visible-page activity. Returning after that interval starts another visit. Scout hashes each ID with the service ID before upload, so stored identities are scoped to one service. Removing `visitorIdentity` stops accepting new identity data; existing history expires with retention. Removing the script stops browser collection.
 
 ### What each source measures
 
-| Dimension             | Caddy request analytics                                                | Browser pageviews                                         |
-| --------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
-| Counts and trends     | Requests, including assets, API calls, and bots                        | Reported pageviews and SPA pathname changes               |
-| Path                  | Request pathname                                                       | Page pathname                                             |
-| Referrer              | Referrer hostname when sent by the client                              | Referrer hostname when available                          |
-| Response              | HTTP status, method, response bytes                                    | Not measured                                              |
-| Latency               | Total Caddy request duration, mean, histogram, approximate percentiles | Not measured                                              |
-| Country and city      | Not collected                                                          | Local lookup of the verified client IP                    |
-| Browser and device    | Not collected                                                          | Coarse user-agent family; bot classification is heuristic |
-| Visitors and sessions | Not collected                                                          | Optional random browser IDs                               |
+| Dimension                        | Caddy request analytics                                                | Browser pageviews                                         |
+| -------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| Counts and trends                | Requests, including assets, API calls, and bots                        | Reported pageviews and SPA pathname changes               |
+| Path                             | Request pathname                                                       | Page pathname                                             |
+| Referrer                         | Referrer hostname when sent by the client                              | Referrer hostname when available                          |
+| Response                         | HTTP status, method, response bytes                                    | Not measured                                              |
+| Latency                          | Total Caddy request duration, mean, histogram, approximate percentiles | Not measured                                              |
+| Country and city                 | Not collected                                                          | Local lookup of the verified client IP                    |
+| Browser and device               | Not collected                                                          | Coarse user-agent family; bot classification is heuristic |
+| Viewing time and outbound clicks | Not collected                                                          | Visible-page duration and destination hostname            |
+| Bounce rate and exit pages       | Not collected                                                          | Finished visits using optional session IDs                |
+| Visitors and sessions            | Not collected                                                          | Optional random browser IDs                               |
 
 Referrer paths, queries, and credentials are discarded. Missing referrers are **Unknown**, not proof of a direct visit. Percentiles use the upper bound of the containing latency bucket: 10, 50, 100, 200, 500 ms, 1 and 2.5 seconds, followed by an unbounded bucket over 2.5 seconds. The first bucket is strictly below 10 ms; later bounded buckets include their upper limit. Caddy duration includes proxy handling and response transfer; it is not application CPU time or browser page-load time.
 
@@ -117,7 +132,7 @@ We compared [ip-location-db](https://github.com/sapics/ip-location-db), whose or
 
 ### Privacy, reliability, and retention
 
-Caddy removes the request object and response headers before emitting its analytics log. It keeps only the pathname, method, sanitized referrer host, status, duration, byte count, and service identity. Browser requests are validated against the configured service and exact HTTPS Origin. The IP is used transiently for local location lookup and discarded. Scout never uploads raw IP addresses, headers, query strings, fragments, or raw user agents.
+Caddy removes the request object and response headers before emitting its analytics log. It keeps only the pathname, method, sanitized referrer host, status, duration, byte count, and service identity. Browser requests are validated against the configured service and exact HTTPS Origin. The IP is used transiently for local location lookup and discarded. Scout never uploads raw IP addresses, headers, query strings, fragments, or raw user agents. Outbound links are reduced to a hostname; destination paths, credentials, queries, and fragments are discarded. Each page receives a random, temporary ID for cumulative time measurements. This ID is not stored in the browser and does not link different pages or visits when visitor identity is disabled.
 
 Caddy sends records over loopback UDP so analytics does not depend on a remote collector being available. This is best-effort observation: UDP loss and Scout downtime cannot be reconstructed. Caddy may emit the same sanitized record to its system log when a network writer fails. Scout accepts at most 1,000 incoming records per second and bounds each pending batch to 512 dimension combinations across the server; new combinations beyond that limit are dropped and reported. Pending records expire after one minute if the performance collector stops producing snapshots. An interrupted process can lose the pending batch. High-volume services with many unique paths or visitor IDs can therefore undercount.
 
@@ -135,7 +150,7 @@ All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/
 
 ### API
 
-`GET /v1/core/apps/{appId}/analytics?kind=request&days=7` returns request totals, trends, ranked dimensions, and a latency histogram. Reports also include `comparison` totals and an aligned trend for the immediately preceding period of equal length. Comparison is unavailable when that period exceeds configured retention or has no collected samples. Tables describe only the selected period. Use `kind=pageview` for browser analytics. `days` accepts 1–90 and is clamped to service retention. Browser-only response dimensions are absent from request reports, and latency fields are not meaningful for pageviews.
+`GET /v1/core/apps/{appId}/analytics?kind=request&days=7` returns request totals, trends, ranked dimensions, and a latency histogram. Reports also include `comparison` totals and an aligned trend for the immediately preceding period of equal length. Comparison is unavailable when that period exceeds configured retention or has no collected samples. Tables describe only the selected period. Use `kind=pageview` for browser analytics. It also returns `bounceRate` as a percentage, `averageTimeMs`, ranked `exitPages` and `outboundLinks`, and their `exits` and `outboundClicks` totals. Request reports return null for the viewing-time and bounce metrics, and empty exit and outbound lists. `days` accepts 1–90 and is clamped to service retention. Browser-only response dimensions are absent from request reports, and latency fields are not meaningful for pageviews.
 
 Pass an optional `filters` query parameter containing a URL-encoded JSON array of up to eight conditions:
 
