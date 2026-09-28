@@ -24,13 +24,13 @@ analyticsRoutes.get(
     status: 200,
   }),
   async (context) =>
-    context.json(
-      await getAnalyticsFilterOptions({
+    context.json({
+      options: await getAnalyticsFilterOptions({
         ...analyticsFilterOptionsQuerySchema.parse(context.req.query()),
         appId: readUuidPathParameter(context.req.param("appId"), "appId"),
         workspaceId: context.get("user").workspaceId,
       }),
-    ),
+    }),
 );
 analyticsRoutes.get(
   "/apps/:appId/analytics",

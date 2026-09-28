@@ -1,4 +1,5 @@
 import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
+import { verifyFilterOptionsResponse } from "./filter-options-test-support.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -443,6 +444,7 @@ void test(
         days: 1,
         kind: "pageview" as const,
       };
+      await verifyFilterOptionsResponse({ appId, workspaceId });
       assert.deepEqual(
         await getAnalyticsFilterOptions({
           ...optionInput,

@@ -32,12 +32,11 @@ export function analyticsFixture(
           : ["Chrome", "Safari", "Unknown"];
     response.writeHead(200, { "content-type": "application/json" });
     response.end(
-      fixtureJson(
-        response,
-        choices.filter((choice) =>
+      fixtureJson(response, {
+        options: choices.filter((choice) =>
           choice.toLowerCase().includes(query.data.search.toLowerCase()),
         ),
-      ),
+      }),
     );
     return true;
   }

@@ -119,7 +119,7 @@ export function ScoutAnalytics({
         days: String(days),
         search: field === "country" ? "" : search,
       });
-      const options = await api.get<string[]>(
+      const { options } = await api.get<{ options: string[] }>(
         `/v1/core/apps/${appId}/analytics/filter-options?${params}`,
       );
       return field === "country"

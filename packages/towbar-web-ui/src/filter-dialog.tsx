@@ -97,7 +97,8 @@ export function FilterDialog<Field extends string, Operator extends string>({
             <Modal.Header>
               <Modal.Heading>Filters</Modal.Heading>
               <p className="text-sm text-muted">
-                Show results matching all conditions.
+                Show results matching all conditions. You can add multiple
+                conditions to get a combined filter if needed.
               </p>
             </Modal.Header>
             <Modal.Body>
@@ -167,6 +168,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                         getOptions &&
                         condition.operator === "in" ? (
                           <FilterValueSelect
+                            key={field.field}
                             field={field.field}
                             label={`Value ${index + 1}`}
                             hideLabel={index > 0}
