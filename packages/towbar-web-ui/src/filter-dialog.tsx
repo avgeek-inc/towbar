@@ -404,6 +404,7 @@ function FilterValueSelect<Field extends string>({
             <ListBox
               aria-label={label}
               selectionMode="multiple"
+              escapeKeyBehavior="none"
               selectedKeys={value}
               onSelectionChange={(keys) => {
                 if (keys === "all") return;
