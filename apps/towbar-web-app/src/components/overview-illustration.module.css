@@ -3,7 +3,13 @@
 }
 
 .activityChart {
-  --overview-activity-height: 210px;
+  --overview-activity-height: 180px;
+}
+
+@media (min-width: 640px) {
+  .activityChart {
+    --overview-activity-height: 210px;
+  }
 }
 
 @media (min-width: 1280px) {

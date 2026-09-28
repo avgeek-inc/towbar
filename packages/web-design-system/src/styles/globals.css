@@ -142,6 +142,23 @@ a {
     border-radius: var(--radius-xl);
   }
 
+  .select__popover {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .select__popover > :not([data-slot="list-box"]) {
+    flex-shrink: 0;
+  }
+
+  .select__popover [data-slot="list-box"] {
+    min-height: 0;
+    max-height: 20rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .select__popover [data-slot="list-box"],
   .combo-box__popover [data-slot="list-box"],
   .autocomplete__popover [data-slot="list-box"],

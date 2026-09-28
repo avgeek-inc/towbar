@@ -12,6 +12,7 @@ import {
 import { usePathname } from "next/navigation";
 import { cn } from "../lib/utils";
 import { Drawer } from "../overlays/drawer";
+import { bindSidebarSwipe } from "../lib/sidebar-swipe";
 
 const desktopQuery = "(min-width: 64rem)";
 const subscribeToViewport = (callback: () => void) => {
@@ -63,12 +64,26 @@ export function AppLayout({
 }) {
   const pathname = usePathname();
   const previousPathname = useRef(pathname);
+  const root = useRef<HTMLDivElement>(null);
+  const hasSidebar = Boolean(sidebar);
   const [mobileHost, setMobileHost] = useState<HTMLElement | null>(null);
   const isDesktop = useSyncExternalStore(
     subscribeToViewport,
     isDesktopViewport,
     serverViewport,
   );
+
+  useEffect(() => {
+    if (
+      isDesktop ||
+      sidebarOpen ||
+      !hasSidebar ||
+      !onSidebarOpenChange ||
+      !root.current
+    )
+      return;
+    return bindSidebarSwipe(root.current, () => onSidebarOpenChange(true));
+  }, [hasSidebar, isDesktop, onSidebarOpenChange, sidebarOpen]);
 
   useEffect(() => {
     const routeChanged = previousPathname.current !== pathname;
@@ -106,6 +121,7 @@ export function AppLayout({
         }}
       >
         <div
+          ref={root}
           className={cn(
             "min-h-dvh",
             sidebar && sidebarOpen

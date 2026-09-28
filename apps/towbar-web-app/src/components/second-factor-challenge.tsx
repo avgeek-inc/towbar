@@ -19,8 +19,6 @@ import {
 import {
   type SecondFactorMethod,
   preferredSecondFactor,
-  rememberedSecondFactor,
-  rememberSecondFactor,
 } from "@/lib/second-factor";
 
 export function SecondFactorChallenge({
@@ -32,20 +30,14 @@ export function SecondFactorChallenge({
 }) {
   const supported = passkeySupported();
   const [method, setMethod] = useState(() =>
-    preferredSecondFactor(methods, supported, rememberedSecondFactor()),
+    preferredSecondFactor(methods, supported),
   );
   const [recovery, setRecovery] = useState(false);
   const chooseMethod = () => {
     setMethod(null);
     setRecovery(false);
   };
-  const complete = useCallback(
-    (verified: SecondFactorMethod) => {
-      rememberSecondFactor(verified);
-      window.location.replace(next);
-    },
-    [next],
-  );
+  const complete = useCallback(() => window.location.replace(next), [next]);
 
   return (
     <AuthFrame
@@ -93,7 +85,7 @@ export function SecondFactorChallenge({
                 `/v1/public/auth/identity/two-factor/${recovery ? "verify-backup-code" : "verify-totp"}`,
                 { code },
               );
-              complete("totp");
+              complete();
             }}
           />
         ) : method === "passkey" ? (
@@ -167,11 +159,7 @@ export function SecondFactorChallenge({
   );
 }
 
-function PasskeyChallenge({
-  onVerified,
-}: {
-  onVerified: (method: SecondFactorMethod) => void;
-}) {
+function PasskeyChallenge({ onVerified }: { onVerified: () => void }) {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(true);
   useEffect(() => {
@@ -182,7 +170,7 @@ function PasskeyChallenge({
       setBusy(true);
       try {
         await verifyPasskeySecondFactor(controller.signal);
-        if (!controller.signal.aborted) onVerified("passkey");
+        if (!controller.signal.aborted) onVerified();
       } catch (cause) {
         if (!controller.signal.aborted) toast.danger(passkeyError(cause));
       } finally {
