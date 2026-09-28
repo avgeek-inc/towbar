@@ -9,7 +9,9 @@ Health is scoped. **Manage → System health** checks Towbar's API/database, Tem
 
 Open **Manage → System health** and read each check's status and observed time. Towbar checks Temporal at startup and every five minutes; a result older than 15 minutes is stale. Choose **Run checks** for a fresh reading. A provider's remote availability is checked by an actual provider operation, not by this page.
 
-**Towbar Updates** compares the installed API version with the latest published stable release. The sidebar header shows when a newer release is available. Open its release notes before running [`towbar upgrade`](/docs/self-hosting/cli/install-upgrade#towbar-upgrade). If the release lookup fails, the update check shows that it is unavailable; this does not change the control-plane health status.
+**Towbar version** compares the installed version with the latest published stable release. A yellow **Update available** label identifies a newer version, and the sidebar header also links to the release. The last checked time appears below the description.
+
+Choose **Review upgrade** when your operator has enabled in-app upgrades. Read the changelog, check that no deployments or operations are in progress, and confirm. The same modal shows progress and the final result, including any failure reason. See [Upgrades and recovery](/docs/self-hosting/upgrades#upgrade-from-system-health) for setup and help. If in-app upgrades are unavailable, use [`towbar upgrade`](/docs/self-hosting/cli/install-upgrade#towbar-upgrade) on the host. A failed release lookup does not change the other control-plane check results.
 
 The **Database storage** chart on the same page separates Towbar's other tables from Scout monitoring tables. Hover over either series to inspect its size at a recorded point. This chart is an observation of stored data, not a health threshold; see [Monitoring, health, and capacity](/docs/monitoring) for what it includes.
 

@@ -5,6 +5,39 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.17] - 2026-09-28
+
+### Added
+
+- Admins can review and start an upgrade from System Health when the optional
+  host upgrade service is enabled. Progress, success, and failure stay in the
+  same modal. Deployments and operations pause while Towbar upgrades.
+- Website Analytics adds time spent, bounce rate, exit pages, and outbound
+  websites with Scout Agent 1.2.0. Bounce rate and exit pages use optional visitor
+  estimates. Existing pageview totals are preserved.
+- Analytics filters can combine paths, referring websites, countries, cities,
+  and browsers. Country names, flags, browser logos, and website favicons make
+  the results easier to read.
+- Services and Datastores can be grouped by environment to compare production,
+  staging, and other environments across repositories.
+
+### Changed
+
+- The deployment trend chart is shorter on mobile. Integration pages show safe
+  configuration details without displaying stored credentials. Documentation
+  and screenshots reflect the current UI.
+- Sign-in requests a passkey automatically when both a passkey and an
+  authenticator app are available. The code and recovery options remain usable.
+
+### Fixed
+
+- Select menus scroll with a mouse wheel or touch while their search field
+  stays in place. Mobile users can swipe right within the dashboard to open
+  the sidebar.
+- External secret details identify their provider consistently.
+- Production builds keep button, modal, and table styles when Analytics loads
+  before the global stylesheet.
+
 ## [2.0.16] - 2026-09-27
 
 ### Added

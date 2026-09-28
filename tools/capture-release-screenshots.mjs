@@ -178,31 +178,84 @@ async function evaluate(browser, expression) {
 }
 
 async function waitForPage(browser) {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const ready = await evaluate(
+  let ready = false;
+  for (let attempt = 0; attempt < 300; attempt++) {
+    ready = await evaluate(
       browser,
-      'document.readyState === "complete" && document.body?.innerText.length > 20',
+      'document.readyState === "complete" && document.body?.innerText.length > 20 && !document.querySelector(\'[role="status"][aria-label^="Loading"]:not([data-slot="spinner"])\')',
     );
     if (ready) break;
     await delay(100);
   }
+  if (!ready) throw new Error("Screenshot page did not finish loading");
+  await evaluate(browser, "document.fonts.ready.then(() => true)");
   await delay(1_000);
 }
 
-async function prepareScreenshot(browser, name) {
-  if (name !== "incident-detail") return;
+async function clickControl(browser, label, selector = "button,a") {
   const clicked = await evaluate(
     browser,
     `(() => {
-      const control = [...document.querySelectorAll("button,a")].find(
-        (element) => element.textContent?.trim() === "View Incident",
+      const control = [...document.querySelectorAll(${JSON.stringify(selector)})].find(
+        (element) => element.textContent?.trim() === ${JSON.stringify(label)},
       );
       control?.click();
       return Boolean(control);
     })()`,
   );
-  if (!clicked) throw new Error("Could not open the incident detail fixture");
+  if (!clicked) throw new Error(`Could not select ${label}`);
   await delay(500);
+}
+
+async function prepareScreenshot(browser, screenshot) {
+  if (screenshot.name === "incident-detail")
+    await clickControl(browser, "View Incident");
+  if (screenshot.measure === "pageview") {
+    await evaluate(
+      browser,
+      `(() => {
+      const control = [...document.querySelectorAll("button")].find(
+        (element) => element.textContent?.includes("HTTP requests"),
+      );
+      if (!control) throw new Error("Analytics measure selector is missing");
+      control.click();
+    })()`,
+    );
+    await clickControl(browser, "Pageviews", '[role="option"]');
+    await waitForPage(browser);
+  }
+  if (screenshot.openFilters) {
+    await clickControl(browser, "Filters");
+    await clickControl(browser, "Path");
+    await clickControl(browser, "Country", '[role="option"]');
+    await clickControl(browser, "Add condition");
+    await clickControl(browser, "is");
+    await clickControl(browser, "starts with", '[role="option"]');
+    await evaluate(
+      browser,
+      "document.querySelector('input[aria-label=\"Filter value 2\"]').focus()",
+    );
+    await browser.client.send(
+      "Input.insertText",
+      { text: "/docs/" },
+      browser.sessionId,
+    );
+    await clickControl(browser, "Choose values");
+    await clickControl(browser, "🇮🇳India", '[role="option"][data-key="IN"]');
+    await clickControl(
+      browser,
+      "🇺🇸United States",
+      '[role="option"][data-key="US"]',
+    );
+  }
+  if (screenshot.upgradeState)
+    await clickControl(
+      browser,
+      ["ready", "blocked"].includes(screenshot.upgradeState)
+        ? "Review upgrade"
+        : "View upgrade",
+    );
+  await waitForPage(browser);
 }
 
 async function preparePageForCapture(browser) {
@@ -249,6 +302,18 @@ async function preparePageForCapture(browser) {
 }
 
 async function capture(browser, screenshot, theme) {
+  const fixtureResponse = await fetch(
+    new URL("/__fixture/upgrade", apiOrigin),
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ state: screenshot.upgradeState ?? "unsupported" }),
+    },
+  );
+  if (!fixtureResponse.ok)
+    throw new Error(
+      "Start the fixture with upgradeScenario enabled for screenshot capture",
+    );
   const viewport = screenshot.viewport ?? defaultViewport;
   await browser.client.send(
     "Emulation.setDeviceMetricsOverride",
@@ -258,19 +323,48 @@ async function capture(browser, screenshot, theme) {
   const url = new URL(screenshot.route, appOrigin).toString();
   await browser.client.send("Page.navigate", { url }, browser.sessionId);
   await waitForPage(browser);
-  await prepareScreenshot(browser, screenshot.name);
+  await prepareScreenshot(browser, screenshot);
   const problem = await evaluate(
     browser,
     `(() => {
       const text = document.body?.innerText ?? "";
       if (text.includes("This page could not be found")) return "404 page";
+      if ([...document.querySelectorAll("h1,h2,h3")].some(
+        (heading) => heading.textContent?.trim() === "Page not found",
+      )) return "404 page";
       if (text.includes("Runtime TypeError")) return "Next.js runtime error";
       if (text.includes("Couldn't load this view")) return "failed view";
       return null;
     })()`,
   );
   if (problem) throw new Error(`${screenshot.name} rendered a ${problem}`);
+  const unstyled = await evaluate(
+    browser,
+    `(() => {
+      const button = document.querySelector(".button:not(.button--icon-only)");
+      return button && parseFloat(getComputedStyle(button).paddingInlineStart) === 0;
+    })()`,
+  );
+  if (unstyled) throw new Error(`${screenshot.name} has unstyled buttons`);
   await preparePageForCapture(browser);
+  if (screenshot.scrollTo) {
+    await evaluate(
+      browser,
+      `(() => {
+      const heading = [...document.querySelectorAll("h2,h3,span")].find(
+        (element) => element.textContent?.trim() === ${JSON.stringify(screenshot.scrollTo)},
+      );
+      if (!heading) throw new Error("Screenshot section is missing");
+      heading.scrollIntoView({ block: "start" });
+      window.scrollBy(0, ${JSON.stringify(screenshot.scrollOffset ?? 0)});
+    })()`,
+    );
+    await delay(200);
+  }
+  const offset = await evaluate(
+    browser,
+    "({ x: window.scrollX, y: window.scrollY })",
+  );
   const result = await browser.client.send(
     "Page.captureScreenshot",
     {
@@ -279,8 +373,8 @@ async function capture(browser, screenshot, theme) {
       captureBeyondViewport: false,
       fromSurface: true,
       clip: {
-        x: 0,
-        y: 0,
+        x: offset.x,
+        y: offset.y,
         width: viewport.width,
         height: viewport.height,
         scale: 1,

@@ -104,9 +104,9 @@ fixture API. Restart that API after changing its scripts so the login flow uses
 the current response format.
 
 Use `2fa-both@example.com` with the same password and authenticator code to
-preview an account with **both authenticator and passkey** configured. The
-browser remembers the last successful method on localhost; use **Change method**
-to return to the chooser.
+preview an account with **both authenticator and passkey** configured. Towbar
+requests the passkey automatically when the browser supports it. Switch to an
+authenticator or recovery code if the passkey is unavailable.
 
 The seeded passkey is a virtual-authenticator test credential, not a passkey on
 your device. Authenticator code `123456` works immediately. To test with your own
@@ -115,3 +115,17 @@ Two-factor Auth**. Automated tests can import the credential and PKCS#8 private
 key from `scripts/dual-factor-fixture.ts` into a WebAuthn virtual authenticator
 for RP ID `localhost`. The fixture verifies genuine WebAuthn signatures; it does
 not bypass passkey verification.
+
+## Documentation screenshots
+
+Start the fixture API with `TOWBAR_FIXTURE_NOTIFICATION_PROVIDERS_CONFIGURED=true`
+and `TOWBAR_FIXTURE_UPGRADE_ENABLED=true`, then start the web app as above. Run
+`pnpm docs:screenshots` from the repository root to refresh the light and dark
+captures listed in `tools/release-screenshots.json`. Pass screenshot names to
+refresh only those views. The upgrade flag enables local scenario controls;
+the public demo never exposes them.
+
+The capture tool uses Chrome and records the visible viewport at 2× density.
+Set `CHROME_PATH` if Chrome is installed elsewhere, and use
+`TOWBAR_SCREENSHOT_ORIGIN` and `TOWBAR_SCREENSHOT_API_ORIGIN` for different local
+ports. Run `pnpm docs:check` afterward to verify image dimensions and guide links.

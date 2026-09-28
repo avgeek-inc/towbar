@@ -87,7 +87,33 @@ A passkey verifies your identity after you enter your email and password. Your b
 
 Under **Two-factor Auth → Passkeys**, add a passkey and give it a name you will recognize. Its creation date appears below the name. You can rename it later or remove one you no longer use. Removing it from Towbar stops that credential from signing in to this installation; it does not delete the copy stored in your password manager.
 
-Sign in with your email and password first. If you configured both an authenticator app and a passkey, choose which method to use. With only an authenticator, Towbar opens the code form; with only a passkey, it requests the passkey automatically. On localhost, the browser remembers your last successful method and uses it again if it is still configured and supported. You can choose another configured method or retry a cancelled passkey request. Keep your password and recovery options available. Passkeys belong to the Towbar site's domain, so moving the installation to a different domain requires new passkeys. Production installations need HTTPS; localhost is supported for development.
+Sign in with your email and password first. When a passkey is registered and your browser supports it, Towbar requests it automatically, including when you also have an authenticator app. You can switch to an authenticator code or recovery code, or retry a cancelled passkey request. With only an authenticator, Towbar opens the code form. Keep your password and recovery options available.
+
+Passkeys belong to the Towbar site's domain, so moving the installation to a different domain requires new passkeys. Production installations need HTTPS; localhost is supported for development.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/two-factor-auth-light.jpg"
+      alt="Manage authenticator verification and passkeys in your personal settings."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/two-factor-auth-dark.jpg"
+      alt="Manage authenticator verification and passkeys in your personal settings."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Manage authenticator verification and passkeys in your personal settings.
+  </p>
+</div>
 
 ## Personal API keys
 
@@ -97,7 +123,7 @@ Your role limits what each key can do. Viewer keys are read-only. A role change 
 
 ## MCP Guide
 
-The **MCP Guide** page shows the endpoint and client configuration for this Towbar installation. Use a personal key with the access your client needs. See [Connect an MCP client](/docs/api/mcp).
+The **MCP Guide** page shows the endpoint and client configuration for this Towbar installation. Connect by signing in when your client supports it, or use a personal API key with the access your client needs. Signed-in connections appear in API Keys and expire after 30 days. See [Connect an MCP client](/docs/api/mcp).
 
 ## If you cannot sign in
 

@@ -375,7 +375,7 @@ function FilterValueSelect<Field extends string>({
           placement="bottom start"
           className="select__popover w-[min(22rem,calc(100vw-2rem))] overflow-hidden p-0"
         >
-          <Popover.Dialog className="outline-none">
+          <Popover.Dialog className="p-0 outline-none">
             <SearchField
               aria-label="Search values"
               className="px-2 pt-2"

@@ -28,6 +28,11 @@ GitHub and GitLab require a second connection step after their runtime identity 
 
 A partial enabled configuration fails validation instead of creating a broken dashboard entry. Secrets are read by the process that needs them and are not returned to the browser. GitLab OAuth grants are encrypted in PostgreSQL; GitHub stores only selected installation metadata.
 
+Provider pages show safe configuration details, such as an endpoint, account,
+project, region, or bucket, when they are available. Passwords, private keys,
+and access tokens remain hidden. Use these details to confirm which provider is
+configured; verify its access with the operation described in its guide.
+
 Use the [runtime configuration guide](/docs/self-hosting/environment-variables#runtime-integrations)
 for exact names. Integrations groups source control, registries, backup
 providers, external secrets, and platform services. Notifications has its own Manage page.

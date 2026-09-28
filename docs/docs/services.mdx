@@ -34,6 +34,38 @@ One manifest `id` identifies the service across renames and file moves. A Reposi
   </p>
 </div>
 
+## Browse services
+
+Open **Services → All services** to see workloads across repositories. Use
+**Group by environment** to see production, staging, and other environments
+separately. **Group by ID** brings together instances with the same manifest
+`id`; **Unified view** returns to the flat list. Filters still apply
+to the selected view.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/services-environments-light.jpg"
+      alt="Group services by environment to review production and staging separately."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/services-environments-dark.jpg"
+      alt="Group services by environment to review production and staging separately."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Group services by environment to review production and staging separately.
+  </p>
+</div>
+
 ## Define a Service
 
 Create one file under `.towbar/services` and give it a stable `id`. This minimal Dockerfile Service listens on port 3000 in production:
