@@ -11,13 +11,17 @@ description: Automate your Towbar control plane with a REST API or connect an AI
 
 Towbar exposes infrastructure operations through REST and MCP. Manage repositories, services, datastores, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
-| Interface             | Endpoint                          | Authentication |
-| --------------------- | --------------------------------- | -------------- |
-| REST API              | `https://YOUR_TOWBAR_HOST/v1/api` | API key        |
-| MCP                   | `https://YOUR_TOWBAR_HOST/v1/mcp` | API key        |
-| OpenAPI specification | `GET /v1/api/openapi.json`        | API key        |
+| Interface             | Endpoint                          | Authentication     |
+| --------------------- | --------------------------------- | ------------------ |
+| REST API              | `https://YOUR_TOWBAR_HOST/v1/api` | API key            |
+| MCP                   | `https://YOUR_TOWBAR_HOST/v1/mcp` | Sign-in or API key |
+| OpenAPI specification | `GET /v1/api/openapi.json`        | API key            |
 
 Reference examples use `towbar.example.com`; replace it with the hostname for your own Towbar installation. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
+
+An MCP client that supports sign-in can connect through OAuth without copying
+an API key. Towbar asks you to approve the client and its access. Follow
+[MCP setup](/docs/api/mcp) for either connection method.
 
 <Steps>
   <Step title="Create a key">

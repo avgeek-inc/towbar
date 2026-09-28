@@ -1,6 +1,6 @@
 ---
 title: "Service analytics"
-description: "See requests, website pageviews, and optional visitor estimates with Scout Agent."
+description: "See requests, pageviews, viewing time, and how website visits end."
 ---
 
 Scout analytics shows how much traffic reaches a public service and which pages receive it. Start with request counts. Add a small script to your website when you also want pageviews. Collection is off until you enable it.
@@ -18,6 +18,30 @@ Open **Services → your service → Analytics** and select **HTTP requests**. V
 
 Requests include API calls, images, scripts, and bots, so request counts do not tell you how many people visited. Analytics is available for single-container services with a public primary domain.
 
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/analytics-requests-light.jpg"
+      alt="HTTP requests show traffic, errors, response times, and requested paths."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/analytics-requests-dark.jpg"
+      alt="HTTP requests show traffic, errors, response times, and requested paths."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    HTTP requests show traffic, errors, response times, and requested paths.
+  </p>
+</div>
+
 ## Count website pageviews
 
 To count pages viewed in a browser, add `pageviews: true` and deploy:
@@ -34,7 +58,55 @@ Put this script once in your site’s shared page template:
 <script defer src="/.well-known/towbar-analytics/script.js"></script>
 ```
 
-Select **Website pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It also measures time spent while a page is visible and clicks to other websites. It does not measure conversions or scroll depth. Blocked scripts and disabled JavaScript reduce the count.
+Select **Pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It also measures time spent while a page is visible and clicks to other websites. It does not measure conversions or scroll depth. Blocked scripts and disabled JavaScript reduce the count.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/analytics-pageviews-light.jpg"
+      alt="Pageviews show visits, viewing time, bounce rate, and page activity."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/analytics-pageviews-dark.jpg"
+      alt="Pageviews show visits, viewing time, bounce rate, and page activity."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>Pageviews show visits, viewing time, bounce rate, and page activity.</p>
+</div>
+
+Countries and cities show approximate locations for pageviews. Browser and device names help you understand how visitors access the site. Missing details appear as **Unknown**.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/analytics-locations-light.jpg"
+      alt="Countries, cities, browsers, and devices help explain website pageviews."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/analytics-locations-dark.jpg"
+      alt="Countries, cities, browsers, and devices help explain website pageviews."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Countries, cities, browsers, and devices help explain website pageviews.
+  </p>
+</div>
 
 ## Optional visitor and session estimates
 
@@ -61,6 +133,61 @@ With the same pageview script, Analytics also shows:
 Update Scout Agent to version 1.2.0 or later to collect viewing time, ordered exit pages, and outbound clicks. Keep the same script URL; no template change is needed. Older pageviews remain in the totals but cannot supply viewing time or a reliable final page when several pages arrived in the same batch. Exit pages use visits with the new page timestamps. If no new viewing-time records or finished visits are available, the metric shows a dash.
 
 Filters select matching pages and visits. Bounce rate counts all pages in each matching visit so a visit with several pages does not become a bounce when a path filter matches just one. Visits that started before the selected range are excluded from bounce rate and exits. Exit page rows must also match the filters.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/analytics-exits-light.jpg"
+      alt="Exit pages and outbound websites describe how finished visits end and which links visitors click."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/analytics-exits-dark.jpg"
+      alt="Exit pages and outbound websites describe how finished visits end and which links visitors click."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>
+    Exit pages and outbound websites describe how finished visits end and which
+    links visitors click.
+  </p>
+</div>
+
+## Filter analytics
+
+Select **Filters** beside the Analytics title. Choose **Path**, then **is** for an exact path or **starts with** for a prefix, enter the path, and select **Apply**. The button shows the number of active filters. Path and referring website filters stay active when switching measures or changing the time range. Country, city, and browser filters apply to pageviews only and are cleared when switching to HTTP requests. Use **Clear filters** in the modal to reset them. You can also hover a row in **Paths** and select its filter icon to add an exact-path condition immediately. An already active exact-path condition is not added twice.
+
+Referring websites, countries, cities, and browsers let you select multiple values in the dropdown. Selected values have a tick beside them. Search cities by city, region, or country code.
+
+All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/docs/api`, and `/docs-old`; use `/docs/` to match only paths beneath that directory. Matching is case-sensitive and treats `%` and `_` literally. Enter paths without query strings or fragments. Filters scope totals, trends, breakdowns, and the previous period consistently. A previous period with no matching activity is shown as unavailable.
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img
+      src="/assets/release-v2/analytics-filters-light.jpg"
+      alt="Combine conditions to focus every chart and table on the same activity."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <div className="towbar-product-dark">
+    <img
+      src="/assets/release-v2/analytics-filters-dark.jpg"
+      alt="Combine conditions to focus every chart and table on the same activity."
+      width="3200"
+      height="1800"
+      loading="lazy"
+    />
+  </div>
+  <p>Combine conditions to focus every chart and table on the same activity.</p>
+</div>
 
 ## Technical details
 
@@ -122,7 +249,7 @@ Cities are approximate IP-based estimates, not a visitor’s precise location. R
 
 ### Local geolocation database
 
-Scout downloads [DB-IP City Lite](https://db-ip.com/db/download/ip-to-city-lite) over HTTPS on initial startup and stores an MMDB file locally under `/var/lib/towbar-monitoring/geo/`. No visitor IP is sent to DB-IP or Towbar’s control plane. The Countries and Cities headers’ info icons identifies DB-IP as the provider and links to this documentation. IP Geolocation is provided by [DB-IP](https://db-ip.com).
+Scout downloads [DB-IP City Lite](https://db-ip.com/db/download/ip-to-city-lite) over HTTPS on initial startup and stores an MMDB file locally under `/var/lib/towbar-monitoring/geo/`. No visitor IP is sent to DB-IP or Towbar’s control plane. The Countries and Cities headers’ info icons identify DB-IP as the provider and link to this documentation. IP Geolocation is provided by [DB-IP](https://db-ip.com).
 
 DB-IP publishes Lite editions monthly under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). A durable Temporal workflow requests a refresh every 24 hours. Agents check the current edition, bound compressed and expanded download sizes, validate MMDB structure and build metadata, reject older editions, and atomically replace the file. An already installed current-month edition needs no download. Failed refreshes retry after an hour and keep the last valid database. Without a valid file, location is Unknown and other analytics continues.
 
@@ -139,14 +266,6 @@ Caddy sends records over loopback UDP so analytics does not depend on a remote c
 Accepted batches use Scout’s existing bounded, private retry directory: up to 10 MiB for one hour. Uploads use the server’s revocable credential; replayed sample IDs do not duplicate metrics or analytics. The control plane validates current service ownership and manifest opt-in again before storing a batch. Revoking Scout’s credential rejects uploads. Configuration older than two minutes stops local analytics acceptance. Removing analytics from the manifest stops server acceptance immediately after synchronization; redeploy to remove its Caddy routes.
 
 Reports require `scout.read` and are scoped to the authenticated workspace. Data is retained for the manifest’s duration and deleted by daily Temporal maintenance. Shorter retention applies to report queries immediately and to stored rows on the next sweep. Deleting a service cascades its analytics history. Backups follow their own retention policy. Aggregates and optional pseudonymous identity hashes live in Towbar’s PostgreSQL database; no third-party analytics service receives them.
-
-### Filter analytics
-
-Select **Filters** beside the Analytics title. Choose **Path**, then **is** for an exact path or **starts with** for a prefix, enter the path, and select **Apply**. The button shows the number of active filters. Path and referring website filters stay active when switching measures or changing the time range. Country, city, and browser filters apply to pageviews only and are cleared when switching to HTTP requests. Use **Clear filters** in the modal to reset them. You can also hover a row in **Paths** and select its filter icon to add an exact-path condition immediately. An already active exact-path condition is not added twice.
-
-Referring websites, countries, cities, and browsers let you select multiple values in the dropdown. Search cities by city, region, or country code.
-
-All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/docs/api`, and `/docs-old`; use `/docs/` to match only paths beneath that directory. Matching is case-sensitive and treats `%` and `_` literally. Enter paths without query strings or fragments. Filters scope totals, trends, breakdowns, and the previous period consistently. A previous period with no matching activity is shown as unavailable.
 
 ### API
 

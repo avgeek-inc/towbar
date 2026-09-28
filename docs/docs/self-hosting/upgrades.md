@@ -55,6 +55,81 @@ Towbar does not deploy itself from GitHub Actions. Installation and upgrades run
 
 ## Upgrade from System Health
 
+An Admin can upgrade from **System Health → Towbar version** after the installation operator enables in-app upgrades. Keep a recent database backup and a protected copy of the configuration before upgrading.
+
+1. Select **Review upgrade** when the yellow **Update available** badge appears.
+2. Review the version change and the readiness check. If deployments or operations are active, wait for them to finish, then select **Check again**.
+3. Select **Upgrade** to begin. New deployments and operations pause while Towbar applies the update.
+4. Keep the modal open to follow progress. It reconnects automatically if the dashboard loses contact during a restart.
+5. Check the final result in the same modal. A successful upgrade shows the installed version; a failed upgrade links to the recovery instructions below. You can reopen the modal with **View upgrade**.
+
+These screenshots show a local example of upgrading from v2.0.16 to v2.0.17. Availability on your installation depends on its installed version and the latest published release.
+
+<Tabs>
+  <Tab title="Ready">
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/release-v2/upgrade-ready-light.jpg" alt="Review the new version and the readiness check before upgrading." width="3200" height="1800" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/release-v2/upgrade-ready-dark.jpg" alt="Review the new version and the readiness check before upgrading." width="3200" height="1800" loading="lazy" />
+  </div>
+  <p>Review the new version and the readiness check before upgrading.</p>
+</div>
+  </Tab>
+  <Tab title="Work in progress">
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/release-v2/upgrade-blocked-light.jpg" alt="Wait for active deployments and operations to finish, then check again." width="3200" height="1800" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/release-v2/upgrade-blocked-dark.jpg" alt="Wait for active deployments and operations to finish, then check again." width="3200" height="1800" loading="lazy" />
+  </div>
+  <p>Wait for active deployments and operations to finish, then check again.</p>
+</div>
+  </Tab>
+  <Tab title="In progress">
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/release-v2/upgrade-applying-light.jpg" alt="The same modal follows the upgrade and reconnects during a restart." width="3200" height="1800" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/release-v2/upgrade-applying-dark.jpg" alt="The same modal follows the upgrade and reconnects during a restart." width="3200" height="1800" loading="lazy" />
+  </div>
+  <p>The same modal follows the upgrade and reconnects during a restart.</p>
+</div>
+  </Tab>
+  <Tab title="Successful">
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/release-v2/upgrade-succeeded-light.jpg" alt="The result confirms the installed version and that deployments and operations can resume." width="3200" height="1800" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/release-v2/upgrade-succeeded-dark.jpg" alt="The result confirms the installed version and that deployments and operations can resume." width="3200" height="1800" loading="lazy" />
+  </div>
+  <p>The result confirms the installed version and that deployments and operations can resume.</p>
+</div>
+  </Tab>
+  <Tab title="Failed">
+
+<div className="towbar-doc-screenshot">
+  <div className="towbar-product-light">
+    <img src="/assets/release-v2/upgrade-failed-light.jpg" alt="A failed upgrade shows a safe reason and links to recovery help." width="3200" height="1800" loading="lazy" />
+  </div>
+  <div className="towbar-product-dark">
+    <img src="/assets/release-v2/upgrade-failed-dark.jpg" alt="A failed upgrade shows a safe reason and links to recovery help." width="3200" height="1800" loading="lazy" />
+  </div>
+  <p>A failed upgrade shows a safe reason and links to recovery help.</p>
+</div>
+  </Tab>
+</Tabs>
+
+### Enable in-app upgrades
+
 Host-managed upgrades are opt-in. First install a release that includes the host upgrade runner using the existing CLI path. On the control-plane host, enable it:
 
 ```bash
@@ -68,7 +143,7 @@ Setup creates a dedicated system group and saves its identity in the root-only `
 
 To replace an older setup, first wait for the upgrade to finish and check its result. Stop the idle service with `sudo systemctl stop towbar-upgrade`, then run `sudo towbar upgrade-service enable` from the compatible installed release. Enabling refuses to stop an already-running service. Startup rotates the token and reapplies the dedicated group permissions; setup recreates the API with the generated supplemental group.
 
-An Admin with a recently authenticated browser session can select **Review upgrade** in **System Health** when a newer stable release is available. The confirmation shows the installed and target versions, a changelog link, and readiness blockers. Preparation downloads the immutable release archive and validates its image manifest; it can take a few minutes. Confirmation expires after 15 minutes. A changed installed release or target Git commit requires a new check.
+Reviewing an upgrade requires an Admin with a recently authenticated browser session. Preparation downloads the immutable release archive and validates its image manifest; it can take a few minutes. Confirmation expires after 15 minutes. A changed installed release or target Git commit requires a new check.
 
 Keep a recent, tested database backup and a protected copy of the configuration and encryption key before confirming. The upgrade runner does not create backups. It rejects queued or active deployments, source syncs, resource operations, checks, preparations, credential checks, image scans, preview cleanup, worker activities, and server terminals. Finish or resolve this work before retrying.
 

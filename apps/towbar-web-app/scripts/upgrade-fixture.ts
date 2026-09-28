@@ -102,7 +102,7 @@ export function createUpgradeFixture(
       writeJson(response, { ok: true });
       return true;
     }
-    if (initial && path === "/v1/core/version") {
+    if (initial && scenario !== "unsupported" && path === "/v1/core/version") {
       writeJson(response, {
         checkedAt,
         installedVersion: installedVersion(),
@@ -115,7 +115,12 @@ export function createUpgradeFixture(
       });
       return true;
     }
-    if (initial && health && path === "/v1/core/system-health") {
+    if (
+      initial &&
+      scenario !== "unsupported" &&
+      health &&
+      path === "/v1/core/system-health"
+    ) {
       writeJson(response, {
         ...health(),
         version: installedVersion(),

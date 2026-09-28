@@ -1482,7 +1482,7 @@ let systemHealth: SystemHealth = {
     ),
   })),
   status: "healthy",
-  version: "2.0.16",
+  version: "2.0.17",
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -1494,9 +1494,9 @@ function fixtureSystemHealth(): SystemHealth {
 
 const towbarUpdates: TowbarUpdateInfo = {
   checkedAt: systemHealthFixtureNow,
-  installedVersion: "2.0.16",
-  latestVersion: "2.0.16",
-  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.16",
+  installedVersion: "2.0.17",
+  latestVersion: "2.0.17",
+  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.17",
   status: "current",
 };
 
@@ -5651,6 +5651,10 @@ if (
   const requestedRole = process.env.TOWBAR_FIXTURE_ROLE;
   const requestedState = process.env.TOWBAR_FIXTURE_AUTH_STATE;
   createFixtureApiServer({
+    upgradeScenario:
+      process.env.TOWBAR_FIXTURE_UPGRADE_ENABLED === "true"
+        ? "unsupported"
+        : undefined,
     role: isWorkspaceRole(requestedRole) ? requestedRole : "admin",
     authState:
       requestedState === "new-instance" ||

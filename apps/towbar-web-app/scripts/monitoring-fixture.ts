@@ -13,7 +13,7 @@ export function fixtureMonitoringAgent(enabled = true): MonitoringAgentStatus {
     status: enabled ? "online" : "disabled",
     desiredState: enabled ? "enabled" : "disabled",
     retentionDays: 15,
-    version: enabled ? "1.0.0" : null,
+    version: enabled ? "1.2.0" : null,
     lastCollectedAt: enabled ? new Date().toISOString() : null,
     lastReportAt: enabled ? new Date().toISOString() : null,
     diagnostics: enabled

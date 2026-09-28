@@ -91,7 +91,11 @@ export function OverviewIncidents() {
               />
             </div>
             <Image
-              src={count ? "/scout/mascot-worried.png" : "/mascots/happy.png"}
+              src={
+                count
+                  ? "/scout/overview-smoking-matched.png"
+                  : "/scout/overview-healthy-matched.png"
+              }
               alt=""
               width={512}
               height={512}
