@@ -330,7 +330,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
           kind: "system",
           source: "worker",
           workspaceId: input.workspaceId,
-          grants: ["deployment.create"],
+          grants: ["deployment.create", "server.collectLogs"],
         },
         () =>
           requestAppDeployment({

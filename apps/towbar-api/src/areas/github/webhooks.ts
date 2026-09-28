@@ -152,7 +152,12 @@ export async function processGitHubPush(
           kind: "system",
           source: "github",
           workspaceId: source.workspaceId,
-          grants: ["repository.sync", "deployment.create", "workload.operate"],
+          grants: [
+            "repository.sync",
+            "deployment.create",
+            "workload.operate",
+            "server.collectLogs",
+          ],
         },
         () =>
           enqueue({

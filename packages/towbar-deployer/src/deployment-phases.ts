@@ -1,4 +1,5 @@
 import { deploymentVolumeArguments, prepareAppStorage } from "./app-storage.js";
+import { validateHostLogCollection } from "./host-log-collection.js";
 import { chmod, mkdir, stat, statfs, writeFile } from "node:fs/promises";
 import { setTimeout as wait } from "node:timers/promises";
 /* eslint-disable max-lines -- Deployment phases share stateful rollback invariants that must remain visible in one module. */
@@ -58,6 +59,7 @@ import type {
   ExecutorHooks,
 } from "./types.js";
 import {
+  collectsHostDockerLogs,
   isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
@@ -86,6 +88,7 @@ const maxBuildArtifactBytes = 20 * 1_024 * 1_024 * 1_024;
 const buildArtifactCapacityMargin = 256 * 1_024 * 1_024;
 
 export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
+  validateHostLogCollection(input.context);
   const requiresCloudflareDns =
     input.context.app.tls?.mode === "cloudflare-dns";
   await transition(
@@ -174,6 +177,7 @@ export async function preflightBuildServer(
 }
 
 export async function startAndVerifyCandidates(input: DeploymentPhaseInput) {
+  validateHostLogCollection(input.context);
   const resource = isNormalizedResource(input.context.app)
     ? input.context.app
     : null;
@@ -279,7 +283,7 @@ async function startAndVerifyNamedCandidate(
         },
       )
     : await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6"\nshift 6\n${startRemoteScript}`,
+        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
         [
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
@@ -287,6 +291,7 @@ async function startAndVerifyNamedCandidate(
           input.context.sourceId,
           input.context.deployableId,
           deploymentVolumeArguments(input.context),
+          String(collectsHostDockerLogs(input.context.app)),
           input.remoteDirectory,
           containerName,
           input.imageTag,

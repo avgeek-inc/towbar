@@ -41,6 +41,7 @@ test("roles separate operational reads, member edits, and administration", () =>
     "deployment.create",
     "server.prepare",
     "server.terminal",
+    "server.collectLogs",
     "integration.manage",
     "secret.reveal",
     "privateKey.manage",
@@ -52,6 +53,43 @@ test("roles separate operational reads, member edits, and administration", () =>
     assert.equal(roleAllows("viewer", action), false);
   }
   assert.ok(allActions.every((action) => roleAllows("admin", action)));
+});
+
+test("host log collection requires an explicit administrative automation grant", () => {
+  const actor: AccessActor = {
+    kind: "team-key",
+    workspaceId: "workspace",
+    keyId: "key",
+    policy: {
+      scope: "team",
+      access: "edit",
+      includeAdmin: true,
+      grants: ["deployment.create"],
+    },
+  };
+  const required: Action[] = ["deployment.create", "server.collectLogs"];
+  assert.equal(actorAllows(actor, required), false);
+  assert.equal(
+    actorAllows(
+      { ...actor, policy: { ...actor.policy, grants: required } },
+      required,
+    ),
+    true,
+  );
+  assert.equal(
+    actorAllows(
+      {
+        ...actor,
+        policy: { ...actor.policy, includeAdmin: false, grants: required },
+      },
+      required,
+    ),
+    false,
+  );
+  assert.equal(
+    keyCeiling("member", "edit", false).includes("server.collectLogs"),
+    false,
+  );
 });
 test("API keys cannot grant browser privileges or escape their ceilings", () => {
   assert(!keyCeiling("admin", "edit", true).includes("server.terminal"));

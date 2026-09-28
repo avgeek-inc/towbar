@@ -14,6 +14,7 @@ export async function lockRollbackInstance(
       configDigest: apps.configDigest,
       deploymentDigest: apps.deploymentDigest,
       serverId: apps.serverId,
+      serverConfig: servers.config,
       serverConfigDigest: servers.configDigest,
       serverPreparedAt: servers.preparedAt,
       serverPreparedConfigDigest: servers.preparedConfigDigest,

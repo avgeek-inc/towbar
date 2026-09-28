@@ -182,6 +182,7 @@ export type Server = {
   canonicalIp: string;
   name: string | null;
   config: {
+    hostLogCollection?: boolean;
     buildConcurrency?: number;
     previewBuildConcurrency?: number;
     ip: string;

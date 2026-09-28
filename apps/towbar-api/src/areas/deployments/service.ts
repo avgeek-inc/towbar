@@ -1,5 +1,9 @@
 /* eslint-disable max-lines -- Deployment admission, snapshotting, and lifecycle transitions share one transactional service contract. */
 import { assertAppStorageServer } from "../apps/storage.js";
+import {
+  hostLogDeploymentPermissions,
+  hostLogExecutionDeployables,
+} from "../apps/host-log-collection.js";
 import { requireActiveAutomation } from "../auth/automation-authority.js";
 import { authorizeQueuedEffect } from "../auth/actor-context.js";
 import {
@@ -30,6 +34,7 @@ import {
   integrationInstallations,
   previewEnvironments,
   releases,
+  servers,
   sources,
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
@@ -228,6 +233,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
       previewEnvironmentId: deployments.previewEnvironmentId,
       server: deployments.serverSnapshot,
       serverId: deployments.serverId,
+      currentServerConfig: servers.config,
       buildServer: deployments.buildServerSnapshot,
       buildServerId: deployments.buildServerId,
       sourceId: deployments.sourceId,
@@ -238,6 +244,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     })
     .from(deployments)
     .innerJoin(sources, eq(sources.id, deployments.sourceId))
+    .innerJoin(servers, eq(servers.id, deployments.serverId))
     .leftJoin(
       integrationInstallations,
       eq(integrationInstallations.id, sources.integrationInstallationId),
@@ -245,6 +252,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     .where(eq(deployments.id, deploymentId))
     .limit(1);
   if (!context) throw notFound("Deployment");
+  const hostLogDeployables = await hostLogExecutionDeployables(context);
   if (!isNormalizedResource(context.app))
     await assertAppStorageServer(
       getTowbarDatabase(),
@@ -255,7 +263,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     const actor = await authorizeQueuedEffect(
       context.requestedByActor,
       context.workspaceId,
-      ["deployment.create"],
+      hostLogDeploymentPermissions(...hostLogDeployables),
     );
     if (actor.kind === "system")
       await requireActiveAutomation({
@@ -264,9 +272,6 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
         mappingRevision: context.targetEnvironment.mappingRevision,
         preview: context.environment === "preview",
       });
-  }
-  if (context.kind === "rollback" && !context.rollbackRelease) {
-    throw new Error("Rollback deployment is missing its release snapshot");
   }
   const trustedHostKeys = await getTowbarDatabase()
     .select({
@@ -317,6 +322,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     appId,
     buildServer: buildServerSnapshot,
     buildServerId,
+    currentServerConfig: _currentServerConfig,
     installationId: _installationId,
     integrationAuthorizationId: _integrationConnectionId,
     providerRepositoryId: _providerRepositoryId,

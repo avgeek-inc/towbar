@@ -38,7 +38,7 @@ try {
     "--filter=towbar-api",
     "--filter=towbar-worker",
   ]);
-  if (group === "api")
+  if (["api", "docker"].includes(group))
     await run.step("build-e2e-target", "docker", [
       "build",
       "--tag",

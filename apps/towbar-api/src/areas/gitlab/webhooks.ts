@@ -117,6 +117,7 @@ export async function processGitLabWebhook(input: {
             grants: [
               "repository.sync",
               "deployment.create",
+              "server.collectLogs",
               "workload.operate",
             ],
             kind: "system",

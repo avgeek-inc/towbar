@@ -38,6 +38,10 @@ import { getApp, getResource } from "./queries.js";
 import { resolveBuildServerAdmission } from "./build-server-admission.js";
 import { admitApplicationImage } from "../deployments/image-admission.js";
 import { cloudflareDnsCredential } from "../deployments/cloudflare-readiness.js";
+import {
+  hostLogDeploymentPermissions,
+  requireHostLogCollection,
+} from "./host-log-collection.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
 
@@ -125,6 +129,7 @@ export async function requestAppDeployment(input: {
     throw unprocessable("The Source must have a successful sync before deploy");
   }
   requireServerReady(target);
+  requireHostLogCollection(target.serverConfig, target.config);
   cloudflareDnsCredential(target.config);
   await assertRequiredInstanceSecrets({
     appId: target.id,
@@ -157,6 +162,7 @@ export async function requestAppDeployment(input: {
           archivedAt: apps.archivedAt,
           deploymentDigest: apps.deploymentDigest,
           id: apps.id,
+          serverConfig: servers.config,
           serverConfigDigest: servers.configDigest,
           serverPreparedAt: servers.preparedAt,
           serverPreparedConfigDigest: servers.preparedConfigDigest,
@@ -175,6 +181,7 @@ export async function requestAppDeployment(input: {
       if (currentApp.archivedAt)
         throw conflict("Archived apps cannot be deployed");
       requireServerReady(currentApp);
+      requireHostLogCollection(currentApp.serverConfig, target.config);
       if (
         currentApp.sourceRevision !== commitSha ||
         currentApp.deploymentDigest !== deploymentDigest
@@ -245,7 +252,10 @@ export async function requestAppDeployment(input: {
         imageDigest: imageAdmission.imageDigest,
         imageSourceReference: imageAdmission.imageSourceReference,
         requestedBy: request.requestedBy,
-        ...captureQueuedActor(request.workspaceId, ["deployment.create"]),
+        ...captureQueuedActor(
+          request.workspaceId,
+          hostLogDeploymentPermissions(target.config),
+        ),
         serverId: target.serverId,
         serverSnapshot: target.serverConfig,
         buildServerId: buildServer?.id,
@@ -365,6 +375,7 @@ export async function requestAppRollback(input: {
   if (!original) throw notFound("Release deployment");
   if (original.serverId !== app.serverId)
     throw conflict("The rollback release belongs to a different server");
+  requireHostLogCollection(app.serverConfig, app.config, original.appSnapshot);
   const rollbackUsesSource = isNormalizedCompose(original.appSnapshot);
   cloudflareDnsCredential(
     rollbackUsesSource ? original.appSnapshot : app.config,
@@ -383,6 +394,11 @@ export async function requestAppRollback(input: {
       if (current.archivedAt)
         throw conflict("Archived apps cannot be rolled back");
       requireServerReady(current);
+      requireHostLogCollection(
+        current.serverConfig,
+        app.config,
+        original.appSnapshot,
+      );
       if (
         current.configDigest !== app.configDigest ||
         current.deploymentDigest !== app.deploymentDigest ||
@@ -426,7 +442,10 @@ export async function requestAppRollback(input: {
             ? original.manifestDigest
             : (app.manifestDigest ?? original.manifestDigest),
           requestedBy: request.requestedBy,
-          ...captureQueuedActor(request.workspaceId, ["deployment.create"]),
+          ...captureQueuedActor(
+            request.workspaceId,
+            hostLogDeploymentPermissions(app.config, original.appSnapshot),
+          ),
           rollbackReleaseSnapshot: {
             commitSha: release.commitSha,
             containerName: release.containerName,
