@@ -104,8 +104,13 @@ export function assertPublicOperationNames(
     new Set(operations.map((op) => op.name)).size,
     operations.length,
   );
-  assert.equal(operations.length, 140);
+  assert.equal(operations.length, 141);
   assert(operations.some((op) => op.name === "get_apps_by_id_analytics"));
+  assert(
+    operations.some(
+      (op) => op.name === "get_apps_by_id_analytics_filter_options",
+    ),
+  );
   assert(operations.some((op) => op.name === "get_servers_by_id_cleanup"));
   assert(operations.every((op) => op.name.length <= 64));
 }

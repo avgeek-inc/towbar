@@ -18,7 +18,7 @@ import {
   type AuthDatabase,
   getTowbarDatabase,
 } from "../../infrastructure/database.js";
-import { notFound } from "../../http/errors.js";
+import { badRequest, notFound } from "../../http/errors.js";
 
 export async function getAnalyticsConfiguration(serverId: string) {
   const database = getTowbarDatabase();
@@ -130,6 +130,15 @@ export async function getAnalyticsReport(input: {
   kind: "request" | "pageview";
   filters?: AnalyticsFilter[];
 }): Promise<AnalyticsReport> {
+  if (
+    input.kind === "request" &&
+    input.filters?.some(
+      (filter) => filter.field === "country" || filter.field === "browser",
+    )
+  )
+    throw badRequest(
+      "Country and browser filters are available for pageviews only.",
+    );
   const database = getTowbarDatabase();
   const [app] = await database
     .select()
@@ -196,10 +205,11 @@ export async function getAnalyticsReport(input: {
   for (const key of input.kind === "request"
     ? ["path", "referrer", "status", "method"]
     : ["path", "referrer", "country", "browser", "device"]) {
+    const dimension = sql`coalesce(nullif(c->>${key},''),'Unknown')`;
     const rows = await database.execute<{ value: string; count: string }>(sql`
-      select coalesce(nullif(c->>${key},''),'Unknown') value,sum((c->>'count')::bigint)::text count
+      select ${dimension} value,sum((c->>'count')::bigint)::text count
       from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}
-      group by value order by sum((c->>'count')::bigint) desc,value limit 20`);
+      group by 1 order by sum((c->>'count')::bigint) desc,1 limit 20`);
     dimensions[key] = rows.map((r) => ({
       value: r.value,
       count: Number(r.count),
@@ -243,23 +253,68 @@ export async function getAnalyticsReport(input: {
   };
 }
 
+export async function getAnalyticsFilterOptions(input: {
+  appId: string;
+  workspaceId: string;
+  days: number;
+  kind: "request" | "pageview";
+  field: "referrer" | "country" | "browser";
+  search: string;
+}) {
+  if (input.kind === "request" && input.field !== "referrer")
+    throw badRequest(
+      "Country and browser filters are available for pageviews only.",
+    );
+  const database = getTowbarDatabase();
+  const [app] = await database
+    .select({ config: apps.config })
+    .from(apps)
+    .where(
+      and(
+        eq(apps.id, input.appId),
+        eq(apps.workspaceId, input.workspaceId),
+        isNull(apps.archivedAt),
+      ),
+    )
+    .limit(1);
+  if (!app || !isNormalizedApp(app.config)) throw notFound("Service");
+  const retention = app.config.analytics?.retentionDays ?? 30;
+  const end = new Date();
+  const start = new Date(
+    end.getTime() - Math.min(input.days, retention) * 86400_000,
+  );
+  const field = sql`coalesce(nullif(c->>${input.field}, ''), 'Unknown')`;
+  const rows = await database.execute<{ value: string }>(sql`
+    select ${field} value from towbar_analytics_samples s
+    cross join lateral jsonb_array_elements(s.cells) c
+    where s.app_id=${input.appId}::uuid and s.collected_at>=${start.toISOString()}::timestamptz
+      and s.collected_at<${end.toISOString()}::timestamptz
+      and c->>'kind'=${input.kind}
+      and position(lower(${input.search}::text) in lower(${field})) > 0
+    group by 1 order by sum((c->>'count')::bigint) desc,1 limit ${input.field === "country" ? 250 : 50}`);
+  return rows.map((row) => row.value);
+}
+
 function analyticsConditions(filters: AnalyticsFilter[]): SQL {
   const fields: Record<AnalyticsFilter["field"], SQL> = {
     path: sql`c->>'path'`,
-  };
-  const operators: Record<
-    AnalyticsFilter["operator"],
-    (field: SQL, value: string) => SQL
-  > = {
-    equals: (field, value) => sql`${field} = ${value}`,
-    startsWith: (field, value) =>
-      sql`left(${field}, length(${value}::text)) = ${value}`,
+    referrer: sql`coalesce(nullif(c->>'referrer', ''), 'Unknown')`,
+    country: sql`coalesce(nullif(c->>'country', ''), 'Unknown')`,
+    browser: sql`coalesce(nullif(c->>'browser', ''), 'Unknown')`,
   };
   return (
     and(
-      ...filters.map(({ field, operator, value }) =>
-        operators[operator](fields[field], value),
-      ),
+      ...filters.map(({ field, operator, value }) => {
+        const expression = fields[field];
+        if (operator === "in" && Array.isArray(value))
+          return sql`${expression} in (${sql.join(
+            value.map((item) => sql`${item}`),
+            sql`, `,
+          )})`;
+        if (operator === "startsWith" && typeof value === "string")
+          return sql`left(${expression}, length(${value}::text)) = ${value}`;
+        return sql`${expression} = ${value as string}`;
+      }),
     ) ?? sql`true`
   );
 }

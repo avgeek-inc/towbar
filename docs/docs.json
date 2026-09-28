@@ -637,6 +637,7 @@
                 "group": "Scout Agent",
                 "pages": [
                   "api-reference/get_apps_by_id_metrics",
+                  "api-reference/get_apps_by_id_analytics_filter_options",
                   "api-reference/get_apps_by_id_analytics"
                 ]
               },
