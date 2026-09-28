@@ -6,13 +6,55 @@ import type { App, Resource } from "@workspace/towbar-web-client";
 import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { groupDeployableInstances } from "@/lib/deployable-groups";
+import {
+  groupDeployableInstances,
+  groupDeployablesByEnvironment,
+} from "@/lib/deployable-groups";
+import { EnvironmentIcon } from "./environment-icon";
 
 export function DeployableInventoryTable<T extends App | Resource>({
   items,
+  groupBy = "manifest",
   ...props
-}: Parameters<typeof ResourceTable<T>>[0]) {
+}: Parameters<typeof ResourceTable<T>>[0] & {
+  groupBy?: "manifest" | "environment";
+}) {
   if (items.length === 0) return <ResourceTable {...props} items={items} />;
+  if (groupBy === "environment") {
+    return (
+      <div className="grid gap-6">
+        {groupDeployablesByEnvironment(items).map((group) => (
+          <section
+            className="grid min-w-0 gap-3"
+            key={group.key}
+            aria-label={group.name ?? "No environment"}
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <EnvironmentIcon
+                name={group.name ?? undefined}
+                className="size-5"
+              />
+              <h2 className="truncate text-base">
+                {group.name ?? "No environment"}
+              </h2>
+              <Chip className="shrink-0" size="small" variant="secondary">
+                {group.items.length}{" "}
+                {["app", "compose"].includes(group.items[0]!.kind)
+                  ? "service"
+                  : "datastore"}
+                {group.items.length === 1 ? "" : "s"}
+              </Chip>
+            </div>
+            <ResourceTable
+              {...props}
+              ariaLabel={`${props.ariaLabel}: ${group.name ?? "No environment"}`}
+              items={group.items}
+            />
+          </section>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="grid gap-6">
       {groupDeployableInstances(items).map((group) => (

@@ -29,3 +29,29 @@ export function groupDeployableInstances<T extends Deployable>(items: T[]) {
   }
   return [...groups.values()];
 }
+
+export function groupDeployablesByEnvironment<T extends Deployable>(
+  items: T[],
+) {
+  const groups = new Map<string | null, T[]>();
+  for (const item of items) {
+    const name = item.environment?.name ?? null;
+    const group = groups.get(name) ?? [];
+    group.push(item);
+    groups.set(name, group);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => {
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a.localeCompare(b);
+    })
+    .map(([name, group]) => ({
+      key: JSON.stringify(name),
+      name,
+      items: group.sort(
+        (a, b) =>
+          a.manifestId.localeCompare(b.manifestId) || a.id.localeCompare(b.id),
+      ),
+    }));
+}

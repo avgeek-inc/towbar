@@ -18,23 +18,27 @@ import (
 var latencyBounds = []float64{10, 50, 100, 200, 500, 1000, 2500}
 
 type AnalyticsCell struct {
-	AppID      string   `json:"appId"`
-	Kind       string   `json:"kind"`
-	Path       string   `json:"path"`
-	Referrer   string   `json:"referrer"`
-	Method     string   `json:"method"`
-	Status     int      `json:"status"`
-	Country    string   `json:"country"`
-	City       string   `json:"city,omitempty"`
-	Region     string   `json:"region,omitempty"`
-	Browser    string   `json:"browser"`
-	Device     string   `json:"device"`
-	Visitor    string   `json:"visitor"`
-	Session    string   `json:"session"`
-	Count      int64    `json:"count"`
-	Bytes      int64    `json:"bytes"`
-	DurationMs float64  `json:"durationMs"`
-	Histogram  [8]int64 `json:"histogram"`
+	PageID        string   `json:"pageId,omitempty"`
+	PageStartedAt string   `json:"pageStartedAt,omitempty"`
+	VisibleMs     *int64   `json:"visibleMs,omitempty"`
+	Destination   string   `json:"destination,omitempty"`
+	AppID         string   `json:"appId"`
+	Kind          string   `json:"kind"`
+	Path          string   `json:"path"`
+	Referrer      string   `json:"referrer"`
+	Method        string   `json:"method"`
+	Status        int      `json:"status"`
+	Country       string   `json:"country"`
+	City          string   `json:"city,omitempty"`
+	Region        string   `json:"region,omitempty"`
+	Browser       string   `json:"browser"`
+	Device        string   `json:"device"`
+	Visitor       string   `json:"visitor"`
+	Session       string   `json:"session"`
+	Count         int64    `json:"count"`
+	Bytes         int64    `json:"bytes"`
+	DurationMs    float64  `json:"durationMs"`
+	Histogram     [8]int64 `json:"histogram"`
 }
 type AnalyticsServiceReadiness struct {
 	AppID     string `json:"appId"`
@@ -121,7 +125,7 @@ func (a *analyticsCollector) add(cell AnalyticsCell) {
 			return
 		}
 	}
-	if cell.Kind == "pageview" && !service.Pageviews {
+	if cell.Kind != "request" && !service.Pageviews {
 		return
 	}
 	if !service.VisitorIdentity {
@@ -132,6 +136,7 @@ func (a *analyticsCollector) add(cell AnalyticsCell) {
 	keyCell.Count = 0
 	keyCell.Bytes = 0
 	keyCell.DurationMs = 0
+	keyCell.VisibleMs = nil
 	keyCell.Histogram = [8]int64{}
 	keyBytes, _ := json.Marshal(keyCell)
 	key := string(keyBytes)
@@ -151,6 +156,10 @@ func (a *analyticsCollector) add(cell AnalyticsCell) {
 		return
 	}
 	prior.Count += cell.Count
+	if cell.VisibleMs != nil && (prior.VisibleMs == nil || *cell.VisibleMs > *prior.VisibleMs) {
+		value := *cell.VisibleMs
+		prior.VisibleMs = &value
+	}
 	prior.Bytes += cell.Bytes
 	prior.DurationMs += cell.DurationMs
 	for i := range prior.Histogram {
@@ -312,10 +321,15 @@ func (a *analyticsCollector) browser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var event struct {
-		Path     string `json:"path"`
-		Referrer string `json:"referrer"`
-		Visitor  string `json:"visitor"`
-		Session  string `json:"session"`
+		Kind          string `json:"kind"`
+		PageID        string `json:"pageId"`
+		PageStartedAt string `json:"pageStartedAt"`
+		VisibleMs     *int64 `json:"visibleMs"`
+		Destination   string `json:"destination"`
+		Path          string `json:"path"`
+		Referrer      string `json:"referrer"`
+		Visitor       string `json:"visitor"`
+		Session       string `json:"session"`
 	}
 	reader := http.MaxBytesReader(w, r.Body, 2048)
 	defer reader.Close()
@@ -329,12 +343,42 @@ func (a *analyticsCollector) browser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid event", 400)
 		return
 	}
+	if event.Kind == "" {
+		event.Kind = "pageview"
+	}
+	if event.Kind != "pageview" && event.Kind != "engagement" && event.Kind != "outbound" {
+		http.Error(w, "Invalid event", 400)
+		return
+	}
+	pageID := hashIdentity(service.ID, event.PageID)
+	if event.PageID != "" {
+		started, err := time.Parse(time.RFC3339Nano, event.PageStartedAt)
+		if pageID == "" || err != nil || started.After(time.Now().Add(time.Minute)) || started.Before(time.Now().Add(-24*time.Hour)) {
+			http.Error(w, "Invalid page", 400)
+			return
+		}
+		event.PageStartedAt = started.UTC().Format(time.RFC3339Nano)
+	} else if event.PageStartedAt != "" {
+		http.Error(w, "Invalid page", 400)
+		return
+	}
+	if (event.Kind == "engagement" && (pageID == "" || event.VisibleMs == nil || *event.VisibleMs < 0 || *event.VisibleMs > 86400000)) ||
+		(event.Kind != "engagement" && event.VisibleMs != nil) {
+		http.Error(w, "Invalid duration", 400)
+		return
+	}
+	destination := referrerHost(event.Destination)
+	if (event.Kind == "outbound" && (destination == "" || destination == service.Host || len(event.Destination) > 1024)) ||
+		(event.Kind != "outbound" && event.Destination != "") {
+		http.Error(w, "Invalid destination", 400)
+		return
+	}
 	browser, device := browserFamily(r.UserAgent())
 	location := geoLocation{}
 	if a.geo != nil {
 		location = a.geo.location(a.clientIP(service, r))
 	}
-	cell := AnalyticsCell{AppID: service.ID, Kind: "pageview", Path: event.Path, Referrer: referrerHost(event.Referrer), Method: "GET", Country: location.Country, City: location.City, Region: location.Region, Browser: browser, Device: device, Count: 1}
+	cell := AnalyticsCell{AppID: service.ID, Kind: event.Kind, PageID: pageID, PageStartedAt: event.PageStartedAt, VisibleMs: event.VisibleMs, Destination: destination, Path: event.Path, Referrer: referrerHost(event.Referrer), Method: "GET", Country: location.Country, City: location.City, Region: location.Region, Browser: browser, Device: device, Count: 1}
 	if service.VisitorIdentity {
 		cell.Visitor = hashIdentity(service.ID, event.Visitor)
 		cell.Session = hashIdentity(service.ID, event.Session)

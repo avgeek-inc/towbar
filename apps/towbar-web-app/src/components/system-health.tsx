@@ -90,7 +90,6 @@ export function SystemHealthPage() {
     );
   }
   const health = query.data;
-  const checksStale = health.checks.some(isCheckStale);
   return (
     <DashboardPage
       icon={HealthIcon}
@@ -114,19 +113,6 @@ export function SystemHealthPage() {
           />
           Run checks
         </ActionButton>
-      }
-      badge={
-        <HealthStatusChip
-          stale={checksStale}
-          status={health.status}
-          tooltip={
-            checksStale
-              ? "One or more system checks are older than 15 minutes."
-              : health.status === "healthy"
-                ? "All current system checks passed."
-                : "One or more current system checks need attention."
-          }
-        />
       }
       title="System health"
     >

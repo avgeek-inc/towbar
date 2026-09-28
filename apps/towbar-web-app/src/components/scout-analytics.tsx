@@ -300,6 +300,26 @@ export function AnalyticsView({
                 lowerIsBetter: false,
               },
             ]),
+        {
+          label: "Time spent",
+          value: report.averageTimeMs ?? null,
+          previous: report.comparison?.averageTimeMs,
+          lowerIsBetter: false,
+          unit: "time",
+          help: "Average time a page was visible in a browser tab. Hidden tabs do not add time.",
+        },
+        ...(report.visitors === null
+          ? []
+          : [
+              {
+                label: "Bounce rate",
+                value: report.bounceRate ?? null,
+                previous: report.comparison?.bounceRate,
+                lowerIsBetter: true,
+                unit: "percent",
+                help: "Share of finished visits with one pageview. A visit finishes after 30 minutes without activity.",
+              },
+            ]),
       ]
     : [
         {
@@ -378,19 +398,40 @@ export function AnalyticsView({
         </p>
       ) : null}
       {hasTrend ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div
+          className={`grid grid-cols-1 gap-4 ${pageviews ? "sm:grid-cols-6" : "sm:grid-cols-3"}`}
+        >
           {metrics.map(
-            ({ label, value, previous, lowerIsBetter, ...metric }) => (
-              <Widget key={label} className="min-w-0">
+            ({ label, value, previous, lowerIsBetter, ...metric }, index) => (
+              <Widget
+                key={label}
+                className={`min-w-0 ${pageviews ? (metrics.length === 5 && index < 3 ? "sm:col-span-2" : "sm:col-span-3") : ""}`}
+              >
                 <Widget.Header>
-                  <Widget.Title>{label}</Widget.Title>
+                  <Widget.Title>
+                    {label}
+                    {"help" in metric && metric.help ? (
+                      <HeadingHelp
+                        title={label}
+                        help={{
+                          description: metric.help,
+                          href: "/docs/analytics",
+                          linkLabel: "Learn more in documentation.",
+                        }}
+                      />
+                    ) : null}
+                  </Widget.Title>
                 </Widget.Header>
                 <Widget.Content>
-                  <p className="text-2xl font-medium tabular-nums">
+                  <p className="text-2xl font-medium whitespace-nowrap tabular-nums">
                     {value === null
                       ? "—"
                       : "unit" in metric
-                        ? `${value.toFixed(1)} ms`
+                        ? metric.unit === "percent"
+                          ? `${value.toFixed(1)}%`
+                          : metric.unit === "time"
+                            ? formatPageTime(value)
+                            : `${value.toFixed(1)} ms`
                         : format(value)}
                   </p>
                   <MetricChange
@@ -604,6 +645,28 @@ export function AnalyticsView({
         </div>
       ) : null}
       {pageviews && report.total > 0 ? (
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+          {report.config?.visitorIdentity ? (
+            <AnalyticsRows
+              name="Exit pages"
+              help="The last page viewed in each finished visit. A visit finishes after 30 minutes without activity."
+              dimension="path"
+              rows={report.exitPages ?? []}
+              total={report.exits ?? 0}
+              domain={domain}
+              onFilterPath={onFilterPath}
+            />
+          ) : null}
+          <AnalyticsRows
+            name="Outbound websites"
+            help="Websites whose links visitors clicked, including links opened in a new tab. A click does not prove the visitor left your site."
+            dimension="referrer"
+            rows={report.outboundLinks ?? []}
+            total={report.outboundClicks ?? 0}
+          />
+        </div>
+      ) : null}
+      {pageviews && report.total > 0 ? (
         <p className="text-xs text-muted">
           IP Geolocation by{" "}
           <a
@@ -627,7 +690,7 @@ export function AnalyticsView({
             </h4>
             <p className="text-sm text-muted">
               Add this script to your site’s shared HTML template to count
-              pageviews and navigation without a full reload.
+              pageviews, time spent on each page, and clicks to other websites.
             </p>
           </div>
           <CodePanel ariaLabel="Pageview script" language="html">
@@ -645,11 +708,13 @@ function AnalyticsRows({
   total,
   name,
   dimension = "",
+  help,
   domain,
   onFilterPath,
 }: {
   name: string;
   dimension?: string;
+  help?: string;
   domain?: string;
   onFilterPath?: (path: string) => void;
   rows: { value: string; count: number }[];
@@ -691,11 +756,12 @@ function AnalyticsRows({
             <Table.Column isRowHeader textValue={name}>
               <span className="flex h-4 items-center gap-1">
                 {name}
-                {location ? (
+                {location || help ? (
                   <HeadingHelp
                     title={name}
                     help={{
-                      description: "IP Geolocation provided by DB-IP database.",
+                      description:
+                        help ?? "IP Geolocation provided by DB-IP database.",
                       href: "/docs/analytics",
                       linkLabel: "Learn more in documentation.",
                     }}
@@ -878,4 +944,11 @@ function MetricChange({
       <span className="text-muted">vs previous period</span>
     </p>
   );
+}
+
+function formatPageTime(ms: number) {
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60
+    ? `${seconds}s`
+    : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }

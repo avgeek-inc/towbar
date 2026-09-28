@@ -213,6 +213,24 @@ export function analyticsFixture(
     p95Ms: total ? 200 : null,
     visitors: kind === "pageview" ? Math.floor(702 * fraction) : null,
     sessions: kind === "pageview" ? Math.floor(841 * fraction) : null,
+    bounceRate: kind === "pageview" && total ? 36.4 : null,
+    averageTimeMs: kind === "pageview" && total ? 83400 : null,
+    exits: kind === "pageview" ? Math.floor(700 * fraction) : 0,
+    outboundClicks: kind === "pageview" ? Math.floor(110 * fraction) : 0,
+    exitPages:
+      kind === "pageview" && total
+        ? matchingPaths.map((p) => ({
+            value: p.value,
+            count: Math.floor(700 * p.share),
+          }))
+        : [],
+    outboundLinks:
+      kind === "pageview" && total
+        ? [
+            { value: "github.com", count: Math.floor(80 * fraction) },
+            { value: "wikipedia.org", count: Math.floor(30 * fraction) },
+          ]
+        : [],
     histogram,
     deployments: [0.7, 0.3].map((fraction, index) => ({
       id: `61111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
@@ -236,6 +254,8 @@ export function analyticsFixture(
             total: previousCounts.reduce((sum, count) => sum + count, 0),
             errors: Math.floor(50 * fraction),
             meanMs: 56.8,
+            bounceRate: kind === "pageview" ? 41.2 : null,
+            averageTimeMs: kind === "pageview" ? 72100 : null,
             visitors: kind === "pageview" ? Math.floor(640 * fraction) : null,
             sessions: kind === "pageview" ? Math.floor(910 * fraction) : null,
             trend: counts.map((_count, i) => ({

@@ -25,7 +25,7 @@ export const analyticsLatencyBounds = [
 export const analyticsCellSchema = z
   .object({
     appId: z.string().uuid(),
-    kind: z.enum(["request", "pageview"]),
+    kind: z.enum(["request", "pageview", "engagement", "outbound"]),
     path: z
       .string()
       .startsWith("/")
@@ -61,6 +61,18 @@ export const analyticsCellSchema = z
     device: z.enum(["", "Desktop", "Mobile", "Tablet", "Bot", "Other"]),
     visitor: z.string().regex(/^(?:[a-f0-9]{64})?$/u),
     session: z.string().regex(/^(?:[a-f0-9]{64})?$/u),
+    pageId: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/u)
+      .optional(),
+    pageStartedAt: z.iso.datetime().optional(),
+    visibleMs: z.number().int().nonnegative().max(86400000).optional(),
+    destination: z
+      .string()
+      .min(1)
+      .max(253)
+      .regex(/^[a-z0-9.:[\]-]+$/u)
+      .optional(),
     count: z.number().int().positive().max(10_000_000),
     bytes: z.number().int().nonnegative().max(1e15),
     durationMs: z.number().nonnegative().max(1e15),
@@ -80,13 +92,19 @@ export const analyticsCellSchema = z
       });
     if (
       cell.kind === "request" &&
-      (cell.visitor ||
-        cell.session ||
-        cell.country ||
-        cell.city ||
-        cell.region ||
-        cell.browser ||
-        cell.device)
+      [
+        cell.visitor,
+        cell.session,
+        cell.country,
+        cell.city,
+        cell.region,
+        cell.browser,
+        cell.device,
+        cell.pageId,
+        cell.pageStartedAt,
+        cell.visibleMs !== undefined,
+        cell.destination,
+      ].some(Boolean)
     )
       ctx.addIssue({
         code: "custom",
@@ -98,7 +116,7 @@ export const analyticsCellSchema = z
         message: "City location requires a country; region requires a city",
       });
     if (
-      cell.kind === "pageview" &&
+      cell.kind !== "request" &&
       (cell.status !== 0 ||
         cell.bytes ||
         cell.durationMs ||
@@ -106,7 +124,18 @@ export const analyticsCellSchema = z
     )
       ctx.addIssue({
         code: "custom",
-        message: "Pageviews do not measure HTTP responses",
+        message: "Browser events do not measure HTTP responses",
+      });
+    if (
+      Boolean(cell.pageId) !== Boolean(cell.pageStartedAt) ||
+      (cell.kind === "engagement" &&
+        (!cell.pageId || cell.visibleMs === undefined)) ||
+      (cell.kind !== "engagement" && cell.visibleMs !== undefined) ||
+      (cell.kind === "outbound" ? !cell.destination : Boolean(cell.destination))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Invalid page engagement fields",
       });
   });
 export type AnalyticsCell = z.infer<typeof analyticsCellSchema>;
@@ -214,7 +243,15 @@ export type AnalyticsReport = {
     meanMs: number | null;
     visitors: number | null;
     sessions: number | null;
+    bounceRate: number | null;
+    averageTimeMs: number | null;
     trend: { at: string; count: number; errors: number }[];
   } | null;
   dimensions: Record<string, { value: string; count: number }[]>;
+  bounceRate: number | null;
+  averageTimeMs: number | null;
+  exits: number;
+  outboundClicks: number;
+  exitPages: AnalyticsReport["dimensions"][string];
+  outboundLinks: AnalyticsReport["dimensions"][string];
 };

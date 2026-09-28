@@ -1,3 +1,4 @@
+import { verifyPageEngagement } from "./engagement-test-support.js";
 import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
 import { verifyAnalyticsCities } from "./city-test-support.js";
 import { verifyFilterOptionsResponse } from "./filter-options-test-support.js";
@@ -261,6 +262,12 @@ void test(
         kind: "pageview",
       });
       assert.equal(visits.total, 2);
+      assert.equal(
+        visits.averageTimeMs,
+        null,
+        "old pageviews do not invent viewing time",
+      );
+      assert.equal(visits.bounceRate, null, "ongoing visits are not bounces");
       assert.equal(visits.visitors, 1);
       assert.equal(visits.sessions, 1);
       async function verifyPathFilters() {
@@ -521,6 +528,7 @@ void test(
           filters: [{ field: "browser", operator: "in", value: ["Chrome"] }],
         }),
       );
+      await verifyPageEngagement({ appId, workspaceId, serverId });
       await verifyAnalyticsCities({ db, serverId, appId, workspaceId, page });
       await db
         .update(apps)

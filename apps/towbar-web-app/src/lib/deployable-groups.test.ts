@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { groupDeployableInstances } from "./deployable-groups";
+import {
+  groupDeployableInstances,
+  groupDeployablesByEnvironment,
+} from "./deployable-groups";
 
 void test("inventory groups stable logical identities and preserves instance links", () => {
   const instance = (
@@ -46,4 +49,42 @@ void test("inventory groups stable logical identities and preserves instance lin
     2,
   );
   assert.deepEqual(groupDeployableInstances([]), []);
+});
+
+test("environment grouping combines repositories while preserving every instance", () => {
+  const instance = (
+    id: string,
+    sourceId: string,
+    manifestId: string,
+    name: string | null,
+  ) => ({
+    id,
+    sourceId,
+    manifestId,
+    entityId: "same-entity",
+    environment: name === null ? null : { name },
+  });
+  const input = [
+    instance("staging", "one", "api", "staging"),
+    instance("prod-web", "one", "website", "production"),
+    instance("unassigned", "one", "api", null),
+    instance("prod-api", "two", "api", "production"),
+    instance("named-unassigned", "two", "api", "No environment"),
+  ];
+  const groups = groupDeployablesByEnvironment(input);
+  assert.deepEqual(
+    groups.map((group) => group.name),
+    ["No environment", "production", "staging", null],
+  );
+  assert.deepEqual(
+    groups[1]!.items.map((item) => item.id),
+    ["prod-api", "prod-web"],
+  );
+  assert.equal(
+    new Set(groups.flatMap((group) => group.items.map((item) => item.id))).size,
+    input.length,
+  );
+  assert.equal(groups[1]!.items[0], input[3]);
+  assert.equal(input[0]!.id, "staging");
+  assert.deepEqual(groupDeployablesByEnvironment([]), []);
 });

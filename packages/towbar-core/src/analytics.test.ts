@@ -153,3 +153,56 @@ void test("city data is optional for older agents and bounded for pageviews", ()
   ])
     assert(!analyticsCellSchema.safeParse({ ...page, ...patch }).success);
 });
+
+void test("engagement fields are bounded and cannot alter response measurements", () => {
+  const cell = {
+    appId: "11111111-1111-4111-8111-111111111111",
+    kind: "engagement",
+    path: "/",
+    referrer: "",
+    method: "GET",
+    status: 0,
+    country: "",
+    browser: "Safari",
+    device: "Mobile",
+    visitor: "",
+    session: "",
+    pageId: "a".repeat(64),
+    pageStartedAt: new Date().toISOString(),
+    visibleMs: 15000,
+    count: 1,
+    bytes: 0,
+    durationMs: 0,
+    histogram: Array(8).fill(0),
+  };
+  assert(analyticsCellSchema.safeParse(cell).success);
+  for (const patch of [
+    { pageId: undefined },
+    { pageStartedAt: undefined },
+    { visibleMs: -1 },
+    { visibleMs: 86400001 },
+    { visibleMs: NaN },
+    { kind: "request" },
+    { kind: "pageview" },
+    { durationMs: 10 },
+    { destination: "github.com" },
+  ])
+    assert.equal(
+      analyticsCellSchema.safeParse({ ...cell, ...patch }).success,
+      false,
+    );
+  const outbound = {
+    ...cell,
+    kind: "outbound",
+    visibleMs: undefined,
+    destination: "github.com",
+  };
+  assert(analyticsCellSchema.safeParse(outbound).success);
+  assert.equal(
+    analyticsCellSchema.safeParse({
+      ...outbound,
+      destination: "https://github.com/?secret=yes",
+    }).success,
+    false,
+  );
+});

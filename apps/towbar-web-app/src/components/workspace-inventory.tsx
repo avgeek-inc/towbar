@@ -65,8 +65,9 @@ import { ServerIpLink } from "./source-inventory";
 import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 import { serviceTypeLabel } from "./service-type";
+import { EnvironmentIcon } from "./environment-icon";
 
-const inventoryLayouts = ["grouped", "unified"] as const;
+const inventoryLayouts = ["grouped", "environment", "unified"] as const;
 
 function isApp(item: App | Resource): item is App {
   return item.kind === "app" || item.kind === "compose";
@@ -84,20 +85,31 @@ function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
       selectionMode="single"
       disallowEmptySelection
       selectedKeys={[layout]}
-      onSelectionChange={(keys) =>
-        setLayout(keys.has("unified") ? "unified" : "grouped")
-      }
+      onSelectionChange={(keys) => {
+        const selected = inventoryLayouts.find((choice) => keys.has(choice));
+        if (selected) setLayout(selected);
+      }}
       size="sm"
     >
       <Tooltip>
-        <ToggleButton id="grouped" isIconOnly aria-label="Grouped view">
+        <ToggleButton id="grouped" isIconOnly aria-label="Group by ID">
           <HugeiconsIcon
             icon={Layers01Icon}
             className="size-4"
             aria-hidden="true"
           />
         </ToggleButton>
-        <Tooltip.Content>Grouped view</Tooltip.Content>
+        <Tooltip.Content>Group by ID</Tooltip.Content>
+      </Tooltip>
+      <Tooltip>
+        <ToggleButton
+          id="environment"
+          isIconOnly
+          aria-label="Group by environment"
+        >
+          <EnvironmentIcon />
+        </ToggleButton>
+        <Tooltip.Content>Group by environment</Tooltip.Content>
       </Tooltip>
       <Tooltip>
         <ToggleButton id="unified" isIconOnly aria-label="Unified view">
@@ -388,6 +400,7 @@ function DeployableInventoryTable({
     layout === "unified" ? ResourceTable : GroupedDeployableTable;
   return (
     <InventoryTable
+      groupBy={layout === "environment" ? "environment" : "manifest"}
       ariaLabel={kind === "app" ? "Services" : "Datastores"}
       columns={columns}
       emptyDescription={

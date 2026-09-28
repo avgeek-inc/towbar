@@ -1330,6 +1330,27 @@ const githubRepositories: GitHubRepository[] = [
     owner: "example-inc",
     private: true,
   },
+  ...[
+    "analytics",
+    "documentation",
+    "identity-service",
+    "internal-api",
+    "internal-web",
+    "monitoring",
+    "notification-worker",
+    "reference-data",
+    "shared-config",
+    "shared-design-system",
+    "shared-observability",
+    "website",
+  ].map((name, index) => ({
+    defaultBranch: "main",
+    fullName: `example-inc/${name}`,
+    id: String(10003 + index),
+    name,
+    owner: "example-inc",
+    private: true,
+  })),
 ];
 
 const discoveredHostKey = {
