@@ -8,6 +8,7 @@ import {
 import {
   finishServerCredentialVerification,
   getServerCredentialVerificationExecutionContext,
+  markServerCredentialVerificationInterrupted,
 } from "../../../areas/servers/credential-verification.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import { markServerCheckInterrupted } from "../../../areas/servers/checks.js";
@@ -50,10 +51,11 @@ internalServerCheckRoutes.post("/:checkId/events", async (context) => {
       (await finishServerCheck(id, body)),
   });
 });
-internalServerCheckRoutes.post("/:checkId/interrupt", async (context) =>
-  context.json({
-    check: await markServerCheckInterrupted(
-      checkId(context.req.param("checkId")),
-    ),
-  }),
-);
+internalServerCheckRoutes.post("/:checkId/interrupt", async (context) => {
+  const id = checkId(context.req.param("checkId"));
+  return context.json({
+    check:
+      (await markServerCredentialVerificationInterrupted(id)) ??
+      (await markServerCheckInterrupted(id)),
+  });
+});

@@ -205,10 +205,17 @@ export async function getServerCredentialVerificationExecutionContext(
         isNull(sshHostKeys.revokedAt),
       ),
     );
-  await getTowbarDatabase()
+  const [running] = await getTowbarDatabase()
     .update(serverCredentialVerifications)
     .set({ startedAt: new Date(), status: "running" })
-    .where(eq(serverCredentialVerifications.id, verificationId));
+    .where(
+      and(
+        eq(serverCredentialVerifications.id, verificationId),
+        inArray(serverCredentialVerifications.status, ["queued", "running"]),
+      ),
+    )
+    .returning({ id: serverCredentialVerifications.id });
+  if (!running) return null;
   return {
     checkId: verificationId,
     config: verification.config,
@@ -234,6 +241,7 @@ export async function finishServerCredentialVerification(
         requestedBy: serverCredentialVerifications.requestedBy,
         privateKeyId: serverCredentialVerifications.privateKeyId,
         serverId: serverCredentialVerifications.serverId,
+        status: serverCredentialVerifications.status,
         workspaceId: servers.workspaceId,
       })
       .from(serverCredentialVerifications)
@@ -242,8 +250,17 @@ export async function finishServerCredentialVerification(
         eq(servers.id, serverCredentialVerifications.serverId),
       )
       .where(eq(serverCredentialVerifications.id, verificationId))
+      .for("update", { of: serverCredentialVerifications })
       .limit(1);
     if (!verification) return null;
+    if (!["queued", "running"].includes(verification.status)) {
+      const [existing] = await transaction
+        .select(publicSelection)
+        .from(serverCredentialVerifications)
+        .where(eq(serverCredentialVerifications.id, verificationId))
+        .limit(1);
+      return existing ?? null;
+    }
 
     let outcome = input;
     if (input.status === "succeeded") {
@@ -305,4 +322,34 @@ export async function finishServerCredentialVerification(
       .returning(publicSelection);
     return updated ?? null;
   });
+}
+
+export async function markServerCredentialVerificationInterrupted(
+  verificationId: string,
+) {
+  const database = getTowbarDatabase();
+  const [verification] = await database
+    .update(serverCredentialVerifications)
+    .set({
+      encryptedPrivateKey: null,
+      errorCode: "CREDENTIAL_VERIFICATION_INTERRUPTED",
+      errorMessage:
+        "The SSH credential verification was interrupted or timed out before it completed.",
+      finishedAt: new Date(),
+      status: "failed",
+    })
+    .where(
+      and(
+        eq(serverCredentialVerifications.id, verificationId),
+        inArray(serverCredentialVerifications.status, ["queued", "running"]),
+      ),
+    )
+    .returning(publicSelection);
+  if (verification) return verification;
+  const [existing] = await database
+    .select(publicSelection)
+    .from(serverCredentialVerifications)
+    .where(eq(serverCredentialVerifications.id, verificationId))
+    .limit(1);
+  return existing ?? null;
 }

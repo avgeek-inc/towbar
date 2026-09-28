@@ -392,13 +392,20 @@ function CredentialVerificationModal({
           <Modal.Body>
             <div className="content-grid">
               {active || !verification ? (
-                <div className="flex items-center gap-3 text-muted">
+                <div
+                  role="status"
+                  className="flex items-center gap-3 text-muted"
+                >
                   <HugeiconsIcon
                     aria-hidden="true"
                     className="size-5 animate-spin"
                     icon={ReloadIcon}
                   />
-                  Connecting to the server with this private key…
+                  {!verification
+                    ? "Starting SSH verification…"
+                    : verification.status === "queued"
+                      ? "SSH verification is queued. Waiting for the server to become available…"
+                      : "Connecting to the server with this private key…"}
                 </div>
               ) : verification.status === "succeeded" ? (
                 <p className="text-sm text-muted">

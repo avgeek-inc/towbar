@@ -1,4 +1,4 @@
-import { ApplicationFailure, Context } from "@temporalio/activity";
+import { Context } from "@temporalio/activity";
 
 import {
   CommandError,
@@ -42,14 +42,6 @@ export async function executeServerCheckActivity(checkId: string) {
         status: "failed",
       },
     );
-    throw ApplicationFailure.create({
-      message: safeErrorMessage(error),
-      nonRetryable: error instanceof HostKeyNotTrustedError,
-      type:
-        error instanceof HostKeyNotTrustedError
-          ? "HostKeyNotTrusted"
-          : "ServerCheckFailed",
-    });
   } finally {
     clearInterval(pulse);
   }
