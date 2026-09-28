@@ -34,6 +34,49 @@ export type IntegrationCapability = {
   provider: IntegrationProvider;
 };
 
+export type PublicIntegrationDetail = { label: string; value: string };
+
+export function getPublicIntegrationCapabilities(
+  environment: Environment = process.env,
+) {
+  const runtime = getRuntimeIntegrations(environment);
+  return runtime.capabilities.map((capability) => {
+    const connection = runtime.providers[capability.provider];
+    const details: PublicIntegrationDetail[] = [];
+    const add = (label: string, value?: string) => {
+      if (value) details.push({ label, value });
+    };
+    switch (connection?.provider) {
+      case "aws":
+        add("Region", connection.configuration.region);
+        break;
+      case "s3":
+      case "r2":
+        add("Endpoint", connection.configuration.endpoint);
+        add("Region", connection.configuration.region);
+        add("Bucket", connection.configuration.bucket);
+        add("Prefix", connection.configuration.prefix);
+        break;
+      case "gcs":
+        add("Project ID", connection.configuration.projectId);
+        add("Bucket", connection.configuration.bucket);
+        add("Prefix", connection.configuration.prefix);
+        break;
+      case "registry":
+        add("Registry host", connection.configuration.registry);
+        break;
+      case "infisical":
+        add("Server", new URL(connection.configuration.baseUrl).origin);
+        break;
+      case "cloudflare":
+        add("Account ID", connection.configuration.accountId);
+        add("Zone ID", connection.configuration.zoneId);
+        break;
+    }
+    return { ...capability, details };
+  });
+}
+
 export type GitHubRuntimeConfiguration = {
   apiUrl: string;
   appId: string;

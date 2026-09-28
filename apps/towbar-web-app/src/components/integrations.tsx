@@ -12,6 +12,7 @@ import { SecondaryItems } from "./secondary-sidebar";
 import {
   getProviderIcon,
   integrationGroups,
+  type IntegrationDetail,
   type ProviderGroup,
 } from "./integration-catalog";
 
@@ -20,11 +21,13 @@ export function ProviderPage({
   provider,
   statuses,
   basePath,
+  detailsByProvider = {},
 }: {
   groups: ProviderGroup[];
   provider: string;
   statuses: Record<string, string | undefined>;
   basePath: string;
+  detailsByProvider?: Record<string, IntegrationDetail[]>;
 }) {
   const pathname = usePathname();
   const selectedProvider = pathname.startsWith(`${basePath}/`)
@@ -88,13 +91,21 @@ export function ProviderPage({
           }))}
         />
       ))}
-      {activeProvider.content}
+      {typeof activeProvider.content === "function"
+        ? activeProvider.content(
+            detailsByProvider[activeProvider.provider] ?? [],
+          )
+        : activeProvider.content}
     </>
   );
 }
 
 type IntegrationCapabilities = {
-  integrations: Array<{ category: string; provider: IntegrationProvider }>;
+  integrations: Array<{
+    category: string;
+    provider: IntegrationProvider;
+    details: IntegrationDetail[];
+  }>;
 };
 
 export function Integrations({ integration }: { integration: string }) {
@@ -121,11 +132,18 @@ export function Integrations({ integration }: { integration: string }) {
       .flatMap((group) => group.providers)
       .map((item) => [item.value, "Configured"] as const),
   );
+  const detailsByProvider = Object.fromEntries(
+    integrations.data.integrations.map(({ provider, details }) => [
+      provider,
+      details,
+    ]),
+  );
   return (
     <ProviderPage
       groups={groups}
       provider={integration}
       statuses={statuses}
+      detailsByProvider={detailsByProvider}
       basePath="/manage/integrations"
     />
   );
