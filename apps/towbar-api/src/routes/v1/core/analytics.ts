@@ -20,7 +20,7 @@ analyticsRoutes.get(
     query: analyticsFilterOptionsQuerySchema,
     summary: "Find analytics filter values",
     response:
-      "Matching referrer websites, countries, or browsers within retention.",
+      "Matching referrer websites, countries, cities, or browsers within retention.",
     status: 200,
   }),
   async (context) =>

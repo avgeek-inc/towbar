@@ -79,3 +79,23 @@ for (const kind of ["request", "pageview"]) {
     assert(Object.values(empty.dimensions).every((rows) => rows.length === 0));
   });
 }
+
+test("city filters apply consistently to pageview reports", () => {
+  const all = report("pageview");
+  const value = "Chennai, Tamil Nadu, IN";
+  const filtered = report("pageview", [
+    { field: "city", operator: "in", value: [value] },
+  ]);
+  assert.deepEqual(filtered.dimensions.city, [
+    { value, count: filtered.total },
+  ]);
+  assert.equal(
+    filtered.total,
+    all.dimensions.city.find((row) => row.value === value).count,
+  );
+  assert.equal(
+    filtered.trend.reduce((sum, row) => sum + row.count, 0),
+    filtered.total,
+  );
+  assert.equal(report("request").dimensions.city, undefined);
+});
