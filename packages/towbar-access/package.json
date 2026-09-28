@@ -13,12 +13,12 @@
     "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
-    "better-auth": "1.7.5"
+    "better-auth": "1.7.6"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "catalog:"
   }
 }
