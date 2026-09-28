@@ -135,24 +135,22 @@ export async function verifyPageEngagement(input: {
     assert.deepEqual(anonymous.exitPages, []);
     const legacySample = randomBytes(16).toString("hex");
     samples.push(legacySample);
-    await db
-      .insert(analyticsSamples)
-      .values({
-        serverId: input.serverId,
-        appId: input.appId,
-        sampleId: legacySample,
-        collectedAt: closed,
-        cells: [
-          analyticsCellSchema.parse({
-            ...base,
-            path: "/legacy",
-            session: "6".repeat(64),
-            pageId: undefined,
-            pageStartedAt: undefined,
-            count: 2,
-          }),
-        ],
-      });
+    await db.insert(analyticsSamples).values({
+      serverId: input.serverId,
+      appId: input.appId,
+      sampleId: legacySample,
+      collectedAt: closed,
+      cells: [
+        analyticsCellSchema.parse({
+          ...base,
+          path: "/legacy",
+          session: "6".repeat(64),
+          pageId: undefined,
+          pageStartedAt: undefined,
+          count: 2,
+        }),
+      ],
+    });
     const legacy = await getAnalyticsReport({
       ...input,
       days: 1,
