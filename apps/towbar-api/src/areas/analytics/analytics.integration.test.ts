@@ -1,4 +1,5 @@
 import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
+import { verifyAnalyticsCities } from "./city-test-support.js";
 import { verifyFilterOptionsResponse } from "./filter-options-test-support.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -520,6 +521,7 @@ void test(
           filters: [{ field: "browser", operator: "in", value: ["Chrome"] }],
         }),
       );
+      await verifyAnalyticsCities({ db, serverId, appId, workspaceId, page });
       await db
         .update(apps)
         .set({

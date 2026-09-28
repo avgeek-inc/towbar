@@ -120,7 +120,7 @@ func sendLoop(ctx context.Context, c Config, snapshot string, q *Queue) error {
 			marker, err := analytics.refresh(ctx, client, c)
 			if err == nil && time.Now().After(nextGeo) {
 				if analytics.geo.update(ctx, marker, time.Now()) != nil {
-					log.Print("country database refresh failed; keeping last valid database")
+					log.Print("geolocation database refresh failed; keeping last valid database")
 					nextGeo = time.Now().Add(time.Hour)
 				} else {
 					nextGeo = time.Now().Add(time.Minute)

@@ -68,7 +68,6 @@ export function FilterDialog<Field extends string, Operator extends string>({
     <>
       <Button
         variant="secondary"
-        className="hidden sm:inline-flex"
         onPress={() =>
           setDraft(
             value.length

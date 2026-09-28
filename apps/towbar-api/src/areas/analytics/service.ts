@@ -132,12 +132,12 @@ export async function getAnalyticsReport(input: {
 }): Promise<AnalyticsReport> {
   if (
     input.kind === "request" &&
-    input.filters?.some(
-      (filter) => filter.field === "country" || filter.field === "browser",
+    input.filters?.some((filter) =>
+      ["country", "city", "browser"].includes(filter.field),
     )
   )
     throw badRequest(
-      "Country and browser filters are available for pageviews only.",
+      "Country, city, and browser filters are available for pageviews only.",
     );
   const database = getTowbarDatabase();
   const [app] = await database
@@ -204,8 +204,8 @@ export async function getAnalyticsReport(input: {
   const dimensions: AnalyticsReport["dimensions"] = {};
   for (const key of input.kind === "request"
     ? ["path", "referrer", "status", "method"]
-    : ["path", "referrer", "country", "browser", "device"]) {
-    const dimension = sql`coalesce(nullif(c->>${key},''),'Unknown')`;
+    : ["path", "referrer", "country", "city", "browser", "device"]) {
+    const dimension = analyticsDimension(key);
     const rows = await database.execute<{ value: string; count: string }>(sql`
       select ${dimension} value,sum((c->>'count')::bigint)::text count
       from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}
@@ -258,12 +258,12 @@ export async function getAnalyticsFilterOptions(input: {
   workspaceId: string;
   days: number;
   kind: "request" | "pageview";
-  field: "referrer" | "country" | "browser";
+  field: "referrer" | "country" | "city" | "browser";
   search: string;
 }) {
   if (input.kind === "request" && input.field !== "referrer")
     throw badRequest(
-      "Country and browser filters are available for pageviews only.",
+      "Country, city, and browser filters are available for pageviews only.",
     );
   const database = getTowbarDatabase();
   const [app] = await database
@@ -283,7 +283,7 @@ export async function getAnalyticsFilterOptions(input: {
   const start = new Date(
     end.getTime() - Math.min(input.days, retention) * 86400_000,
   );
-  const field = sql`coalesce(nullif(c->>${input.field}, ''), 'Unknown')`;
+  const field = analyticsDimension(input.field);
   const rows = await database.execute<{ value: string }>(sql`
     select ${field} value from towbar_analytics_samples s
     cross join lateral jsonb_array_elements(s.cells) c
@@ -295,11 +295,19 @@ export async function getAnalyticsFilterOptions(input: {
   return rows.map((row) => row.value);
 }
 
+function analyticsDimension(field: string): SQL {
+  if (field === "city")
+    return sql`case when coalesce(c->>'city', '') = '' then 'Unknown'
+      else concat_ws(', ', c->>'city', nullif(c->>'region', ''), nullif(c->>'country', '')) end`;
+  return sql`coalesce(nullif(c->>${field}, ''), 'Unknown')`;
+}
+
 function analyticsConditions(filters: AnalyticsFilter[]): SQL {
   const fields: Record<AnalyticsFilter["field"], SQL> = {
     path: sql`c->>'path'`,
     referrer: sql`coalesce(nullif(c->>'referrer', ''), 'Unknown')`,
-    country: sql`coalesce(nullif(c->>'country', ''), 'Unknown')`,
+    country: analyticsDimension("country"),
+    city: analyticsDimension("city"),
     browser: sql`coalesce(nullif(c->>'browser', ''), 'Unknown')`,
   };
   return (

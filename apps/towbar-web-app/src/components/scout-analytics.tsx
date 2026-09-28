@@ -41,6 +41,7 @@ const labels: Record<string, string> = {
   status: "Response codes",
   method: "Methods",
   country: "Countries",
+  city: "Cities",
   browser: "Browsers",
   device: "Devices",
 };
@@ -98,6 +99,12 @@ export function ScoutAnalytics({
           {
             field: "country" as const,
             label: "Country",
+            operators: [{ value: "in" as const, label: "is one of" }],
+            searchable: true,
+          },
+          {
+            field: "city" as const,
+            label: "City",
             operators: [{ value: "in" as const, label: "is one of" }],
             searchable: true,
           },
@@ -171,11 +178,11 @@ export function ScoutAnalytics({
             getOptions={getFilterOptions}
             renderOption={(field, value) => (
               <span className="flex min-w-0 items-center gap-2">
-                {field === "country" ? (
+                {field === "country" || field === "city" ? (
                   <span aria-hidden="true" className="w-5 shrink-0 text-center">
-                    {/^[A-Z]{2}$/u.test(value)
+                    {/^[A-Z]{2}$/u.test(locationCountry(field, value))
                       ? String.fromCodePoint(
-                          ...[...value].map(
+                          ...[...locationCountry(field, value)].map(
                             (letter) => 0x1f1e6 + letter.charCodeAt(0) - 65,
                           ),
                         )
@@ -187,7 +194,9 @@ export function ScoutAnalytics({
                 <span className="truncate">
                   {field === "country" && value !== "Unknown"
                     ? (countryNames.of(value) ?? value)
-                    : value}
+                    : field === "city"
+                      ? cityLabel(value)
+                      : value}
                 </span>
               </span>
             )}
@@ -209,7 +218,7 @@ export function ScoutAnalytics({
               setFilters((current) =>
                 current.filter(
                   (filter) =>
-                    filter.field !== "country" && filter.field !== "browser",
+                    !["country", "city", "browser"].includes(filter.field),
                 ),
               );
             setKind(next);
@@ -594,6 +603,19 @@ export function AnalyticsView({
           ) : null}
         </div>
       ) : null}
+      {pageviews && report.total > 0 ? (
+        <p className="text-xs text-muted">
+          IP Geolocation by{" "}
+          <a
+            href="https://db-ip.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4"
+          >
+            DB-IP
+          </a>
+        </p>
+      ) : null}
       {pageviews ? (
         <section
           className="space-y-5 pt-4"
@@ -634,10 +656,12 @@ function AnalyticsRows({
   total: number;
 }) {
   const country = dimension === "country";
+  const location = country || dimension === "city";
   const numbered = [
     "path",
     "referrer",
     "country",
+    "city",
     "browser",
     "device",
   ].includes(dimension);
@@ -667,9 +691,9 @@ function AnalyticsRows({
             <Table.Column isRowHeader textValue={name}>
               <span className="flex h-4 items-center gap-1">
                 {name}
-                {country ? (
+                {location ? (
                   <HeadingHelp
-                    title="Countries"
+                    title={name}
                     help={{
                       description: "IP Geolocation provided by DB-IP database.",
                       href: "/docs/analytics",
@@ -707,10 +731,13 @@ function AnalyticsRows({
                       dimension={dimension}
                       value={row.value}
                     />
-                    {country && /^[A-Z]{2}$/u.test(row.value) ? (
+                    {location &&
+                    /^[A-Z]{2}$/u.test(
+                      locationCountry(dimension, row.value),
+                    ) ? (
                       <span aria-hidden="true">
                         {String.fromCodePoint(
-                          ...[...row.value].map(
+                          ...[...locationCountry(dimension, row.value)].map(
                             (letter) => 127397 + letter.charCodeAt(0),
                           ),
                         )}
@@ -721,7 +748,9 @@ function AnalyticsRows({
                       label={
                         country && /^[A-Z]{2}$/u.test(row.value)
                           ? (countryNames.of(row.value) ?? row.value)
-                          : row.value
+                          : dimension === "city"
+                            ? cityLabel(row.value)
+                            : row.value
                       }
                       dimension={dimension}
                       domain={domain}
@@ -742,6 +771,19 @@ function AnalyticsRows({
       </Table.ScrollContainer>
     </Table>
   );
+}
+
+function locationCountry(dimension: string, value: string) {
+  return dimension === "country"
+    ? value
+    : (/, ([A-Z]{2})$/u.exec(value)?.[1] ?? "");
+}
+
+function cityLabel(value: string) {
+  const country = locationCountry("city", value);
+  return country
+    ? `${value.slice(0, -2)}${countryNames.of(country) ?? country}`
+    : value;
 }
 
 function AnalyticsRowLabel({

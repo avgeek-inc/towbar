@@ -48,6 +48,8 @@ void test("request payloads reject IP addresses, identities, queries, and incons
     { ip: "1.2.3.4" },
     { path: "/?secret=x" },
     { visitor: "a".repeat(64) },
+    { city: "Chennai", country: "IN" },
+    { region: "Tamil Nadu", city: "Chennai", country: "IN" },
     { histogram: Array(8).fill(0) },
   ])
     assert(!analyticsCellSchema.safeParse({ ...cell, ...patch }).success);
@@ -68,6 +70,11 @@ void test("analytics filters validate bounded AND conditions", async () => {
     { field: "referrer", operator: "in", value: ["example.com", "Unknown"] },
     { field: "country", operator: "in", value: ["IN", "US"] },
     { field: "browser", operator: "in", value: ["Chrome"] },
+    {
+      field: "city",
+      operator: "in",
+      value: ["Chennai, Tamil Nadu, IN", "Unknown"],
+    },
   ];
   assert.deepEqual(
     analyticsQuerySchema.parse({ filters: JSON.stringify(selected) }).filters,
@@ -90,6 +97,7 @@ void test("analytics filters validate bounded AND conditions", async () => {
       { field: "referrer", operator: "in", value: [] },
       { field: "country", operator: "in", value: ["IND"] },
       { field: "browser", operator: "in", value: ["chrome"] },
+      { field: "city", operator: "in", value: ["Chennai\n"] },
       { field: "browser", operator: "in", value: ["Safari", "Safari"] },
       {
         field: "referrer",
@@ -103,4 +111,45 @@ void test("analytics filters validate bounded AND conditions", async () => {
       false,
       value,
     );
+});
+
+void test("city data is optional for older agents and bounded for pageviews", () => {
+  const page = {
+    appId: "11111111-1111-4111-8111-111111111111",
+    kind: "pageview",
+    path: "/",
+    referrer: "",
+    method: "GET",
+    status: 0,
+    country: "IN",
+    browser: "Safari",
+    device: "Mobile",
+    visitor: "",
+    session: "",
+    count: 1,
+    bytes: 0,
+    durationMs: 0,
+    histogram: Array(8).fill(0),
+  };
+  assert(analyticsCellSchema.safeParse(page).success);
+  assert(
+    analyticsCellSchema.safeParse({
+      ...page,
+      city: "Chennai",
+      region: "Tamil Nadu",
+    }).success,
+  );
+  assert(
+    analyticsCellSchema.safeParse({ ...page, country: "BR", city: "São Paulo" })
+      .success,
+  );
+  for (const patch of [
+    { city: "x".repeat(129) },
+    { city: "Chennai\n" },
+    { city: "Chennai\u202e" },
+    { city: "Chennai", region: "x".repeat(97) },
+    { city: "Chennai", country: "" },
+    { region: "Tamil Nadu" },
+  ])
+    assert(!analyticsCellSchema.safeParse({ ...page, ...patch }).success);
 });

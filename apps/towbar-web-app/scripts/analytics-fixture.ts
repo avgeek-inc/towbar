@@ -29,7 +29,13 @@ export function analyticsFixture(
         ? ["google.com", "github.com", "Unknown"]
         : query.data.field === "country"
           ? ["IN", "US", "Unknown"]
-          : ["Chrome", "Safari", "Unknown"];
+          : query.data.field === "city"
+            ? [
+                "Chennai, Tamil Nadu, IN",
+                "San Francisco, California, US",
+                "Unknown",
+              ]
+            : ["Chrome", "Safari", "Unknown"];
     response.writeHead(200, { "content-type": "application/json" });
     response.end(
       fixtureJson(response, {
@@ -70,6 +76,7 @@ export function analyticsFixture(
       share: 0.45,
       referrer: "google.com",
       country: "IN",
+      city: "Chennai, Tamil Nadu, IN",
       browser: "Chrome",
     },
     {
@@ -77,6 +84,7 @@ export function analyticsFixture(
       share: 0.24,
       referrer: "github.com",
       country: "US",
+      city: "San Francisco, California, US",
       browser: "Safari",
     },
     {
@@ -84,6 +92,7 @@ export function analyticsFixture(
       share: 0.12,
       referrer: "Unknown",
       country: "IN",
+      city: "Chennai, Tamil Nadu, IN",
       browser: "Chrome",
     },
     {
@@ -92,6 +101,7 @@ export function analyticsFixture(
       share: 0.05,
       referrer: "github.com",
       country: "US",
+      city: "San Francisco, California, US",
       browser: "Safari",
     },
     {
@@ -99,6 +109,7 @@ export function analyticsFixture(
       share: 0.09,
       referrer: "google.com",
       country: "IN",
+      city: "Chennai, Tamil Nadu, IN",
       browser: "Chrome",
     },
     {
@@ -106,6 +117,7 @@ export function analyticsFixture(
       share: 0.05,
       referrer: "Unknown",
       country: "Unknown",
+      city: "Unknown",
       browser: "Unknown",
     },
   ];
@@ -162,7 +174,9 @@ export function analyticsFixture(
   );
   histogram[0] = total - histogram.reduce((a, b) => a + b, 0);
   const share = (fraction: number) => Math.floor(total * fraction);
-  const dimensionCounts = (field: "referrer" | "country" | "browser") => {
+  const dimensionCounts = (
+    field: "referrer" | "country" | "city" | "browser",
+  ) => {
     const counts = new Map<string, number>();
     for (const rows of currentBuckets)
       for (const row of rows) {
@@ -261,6 +275,7 @@ export function analyticsFixture(
           }
         : {
             country: dimensionCounts("country"),
+            city: dimensionCounts("city"),
             browser: dimensionCounts("browser"),
             device: [
               { value: "Desktop", count: share(0.58) },

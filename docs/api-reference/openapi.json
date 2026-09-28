@@ -23,6 +23,7 @@
               { "type": "string", "const": "path" },
               { "type": "string", "const": "referrer" },
               { "type": "string", "const": "country" },
+              { "type": "string", "const": "city" },
               { "type": "string", "const": "browser" }
             ]
           },
@@ -12869,7 +12870,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["referrer", "country", "browser"]
+              "enum": ["referrer", "country", "city", "browser"]
             }
           },
           {
@@ -12881,7 +12882,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Matching referrer websites, countries, or browsers within retention.",
+            "description": "Matching referrer websites, countries, cities, or browsers within retention.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13019,7 +13020,7 @@
               "default": "[]",
               "type": "string",
               "maxLength": 8192,
-              "description": "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, country, and browser support in with an array of up to 20 values."
+              "description": "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, country, city, and browser support in with an array of up to 20 values."
             }
           }
         ],

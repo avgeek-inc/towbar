@@ -27,7 +27,6 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 PrivateTmp=true
-MemoryMax=128M
 CPUQuota=5%
 TasksMax=32
 LimitNOFILE=128
@@ -57,6 +56,7 @@ RestartSec=10
 RestrictAddressFamilies=AF_UNIX
 InaccessiblePaths=-/etc/towbar-monitoring
 ReadWritePaths=/run/towbar-monitoring
+MemoryMax=128M
 ${hardening}
 [Install]
 WantedBy=multi-user.target
@@ -82,6 +82,7 @@ RestartSec=15
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 InaccessiblePaths=-/run/docker.sock -/var/run/docker.sock
 ReadWritePaths=/var/lib/towbar-monitoring
+MemoryMax=256M
 ${hardening}
 [Install]
 WantedBy=multi-user.target

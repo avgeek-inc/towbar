@@ -28,7 +28,7 @@ func TestAnalyticsRequestPrivacyAndHistogram(t *testing.T) {
 		t.Fatal(a.cells)
 	}
 	for _, c := range a.cells {
-		if c.Path != "/docs" || c.Count != 1 || c.Histogram[3] != 1 || c.Country != "" || c.Visitor != "" {
+		if c.Path != "/docs" || c.Count != 1 || c.Histogram[3] != 1 || c.Country != "" || c.City != "" || c.Region != "" || c.Visitor != "" {
 			t.Fatal(c)
 		}
 	}
@@ -117,7 +117,7 @@ func TestReferrerAndPathSanitization(t *testing.T) {
 func TestGeoFailurePreservesDatabase(t *testing.T) {
 	directory := t.TempDir()
 	g := openGeoDatabase(directory)
-	if err := os.WriteFile(filepath.Join(directory, "country.mmdb"), []byte("last valid file"), 0600); err != nil {
+	if err := os.WriteFile(g.path, []byte("last valid file"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -129,7 +129,7 @@ func TestGeoFailurePreservesDatabase(t *testing.T) {
 	if string(data) != "last valid file" {
 		t.Fatal("failed update replaced database")
 	}
-	if g.country("127.0.0.1") != "" || g.country("10.1.2.3") != "" {
+	if g.location("127.0.0.1") != (geoLocation{}) || g.location("10.1.2.3") != (geoLocation{}) {
 		t.Fatal("private IP geolocated")
 	}
 }
@@ -156,7 +156,7 @@ func TestLiveGeoDownload(t *testing.T) {
 	if err := g.update(context.Background(), "live", time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	if g.country("1.1.1.1") == "" {
+	if g.location("8.8.8.8").City == "" || g.location("8.8.8.8").Country == "" {
 		t.Fatal("downloaded database lookup failed")
 	}
 	if err := g.update(context.Background(), "next-day", time.Now()); err != nil {

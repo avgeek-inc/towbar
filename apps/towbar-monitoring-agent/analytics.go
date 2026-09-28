@@ -25,6 +25,8 @@ type AnalyticsCell struct {
 	Method     string   `json:"method"`
 	Status     int      `json:"status"`
 	Country    string   `json:"country"`
+	City       string   `json:"city,omitempty"`
+	Region     string   `json:"region,omitempty"`
 	Browser    string   `json:"browser"`
 	Device     string   `json:"device"`
 	Visitor    string   `json:"visitor"`
@@ -328,11 +330,11 @@ func (a *analyticsCollector) browser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	browser, device := browserFamily(r.UserAgent())
-	country := ""
+	location := geoLocation{}
 	if a.geo != nil {
-		country = a.geo.country(a.clientIP(service, r))
+		location = a.geo.location(a.clientIP(service, r))
 	}
-	cell := AnalyticsCell{AppID: service.ID, Kind: "pageview", Path: event.Path, Referrer: referrerHost(event.Referrer), Method: "GET", Country: country, Browser: browser, Device: device, Count: 1}
+	cell := AnalyticsCell{AppID: service.ID, Kind: "pageview", Path: event.Path, Referrer: referrerHost(event.Referrer), Method: "GET", Country: location.Country, City: location.City, Region: location.Region, Browser: browser, Device: device, Count: 1}
 	if service.VisitorIdentity {
 		cell.Visitor = hashIdentity(service.ID, event.Visitor)
 		cell.Session = hashIdentity(service.ID, event.Session)
