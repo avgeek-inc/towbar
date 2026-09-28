@@ -611,7 +611,7 @@ test("the local fixture rejects disallowed origins before state changes", async 
   }
 });
 
-test("runtime integrations expose capabilities without credentials or mutations", async () => {
+test("runtime integrations expose safe details without credentials or mutations", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -622,8 +622,25 @@ test("runtime integrations expose capabilities without credentials or mutations"
     assert(state.integrations.some((item) => item.provider === "aws"));
     assert(
       state.integrations.every(
-        (item) => Object.keys(item).sort().join(",") === "category,provider",
+        (item) =>
+          Object.keys(item).sort().join(",") === "category,details,provider",
       ),
+    );
+    for (const integration of state.integrations) {
+      assert(Array.isArray(integration.details));
+      for (const detail of integration.details) {
+        assert.deepEqual(Object.keys(detail).sort(), ["label", "value"]);
+        assert.equal(typeof detail.label, "string");
+        assert.equal(typeof detail.value, "string");
+      }
+    }
+    assert.deepEqual(
+      state.integrations.find((item) => item.provider === "aws").details,
+      [{ label: "Region", value: "us-east-1" }],
+    );
+    assert.deepEqual(
+      state.integrations.find((item) => item.provider === "doppler").details,
+      [],
     );
     assert.equal(
       (await fetch(`${base}/integrations`, { method: "POST" })).status,
