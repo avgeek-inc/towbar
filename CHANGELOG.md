@@ -20,6 +20,8 @@ All notable changes to Towbar are documented in this file. This project follows
   smaller headings and search by repository name.
 - First-deployment checks use the same text sizes as deployment progress. The
   secondary sidebar and tables with footers have less bottom padding.
+- Release scripts derive their versions from the root package version. Checks
+  reject an installer or CLI that has not been regenerated after a version bump.
 
 ### Fixed
 

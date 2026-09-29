@@ -36,6 +36,7 @@ jobs:
           [[ "$RELEASE_TAG" =~ ^v2\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           version="${RELEASE_TAG#v}"
           test "$(jq -r .version package.json)" = "$version"
+          node tools/build-towbar-cli.mjs --check
           commit="$(git rev-parse 'HEAD^{commit}')"
           tag_commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
           test "$tag_commit" = "$commit"

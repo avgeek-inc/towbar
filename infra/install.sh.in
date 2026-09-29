@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Generated from infra/install.sh.in and package.json; run pnpm cli:build.
 set -Eeuo pipefail
 
 TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
-INSTALLER_VERSION="v2.0.19"
+INSTALLER_VERSION="v@TOWBAR_VERSION@"
 TOWBAR_CLI_URL="${TOWBAR_CLI_URL:-https://raw.githubusercontent.com/$TOWBAR_REPOSITORY/$INSTALLER_VERSION/infra/towbar}"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 

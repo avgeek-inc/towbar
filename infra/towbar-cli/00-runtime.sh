@@ -1,8 +1,3 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-CLI_VERSION="2.0.19"
-CLI_RELEASE="v$CLI_VERSION"
 TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
 TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
 TOWBAR_ENV_FILE="${TOWBAR_ENV_FILE:-$TOWBAR_CONFIG_DIR/towbar.env}"

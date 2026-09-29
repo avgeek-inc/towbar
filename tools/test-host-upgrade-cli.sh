@@ -6,8 +6,11 @@ repository="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 export TOWBAR_ROOT="$temporary_root/opt" TOWBAR_CONFIG_DIR="$temporary_root/etc"
+# shellcheck source=../infra/towbar-cli/00-version.sh
 # shellcheck disable=SC1091
+source "$repository/infra/towbar-cli/00-version.sh"
 # shellcheck source=../infra/towbar-cli/00-runtime.sh
+# shellcheck disable=SC1091
 source "$repository/infra/towbar-cli/00-runtime.sh"
 # shellcheck disable=SC1091
 # shellcheck source=../infra/towbar-cli/30-release.sh
@@ -46,6 +49,7 @@ for expected_status in 0 23; do
   set +e
   bash -s -- "$repository" "$expected_status" <<'BASH' >"$temporary_root/delegation-output" 2>&1
 set -Eeuo pipefail
+source "$1/infra/towbar-cli/00-version.sh"
 source "$1/infra/towbar-cli/00-runtime.sh"
 source "$1/infra/towbar-cli/40-lifecycle.sh"
 expected_status="$2"
