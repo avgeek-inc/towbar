@@ -26,12 +26,14 @@ import { seedEnvironmentTeam } from "../sources/environment-server-tests.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 void test(
   "automatic collectors retain sync authority and blocked candidates allow post-sync work",
-  { skip: !url, timeout: 120_000 },
+  {
+    skip: !url || !process.env.TOWBAR_TEST_TEMPORAL_ADDRESS,
+    timeout: 120_000,
+  },
   async (t) => {
     assert(url && new URL(url).pathname.endsWith("_test"));
     process.env.DATABASE_TOWBAR_URL = url;
-    if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS)
-      process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS;
+    process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS!;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
     const { runTowbarMigrations } =
@@ -42,6 +44,11 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
+    const { closeTemporalClient } =
+      await import("../../infrastructure/temporal.js");
+    t.after(async () => {
+      await Promise.all([closeTemporalClient(), closeDatabase()]);
+    });
     const { captureQueuedActor, withActor } =
       await import("../auth/actor-context.js");
     const { createApiKey, resolveApiKeyPrincipal } =
@@ -501,7 +508,7 @@ void test(
         },
       );
     } finally {
-      await db.delete(deployments).where(eq(deployments.appId, appId));
+      await db.delete(deployments).where(eq(deployments.sourceId, sourceId));
       await db.delete(apps).where(eq(apps.sourceId, sourceId));
       await db.delete(sources).where(eq(sources.id, sourceId));
       await db
@@ -514,7 +521,6 @@ void test(
         );
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(users).where(eq(users.id, userId));
-      await closeDatabase();
     }
   },
 );

@@ -27,12 +27,14 @@ import { seedEnvironmentTeam } from "../sources/environment-server-tests.js";
 const url = process.env.TOWBAR_TEST_DATABASE_URL;
 void test(
   "queued collectors recheck server opt-in, captured authority and the live role, including rollback",
-  { skip: !url },
+  {
+    skip: !url || !process.env.TOWBAR_TEST_TEMPORAL_ADDRESS,
+    timeout: 120_000,
+  },
   async (t) => {
     assert(url && new URL(url).pathname.endsWith("_test"));
     process.env.DATABASE_TOWBAR_URL = url;
-    if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS)
-      process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS;
+    process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS!;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
     const { runTowbarMigrations } =
@@ -43,6 +45,11 @@ void test(
     });
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
+    const { closeTemporalClient } =
+      await import("../../infrastructure/temporal.js");
+    t.after(async () => {
+      await Promise.all([closeTemporalClient(), closeDatabase()]);
+    });
     const { getDeploymentExecutionContext } =
       await import("../deployments/service.js");
     const { requestAppRollback } = await import("./service.js");
@@ -453,7 +460,6 @@ void test(
       await db.delete(sources).where(eq(sources.id, sourceId));
       await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
       await db.delete(users).where(eq(users.id, userId));
-      await closeDatabase();
     }
   },
 );
