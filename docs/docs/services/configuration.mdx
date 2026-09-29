@@ -51,7 +51,7 @@ Create the mount directory in the image with ownership for its runtime user. Vol
 
 ## Docker host logs
 
-A trusted log collector Service can request one fixed, read-only host mount. First, an Admin must enable **Allow Docker log collection** under the target server's **Settings → Configuration**. Then declare `container.hostLogs.dockerJsonFiles: true`:
+A trusted log collector Service can request one fixed, read-only host mount. First, an Admin must enable **Allow Docker log collection** under the target server's **Settings → Logs collection**. Then declare `container.hostLogs.dockerJsonFiles: true`:
 
 ```yaml title=".towbar/services/host-logs.service.yml"
 id: host-logs

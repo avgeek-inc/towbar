@@ -137,7 +137,7 @@ Also account for the installation-wide [worker activity limit](/docs/self-hostin
 
 ## Allow Docker log collection
 
-Host-log access is disabled by default. An Admin can enable **Allow Docker log collection** under **Settings → Configuration** for a server that will run a trusted collector. The server API accepts `hostLogCollection: true` in its configuration; omitting the field or setting it to `false` disables it. A Service must also request `container.hostLogs.dockerJsonFiles: true`; enabling the server alone gives ordinary Services no host mount.
+Host-log access is disabled by default. An Admin can enable **Allow Docker log collection** under **Settings → Logs collection** for a server that will run a trusted collector. The server API accepts `hostLogCollection: true` in its configuration; omitting the field or setting it to `false` disables it. A Service must also request `container.hostLogs.dockerJsonFiles: true`; enabling the server alone gives ordinary Services no host mount.
 
 The collector can read Docker logs and container metadata from every workload on that server. See [Docker host logs](/docs/services/configuration#docker-host-logs) for the fixed mount, runtime restrictions, persistent buffer, and required permissions. Disabling the setting blocks further collector deployments. Stop and remove existing collectors to revoke their mounted access.
 
@@ -197,7 +197,7 @@ For public routes, continue with [Domains and TLS](/docs/domains-tls). For priva
 
 ## Clean up leftover workloads
 
-Deleting a repository removes its imported inventory and history from Towbar. It does not stop running services or delete Docker data. Choose **Check server**, wait for a successful check, then open **Settings → Cleanup** to review leftover containers, images, and volumes.
+Deleting a repository removes its imported inventory and history from Towbar. It does not stop running services or delete Docker data. Choose **Check server**, wait for a successful check, then open **Settings → Docker cleanup** to review leftover containers, images, and volumes.
 
 Towbar retains workload ownership separately from repositories. Cleanup lists only objects whose ownership is known to this server. Existing installations recover ownership from retained server-check history; objects with no surviving ownership evidence are excluded.
 

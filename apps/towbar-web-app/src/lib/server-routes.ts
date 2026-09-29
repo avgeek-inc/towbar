@@ -15,6 +15,7 @@ const serverSectionChildren: Record<string, Set<string>> = {
   settings: new Set([
     "credentials",
     "configuration",
+    "logs-collection",
     "monitoring",
     "cleanup",
     "danger",

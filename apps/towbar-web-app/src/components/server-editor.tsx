@@ -15,8 +15,6 @@ import {
   FieldLabel,
 } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Label } from "@workspace/web-design-system/forms/label";
 import { toast } from "@workspace/web-design-system/overlays/toast";
 
 import { FormCard } from "@/components/page-parts";
@@ -72,7 +70,7 @@ export function ServerEditor({
     const config = {
       buildConcurrency: Number(values.get("buildConcurrency")),
       previewBuildConcurrency: Number(values.get("previewBuildConcurrency")),
-      hostLogCollection: values.get("hostLogCollection") === "on",
+      hostLogCollection: server?.config.hostLogCollection === true,
       ip,
       ssh: {
         ...(host && host !== ip ? { host } : {}),
@@ -240,30 +238,6 @@ export function ServerEditor({
             Build concurrency limits simultaneous work on this server. Start
             with 1 until its available CPU and memory are verified.
           </FieldDescription>
-          <div className="grid gap-2">
-            <Checkbox
-              aria-describedby="server-host-log-description"
-              className="w-fit"
-              name="hostLogCollection"
-              value="on"
-              defaultSelected={server?.config.hostLogCollection === true}
-              isDisabled={!canManage}
-              variant="secondary"
-            >
-              <Checkbox.Content className="min-h-11">
-                <Checkbox.Control>
-                  <Checkbox.Indicator />
-                </Checkbox.Control>
-                <Label>Allow Docker log collection</Label>
-              </Checkbox.Content>
-            </Checkbox>
-            <FieldDescription id="server-host-log-description">
-              Allow trusted collector Services to read this server’s Docker logs
-              and container metadata. The Service must explicitly request
-              access. Disabling this setting blocks future collector
-              deployments; stop existing collectors to remove their access.
-            </FieldDescription>
-          </div>
           <Button
             className="w-fit"
             isDisabled={busy || !canManage}

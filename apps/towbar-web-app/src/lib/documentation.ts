@@ -60,6 +60,10 @@ export const documentationTopics = {
     "servers",
     "Register an Ubuntu server, configure trusted SSH access, and prepare it to run services and datastores.",
   ),
+  logCollection: guide(
+    "servers#allow-docker-log-collection",
+    "Allow trusted collector Services to read this server's Docker logs and container metadata. Each Service must explicitly request access.",
+  ),
   preparation: guide(
     "servers/setup",
     "Follow connection checks and prerequisite installation. Expand a step for its details and duration.",
@@ -345,6 +349,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
     notifications: "notifications",
     credentials: "credentials",
     configuration: "credentials",
+    "logs-collection": "logCollection",
     "scout-agent": "scout",
     "monitoring-agent": "scout",
     monitoring: "scout",
@@ -394,6 +399,8 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
   ),
   "server identity and capacity": documentationTopics.servers,
   "scout agent": documentationTopics.scout,
+  "docker logs": documentationTopics.logCollection,
+  "unused docker objects": documentationTopics.cleanup,
   performance: documentationTopics.performance,
   "cpu usage": guide(
     "monitoring#performance-history",
