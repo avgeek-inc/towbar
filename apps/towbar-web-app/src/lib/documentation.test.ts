@@ -13,6 +13,7 @@ void test("detail routes keep help scoped to the feature being viewed", () => {
       "vulnerabilities",
     ],
     ["/services/app/compare-deployments", "comparison"],
+    ["/services/app/domains", "domains"],
     ["/servers/server/settings/danger", "removal"],
     ["/servers/server/settings/monitoring", "scout"],
     ["/servers/server/preparation", "preparation"],

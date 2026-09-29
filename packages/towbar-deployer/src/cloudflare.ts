@@ -8,6 +8,7 @@ import type {
   NormalizedServer,
 } from "@workspace/towbar-core";
 import type { SshSession } from "./ssh.js";
+import { deploymentCloudflareDnsDomains } from "@workspace/towbar-core";
 
 const cloudflareApiBaseUrl = "https://api.cloudflare.com/client/v4";
 const managedCommentPrefix = "Managed by Towbar:";
@@ -28,6 +29,14 @@ type CloudflareRecord = {
   name: string;
   proxied?: boolean;
   type: string;
+  ttl?: number;
+};
+
+export type CloudflareDnsTransition = { rollback: () => Promise<void> };
+type CloudflareDnsChange = {
+  zoneId: string;
+  before?: CloudflareRecord;
+  after: CloudflareRecord;
 };
 
 type CloudflareTunnel = {
@@ -43,6 +52,8 @@ type CloudflareEnvelope<T> = {
   result?: T;
   success?: boolean;
 };
+
+class CloudflareRequestRejectedError extends Error {}
 
 const managedTunnelMetadata = "managed_by";
 
@@ -537,20 +548,16 @@ export async function reconcileCloudflareForDeployment(input: {
   credentials: { apiToken: string } | null;
   server: NormalizedServer;
 }) {
-  if (input.app.ingress?.type === "cloudflare-tunnel") return;
-  if (!input.app.domains || input.app.tls?.mode !== "cloudflare-dns") return;
+  const domains = deploymentCloudflareDnsDomains(input.app);
+  if (!domains.length) return;
   if (!input.credentials) {
     throw new Error("Cloudflare DNS credentials were not resolved");
   }
-  const domains = [
-    input.app.domains.primary,
-    ...input.app.domains.redirects.map((redirect) => redirect.host),
-  ];
   await verifyCloudflareTlsMode({
     apiToken: input.credentials.apiToken,
     domains,
   });
-  await reconcileCloudflareDns({
+  return await reconcileCloudflareDns({
     apiToken: input.credentials.apiToken,
     allowUnmanagedAdoption: true,
     appId: input.appId ?? input.app.id,
@@ -567,6 +574,35 @@ export async function reconcileCloudflareDns(input: {
   fetcher?: CloudflareFetch;
   serverIp: string;
 }) {
+  const changes: CloudflareDnsChange[] = [];
+  const rollback = () => rollbackCloudflareDns(input, changes);
+  try {
+    await reconcileCloudflareDnsRecords(input, changes);
+  } catch (error) {
+    try {
+      await rollback();
+    } catch (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        "Cloudflare DNS reconciliation failed; rollback needs operator attention",
+      );
+    }
+    throw error;
+  }
+  return { rollback } satisfies CloudflareDnsTransition;
+}
+
+async function reconcileCloudflareDnsRecords(
+  input: {
+    apiToken: string;
+    allowUnmanagedAdoption?: boolean;
+    appId: string;
+    domains: string[];
+    fetcher?: CloudflareFetch;
+    serverIp: string;
+  },
+  changes: CloudflareDnsChange[],
+) {
   const fetcher = input.fetcher ?? fetch;
   const recordType = isIP(input.serverIp) === 6 ? "AAAA" : "A";
   const zoneCache = new Map<string, string>();
@@ -605,12 +641,24 @@ export async function reconcileCloudflareDns(input: {
       type: recordType,
     };
     if (!existing) {
-      await cloudflareRequest(
-        `/zones/${zoneId}/dns_records`,
-        input.apiToken,
-        fetcher,
-        { body, method: "POST" },
-      );
+      const change = { zoneId, after: { ...body, id: "" } };
+      changes.push(change);
+      try {
+        const created = await cloudflareRequest<CloudflareRecord>(
+          `/zones/${zoneId}/dns_records`,
+          input.apiToken,
+          fetcher,
+          { body, method: "POST" },
+        );
+        if (!created.id)
+          throw new Error(
+            "Cloudflare did not return the created DNS record identity",
+          );
+        change.after.id = created.id;
+      } catch (error) {
+        if (error instanceof CloudflareRequestRejectedError) changes.pop();
+        throw error;
+      }
       continue;
     }
     if (
@@ -635,14 +683,139 @@ export async function reconcileCloudflareDns(input: {
     }
     if (
       existing.content !== input.serverIp ||
+      existing.type !== recordType ||
       existing.proxied !== true ||
       existing.comment !== body.comment
     ) {
+      changes.push({
+        zoneId,
+        before: existing,
+        after: { ...body, id: existing.id },
+      });
       await cloudflareRequest(
         `/zones/${zoneId}/dns_records/${existing.id}`,
         input.apiToken,
         fetcher,
-        { body, method: "PUT" },
+        { body, method: "PATCH" },
+      );
+    }
+  }
+}
+
+async function rollbackCloudflareDns(
+  input: { apiToken: string; fetcher?: CloudflareFetch },
+  changes: CloudflareDnsChange[],
+) {
+  const fetcher = input.fetcher ?? fetch;
+  const errors: unknown[] = [];
+  for (const change of [...changes].reverse()) {
+    try {
+      if (!change.after.id)
+        throw new Error("The DNS write outcome is uncertain");
+      const records = await cloudflareRequest<CloudflareRecord[]>(
+        `/zones/${change.zoneId}/dns_records?name=${encodeURIComponent(change.after.name)}&per_page=100`,
+        input.apiToken,
+        fetcher,
+      );
+      const current = records.find(({ id }) => id === change.after.id);
+      if (!current) {
+        if (change.before)
+          throw new Error(
+            `DNS record '${change.after.name}' was removed after reconciliation`,
+          );
+        continue;
+      }
+      if (sameDnsRecord(current, change.before)) continue;
+      if (!sameDnsRecord(current, change.after))
+        throw new Error(
+          `DNS record '${change.after.name}' changed after reconciliation`,
+        );
+      await cloudflareRequest(
+        `/zones/${change.zoneId}/dns_records/${current.id}`,
+        input.apiToken,
+        fetcher,
+        change.before
+          ? {
+              method: "PATCH",
+              body: {
+                comment: change.before.comment ?? "",
+                content: change.before.content,
+                name: change.before.name,
+                proxied: change.before.proxied ?? false,
+                ttl: change.before.ttl ?? 1,
+                type: change.before.type,
+              },
+            }
+          : { method: "DELETE" },
+      );
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length)
+    throw new AggregateError(
+      errors,
+      "Cloudflare DNS rollback needs operator attention",
+    );
+}
+
+function sameDnsRecord(left: CloudflareRecord, right?: CloudflareRecord) {
+  return (
+    right !== undefined &&
+    left.id === right.id &&
+    normalizeHostname(left.name) === normalizeHostname(right.name) &&
+    left.type === right.type &&
+    left.content === right.content &&
+    (left.comment ?? "") === (right.comment ?? "") &&
+    (left.proxied ?? false) === (right.proxied ?? false) &&
+    (left.ttl ?? 1) === (right.ttl ?? 1)
+  );
+}
+
+export async function cleanupCloudflareDnsTransition(input: {
+  appId: string;
+  previous: { apiToken: string; hostnames: string[] } | null;
+  protectedHostnames: string[];
+  managedHostnames: string[];
+  fetcher?: CloudflareFetch;
+}) {
+  if (!input.previous) return;
+  const protectedHostnames = new Set(
+    input.protectedHostnames.map(normalizeHostname),
+  );
+  const managedHostnames = new Set(
+    input.managedHostnames.map(normalizeHostname),
+  );
+  const fetcher = input.fetcher ?? fetch;
+  const zoneCache = new Map<string, string>();
+  for (const hostname of new Set(
+    input.previous.hostnames.map(normalizeHostname),
+  )) {
+    if (managedHostnames.has(hostname)) continue;
+    const zoneId = await findZoneId(
+      hostname,
+      input.previous.apiToken,
+      fetcher,
+      zoneCache,
+    );
+    const records = await cloudflareRequest<CloudflareRecord[]>(
+      `/zones/${zoneId}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`,
+      input.previous.apiToken,
+      fetcher,
+    );
+    for (const record of records) {
+      if (
+        record.comment !== `${managedCommentPrefix} ${input.appId}` ||
+        (record.type !== "A" && record.type !== "AAAA")
+      )
+        continue;
+      await cloudflareRequest(
+        `/zones/${zoneId}/dns_records/${record.id}`,
+        input.previous.apiToken,
+        fetcher,
+        protectedHostnames.has(hostname)
+          ? { method: "PATCH", body: { name: record.name, comment: "" } }
+          : { method: "DELETE" },
       );
     }
   }
@@ -880,7 +1053,8 @@ async function cloudflareRequest<T = unknown>(
   path: string,
   token: string,
   fetcher: CloudflareFetch,
-  mutation?: { body: unknown; method: "POST" | "PUT" } | { method: "DELETE" },
+  mutation?:
+    { body: unknown; method: "POST" | "PUT" | "PATCH" } | { method: "DELETE" },
 ) {
   let response: Response;
   try {
@@ -940,15 +1114,28 @@ async function cloudflareRequest<T = unknown>(
   } catch {
     value = null;
   }
-  if (!response.ok || !value?.success || value.result === undefined) {
-    const code = value?.errors?.[0]?.code;
-    throw new Error(
-      code
-        ? `Cloudflare rejected the DNS change (error ${code})`
-        : "Cloudflare rejected the DNS change",
-    );
-  }
+  if (!response.ok || !value?.success || value.result === undefined)
+    throw cloudflareResponseError(response, value);
   return value.result as T;
+}
+
+function cloudflareResponseError(
+  response: Response,
+  value: CloudflareEnvelope<unknown> | null,
+) {
+  const code = value?.errors?.[0]?.code;
+  const ErrorType =
+    (response.status >= 400 &&
+      response.status < 500 &&
+      response.status !== 408) ||
+    (response.ok && value?.success === false)
+      ? CloudflareRequestRejectedError
+      : Error;
+  return new ErrorType(
+    code
+      ? `Cloudflare rejected the DNS change (error ${code})`
+      : "Cloudflare rejected the DNS change",
+  );
 }
 
 function normalizeHostname(value: string) {

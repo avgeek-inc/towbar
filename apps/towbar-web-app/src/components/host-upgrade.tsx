@@ -15,6 +15,7 @@ import type {
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
 import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import {
@@ -249,23 +250,13 @@ export function HostUpgrade({
                           {plan.targetVersion}
                         </span>
                         , is available for this installation.{" "}
-                        <a
-                          className="group rounded-sm text-muted! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                        <InlineExternalLink
                           href={plan.releaseUrl}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
-                          <span className="underline decoration-muted/30 underline-offset-4 group-hover:decoration-muted group-focus-visible:decoration-muted">
-                            Click here
-                          </span>
-                          <sup
-                            aria-hidden="true"
-                            className="ml-px text-[0.7em] leading-none"
-                          >
-                            ↗
-                          </sup>
-                          <span className="sr-only"> (opens in a new tab)</span>
-                        </a>{" "}
+                          Click here
+                        </InlineExternalLink>{" "}
                         to view the changelog.
                       </p>
                       <div className="grid gap-2">
@@ -395,19 +386,13 @@ export function HostUpgrade({
 
 function UpgradeRecoveryLink() {
   return (
-    <a
-      className="group w-fit rounded-sm text-sm text-muted! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+    <InlineExternalLink
+      className="w-fit text-sm text-muted!"
       href="https://www.towbar.dev/docs/self-hosting/upgrades#recover-a-host-managed-attempt"
       target="_blank"
       rel="noopener noreferrer"
     >
-      <span className="underline decoration-muted/30 underline-offset-4 group-hover:decoration-muted group-focus-visible:decoration-muted">
-        Read the recovery guide
-      </span>
-      <sup aria-hidden="true" className="ml-px text-[0.7em] leading-none">
-        ↗
-      </sup>
-      <span className="sr-only"> (opens in a new tab)</span>
-    </a>
+      Read the recovery guide
+    </InlineExternalLink>
   );
 }

@@ -24,7 +24,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
@@ -416,7 +416,6 @@ export function AnalyticsView({
                         help={{
                           description: metric.help,
                           href: "/docs/analytics",
-                          linkLabel: "Learn more in documentation.",
                         }}
                       />
                     ) : null}
@@ -669,14 +668,9 @@ export function AnalyticsView({
       {pageviews && report.total > 0 ? (
         <p className="text-xs text-muted">
           IP Geolocation by{" "}
-          <a
-            href="https://db-ip.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4"
-          >
+          <InlineExternalLink href="https://db-ip.com" tone="secondary">
             DB-IP
-          </a>
+          </InlineExternalLink>
         </p>
       ) : null}
       {pageviews ? (
@@ -763,7 +757,6 @@ function AnalyticsRows({
                       description:
                         help ?? "IP Geolocation provided by DB-IP database.",
                       href: "/docs/analytics",
-                      linkLabel: "Learn more in documentation.",
                     }}
                   />
                 ) : null}
@@ -875,18 +868,14 @@ function AnalyticsRowLabel({
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
       {href ? (
-        <a
+        <InlineExternalLink
           href={href}
           target="_blank"
           rel="noopener noreferrer"
           title={label}
-          className="inline-flex min-w-0 items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
-          <span className="truncate">{label}</span>
-          <span className={`inline-flex shrink-0 ${styles.rowAction}`}>
-            <NewTabIndicator />
-          </span>
-        </a>
+          {label}
+        </InlineExternalLink>
       ) : (
         <span className="block truncate" title={label}>
           {label}

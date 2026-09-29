@@ -3,7 +3,6 @@
 import {
   TableCellStack,
   TableCellDescription,
-  tableCellDescriptionClassName,
 } from "@workspace/towbar-web-ui/table-cell-text";
 
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
@@ -139,12 +138,15 @@ function deploymentColumns(
               <span>{item.deployableName}</span>
               {detail ? (
                 item.deployableKind === "app" ? (
-                  <DomainLink
-                    className={`${tableCellDescriptionClassName} max-w-48 truncate`}
-                    domain={detail}
-                  >
-                    {detail}
-                  </DomainLink>
+                  <TableCellDescription className="max-w-48 truncate">
+                    <DomainLink
+                      className="max-w-full"
+                      domain={detail}
+                      tone="secondary"
+                    >
+                      {detail}
+                    </DomainLink>
+                  </TableCellDescription>
                 ) : (
                   <TableCellDescription className="max-w-48 truncate">
                     <TooltipText tooltip={detail}>{detail}</TooltipText>

@@ -86,6 +86,8 @@ import type {
 } from "@workspace/towbar-web-client";
 
 export const fixtureIds = {
+  domainlessApp: "31111111-1111-4111-8111-aaaaaaaaaaaa",
+  composeApp: "31111111-1111-4111-8111-999999999999",
   faviconApp: "31111111-1111-4111-8111-555555555555",
   stagingApp: "31111111-1111-4111-8111-666666666666",
   storageApp: "31111111-1111-4111-8111-888888888888",
@@ -451,7 +453,7 @@ storageApp.config.jobs = [
 apps.push(storageApp);
 const composeApp: FixtureApp = {
   ...createAppFixture(
-    "31111111-1111-4111-8111-999999999999",
+    fixtureIds.composeApp,
     "Compose storefront",
     "compose-storefront",
     servers[1]!,
@@ -472,9 +474,26 @@ const composeApp: FixtureApp = {
     profiles: ["production"],
     server: servers[1]!.canonicalIp,
     services: {
+      api: {
+        domains: [
+          "api.storefront.example.com",
+          "events.storefront.example.com",
+        ],
+        port: 8080,
+        tls: { mode: "cloudflare-dns" },
+      },
+      admin: {
+        domains: ["admin.storefront.example.com"],
+        port: 3001,
+        ingress: {
+          type: "cloudflare-tunnel",
+          integration: "cloudflare",
+          access: false,
+        },
+      },
       cache: {},
       web: {
-        domains: ["storefront.example.com"],
+        domains: ["storefront.example.com", "shop.example.com"],
         port: 3000,
       },
     },
@@ -520,6 +539,20 @@ for (const [index, app] of apps.entries()) {
     "Storefront and cache deployed together using Docker Compose.",
   ][index]!;
 }
+apps[1]!.config.domains = {
+  primary: "website.example.com",
+  redirects: [
+    { host: "www.website.example.com", status: 301 },
+    { host: "legacy.website.example.com", status: 302 },
+  ],
+};
+const domainlessApp = createAppFixture(
+  fixtureIds.domainlessApp,
+  "Background worker",
+  "background-worker",
+  servers[1]!,
+);
+apps.push(domainlessApp);
 (apps[0]!.config as NormalizedApp).analytics = {
   enabled: true,
   pageviews: true,

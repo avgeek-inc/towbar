@@ -30,7 +30,7 @@ import type {
 } from "@workspace/towbar-web-client";
 import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
 import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
@@ -276,17 +276,20 @@ export function SourceDetail() {
       }
       title={item.repositoryName}
       titleContent={
-        <a
-          href={item.repositoryUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-w-0 items-center rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          aria-label={`${item.repositoryOwner}/${item.repositoryName} on ${item.provider === "github" ? "GitHub" : "GitLab"} (opens in a new tab)`}
-          title={`${item.repositoryOwner}/${item.repositoryName}`}
-        >
-          <span className="truncate">{item.repositoryName}</span>
-          <NewTabIndicator />
-        </a>
+        item.repositoryUrl ? (
+          <InlineExternalLink
+            className="text-xl"
+            href={item.repositoryUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${item.repositoryOwner}/${item.repositoryName} on ${item.provider === "github" ? "GitHub" : "GitLab"} (opens in a new tab)`}
+            tooltip={`${item.repositoryOwner}/${item.repositoryName}`}
+          >
+            {item.repositoryName}
+          </InlineExternalLink>
+        ) : (
+          <span className="truncate text-xl">{item.repositoryName}</span>
+        )
       }
     >
       <PageTabs

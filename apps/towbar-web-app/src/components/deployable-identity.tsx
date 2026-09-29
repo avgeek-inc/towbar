@@ -69,6 +69,7 @@ export function AppIdentity({
               className="truncate"
               domain={primaryDomain}
               showTooltip={false}
+              tone="secondary"
             >
               {primaryDomain}
             </DomainLink>
@@ -84,6 +85,7 @@ export function AppIdentity({
                 className="truncate"
                 domain={primaryDomain}
                 showTooltip={false}
+                tone="secondary"
               >
                 {primaryDomain}
               </DomainLink>
@@ -106,6 +108,7 @@ export function AppIdentity({
                     domain={domain}
                     key={domain}
                     showTooltip={false}
+                    tone="secondary"
                   >
                     {domain}
                   </DomainLink>

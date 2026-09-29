@@ -50,6 +50,7 @@ export function toPublicServer(
     config: {
       buildConcurrency: server.config.buildConcurrency,
       previewBuildConcurrency: server.config.previewBuildConcurrency,
+      hostLogCollection: server.config.hostLogCollection === true,
       ip: server.config.ip,
       ssh: server.config.ssh,
     },

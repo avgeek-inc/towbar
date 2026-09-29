@@ -135,7 +135,7 @@ void describe("Cloudflare DNS reconciliation", () => {
           jsonResponse([{ id: "zone-id", name: "towbar.dev" }]),
         );
       }
-      if (init?.method === "PUT") {
+      if (init?.method === "PATCH") {
         mutations.push({
           body: JSON.parse(String(init.body)) as unknown,
           method: init.method,
@@ -164,7 +164,7 @@ void describe("Cloudflare DNS reconciliation", () => {
       serverIp: "192.0.2.20",
     });
     assert.equal(mutations.length, 1);
-    assert.equal(mutations[0]?.method, "PUT");
+    assert.equal(mutations[0]?.method, "PATCH");
   });
 
   void it("adopts an unmanaged same-target record only when explicitly allowed", async () => {
@@ -176,7 +176,7 @@ void describe("Cloudflare DNS reconciliation", () => {
           jsonResponse([{ id: "zone-id", name: "towbar.dev" }]),
         );
       }
-      if (init?.method === "PUT") {
+      if (init?.method === "PATCH") {
         mutations.push(init.method);
         return Promise.resolve(jsonResponse({ id: "legacy-record" }));
       }
@@ -211,7 +211,7 @@ void describe("Cloudflare DNS reconciliation", () => {
       fetcher,
       serverIp: "192.0.2.10",
     });
-    assert.deepEqual(mutations, ["PUT"]);
+    assert.deepEqual(mutations, ["PATCH"]);
   });
 
   void it("requires Full (strict) mode on every affected zone", async () => {

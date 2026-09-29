@@ -28,6 +28,7 @@ export function collectSensitiveValues(secrets: DeploymentSecrets) {
   return [
     secrets.login.privateKey,
     secrets.cloudflare?.apiToken,
+    secrets.previousCloudflareDns?.apiToken,
     secrets.cloudflareTunnel?.apiToken,
     secrets.previousCloudflareTunnel?.apiToken,
     ...Object.values(secrets.build),

@@ -11,7 +11,7 @@ import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { ListBox } from "@workspace/web-design-system/collections/list-box";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select } from "@workspace/web-design-system/forms/select";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
@@ -155,8 +155,8 @@ export function SourceEnvironmentManifest({ sourceId }: { sourceId: string }) {
                   {snapshot.data.manifest?.commitSha.slice(0, 12)}
                 </TypographyCode>
               </span>
-              <a
-                className="rounded-sm text-sm text-accent decoration-dashed! decoration-muted! underline-offset-4 hover:underline! focus-visible:underline! focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              <InlineExternalLink
+                className="text-sm"
                 href={`https://github.com/${encodeURIComponent(source.data.source.repositoryOwner)}/${encodeURIComponent(source.data.source.repositoryName)}/blob/${encodeURIComponent(snapshot.data.manifest?.commitSha ?? environment.branch)}/${file.path
                   .split("/")
                   .map(encodeURIComponent)
@@ -165,8 +165,7 @@ export function SourceEnvironmentManifest({ sourceId }: { sourceId: string }) {
                 target="_blank"
               >
                 Open in GitHub
-                <NewTabIndicator />
-              </a>
+              </InlineExternalLink>
             </Widget.Footer>
           </CodeBlock>
         </>

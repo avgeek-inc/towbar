@@ -12,11 +12,13 @@ import {
   connectTestMcpClient,
 } from "./scout-access-test-helper.js";
 import { defaultKeyHasher } from "@better-auth/api-key";
+import { assertServerConfigReadback } from "./server-config-test-helper.js";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import { eq } from "drizzle-orm";
 import {
+  apiKeyPolicies,
   apiKeys,
   auditEvents,
   authRateLimitBuckets,
@@ -137,6 +139,57 @@ void test(
     };
     t.beforeEach(clearRateBucket);
     try {
+      await t.test(
+        "server settings round trip across REST and MCP with effective capabilities",
+        async () => {
+          await assertServerConfigReadback({
+            request,
+            connect,
+            read,
+            write,
+            ownedServerId,
+            foreignServerId,
+          });
+          const [stored] = await db
+            .select({ grants: apiKeyPolicies.grants })
+            .from(apiKeyPolicies)
+            .where(eq(apiKeyPolicies.keyId, write.key.id));
+          assert(stored?.grants);
+          const original = stored.grants;
+          await db
+            .update(apiKeyPolicies)
+            .set({
+              grants: original.filter(
+                (action) => action !== "server.collectLogs",
+              ),
+            })
+            .where(eq(apiKeyPolicies.keyId, write.key.id));
+          try {
+            const identity = (await (
+              await request("/identity", write.token)
+            ).json()) as { capabilities: string[] };
+            assert(!identity.capabilities.includes("server.collectLogs"));
+            const client = await connect(write.token);
+            try {
+              const result = await client.callTool({
+                name: "towbar_workspace_inspect",
+                arguments: {},
+              });
+              assert.equal(result.isError, false);
+              assert(
+                !JSON.stringify(result.content).includes("server.collectLogs"),
+              );
+            } finally {
+              await client.close();
+            }
+          } finally {
+            await db
+              .update(apiKeyPolicies)
+              .set({ grants: original })
+              .where(eq(apiKeyPolicies.keyId, write.key.id));
+          }
+        },
+      );
       await t.test(
         "public operations have REST schemas and unique operation IDs; browser-only routes are excluded",
         () => {

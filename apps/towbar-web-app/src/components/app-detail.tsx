@@ -2,6 +2,7 @@
 import { ScoutAnalytics } from "./scout-analytics";
 import { AppJobs } from "./app-jobs";
 import { AppStorage } from "./app-storage";
+import { ServiceDomains } from "./service-domains";
 import { useAccess } from "./access-context";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
@@ -25,6 +26,7 @@ import {
   FileViewIcon,
   GitBranchIcon,
   GitCompareIcon,
+  Globe02Icon,
   PackageIcon,
   Rocket01Icon,
   ServerStack01Icon,
@@ -500,6 +502,13 @@ export function AppDetail() {
             group: "Ship",
             icon: <HugeiconsIcon icon={GitCompareIcon} />,
             content: <ScoutCompareDeployments deployableId={appId} />,
+          },
+          {
+            value: "domains",
+            label: "Domains",
+            group: "Operate",
+            icon: <HugeiconsIcon icon={Globe02Icon} />,
+            content: <ServiceDomains config={item.config} />,
           },
           {
             value: "jobs",

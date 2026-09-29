@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
 
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 
 import type { PreviewEnvironment } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -38,15 +38,9 @@ export function PreviewEnvironments({
       header: "Pull request",
       className: "min-w-32",
       cell: (preview) => (
-        <a
-          className="focus-visible:ring-focus rounded-md underline decoration-muted underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2"
-          href={preview.pullRequestUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
+        <InlineExternalLink href={preview.pullRequestUrl}>
           PR #{preview.pullRequestNumber}
-          <NewTabIndicator />
-        </a>
+        </InlineExternalLink>
       ),
     },
     {
@@ -59,7 +53,7 @@ export function PreviewEnvironments({
           tooltip={preview.hostname}
         >
           <DomainLink
-            className="block truncate"
+            className="max-w-full"
             domain={preview.hostname}
             showTooltip={false}
           >

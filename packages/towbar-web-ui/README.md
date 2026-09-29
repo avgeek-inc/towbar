@@ -32,3 +32,19 @@ Icon-only buttons use the same height and width.
 Let the button size its icons; do not add custom icon dimensions or button
 padding. Keep confirmation-dialog actions at their normal size. Inline text
 that opens a row's details remains styled as table content.
+
+## Inline external links
+
+Use `InlineExternalLink` from
+`@workspace/web-design-system/navigation/inline-external-link` for external
+text links. It preserves the surrounding typography and provides a dashed
+underline, a close superscript arrow, a new-tab hint for screen readers, and
+matching hover and keyboard-focus colors. Use `tone="secondary"` within muted
+`text-xs` descriptions for quieter dash and arrow colors and a closer underline
+that fits the compact line height. Keep headings at their existing heading
+size; the link treatment must not reduce their typography. Use `DomainLink`
+for hostnames so HTTPS URLs and truncation tooltips remain consistent.
+
+Keep the label square at its edges: a rounded, clipped tooltip label cuts off
+the final underline dash. Let the shared component own the underline, arrow,
+spacing, and interaction colors.

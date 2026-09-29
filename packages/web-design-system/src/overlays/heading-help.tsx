@@ -7,10 +7,9 @@ import {
   Popover,
   PreviewTrigger,
 } from "react-aria-components";
-import { Link } from "@heroui/react";
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { NewTabIndicator } from "../navigation/new-tab-indicator";
+import { InlineExternalLink } from "../navigation/inline-external-link";
 import { TooltipArrowShape } from "./tooltip";
 
 export type HeadingDocumentation = {
@@ -66,18 +65,16 @@ export function HeadingHelp({
         </OverlayArrow>
         <span className="grid gap-2">
           <span>{documentation.description}</span>
-          <Link
-            aria-label={`Open documentation for ${title} in a new tab`}
+          <InlineExternalLink
+            aria-label={`Learn more about ${title} in the documentation (opens in a new tab)`}
             href={documentation.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-fit font-medium !text-foreground !underline decoration-current underline-offset-4"
+            className="w-fit text-foreground!"
+            tone="secondary"
           >
-            <span>
-              {documentation.linkLabel ?? "Open documentation"}
-              <NewTabIndicator />
-            </span>
-          </Link>
+            {documentation.linkLabel ?? "Learn more"}
+          </InlineExternalLink>
         </span>
       </Popover>
     </PreviewTrigger>

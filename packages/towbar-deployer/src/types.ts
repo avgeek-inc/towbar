@@ -19,6 +19,8 @@ export type DeploymentSecrets = {
   buildLogin?: SshLoginSecret;
   build: Record<string, string>;
   cloudflare: { apiToken: string } | null;
+  previousCloudflareDns?: { apiToken: string; hostnames: string[] } | null;
+  previousCloudflareDnsCleanupBlocked?: boolean;
   cloudflareTunnel: {
     accountId: string;
     access: boolean;

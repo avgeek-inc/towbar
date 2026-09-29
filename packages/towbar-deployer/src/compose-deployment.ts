@@ -13,15 +13,22 @@ import { runCommand } from "./process.js";
 import { fetchDeploymentSource } from "./source-fetch.js";
 import { SshSession } from "./ssh.js";
 import {
+  type CloudflareDnsTransition,
   type CloudflareTunnelTransition,
+  cleanupCloudflareDnsTransition,
   cleanupCloudflareTunnelTransition,
   deploymentPublicHostnames,
+  reconcileCloudflareForDeployment,
   reconcileCloudflareTunnelRoutes,
 } from "./cloudflare.js";
 import { collectSensitiveValues } from "./secrets.js";
 import { configureCaddyScript } from "./remote-scripts.js";
 import { validateComposeRepository } from "./compose-security.js";
-import { isNormalizedCompose } from "@workspace/towbar-core";
+import {
+  deploymentCloudflareDnsDomains,
+  isNormalizedCompose,
+} from "@workspace/towbar-core";
+import { ensureCloudflareCaddyModule } from "./caddy-preparation.js";
 
 import type {
   DeploymentExecutionContext,
@@ -290,7 +297,7 @@ for service, policy in policies.items():
                 raise SystemExit(f"Compose service {service} public port is not loopback-scoped")
             upstreams.append(f"127.0.0.1:{host_port}")
     if not upstreams: raise SystemExit(f"Compose service {service} has no published port {port}")
-    routes.append({"service": service, "domains": domains, "ingress": policy.get("ingress") or {"type": "proxy"}, "upstreams": sorted(set(upstreams))})
+    routes.append({"service": service, "domains": domains, "ingress": policy.get("ingress") or {"type": "proxy"}, "tls": policy.get("tls"), "upstreams": sorted(set(upstreams))})
 print("TOWBAR_ROUTING=" + json.dumps(routes, separators=(",", ":")))
 PYTHON
 python3 - "$stable/config.json" <<'PYTHON'
@@ -369,8 +376,66 @@ fi
 const composeFinalizeScript = String.raw`
 set -euo pipefail
 previous="$1"
+stable="$2"
 rm -rf -- "$previous"
+rm -f -- "$stable/cloudflare.env" "$stable/cloudflare.previous" "$stable/cloudflare.previous.state" "$stable/caddy.previous" "$stable/caddy.previous.state"
 `;
+
+async function prepareComposeDns(input: {
+  context: DeploymentExecutionContext;
+  hooks: ExecutorHooks;
+  secrets: DeploymentSecrets;
+  session: SshSession;
+  signal?: AbortSignal;
+}) {
+  if (!deploymentCloudflareDnsDomains(input.context.app).length) return;
+  if (!input.secrets.cloudflare)
+    throw new Error("Cloudflare DNS credentials were not resolved");
+  await transition(
+    input.hooks,
+    "checking_server",
+    "Preparing Cloudflare DNS support",
+  );
+  await ensureCloudflareCaddyModule(input.session, input.signal);
+}
+
+async function uploadComposeDnsToken(input: {
+  context: DeploymentExecutionContext;
+  secrets: DeploymentSecrets;
+  session: SshSession;
+  localDirectory: string;
+  base: string;
+  signal?: AbortSignal;
+}) {
+  if (
+    !deploymentCloudflareDnsDomains(input.context.app).length ||
+    !input.secrets.cloudflare
+  )
+    return;
+  const tokenFile = path.join(input.localDirectory, "cloudflare.env");
+  await writeFile(
+    tokenFile,
+    `CLOUDFLARE_API_TOKEN=${input.secrets.cloudflare.apiToken}\n`,
+    { mode: 0o600 },
+  );
+  await input.session.upload(tokenFile, `${input.base}/cloudflare.env`, {
+    signal: input.signal,
+  });
+}
+
+async function cleanupPreviousComposeDns(input: {
+  context: DeploymentExecutionContext;
+  secrets: DeploymentSecrets;
+}) {
+  if (input.secrets.previousCloudflareDnsCleanupBlocked)
+    throw new Error("Previous DNS credentials are unavailable");
+  await cleanupCloudflareDnsTransition({
+    appId: deploymentRuntimeId(input.context),
+    previous: input.secrets.previousCloudflareDns ?? null,
+    protectedHostnames: deploymentPublicHostnames(input.context.app),
+    managedHostnames: deploymentCloudflareDnsDomains(input.context.app),
+  });
+}
 
 export async function executeComposeDeployment(input: {
   context: DeploymentExecutionContext;
@@ -449,7 +514,9 @@ export async function executeComposeDeployment(input: {
   let committed = false;
   let candidateStarted = false;
   let cloudflareTunnelTransition: CloudflareTunnelTransition | undefined;
+  let cloudflareDnsTransition: CloudflareDnsTransition | undefined;
   try {
+    await prepareComposeDns({ context, hooks, secrets, session, signal });
     await transition(hooks, "transferring", "Transferring Compose source");
     await session.upload(archive, remoteArchive, { signal });
     await session.upload(environment, `${remoteArchive}.env`, { signal });
@@ -503,6 +570,7 @@ export async function executeComposeDeployment(input: {
       domains: string[];
       ingress: { type: "proxy" | "cloudflare-tunnel" };
       service: string;
+      tls?: { mode: "direct" | "cloudflare-dns" };
       upstreams: string[];
     }>;
     const servicesLine = stdout
@@ -513,10 +581,34 @@ export async function executeComposeDeployment(input: {
       : [];
     if (!composeServices.length)
       throw new Error("Compose did not return its rendered service inventory");
+    await transition(
+      hooks,
+      "configuring_routing",
+      "Reconciling DNS and validating Compose routing",
+    );
+    cloudflareDnsTransition = await reconcileCloudflareForDeployment({
+      app: context.app,
+      appId: runtime,
+      credentials: secrets.cloudflare,
+      server: context.server,
+    });
     const caddy = renderComposeCaddy(routing);
     const caddyFile = path.join(input.localDirectory, "compose.caddy");
     await writeFile(caddyFile, caddy, { mode: 0o600 });
     await session.upload(caddyFile, `${base}/app.caddy`, { signal });
+    await uploadComposeDnsToken({
+      context,
+      secrets,
+      session,
+      signal,
+      localDirectory: input.localDirectory,
+      base,
+    });
+    await transition(
+      hooks,
+      "provisioning_tls",
+      "Provisioning Compose TLS through Caddy",
+    );
     await session.run(configureCaddyScript, [base, runtime], {
       signal,
       timeoutMs: 180_000,
@@ -559,6 +651,17 @@ export async function executeComposeDeployment(input: {
       await hooks.commitRelease(result);
     }
     committed = true;
+    await cleanupPreviousComposeDns({ context, secrets }).catch(async () => {
+      const warning =
+        "The release is live, but previous Cloudflare DNS records need cleanup";
+      result.warnings.push(warning);
+      await safeLog(
+        hooks,
+        `${warning}.\n`,
+        "stderr",
+        collectSensitiveValues(secrets),
+      );
+    });
     await (
       secrets.previousCloudflareTunnelCleanupBlocked
         ? Promise.reject(
@@ -593,7 +696,7 @@ export async function executeComposeDeployment(input: {
         collectSensitiveValues(secrets),
       );
     });
-    await session.run(composeFinalizeScript, [previous], {
+    await session.run(composeFinalizeScript, [previous, base], {
       signal,
       timeoutMs: 30_000,
     });
@@ -611,13 +714,20 @@ export async function executeComposeDeployment(input: {
       commitAttempted,
       commitConfirmed: committed,
     });
-    if (boundary === "rollback")
+    if (boundary === "rollback") {
+      await cloudflareDnsTransition?.rollback().catch(async () => {
+        await hooks.log?.(
+          "Cloudflare DNS rollback needs operator attention.\n",
+          "stderr",
+        );
+      });
       await cloudflareTunnelTransition?.rollback().catch(async () => {
         await hooks.log?.(
           "Cloudflare Tunnel rollback needs operator attention.\n",
           "stderr",
         );
       });
+    }
     if (candidateStarted && boundary === "rollback") {
       await session
         .run(
@@ -653,6 +763,7 @@ export function renderComposeCaddy(
     domains: string[];
     ingress: { type: "proxy" | "cloudflare-tunnel" };
     upstreams: string[];
+    tls?: { mode: "direct" | "cloudflare-dns" } | null;
   }>,
 ) {
   const lines: string[] = [];
@@ -668,6 +779,9 @@ export function renderComposeCaddy(
         "    lb_policy round_robin",
         "  }",
         '  header ?Strict-Transport-Security "max-age=15552000"',
+        ...(route.tls?.mode === "cloudflare-dns"
+          ? ["  tls {", "    dns cloudflare {env.CLOUDFLARE_API_TOKEN}", "  }"]
+          : []),
         "}",
       );
     }

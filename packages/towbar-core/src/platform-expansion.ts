@@ -349,6 +349,10 @@ const composeServicePolicySchema = z
     domains: z.array(z.string().trim().min(1).max(253)).max(20).optional(),
     port: z.number().int().min(1).max(65_535).optional(),
     ingress: ingressSchema.optional(),
+    tls: z
+      .object({ mode: z.enum(["direct", "cloudflare-dns"]) })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -399,6 +403,18 @@ export const composeWorkloadSchema = z
           code: "custom",
           path: ["services", service, "ingress"],
           message: "Compose service ingress requires at least one domain",
+        });
+      if (policy.tls && !policy.domains?.length)
+        context.addIssue({
+          code: "custom",
+          path: ["services", service, "tls"],
+          message: "Compose service TLS requires at least one domain",
+        });
+      if (policy.tls && policy.ingress?.type === "cloudflare-tunnel")
+        context.addIssue({
+          code: "custom",
+          path: ["services", service, "tls"],
+          message: "Cloudflare Tunnel manages TLS; omit the service TLS policy",
         });
       if (policy.ingress?.type === "cloudflare-tunnel")
         tunnelPolicies.push(

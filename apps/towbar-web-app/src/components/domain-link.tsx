@@ -1,29 +1,24 @@
-import type { ComponentProps } from "react";
-import { cn } from "@workspace/web-design-system/lib/utils";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import {
+  InlineExternalLink,
+  type InlineExternalLinkProps,
+} from "@workspace/web-design-system/navigation/inline-external-link";
 
 export function DomainLink({
-  className,
   children,
   domain,
   target = "_blank",
   title = domain,
   showTooltip = true,
   ...props
-}: Omit<ComponentProps<"a">, "href"> & {
+}: Omit<InlineExternalLinkProps, "href" | "tooltip"> & {
   domain: string;
   showTooltip?: boolean;
 }) {
   return (
-    <a
-      className={cn(
-        "focus-visible:ring-focus inline-flex min-w-0 max-w-full items-center rounded-sm outline-none focus-visible:ring-2",
-        className,
-      )}
+    <InlineExternalLink
       href={`https://${domain}`}
-      rel="noopener noreferrer"
       target={target}
+      tooltip={showTooltip ? title : undefined}
       aria-label={
         typeof children === "string" && children !== domain
           ? `${domain}${target === "_blank" ? " (opens in a new tab)" : ""}`
@@ -31,20 +26,7 @@ export function DomainLink({
       }
       {...props}
     >
-      {showTooltip ? (
-        <TooltipText
-          className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4"
-          tabIndex={-1}
-          tooltip={title}
-        >
-          {children}
-        </TooltipText>
-      ) : (
-        <span className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4">
-          {children}
-        </span>
-      )}
-      {target === "_blank" ? <NewTabIndicator /> : null}
-    </a>
+      {children}
+    </InlineExternalLink>
   );
 }
