@@ -117,6 +117,7 @@ function deploymentColumns(
       key: "deployment",
       header: "Recent deployments",
       className: "min-w-52",
+      wrapRowLink: false,
       cell: (item) => {
         const appDomain = apps.find((app) => app.id === item.appId)?.config
           .domains?.primary;
@@ -135,7 +136,9 @@ function deploymentColumns(
               />
             )}
             <TableCellStack as="div" className="min-w-0">
-              <span>{item.deployableName}</span>
+              <InlineLink href={deploymentHref(item)}>
+                {item.deployableName}
+              </InlineLink>
               {detail ? (
                 item.deployableKind === "app" ? (
                   <TableCellDescription className="max-w-48 truncate">
