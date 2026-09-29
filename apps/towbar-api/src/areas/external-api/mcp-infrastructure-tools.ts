@@ -221,7 +221,7 @@ export const infrastructureTools: McpTool[] = [
   action(
     "server_configure",
     "Configure server",
-    "Update server IP, SSH settings, proxy options, and build concurrency. Inspect current settings first; changing connectivity can disrupt deployments.",
+    "Update server SSH settings, build concurrency, and hostLogCollection opt-in. Inspect current settings first and preserve supported fields when saving; the server IP is immutable. Changing connectivity can disrupt deployments. Requires server.update; collector deployments separately require server.collectLogs.",
     "PATCH",
     "/servers/:serverId",
     serverId,

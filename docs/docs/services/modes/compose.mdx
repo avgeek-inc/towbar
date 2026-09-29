@@ -23,6 +23,8 @@ services:
     domains: [compose.example.com]
     ingress:
       type: proxy
+    tls:
+      mode: direct
   cache: {}
 environments:
   production:
@@ -36,3 +38,40 @@ The example gives the `web` service a public proxy route and keeps `cache` inter
 Remote includes, privileged containers, Docker socket mounts, host bind mounts, devices, public host ports, and external or explicitly named Docker resources are rejected. Compose replacement uses `recreate` or `maintenance`; rolling replacement is not supported.
 
 Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Service manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.
+
+## Route TLS per service
+
+Each public service chooses its own `tls.mode` alongside `port`, `domains`, and `ingress`. Omitting `tls` keeps direct Caddy certificate validation. Choose `cloudflare-dns` to reconcile Cloudflare address records and obtain certificates through the configured runtime integration. Proxy ingress still requires HTTPS access to the server; DNS validation does not create a Tunnel.
+
+```yaml title=".towbar/services/platform.compose.yml"
+id: platform
+name: Platform
+file: compose.yml
+services:
+  api:
+    port: 3000
+    domains: [api.example.com]
+    ingress:
+      type: proxy
+    tls:
+      mode: cloudflare-dns
+  console:
+    port: 8080
+    domains: [console.example.com]
+    tls:
+      mode: cloudflare-dns
+  web:
+    port: 80
+    domains: [web.example.com]
+    tls:
+      mode: direct
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+Configure the token, zone permissions, and Full (strict) mode described in [Domains and TLS](/docs/domains-tls#cloudflare-tls). TLS requires at least one domain and a service port. A `cloudflare-tunnel` route must omit `tls`; Cloudflare manages its public certificate.
+
+Compose waits for service health and validates the Caddy configuration before recording a release. Verify each HTTPS hostname after deployment.
+
+Towbar refuses conflicting or foreign address records. An unmanaged address record may be adopted only when its type and target IP already match. Before release commit, a failed route rolls back DNS writes that still match the records Towbar changed and restores the previous Compose project. After commit, cleanup removes only obsolete owned address records, preserving current domains and unrelated records. Provider uncertainty leaves an error or cleanup warning for operator review. Compose rollback uses the retained source and route policies; it does not reverse changes to persistent volumes.

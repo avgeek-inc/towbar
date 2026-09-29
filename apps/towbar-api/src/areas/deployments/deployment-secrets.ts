@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import {
+  deploymentCloudflareDnsDomains,
   isNormalizedCompose,
   isNormalizedResource,
   requiredKeysForStage,
@@ -222,6 +223,18 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
       const previousDeployment = previousRelease
         ? await getSecretDeployment(previousRelease.deploymentId, database)
         : null;
+      const previousDnsHostnames = previousDeployment
+        ? deploymentCloudflareDnsDomains(previousDeployment.appSnapshot)
+        : [];
+      let previousCloudflareDnsCleanupBlocked = false;
+      let previousDns = cloudflare;
+      if (previousDeployment && previousDnsHostnames.length && !previousDns) {
+        try {
+          previousDns = cloudflareDnsCredential(previousDeployment.appSnapshot);
+        } catch {
+          previousCloudflareDnsCleanupBlocked = true;
+        }
+      }
       const previousTunnelPolicy = previousDeployment
         ? tunnelPolicy(previousDeployment.appSnapshot)
         : null;
@@ -292,6 +305,11 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
         runtime,
         hooks,
         cloudflare,
+        previousCloudflareDns:
+          previousDnsHostnames.length && previousDns
+            ? { ...previousDns, hostnames: previousDnsHostnames }
+            : null,
+        previousCloudflareDnsCleanupBlocked,
         cloudflareTunnel:
           tunnelInput?.provider === "cloudflare" && tunnelIngress
             ? {

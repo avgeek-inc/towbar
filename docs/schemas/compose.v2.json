@@ -173,6 +173,14 @@
                 "additionalProperties": false
               }
             ]
+          },
+          "tls": {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["direct", "cloudflare-dns"] }
+            },
+            "required": ["mode"],
+            "additionalProperties": false
           }
         },
         "additionalProperties": false
@@ -439,6 +447,17 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                "tls": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": ["direct", "cloudflare-dns"]
+                    }
+                  },
+                  "required": ["mode"],
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

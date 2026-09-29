@@ -1390,6 +1390,17 @@ export function normalizeDeploymentManifest(
           compose: [...parsed.compose]
             .map((workload) => ({
               ...workload,
+              services: Object.fromEntries(
+                Object.entries(workload.services).map(([name, policy]) => [
+                  name,
+                  {
+                    ...policy,
+                    ...(policy.domains
+                      ? { domains: policy.domains.map(normalizeDomain) }
+                      : {}),
+                  },
+                ]),
+              ),
               ...(workload.notifications
                 ? {
                     notifications: normalizeManifestNotifications(

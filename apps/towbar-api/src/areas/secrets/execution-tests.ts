@@ -20,6 +20,7 @@ import { withActor } from "../auth/actor-context.js";
 import { admitPreviewDeployment as admitPreview } from "../previews/admission.js";
 import { mutateSecret, readSecretMetadata } from "./store.js";
 import type { SecretSlot } from "./store.js";
+import { testComposeTlsSecrets } from "./compose-tls-secret-test-helper.js";
 
 export async function testManagedSecretExecution({
   t,
@@ -192,6 +193,18 @@ export async function testManagedSecretExecution({
       assert.deepEqual(rollback.hooks.preDeploy, {});
       await db.delete(deployments).where(eq(deployments.id, deploymentId));
     },
+  );
+  await t.test(
+    "Compose resolves DNS credentials and retains cleanup metadata without persisting tokens",
+    () =>
+      testComposeTlsSecrets({
+        db,
+        workspaceId,
+        sourceId,
+        serverId,
+        appId,
+        serverConfig,
+      }),
   );
   await t.test(
     "preview redeployment resolves every isolated stage and requires explicit admission",

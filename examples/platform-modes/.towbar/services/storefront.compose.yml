@@ -11,6 +11,8 @@ services:
     domains: [compose.example.com]
     ingress:
       type: proxy
+    tls:
+      mode: direct
   cache: {}
 environments:
   production:

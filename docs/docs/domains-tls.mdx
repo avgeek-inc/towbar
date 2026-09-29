@@ -5,6 +5,8 @@ description: "Expose an HTTP service through Caddy with direct DNS or Cloudflare
 
 Towbar uses Caddy on the target server to route public HTTP traffic. Domain settings live with the service or datastore in the manifest; provider credentials come from the Towbar runtime configuration.
 
+For [Compose projects](/docs/services/modes/compose#route-tls-per-service), declare `services.<service>.tls.mode` beside each route's `port`, `domains`, and `ingress`. Routes in one project may mix direct and Cloudflare DNS TLS. Existing Compose manifests without `tls` keep direct validation.
+
 ## Choose a TLS mode
 
 | Mode             | DNS setup                                                                         | Credentials                                    |

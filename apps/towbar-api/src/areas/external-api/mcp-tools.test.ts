@@ -118,6 +118,32 @@ void test("find an app by name, then deploy exactly that ID with the retry key",
     z.ZodError,
   );
 });
+
+void test("server configuration advertises and forwards the host log opt-in without changing authorization", async () => {
+  const configure = get("server_configure");
+  const schema = mcpInputJsonSchema(configure.input);
+  assert.equal(
+    (schema.properties!.hostLogCollection as { type: string }).type,
+    "boolean",
+  );
+  assert.deepEqual(configure.permissions, ["server.update"]);
+  for (const hostLogCollection of [true, false]) {
+    const h = harness();
+    await configure.run(
+      {
+        serverId: uuid,
+        ip: "192.0.2.10",
+        ssh: { username: "ubuntu" },
+        hostLogCollection,
+      },
+      h.context,
+    );
+    assert.equal(
+      (h.calls[0]!.body as { hostLogCollection: boolean }).hostLogCollection,
+      hostLogCollection,
+    );
+  }
+});
 void test("deployment diagnosis combines state, steps and incremental logs without treating acceptance as success", async () => {
   const h = harness({
     "GET /deployments/:deploymentId/events": {
