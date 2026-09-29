@@ -26,6 +26,7 @@ import {
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 
 import { ActionButton } from "@/components/page-parts";
@@ -593,6 +594,14 @@ export function InlineLink({
   children: ReactNode;
   href: string;
 }) {
+  if (/^https?:\/\//u.test(href)) {
+    return (
+      <InlineExternalLink className="font-medium" href={href}>
+        {children}
+      </InlineExternalLink>
+    );
+  }
+
   return (
     <Link
       className="focus-visible:ring-focus inline-flex items-center rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:ring-2"

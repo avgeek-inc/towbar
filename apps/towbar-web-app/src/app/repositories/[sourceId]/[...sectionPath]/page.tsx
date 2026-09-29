@@ -15,7 +15,9 @@ export default async function Page({
     ![
       "environments",
       "apps",
+      "services",
       "resources",
+      "datastores",
       "manifest",
       "sync-history",
       "settings",

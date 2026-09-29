@@ -24,6 +24,7 @@ import { DeploymentDuration } from "./elapsed-time";
 import { DeploymentProgress } from "./deployment-progress";
 
 import { DomainLink } from "./domain-link";
+import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -429,7 +430,7 @@ export function DeploymentDetail() {
                     </Attributes.Item>
                     <Attributes.Item label="Commit">
                       {commitUrl ? (
-                        <InlineLink
+                        <InlineExternalLink
                           href={commitUrl}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -438,7 +439,7 @@ export function DeploymentDetail() {
                           <TypographyCode title={item.commitSha}>
                             {item.commitSha.slice(0, 12)}
                           </TypographyCode>
-                        </InlineLink>
+                        </InlineExternalLink>
                       ) : (
                         <TypographyCode title={item.commitSha}>
                           {item.commitSha.slice(0, 12)}
@@ -498,14 +499,14 @@ export function DeploymentDetail() {
                     variant="card"
                   >
                     <Attributes.Item label="Pull request">
-                      <InlineLink
+                      <InlineExternalLink
                         aria-label={`Open pull request ${revision.data.pullRequest.number} on GitHub (opens in a new tab)`}
                         href={revision.data.pullRequest.url}
                         rel="noopener noreferrer"
                         target="_blank"
                       >
                         PR #{revision.data.pullRequest.number}
-                      </InlineLink>
+                      </InlineExternalLink>
                     </Attributes.Item>
                     <Attributes.Item label="Title">
                       {revision.data.pullRequest.title}
