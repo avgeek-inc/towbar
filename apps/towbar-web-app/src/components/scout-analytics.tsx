@@ -416,7 +416,6 @@ export function AnalyticsView({
                         help={{
                           description: metric.help,
                           href: "/docs/analytics",
-                          linkLabel: "Learn more in documentation.",
                         }}
                       />
                     ) : null}
@@ -758,7 +757,6 @@ function AnalyticsRows({
                       description:
                         help ?? "IP Geolocation provided by DB-IP database.",
                       href: "/docs/analytics",
-                      linkLabel: "Learn more in documentation.",
                     }}
                   />
                 ) : null}

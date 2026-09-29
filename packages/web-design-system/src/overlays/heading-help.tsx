@@ -66,14 +66,14 @@ export function HeadingHelp({
         <span className="grid gap-2">
           <span>{documentation.description}</span>
           <InlineExternalLink
-            aria-label={`Open documentation for ${title} in a new tab`}
+            aria-label={`Learn more about ${title} in the documentation (opens in a new tab)`}
             href={documentation.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-fit font-medium text-foreground!"
+            className="w-fit text-foreground!"
             tone="secondary"
           >
-            {documentation.linkLabel ?? "Open documentation"}
+            {documentation.linkLabel ?? "Learn more"}
           </InlineExternalLink>
         </span>
       </Popover>
