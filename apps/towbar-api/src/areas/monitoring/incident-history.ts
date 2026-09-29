@@ -50,8 +50,22 @@ export async function getScoutIncident(
   const traffic = isScoutAnalyticsMetric(condition.metric);
   const days =
     condition.metric === "restarts" || traffic ? 1 : agent.retentionDays;
+  const end = new Date(
+    Math.min(
+      now.getTime(),
+      incident.resolvedAt
+        ? incident.resolvedAt.getTime() + 5 * 60_000
+        : now.getTime(),
+    ),
+  );
   const start = new Date(
-    Math.max(incident.openedAt.getTime(), now.getTime() - days * 86400_000),
+    Math.min(
+      end.getTime(),
+      Math.max(
+        Math.floor(incident.conditionStartedAt.getTime() / 60_000) * 60_000,
+        now.getTime() - days * 86400_000,
+      ),
+    ),
   );
   if (start > incident.openedAt)
     notes.push(
@@ -63,21 +77,21 @@ export async function getScoutIncident(
     );
   const step = Math.max(
     30,
-    Math.ceil((now.getTime() - start.getTime()) / 360 / 30_000) * 30,
+    Math.ceil((end.getTime() - start.getTime()) / 360 / 30_000) * 30,
   );
   const startAt = start.toISOString(),
-    endAt = now.toISOString();
+    endAt = end.toISOString();
   const observations = incidentObservations(
     incident,
     start,
-    now,
+    end,
     step,
-    agent.retentionDays,
+    new Date(now.getTime() - agent.retentionDays * 86400_000),
     notes,
   );
   const extreme = condition.operator === "above" ? sql`max` : sql`min`;
   const rows = traffic
-    ? await analyticsAlertHistory(database, incident, start, now, step)
+    ? await analyticsAlertHistory(database, incident, start, end, step)
     : await database.execute<{
         bin: number;
         value: number | null;
@@ -92,17 +106,20 @@ export async function getScoutIncident(
       row.value === null ? null : Number(row.value),
     ]),
   );
-  const points = Array.from(
-    {
-      length: Math.min(
-        361,
-        Math.floor((now.getTime() - start.getTime()) / step / 1000) + 1,
-      ),
-    },
-    (_, index) => ({
-      at: new Date(start.getTime() + index * step * 1000).toISOString(),
-      value: values.get(index) ?? null,
-    }),
+  const points = retainTriggerObservation(
+    Array.from(
+      {
+        length: Math.min(
+          361,
+          Math.floor((end.getTime() - start.getTime()) / step / 1000) + 1,
+        ),
+      },
+      (_, index) => ({
+        at: new Date(start.getTime() + index * step * 1000).toISOString(),
+        value: values.get(index) ?? null,
+      }),
+    ),
+    incident.triggerObservation,
   );
   return {
     incident: {
@@ -117,7 +134,7 @@ export async function getScoutIncident(
       kind: workload?.kind ?? (incident.deployableId ? "workload" : "server"),
     },
     history: {
-      startAt,
+      startAt: points[0]?.at ?? startAt,
       endAt,
       stepSeconds: step,
       points,
@@ -131,17 +148,36 @@ export async function getScoutIncident(
   };
 }
 
+function retainTriggerObservation(
+  points: Array<{ at: string; value: number | null }>,
+  trigger: typeof scoutAlertIncidents.$inferSelect.triggerObservation,
+) {
+  if (
+    points.some((point) => point.value !== null) ||
+    !trigger ||
+    trigger.value === null
+  )
+    return points;
+  const existing = points.find((point) => point.at === trigger.at);
+  if (existing) existing.value = trigger.value;
+  else {
+    points.push(trigger);
+    points.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  }
+  return points;
+}
+
 function incidentObservations(
   incident: typeof scoutAlertIncidents.$inferSelect,
   start: Date,
-  now: Date,
+  end: Date,
   step: number,
-  retentionDays: number,
+  retainedAfter: Date,
   notes: string[],
 ): SQL {
   const { condition } = incident;
   const startAt = start.toISOString(),
-    endAt = now.toISOString();
+    endAt = end.toISOString();
   const scope = incident.deployableId
     ? sql`deployable_id=${incident.deployableId}::uuid and preview_id is null`
     : condition.metric === "restarts"
@@ -155,7 +191,7 @@ function incidentObservations(
       case when state='healthy' then 0 when state='failed' then 1 else null end::double precision value
       from towbar_scout_http_checks where rule_id=${incident.ruleId}::uuid
       and date_trunc('milliseconds',rule_revision)=${incident.ruleRevision?.toISOString() ?? null}::timestamptz
-      and scheduled_at>=${startAt}::timestamptz and coalesce(checked_at,scheduled_at)<=${endAt}::timestamptz`;
+      and coalesce(checked_at,scheduled_at)>=${startAt}::timestamptz and coalesce(checked_at,scheduled_at)<=${endAt}::timestamptz`;
     if (!incident.ruleRevision)
       notes.push(
         "The original HTTP check configuration was not recorded for this older incident; its chart is unavailable.",
@@ -166,7 +202,7 @@ function incidentObservations(
       generate_series(${startAt}::timestamptz,${endAt}::timestamptz,${step}*interval '1 second') t
       left join lateral (select max(bucket_at) last_report from towbar_monitoring_samples
         where server_id=${incident.serverId}::uuid and entity_id='host'
-        and bucket_at>=${new Date(now.getTime() - retentionDays * 86400_000).toISOString()}::timestamptz and bucket_at<=t) r on true`;
+        and bucket_at>=${retainedAfter.toISOString()}::timestamptz and bucket_at<=t) r on true`;
     notes.push(
       "Report age is estimated from retained report timestamps; periods without an earlier retained report have no measurement.",
     );

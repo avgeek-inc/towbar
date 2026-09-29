@@ -6,7 +6,6 @@ import {
   Activity01Icon,
   Alert02Icon,
   AlertCircleIcon,
-  ArrowRight02Icon,
   DashboardCircleIcon,
   CubeIcon,
   FileViewIcon,
@@ -299,21 +298,18 @@ export function DeploymentDetail() {
             <Widget.Footer>
               {item.errorCode ? (
                 <Widget.FooterDescription>
-                  Error code:{" "}
+                  <span className="font-medium">Error code:</span>{" "}
                   <code className="break-all">{item.errorCode}</code>
                 </Widget.FooterDescription>
               ) : null}
               {stream.logs.length > 0 && activeSectionTitle !== "Logs" ? (
                 <InlineLink
                   href={deploymentHref(item, "logs")}
-                  className="inline-flex shrink-0 items-center gap-1 text-xs !text-accent !underline"
+                  className="group/log-link shrink-0 rounded-sm text-xs opacity-75"
                 >
-                  View logs
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    icon={ArrowRight02Icon}
-                    className="size-3.5"
-                  />
+                  <span className="text-muted underline decoration-dashed decoration-muted/20 underline-offset-2 group-hover/log-link:decoration-muted group-focus-visible/log-link:decoration-muted">
+                    View logs
+                  </span>
                 </InlineLink>
               ) : null}
             </Widget.Footer>
@@ -582,15 +578,6 @@ export function DeploymentDetail() {
                   </Widget>
                 ) : null}
                 <Widget className="min-w-0">
-                  <Widget.Header
-                    endContent={<StatusBadge status={stream.connection} />}
-                  >
-                    <Widget.Title
-                      icon={<HugeiconsIcon icon={Activity01Icon} />}
-                    >
-                      Progress
-                    </Widget.Title>
-                  </Widget.Header>
                   <Widget.Content className="p-2">
                     <DeploymentProgress
                       deployment={item}

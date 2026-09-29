@@ -106,6 +106,13 @@
       "when": 1790510000000,
       "tag": "0015_host_upgrades",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790712000000,
+      "tag": "0016_incident_trigger_observation",
+      "breakpoints": true
     }
   ]
 }

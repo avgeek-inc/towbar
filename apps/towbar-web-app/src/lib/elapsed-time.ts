@@ -34,6 +34,7 @@ export function formatElapsedTime(event: TimedEvent, now: number): string {
       : NaN;
   if (!Number.isFinite(start) || !Number.isFinite(end)) return "—";
   const seconds = Math.max(0, Math.floor((end - start) / 1_000));
+  if (seconds === 0) return "<1s";
   const parts: string[] = [];
   if (seconds >= 86_400) parts.push(`${Math.floor(seconds / 86_400)}d`);
   if (seconds >= 3_600) parts.push(`${Math.floor(seconds / 3_600) % 24}h`);

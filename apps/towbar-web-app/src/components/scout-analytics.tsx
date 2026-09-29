@@ -25,7 +25,10 @@ import { LineChart } from "@workspace/web-design-system/charts/line-chart";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { Table } from "@workspace/web-design-system/data-display/table";
 import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import {
+  Tooltip,
+  TooltipText,
+} from "@workspace/web-design-system/overlays/tooltip";
 import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
 import { ScoutIcon } from "./scout-icons";
@@ -171,36 +174,41 @@ export function ScoutAnalytics({
         icon={<HugeiconsIcon icon={Analytics01Icon} />}
         keepEntityName
         actions={
-          <FilterDialog
-            fields={filterFields}
-            value={filters}
-            onChange={setFilters}
-            getOptions={getFilterOptions}
-            renderOption={(field, value) => (
-              <span className="flex min-w-0 items-center gap-2">
-                {field === "country" || field === "city" ? (
-                  <span aria-hidden="true" className="w-5 shrink-0 text-center">
-                    {/^[A-Z]{2}$/u.test(locationCountry(field, value))
-                      ? String.fromCodePoint(
-                          ...[...locationCountry(field, value)].map(
-                            (letter) => 0x1f1e6 + letter.charCodeAt(0) - 65,
-                          ),
-                        )
-                      : "🌐"}
+          <div className="hidden sm:block">
+            <FilterDialog
+              fields={filterFields}
+              value={filters}
+              onChange={setFilters}
+              getOptions={getFilterOptions}
+              renderOption={(field, value) => (
+                <span className="flex min-w-0 items-center gap-2">
+                  {field === "country" || field === "city" ? (
+                    <span
+                      aria-hidden="true"
+                      className="w-5 shrink-0 text-center"
+                    >
+                      {/^[A-Z]{2}$/u.test(locationCountry(field, value))
+                        ? String.fromCodePoint(
+                            ...[...locationCountry(field, value)].map(
+                              (letter) => 0x1f1e6 + letter.charCodeAt(0) - 65,
+                            ),
+                          )
+                        : "🌐"}
+                    </span>
+                  ) : (
+                    <AnalyticsRowIcon dimension={field} value={value} />
+                  )}
+                  <span className="truncate">
+                    {field === "country" && value !== "Unknown"
+                      ? (countryNames.of(value) ?? value)
+                      : field === "city"
+                        ? cityLabel(value)
+                        : value}
                   </span>
-                ) : (
-                  <AnalyticsRowIcon dimension={field} value={value} />
-                )}
-                <span className="truncate">
-                  {field === "country" && value !== "Unknown"
-                    ? (countryNames.of(value) ?? value)
-                    : field === "city"
-                      ? cityLabel(value)
-                      : value}
                 </span>
-              </span>
-            )}
-          />
+              )}
+            />
+          </div>
         }
       />
       {query.error ? (
@@ -358,9 +366,9 @@ export function AnalyticsView({
             value={report.kind}
             onChange={(value) => setKind(value as "request" | "pageview")}
             options={[
-              { id: "request", label: "HTTP requests" },
+              { id: "request", label: "HTTP analytics" },
               ...(report.config?.pageviews
-                ? [{ id: "pageview", label: "Pageviews" }]
+                ? [{ id: "pageview", label: "Web analytics" }]
                 : []),
             ]}
           />
@@ -399,7 +407,7 @@ export function AnalyticsView({
       ) : null}
       {hasTrend ? (
         <div
-          className={`grid grid-cols-1 gap-4 ${pageviews ? "sm:grid-cols-6" : "sm:grid-cols-3"}`}
+          className={`grid grid-cols-2 gap-4 ${pageviews ? "sm:grid-cols-6" : "sm:grid-cols-3"}`}
         >
           {metrics.map(
             ({ label, value, previous, lowerIsBetter, ...metric }, index) => (
@@ -765,7 +773,11 @@ function AnalyticsRows({
             <Table.Column className="text-right">Count</Table.Column>
             <Table.Column className="text-right">%</Table.Column>
           </Table.Header>
-          <Table.Body renderEmptyState={() => "No data yet."}>
+          <Table.Body
+            renderEmptyState={() => (
+              <div className="p-4 text-xs text-muted">No data yet.</div>
+            )}
+          >
             {orderedRows.map((row, index) => (
               <Table.Row id={row.value} key={row.value}>
                 {numbered ? (
@@ -876,6 +888,10 @@ function AnalyticsRowLabel({
         >
           {label}
         </InlineExternalLink>
+      ) : dimension === "city" ? (
+        <TooltipText className="block truncate" tooltip={label} openOnPress>
+          {label}
+        </TooltipText>
       ) : (
         <span className="block truncate" title={label}>
           {label}
@@ -936,6 +952,7 @@ function MetricChange({
 }
 
 function formatPageTime(ms: number) {
+  if (ms < 1000) return "<1s";
   const seconds = Math.round(ms / 1000);
   return seconds < 60
     ? `${seconds}s`

@@ -38,7 +38,11 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
       <div className="min-w-0">
         {dateLabelError ? <QueryError message={dateLabelError} /> : null}
         {data.some((point) => point.value !== null) ? (
-          <LineChart data={data} height={280}>
+          <LineChart
+            data={data}
+            height={280}
+            chartMargin={{ top: 5, right: 5, bottom: 5, left: 0 }}
+          >
             <LineChart.Grid vertical={false} />
             <LineChart.XAxis
               dataKey="at"
@@ -47,13 +51,15 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
               tickCount={4}
               tick={{ fontSize: 10 }}
               ticks={ticks}
-              tickFormatter={
-                end - start > 86400_000 ? displayChartDate : displayTime
+              tickFormatter={(at) =>
+                end - start > 86400_000
+                  ? displayChartDate(Number(at))
+                  : displayTime(Number(at))
               }
               minTickGap={25}
             />
             <LineChart.YAxis
-              width={http ? 88 : 65}
+              width={http ? 80 : metric.unit === "%" ? 44 : 60}
               tick={{ fontSize: 10 }}
               domain={
                 http
@@ -88,7 +94,11 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
               name={metric.label}
               stroke="var(--accent)"
               strokeWidth={2}
-              dot={false}
+              dot={
+                data.filter((point) => point.value !== null).length === 1
+                  ? { r: 4, fill: "var(--accent)", strokeWidth: 0 }
+                  : false
+              }
               activeDot={{ r: 4 }}
               isAnimationActive={false}
               type="stepAfter"

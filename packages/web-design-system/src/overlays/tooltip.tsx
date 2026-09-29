@@ -107,15 +107,18 @@ export function TooltipText({
   children,
   className,
   dateTime,
+  openOnPress = false,
   ...props
 }: Omit<ComponentProps<"span">, "title"> & {
   as?: "span" | "time" | "code";
   dateTime?: string;
   tooltip?: ReactNode;
+  openOnPress?: boolean;
   placement?: ComponentProps<typeof HeroTooltip.Content>["placement"];
 }) {
   const triggerRef = useRef<HTMLElement | null>(null);
   const [isRedundant, setIsRedundant] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useLayoutEffect(() => {
     const trigger = triggerRef.current;
@@ -141,11 +144,32 @@ export function TooltipText({
     return createElement(Tag, { ...props, className, dateTime }, children);
   }
   return (
-    <Tooltip isDisabled={isRedundant}>
+    <Tooltip
+      isDisabled={isRedundant}
+      isOpen={openOnPress ? isOpen && !isRedundant : undefined}
+      onOpenChange={openOnPress ? setIsOpen : undefined}
+    >
       <Tooltip.Trigger<"span">
         {...props}
-        role={props.role}
+        role={
+          props.role ?? (openOnPress && !isRedundant ? "button" : undefined)
+        }
         tabIndex={isRedundant ? -1 : props.tabIndex}
+        onClick={(event) => {
+          props.onClick?.(event);
+          if (openOnPress && !isRedundant) setIsOpen(true);
+        }}
+        onKeyDown={(event) => {
+          props.onKeyDown?.(event);
+          if (
+            openOnPress &&
+            !isRedundant &&
+            (event.key === "Enter" || event.key === " ")
+          ) {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
         className={cn(
           "rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-focus",
           className,

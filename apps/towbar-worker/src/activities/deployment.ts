@@ -14,6 +14,7 @@ import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import { getEnv } from "../env.js";
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { releaseCommitPayload } from "./release-commit.js";
+import { deploymentErrorMessage as safeErrorMessage } from "./deployment-error.js";
 
 import type {
   DeploymentExecutionContext,
@@ -90,12 +91,14 @@ export async function executeDeploymentActivity(deploymentId: string) {
     ) {
       await recordEvent(deploymentId, {
         errorCode: cancelled ? "DEPLOYMENT_CANCELLED" : classifyError(error),
-        message: cancelled ? "Deployment cancelled" : safeErrorMessage(error),
+        message: cancelled
+          ? "Deployment cancelled"
+          : safeErrorMessage(error, currentState),
         state: cancelled ? "cancelled" : "failed",
       }).catch(() => undefined);
     }
     throw ApplicationFailure.create({
-      message: safeErrorMessage(error),
+      message: safeErrorMessage(error, currentState),
       nonRetryable: error instanceof HostKeyNotTrustedError,
       type: cancelled ? "Cancelled" : classifyError(error),
     });
@@ -210,11 +213,4 @@ function classifyError(error: unknown) {
     return "DEPLOYMENT_CANCELLED";
   }
   return "DEPLOYMENT_FAILED";
-}
-
-function safeErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return "Deployment failed";
-  return error.message
-    .replace(/Bearer\s+\S+/giu, "Bearer [REDACTED]")
-    .slice(0, 1_000);
 }

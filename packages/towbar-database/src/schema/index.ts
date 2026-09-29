@@ -2655,6 +2655,10 @@ export const scoutAlertIncidents = pgTable(
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     resolutionReason: varchar("resolution_reason", { length: 80 }),
     lastValue: jsonb("last_value").$type<number | null>(),
+    triggerObservation: jsonb("trigger_observation").$type<{
+      at: string;
+      value: number | null;
+    }>(),
     lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
     notificationSequence: integer("notification_sequence").notNull().default(0),
   },

@@ -14,6 +14,11 @@ import {
 } from "react-email";
 import { render } from "react-email";
 import {
+  compactDetail,
+  operationalDetails,
+  type EmailDetail,
+} from "./operational-details.js";
+import {
   isWorkspaceRole,
   roleDescriptions,
   roleLabels,
@@ -64,6 +69,7 @@ type Message = {
   actionUrl?: string;
   actionLabel?: string;
   code?: string;
+  details?: EmailDetail[];
 };
 function message(
   template: TransactionalTemplate,
@@ -280,6 +286,70 @@ function EmailShell({ message: content }: { message: Message }) {
               {content.code}
             </Text>
           ) : null}
+          {content.details?.length ? (
+            <Section
+              style={{ margin: "20px 0", fontSize: 14, lineHeight: "20px" }}
+            >
+              <table
+                role="presentation"
+                width="100%"
+                cellPadding="0"
+                cellSpacing="0"
+                style={{ tableLayout: "fixed" }}
+              >
+                <tbody>
+                  {content.details.map((detail, index) => (
+                    <tr key={index}>
+                      <td
+                        style={{
+                          width: "40%",
+                          padding: "6px 12px 6px 0",
+                          verticalAlign: "top",
+                          color: emailTheme.muted,
+                          fontWeight: 500,
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {detail.label}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 0",
+                          verticalAlign: "top",
+                          overflowWrap: "anywhere",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {detail.href ? (
+                          <Link
+                            href={detail.href}
+                            style={{
+                              color: emailTheme.accent,
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {detail.value}
+                          </Link>
+                        ) : (
+                          <span
+                            title={detail.value}
+                            style={{
+                              display: "block",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {compactDetail(detail)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Section>
+          ) : null}
           {actionUrl ? (
             <Section style={{ margin: "24px 0" }}>
               <Button
@@ -317,7 +387,7 @@ function EmailShell({ message: content }: { message: Message }) {
                     overflowWrap: "anywhere",
                   }}
                 >
-                  {actionUrl.href}
+                  {content.details ? "Open in Towbar" : actionUrl.href}
                 </Link>
               </Text>
             </Section>
@@ -343,6 +413,10 @@ async function renderMessage(content: Message) {
   const text = [
     previewText(content),
     ...content.paragraphs.slice(1),
+    ...(content.details ?? []).map(
+      (detail) =>
+        `${detail.label}: ${detail.value}${detail.href ? ` (${detail.href})` : ""}`,
+    ),
     content.code ? `Verification code: ${content.code}` : null,
     content.actionUrl
       ? `${content.actionLabel ?? "Open Towbar"}: ${content.actionUrl}`
@@ -381,12 +455,8 @@ export type OperationalEmailData = {
 function operationalMessage(input: OperationalEmailData): Message {
   return {
     title: input.title,
-    paragraphs: [
-      input.summary,
-      ...Object.entries(input.details)
-        .filter(([, value]) => value !== null && value !== undefined)
-        .map(([key, value]) => `${key}: ${value}`),
-    ],
+    paragraphs: [input.summary],
+    details: operationalDetails(input.details),
     teamName: "Towbar notifications",
     actionUrl: input.actionUrl,
     actionLabel: "View in Towbar",

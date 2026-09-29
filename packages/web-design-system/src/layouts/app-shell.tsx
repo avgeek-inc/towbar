@@ -297,7 +297,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                         className="shrink-0"
                       />
                     ) : null}
-                    <span className="min-w-0 flex-1 break-words">
+                    <span className="min-w-0 flex-1 truncate">
                       {item.label}
                     </span>
                     {item.trailing}
@@ -370,7 +370,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
           className="shrink-0"
         />
       ) : null}
-      <span className="min-w-0 whitespace-normal">{item.label}</span>
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
     </Button>
   );
 

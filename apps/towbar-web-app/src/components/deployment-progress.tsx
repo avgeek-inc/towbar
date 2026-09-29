@@ -53,9 +53,10 @@ export function DeploymentProgress({
             id={step.id}
             title={formatStatus(step.state)}
             status={status}
+            runningTone="warning"
             description={
               step.startedAt ? (
-                <span className="inline-flex flex-wrap items-center gap-x-2">
+                <span className="inline-flex items-center gap-x-1">
                   <TooltipText
                     as="time"
                     className="tabular-nums"
@@ -64,14 +65,14 @@ export function DeploymentProgress({
                   >
                     {displayTime(step.startedAt)}
                   </TooltipText>
-                  <span aria-hidden="true">·</span>
                   <span>
-                    Duration:{" "}
+                    (
                     <ElapsedTime
                       startedAt={step.startedAt}
                       finishedAt={finishedAt}
                       status={live ? step.status : "succeeded"}
                     />
+                    )
                   </span>
                 </span>
               ) : status === "waiting" ? (
@@ -84,7 +85,7 @@ export function DeploymentProgress({
             {step.message ? (
               <p
                 className={cn(
-                  "text-sm break-words",
+                  "text-xs break-words",
                   status === "failed"
                     ? "text-danger-soft-foreground"
                     : "text-muted",
@@ -100,23 +101,21 @@ export function DeploymentProgress({
                   {step.startedAt ? formatDate(step.startedAt) : "Not recorded"}
                 </dd>
               </div>
-              <div>
-                <dt className="text-muted">Finished</dt>
-                <dd className="text-foreground">
-                  {finishedAt
-                    ? formatDate(finishedAt)
-                    : status === "running"
-                      ? "In progress"
-                      : "Not recorded"}
-                </dd>
-              </div>
+              {finishedAt ? (
+                <div>
+                  <dt className="text-muted">Finished</dt>
+                  <dd className="text-foreground">{formatDate(finishedAt)}</dd>
+                </div>
+              ) : null}
             </dl>
             {hasLogs ? (
               <InlineLink
                 href={deploymentHref(deployment, "logs")}
-                className="w-fit text-xs text-accent underline"
+                className="group/log-link w-fit rounded-sm text-xs"
               >
-                View deployment logs
+                <span className="text-muted underline decoration-dashed decoration-muted/20 underline-offset-2 group-hover/log-link:decoration-muted group-focus-visible/log-link:decoration-muted">
+                  View deployment logs
+                </span>
               </InlineLink>
             ) : null}
           </ProgressChecklistItem>

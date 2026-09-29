@@ -56,7 +56,10 @@ export function ScoutIncidentDrawer({
         <Drawer.Dialog className="w-full max-w-3xl">
           <Drawer.CloseTrigger aria-label="Close incident" />
           <Drawer.Header>
-            <p className="text-sm text-muted">Incident details</p>
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <ScoutIcon name="active" />
+              Incident details
+            </p>
             <Drawer.Heading>{incident.ruleName}</Drawer.Heading>
           </Drawer.Header>
           <Drawer.Body>
@@ -66,11 +69,6 @@ export function ScoutIncidentDrawer({
               initial={incident}
             />
           </Drawer.Body>
-          <Drawer.Footer>
-            <Button slot="close" variant="secondary">
-              Close
-            </Button>
-          </Drawer.Footer>
         </Drawer.Dialog>
       </Drawer.Content>
     </Drawer.Backdrop>
@@ -150,27 +148,15 @@ function IncidentBody({
       >
         <Tabs.ListContainer>
           <Tabs.List aria-label="Incident sections">
-            <Tabs.Tab
-              id="overview"
-              className="gap-1 px-2 text-xs sm:gap-2 sm:text-sm"
-            >
-              <ScoutIcon name="view" />
+            <Tabs.Tab id="overview" className="px-2 text-xs sm:text-sm">
               Overview
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab
-              id="monitoring"
-              className="gap-1 px-2 text-xs sm:gap-2 sm:text-sm"
-            >
-              <ScoutIcon name="performance" />
+            <Tabs.Tab id="monitoring" className="px-2 text-xs sm:text-sm">
               Monitoring
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab
-              id="notifications"
-              className="gap-1 px-2 text-xs sm:gap-2 sm:text-sm"
-            >
-              <ScoutIcon name="notifications" />
+            <Tabs.Tab id="notifications" className="px-2 text-xs sm:text-sm">
               Notifications
               <Tabs.Indicator />
             </Tabs.Tab>
