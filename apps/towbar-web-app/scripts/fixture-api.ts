@@ -1,3 +1,4 @@
+import packageManifest from "../../../package.json" with { type: "json" };
 import {
   createUpgradeFixture,
   type UpgradeScenario,
@@ -1482,7 +1483,7 @@ let systemHealth: SystemHealth = {
     ),
   })),
   status: "healthy",
-  version: "2.0.17",
+  version: packageManifest.version,
 };
 
 function fixtureSystemHealth(): SystemHealth {
@@ -1494,9 +1495,9 @@ function fixtureSystemHealth(): SystemHealth {
 
 const towbarUpdates: TowbarUpdateInfo = {
   checkedAt: systemHealthFixtureNow,
-  installedVersion: "2.0.17",
-  latestVersion: "2.0.17",
-  releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.17",
+  installedVersion: packageManifest.version,
+  latestVersion: packageManifest.version,
+  releaseUrl: `https://github.com/avgeek-inc/towbar/releases/tag/v${packageManifest.version}`,
   status: "current",
 };
 

@@ -5,6 +5,25 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.18] - 2026-09-29
+
+### Added
+
+- Admins can allow a Service to collect Docker container logs on a server.
+  Collectors require persistent storage and CPU and memory limits.
+
+### Fixed
+
+- Upgrading legacy image workloads to Services preserves saved secrets, workload
+  IDs, volumes, and deployment history. Conflicting manifest IDs and unsupported
+  volume paths stop the upgrade with recovery guidance. Installations that already
+  lost records in an earlier upgrade still need to restore them from a backup.
+- Failed or interrupted SSH credential checks no longer leave later checks on
+  the same server stuck in the queue.
+- The demo header stays visible beneath the countdown bar while scrolling.
+  Both sidebars adjust to the bar's height, including when it wraps on mobile.
+- Updated HTTP and email dependencies with security fixes.
+
 ## [2.0.17] - 2026-09-28
 
 ### Added
