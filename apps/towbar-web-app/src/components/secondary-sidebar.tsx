@@ -189,7 +189,7 @@ export function SecondaryItems({
             {!item.disabled ? (
               <span
                 aria-hidden="true"
-                className="inline-flex shrink-0 [&_img]:size-5 [&_svg]:size-5"
+                className="inline-flex shrink-0 [&_img]:size-4 [&_svg]:size-4"
               >
                 {item.icon ?? (
                   <HugeiconsIcon
