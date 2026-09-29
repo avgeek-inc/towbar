@@ -133,7 +133,7 @@ export function AppLayout({
           {sidebar && sidebarOpen && isDesktop ? (
             <aside
               id="application-navigation"
-              className="sticky top-0 h-dvh w-60 overflow-hidden border-r border-separator bg-background"
+              className="sticky top-[var(--app-shell-top-offset,0px)] h-[calc(100dvh-var(--app-shell-top-offset,0px))] w-60 overflow-hidden border-r border-separator bg-background"
             >
               {sidebar}
             </aside>

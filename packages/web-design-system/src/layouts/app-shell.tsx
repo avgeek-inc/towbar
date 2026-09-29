@@ -144,7 +144,7 @@ export function ApplicationNavbar({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 px-4 backdrop-blur">
+    <header className="sticky top-[var(--app-shell-top-offset,0px)] z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 px-4 backdrop-blur">
       <div className="flex min-w-0 items-center gap-2">
         {hasSidebar ? (
           <Button

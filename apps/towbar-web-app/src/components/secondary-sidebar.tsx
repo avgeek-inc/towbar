@@ -41,7 +41,7 @@ export function SecondarySidebarLayout({ children }: { children: ReactNode }) {
       }}
     >
       <div className="min-w-0 lg:grid lg:has-[[data-secondary-menu]]:grid-cols-[auto_minmax(0,1fr)]">
-        <aside className="hidden min-w-0 border-r border-separator bg-background lg:has-[[data-secondary-menu]]:block lg:w-66 lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] lg:self-start">
+        <aside className="hidden min-w-0 border-r border-separator bg-background lg:has-[[data-secondary-menu]]:block lg:w-66 lg:sticky lg:top-[calc(4rem+var(--app-shell-top-offset,0px))] lg:h-[calc(100dvh-4rem-var(--app-shell-top-offset,0px))] lg:self-start">
           <div className="h-full overflow-y-auto overscroll-contain px-3 py-4 has-[[data-secondary-header]]:py-2">
             <nav
               aria-label="Page navigation"

@@ -100,7 +100,7 @@ export function DemoBoundary({ children }: { children: React.ReactNode }) {
     if (!node) return;
     const observer = new ResizeObserver(() => {
       node.parentElement?.style.setProperty(
-        "--demo-notice-height",
+        "--app-shell-top-offset",
         `${node.offsetHeight}px`,
       );
     });
@@ -169,7 +169,7 @@ export function DemoBoundary({ children }: { children: React.ReactNode }) {
       </div>
     );
   return (
-    <div className="[&_aside#application-navigation]:top-[var(--demo-notice-height)] [&_aside#application-navigation]:h-[calc(100dvh-var(--demo-notice-height))]">
+    <div>
       <aside
         ref={trackNotice}
         aria-label="Demo session"
