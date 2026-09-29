@@ -31,7 +31,7 @@ export function InlineExternalLink({
         className={cn(
           "min-w-0 truncate rounded-none underline decoration-dashed",
           tone === "secondary"
-            ? "decoration-muted/20 underline-offset-2 group-hover/external-link:decoration-muted/60 group-focus-visible/external-link:decoration-muted/60"
+            ? "decoration-muted/20 underline-offset-2 group-hover/external-link:decoration-muted group-focus-visible/external-link:decoration-muted"
             : "decoration-muted/30 underline-offset-4 group-hover/external-link:decoration-muted group-focus-visible/external-link:decoration-muted",
         )}
         tabIndex={-1}
@@ -46,7 +46,7 @@ export function InlineExternalLink({
             className={cn(
               "ml-px shrink-0 text-[0.7em] leading-none font-normal",
               tone === "secondary"
-                ? "text-muted/20 group-hover/external-link:text-muted/60 group-focus-visible/external-link:text-muted/60"
+                ? "text-muted/20 group-hover/external-link:text-muted group-focus-visible/external-link:text-muted"
                 : "text-muted/30 group-hover/external-link:text-muted group-focus-visible/external-link:text-muted",
             )}
           >
