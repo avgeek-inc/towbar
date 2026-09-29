@@ -1,6 +1,10 @@
 "use client";
 
-import { Copy01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowTurnForwardIcon,
+  Copy01Icon,
+  Route01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -38,7 +42,13 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                 {row.hostname}
               </DomainLink>
               {row.role ? (
-                <TableCellDescription>{row.role} domain</TableCellDescription>
+                <TableCellDescription className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`size-1.5 shrink-0 rounded-full ${row.role === "Primary" ? "bg-success" : "bg-warning"}`}
+                  />
+                  {row.role} domain
+                </TableCellDescription>
               ) : null}
             </TableCellStack>
           ),
@@ -73,7 +83,14 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
           cell: (row) =>
             row.target.kind === "redirect" ? (
               <TableCellStack as="div">
-                Redirect
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <HugeiconsIcon
+                    icon={ArrowTurnForwardIcon}
+                    className="size-4"
+                    aria-hidden="true"
+                  />
+                  Redirect
+                </span>
                 <TableCellDescription>
                   <span
                     className={
@@ -84,11 +101,16 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                   >
                     {row.target.status}
                   </span>{" "}
-                  · {row.target.status === 301 ? "Permanent" : "Temporary"}
+                  / {row.target.status === 301 ? "Permanent" : "Temporary"}
                 </TableCellDescription>
               </TableCellStack>
             ) : (
-              <span className="whitespace-nowrap">
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <HugeiconsIcon
+                  icon={Route01Icon}
+                  className="size-4"
+                  aria-hidden="true"
+                />
                 {row.target.ingress === "cloudflare-tunnel"
                   ? "Cloudflare Tunnel"
                   : "Proxy"}
