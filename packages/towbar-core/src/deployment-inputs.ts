@@ -105,6 +105,7 @@ export function getDeployableDeploymentDigest(input: {
   const server = { ...input.server } as Record<string, unknown>;
   delete server.buildConcurrency;
   delete server.previewBuildConcurrency;
+  delete server.hostLogCollection;
   return digestValue({
     runtimeConfig: getDeploymentRuntimeConfig(input.deployable),
     server,

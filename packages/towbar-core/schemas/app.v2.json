@@ -859,6 +859,14 @@
     "container": {
       "type": "object",
       "properties": {
+        "hostLogs": {
+          "type": "object",
+          "properties": {
+            "dockerJsonFiles": { "type": "boolean", "const": true }
+          },
+          "required": ["dockerJsonFiles"],
+          "additionalProperties": false
+        },
         "network": {
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
@@ -2041,6 +2049,14 @@
           "container": {
             "type": "object",
             "properties": {
+              "hostLogs": {
+                "type": "object",
+                "properties": {
+                  "dockerJsonFiles": { "type": "boolean", "const": true }
+                },
+                "required": ["dockerJsonFiles"],
+                "additionalProperties": false
+              },
               "network": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"

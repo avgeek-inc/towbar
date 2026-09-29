@@ -18,6 +18,7 @@ body:
     {
       "buildConcurrency": 1,
       "previewBuildConcurrency": 1,
+      "hostLogCollection": true,
       "ip": "192.0.2.10",
       "ssh": {
         "host": "string",

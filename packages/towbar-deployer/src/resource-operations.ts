@@ -203,9 +203,13 @@ for item in items:
     if kind == "image" and name in expected["imageTags"]:
         skipped.append(item)
         continue
-    if kind == "volume" and labels.get("towbar.deployable") in expected["deployableIds"]:
-        skipped.append(item)
-        continue
+    if kind == "volume":
+        host_logs = labels.get("towbar.storage") == "host-logs" and name == "towbar-host-logs-" + labels.get("towbar.runtime", "")
+        attached = command("docker", "ps", "-aq", "--filter", "volume=" + name)
+        if (attached.returncode != 0 or attached.stdout.strip()
+            or (labels.get("towbar.deployable") in expected["deployableIds"] and not host_logs)):
+            skipped.append(item)
+            continue
     removal = {
         "container": ("docker", "rm", "-f", name),
         "image": ("docker", "image", "rm", name),

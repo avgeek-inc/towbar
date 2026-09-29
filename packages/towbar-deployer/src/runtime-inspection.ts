@@ -443,11 +443,15 @@ for name in volumes.stdout.splitlines():
                         "runtimeId": labels.get("towbar.runtime", ""),
                         "name": labels.get("towbar.volume", ""), "volumeName": name,
                         "mountPath": mount_path, "mounted": mounted})
-    if owned(labels) and labels.get("towbar.deployable") not in expected_deployables:
+    unused_host_logs = False
+    if owned(labels) and labels.get("towbar.storage") == "host-logs" and name == "towbar-host-logs-" + labels.get("towbar.runtime", ""):
+        attached = command("docker", "ps", "-aq", "--filter", "volume=" + name)
+        unused_host_logs = attached.returncode == 0 and not attached.stdout.strip()
+    if owned(labels) and (unused_host_logs or labels.get("towbar.deployable") not in expected_deployables):
         orphans.append({
             "kind": "volume",
             "name": name,
-            "reason": "Persistent volume belongs to a removed deployable",
+            "reason": "Host log volume has no container references" if unused_host_logs else "Persistent volume belongs to a removed deployable",
         })
 
 images = command("docker", "image", "ls", "--format", "{{.Repository}}:{{.Tag}}")

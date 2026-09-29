@@ -1,7 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import nodemailer from "nodemailer";
-import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
+import nodemailer, { type SMTPTransportOptions } from "nodemailer";
 import { NotificationProviderError } from "./provider-error.js";
 const providerTimeoutMs = 10_000;
 export async function sendSmtpEmail(
@@ -22,7 +21,7 @@ export async function sendSmtpEmail(
   },
   dependencies = {
     resolveAddress: resolvePublicSmtpAddress,
-    createTransport: (options: SMTPTransport.Options) =>
+    createTransport: (options: SMTPTransportOptions) =>
       nodemailer.createTransport(options),
   },
 ) {
@@ -52,7 +51,7 @@ export async function sendSmtpEmail(
       html: input.html,
       to: input.recipients,
     });
-    return { providerStatus: result.response.slice(0, 100) };
+    return { providerStatus: result.response?.slice(0, 100) };
   } catch (error) {
     throw classifySmtpError(error);
   } finally {

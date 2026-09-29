@@ -10,6 +10,7 @@ import {
   ComputerActivityIcon,
   DashboardCircleIcon,
   CubeIcon,
+  File02Icon,
   Delete02Icon,
   Link01Icon,
   ServerOffIcon,
@@ -33,6 +34,7 @@ import {
 } from "./server-preparation";
 
 import { ServerEditor } from "./server-editor";
+import { ServerLogCollection } from "./server-log-collection";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { ServerHardwareDescription } from "./server-hardware";
 
@@ -91,9 +93,12 @@ const SERVER_CHECK_PAGE_SIZE = 10;
 export function ServerDetail() {
   const detailNavigation = useDetailNavigation();
   const requestedSettings = detailNavigation.settings;
-  const requestedSettingsTab = ["monitoring", "cleanup", "danger"].includes(
-    requestedSettings ?? "",
-  )
+  const requestedSettingsTab = [
+    "logs-collection",
+    "monitoring",
+    "cleanup",
+    "danger",
+  ].includes(requestedSettings ?? "")
     ? requestedSettings!
     : "configuration";
   const { serverId } = useParams<{
@@ -634,6 +639,20 @@ export function ServerDetail() {
                       ),
                     },
                     {
+                      value: "logs-collection",
+                      label: "Logs collection",
+                      icon: <HugeiconsIcon icon={File02Icon} />,
+                      content: (
+                        <ServerLogCollection
+                          canManage={
+                            server.data.canManageServer &&
+                            can("server.collectLogs")
+                          }
+                          server={item}
+                        />
+                      ),
+                    },
+                    {
                       value: "monitoring",
                       label: "Scout Agent",
                       badge:
@@ -656,7 +675,7 @@ export function ServerDetail() {
                     },
                     {
                       value: "cleanup",
-                      label: "Cleanup",
+                      label: "Docker cleanup",
                       badge: cleanup.data?.inProgress ? (
                         <Chip size="small" variant="warning">
                           In progress
@@ -711,16 +730,18 @@ export function ServerDetail() {
                               ) : null}
                             </div>
                           ) : null}
-                          <ResourceTable
-                            ariaLabel={`Orphaned Docker objects on ${item.canonicalIp}`}
-                            columns={orphanColumns}
-                            emptyDescription="The latest successful server check found no Towbar-owned objects safe to classify as orphaned."
-                            emptyTitle="No orphaned Docker objects"
-                            getRowKey={(orphan) =>
-                              `${orphan.kind}:${orphan.name}`
-                            }
-                            items={orphanItems}
-                          />
+                          <FormCard title="Unused Docker objects">
+                            <ResourceTable
+                              ariaLabel={`Unused Docker objects on ${item.canonicalIp}`}
+                              columns={orphanColumns}
+                              emptyDescription="The latest successful server check found no Towbar-owned objects safe to classify as orphaned."
+                              emptyTitle="No unused Docker objects"
+                              getRowKey={(orphan) =>
+                                `${orphan.kind}:${orphan.name}`
+                              }
+                              items={orphanItems}
+                            />
+                          </FormCard>
                         </div>
                       ),
                     },

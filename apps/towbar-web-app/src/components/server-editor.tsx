@@ -70,6 +70,7 @@ export function ServerEditor({
     const config = {
       buildConcurrency: Number(values.get("buildConcurrency")),
       previewBuildConcurrency: Number(values.get("previewBuildConcurrency")),
+      hostLogCollection: server?.config.hostLogCollection === true,
       ip,
       ssh: {
         ...(host && host !== ip ? { host } : {}),

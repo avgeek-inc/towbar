@@ -151,14 +151,14 @@ export function ApplicationNavbar({
             aria-label="Toggle navigation"
             aria-expanded={sidebarOpen}
             aria-controls={sidebarOpen ? "application-navigation" : undefined}
-            className="size-11 min-h-11 min-w-11 shrink-0 lg:size-10 lg:min-h-10 lg:min-w-10"
+            className="relative size-8 min-h-8 min-w-8 shrink-0 before:absolute before:-inset-1.5 before:content-['']"
             isIconOnly
             onPress={onSidebarToggle}
             variant="ghost"
           >
             <HugeiconsIcon
               aria-hidden="true"
-              className="size-[22px] lg:size-5"
+              className="size-4"
               icon={Menu01Icon}
             />
           </Button>

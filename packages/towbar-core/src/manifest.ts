@@ -184,6 +184,7 @@ export const serverConfigurationSchema = z
   .object({
     buildConcurrency: z.number().int().min(1).max(16).optional(),
     previewBuildConcurrency: z.number().int().min(1).max(4).optional(),
+    hostLogCollection: z.boolean().optional(),
     ip: ipAddressSchema,
     ssh: z
       .object({
@@ -455,6 +456,10 @@ export const appSchema = z
     ingress: ingressSchema.optional(),
     container: z
       .object({
+        hostLogs: z
+          .object({ dockerJsonFiles: z.literal(true) })
+          .strict()
+          .optional(),
         network: z.string().trim().regex(dockerNetworkPattern).optional(),
         networkAlias: z.string().trim().regex(appIdPattern).optional(),
         port: z.number().int().min(1).max(65_535),
@@ -504,6 +509,42 @@ export const appSchema = z
   .strict()
   // eslint-disable-next-line complexity -- The refinement is a declarative list of independent manifest invariants.
   .superRefine((app, context) => {
+    if (app.container.hostLogs) {
+      if (!app.container.resources || !app.container.volumes?.length)
+        context.addIssue({
+          code: "custom",
+          path: ["container", "hostLogs"],
+          message:
+            "Host log collectors require CPU/memory limits and persistent named storage",
+        });
+      if (app.rollout?.type !== "recreate" || !app.rollout.maintenanceMode)
+        context.addIssue({
+          code: "custom",
+          path: ["rollout"],
+          message:
+            "Host log collectors require recreate with maintenance mode to keep one writer per buffer volume",
+        });
+      if (app.preview)
+        context.addIssue({
+          code: "custom",
+          path: ["preview"],
+          message: "Host log collectors cannot enable Preview deployments",
+        });
+      const logPath = "/var/lib/docker/containers";
+      if (
+        app.container.volumes?.some(
+          (volume) =>
+            volume.mountPath === logPath ||
+            volume.mountPath.startsWith(`${logPath}/`) ||
+            logPath.startsWith(`${volume.mountPath}/`),
+        )
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["container", "volumes"],
+          message: "Named storage cannot overlap the read-only host log mount",
+        });
+    }
     if (app.analytics && !app.domains) {
       context.addIssue({
         code: "custom",
@@ -1066,6 +1107,7 @@ export type DeploymentManifestInput = z.input<
 export type NormalizedServer = {
   buildConcurrency: number;
   previewBuildConcurrency?: number;
+  hostLogCollection?: boolean;
   ip: string;
   ssh: { host: string; port: number; username: string };
 };
@@ -1083,6 +1125,7 @@ export type NormalizedApp = {
   autoDeploy: boolean;
   vulnerabilityScanning: boolean;
   container: {
+    hostLogs?: { dockerJsonFiles: true };
     network?: string;
     networkAlias?: string;
     port: number;
@@ -1286,6 +1329,9 @@ export function normalizeDeploymentManifest(
           ...(app.ingress ? { ingress: app.ingress } : {}),
           deploymentInputs: automaticDeployment.inputs,
           container: {
+            ...(app.container.hostLogs
+              ? { hostLogs: app.container.hostLogs }
+              : {}),
             ...(app.container.network
               ? { network: app.container.network.trim() }
               : {}),
@@ -1388,6 +1434,7 @@ export function normalizeServerConfiguration(
   const buildConcurrency = server.buildConcurrency ?? 1;
   return {
     buildConcurrency,
+    ...(server.hostLogCollection ? { hostLogCollection: true } : {}),
     previewBuildConcurrency: Math.min(
       server.previewBuildConcurrency ?? 1,
       buildConcurrency,

@@ -1,10 +1,12 @@
 import {
   authorizeQueuedEffect,
+  captureQueuedActor,
   currentActor,
   withActor,
 } from "../auth/actor-context.js";
 import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import {
+  collectsHostDockerLogs,
   evaluateAutoDeployPause,
   isNormalizedResource,
 } from "@workspace/towbar-core";
@@ -26,6 +28,16 @@ import { requestAppDeployment } from "./service.js";
 import { createDeferredAutomaticDeployment } from "../auto-deploy-controls/service.js";
 import { scheduleSourcePreviewReconciliations } from "../previews/reconciliation-scheduler.js";
 import { requestDisabledPreviewCleanups } from "../previews/cleanup.js";
+import {
+  hostLogDeploymentPermissions,
+  requireHostLogCollection,
+} from "./host-log-collection.js";
+
+const automaticDeploymentDependencies = {
+  requestDeployment: requestAppDeployment,
+  cleanupPreviews: requestDisabledPreviewCleanups,
+  reconcilePreviews: scheduleSourcePreviewReconciliations,
+};
 
 type SourceSyncAdmission = {
   commitSha: string | null;
@@ -49,7 +61,10 @@ export function sourceSyncDeploymentIdempotencyKey(input: {
   return `${input.syncId ? `sync:${input.syncId}` : "push"}:${input.sourceId}:${input.commitSha}:${input.deploymentDigest}:${input.manifestId}`;
 }
 
-export async function scheduleSourceAutomaticDeployments(syncId: string) {
+export async function scheduleSourceAutomaticDeployments(
+  syncId: string,
+  dependencies = automaticDeploymentDependencies,
+) {
   const [sync] = await getTowbarDatabase()
     .select({
       sourceEnvironmentId: sourceSyncs.sourceEnvironmentId,
@@ -85,10 +100,11 @@ export async function scheduleSourceAutomaticDeployments(syncId: string) {
       sourceEnvironmentId: sync.sourceEnvironmentId!,
       syncId,
       workspaceId: sync.workspaceId,
+      requestDeployment: dependencies.requestDeployment,
     }),
   );
-  await requestDisabledPreviewCleanups(sync.sourceId, sync.sourceEnvironmentId);
-  await scheduleSourcePreviewReconciliations(sync.sourceId);
+  await dependencies.cleanupPreviews(sync.sourceId, sync.sourceEnvironmentId);
+  await dependencies.reconcilePreviews(sync.sourceId);
   return result;
 }
 
@@ -123,6 +139,7 @@ export async function scheduleLatestAutomaticDeploymentsForSource(input: {
       ),
     );
   const deploymentIds: string[] = [];
+  const skippedDeployments = [];
   for (const environment of environments) {
     if (!environment.commitSha) continue;
     const result = await scheduleEligibleAutomaticDeployments({
@@ -131,8 +148,13 @@ export async function scheduleLatestAutomaticDeploymentsForSource(input: {
       commitSha: environment.commitSha,
     });
     deploymentIds.push(...result.deploymentIds);
+    if (result.skippedDeployments)
+      skippedDeployments.push(...result.skippedDeployments);
   }
-  return { deploymentIds };
+  return {
+    deploymentIds,
+    ...(skippedDeployments.length ? { skippedDeployments } : {}),
+  };
 }
 
 export async function admitResumedAutomaticDeployments() {
@@ -172,6 +194,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
   sourceEnvironmentId: string;
   syncId?: string;
   workspaceId: string;
+  requestDeployment?: typeof requestAppDeployment;
 }) {
   const database = getTowbarDatabase();
   const [source] = await database
@@ -193,6 +216,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
       autoDeployPaused: sourceEnvironments.autoDeployPaused,
       mappingRevision: sourceEnvironments.mappingRevision,
       syncedMappingRevision: sourceSyncs.mappingRevision,
+      requestedByActor: sourceSyncs.requestedByActor,
     })
     .from(sourceEnvironments)
     .innerJoin(
@@ -227,6 +251,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
       kind: apps.kind,
       sourceRevision: apps.sourceRevision,
       serverConfigDigest: servers.configDigest,
+      serverConfig: servers.config,
       serverPreparedAt: servers.preparedAt,
       serverPreparedConfigDigest: servers.preparedConfigDigest,
     })
@@ -284,10 +309,45 @@ async function scheduleEligibleAutomaticDeployments(input: {
       ),
     );
 
+  const skippedDeployments: Array<{
+    appId: string;
+    code: string;
+    message: string;
+  }> = [];
   const results = await Promise.all(
     eligible.map(async (candidate) => {
       if (!candidate.deploymentDigest) {
         throw new Error("Automatic deployment candidate is not materialized");
+      }
+      let actor = currentActor();
+      if (collectsHostDockerLogs(candidate.config)) {
+        try {
+          requireHostLogCollection(candidate.serverConfig, candidate.config);
+          actor ??= await authorizeQueuedEffect(
+            environment.requestedByActor,
+            input.workspaceId,
+            hostLogDeploymentPermissions(candidate.config),
+          );
+          withActor(actor, () =>
+            captureQueuedActor(
+              input.workspaceId,
+              hostLogDeploymentPermissions(candidate.config),
+            ),
+          );
+        } catch (error) {
+          if (
+            error instanceof HttpError &&
+            ["HOST_LOG_COLLECTION_DISABLED", "FORBIDDEN"].includes(error.code)
+          ) {
+            skippedDeployments.push({
+              appId: candidate.appId,
+              code: error.code,
+              message: error.publicMessage,
+            });
+            return null;
+          }
+          throw error;
+        }
       }
       try {
         await assertRequiredInstanceSecrets({
@@ -325,31 +385,48 @@ async function scheduleEligibleAutomaticDeployments(input: {
           .where(eq(apps.id, candidate.appId));
         return null;
       }
-      const result = await withActor(
-        currentActor() ?? {
-          kind: "system",
-          source: "worker",
-          workspaceId: input.workspaceId,
-          grants: ["deployment.create"],
-        },
-        () =>
-          requestAppDeployment({
-            appId: candidate.appId,
-            expectedType: isNormalizedResource(candidate.config)
-              ? "resource"
-              : "app",
-            expectedCommitSha: input.commitSha,
-            idempotencyKey: sourceSyncDeploymentIdempotencyKey({
-              commitSha: input.commitSha,
-              deploymentDigest: candidate.deploymentDigest!,
-              manifestId: candidate.manifestId,
-              sourceId: input.sourceId,
-              syncId: input.syncId,
-            }),
-            requestedBy: null,
+      let result;
+      try {
+        result = await withActor(
+          actor ?? {
+            kind: "system",
+            source: "worker",
             workspaceId: input.workspaceId,
-          }),
-      );
+            grants: ["deployment.create"],
+          },
+          () =>
+            (input.requestDeployment ?? requestAppDeployment)({
+              appId: candidate.appId,
+              expectedType: isNormalizedResource(candidate.config)
+                ? "resource"
+                : "app",
+              expectedCommitSha: input.commitSha,
+              idempotencyKey: sourceSyncDeploymentIdempotencyKey({
+                commitSha: input.commitSha,
+                deploymentDigest: candidate.deploymentDigest!,
+                manifestId: candidate.manifestId,
+                sourceId: input.sourceId,
+                syncId: input.syncId,
+              }),
+              requestedBy: null,
+              workspaceId: input.workspaceId,
+            }),
+        );
+      } catch (error) {
+        if (
+          collectsHostDockerLogs(candidate.config) &&
+          error instanceof HttpError &&
+          ["HOST_LOG_COLLECTION_DISABLED", "FORBIDDEN"].includes(error.code)
+        ) {
+          skippedDeployments.push({
+            appId: candidate.appId,
+            code: error.code,
+            message: error.publicMessage,
+          });
+          return null;
+        }
+        throw error;
+      }
       await database
         .update(apps)
         .set({ deferredAutomaticDeployment: null })
@@ -361,5 +438,6 @@ async function scheduleEligibleAutomaticDeployments(input: {
     deploymentIds: results.flatMap((result) =>
       result ? [result.deployment.id] : [],
     ),
+    ...(skippedDeployments.length ? { skippedDeployments } : {}),
   };
 }

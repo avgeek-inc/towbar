@@ -179,7 +179,7 @@ export function AppLayout({
                   <nav
                     aria-label="Page navigation"
                     ref={setMobileHost}
-                    className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto overscroll-contain px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+                    className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto overscroll-contain px-3 py-5 pb-[max(1rem,env(safe-area-inset-bottom))]"
                   />
                 </div>
               </Drawer.Dialog>

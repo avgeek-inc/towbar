@@ -46,6 +46,7 @@ export function routePermission(pathname: string): Action | null {
       ? "sharedSecret.list"
       : "secret.list";
   if (pathname.startsWith("/servers/")) {
+    if (section === "logs-collection") return "server.collectLogs";
     if (["credentials", "configuration"].includes(section ?? ""))
       return "server.credentials";
     if (["cleanup", "danger", "danger-zone"].includes(section ?? ""))

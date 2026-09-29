@@ -23,7 +23,7 @@ function partial(schema: Schema): Schema {
   if (result.properties)
     result.properties = Object.fromEntries(
       Object.entries(result.properties as Record<string, Schema>).map(
-        ([key, value]) => [key, partial(value)],
+        ([key, value]) => [key, key === "hostLogs" ? value : partial(value)],
       ),
     );
   return result;
