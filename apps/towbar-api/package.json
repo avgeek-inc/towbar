@@ -41,10 +41,10 @@
     "drizzle-orm": "catalog:",
     "hono": "^4.13.8",
     "jose": "^6.2.12",
-    "nodemailer": "^9.1.1",
+    "nodemailer": "10.0.2",
     "postgres": "catalog:",
     "ssh2": "1.17.0",
-    "undici": "7.29.0",
+    "undici": "7.29.1",
     "ws": "8.21.3",
     "zod": "catalog:"
   },

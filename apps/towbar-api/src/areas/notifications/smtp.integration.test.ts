@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import nodemailer from "nodemailer";
+import nodemailer, { type SMTPTransportOptions } from "nodemailer";
 import {
   renderOperationalEmail,
   renderTransactionalEmail,
@@ -26,9 +26,7 @@ void test("SMTP sends HTML and plain text over verified TLS for every team templ
         assert.equal(host, provider.host);
         return Promise.resolve("127.0.0.1");
       },
-      createTransport: (
-        options: Parameters<typeof nodemailer.createTransport>[0],
-      ) =>
+      createTransport: (options: SMTPTransportOptions) =>
         nodemailer.createTransport({
           ...options,
           tls: { servername: provider.host, ca: capture.ca },
@@ -53,6 +51,7 @@ void test("SMTP sends HTML and plain text over verified TLS for every team templ
         provider,
         dependencies,
       );
+      assert(result.providerStatus);
       assert.match(result.providerStatus, /^250/);
     }
     const content = await renderOperationalEmail({
