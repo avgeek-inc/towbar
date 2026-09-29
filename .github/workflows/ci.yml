@@ -130,7 +130,7 @@ jobs:
         run: node tools/verification/production.mjs
       - name: Preserve production verification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: verification-production
           path: tmp/verification/
@@ -156,7 +156,7 @@ jobs:
         run: pnpm verify:integration "${{ matrix.group }}"
       - name: Preserve integration verification evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: verification-${{ matrix.group }}
           path: tmp/verification/
