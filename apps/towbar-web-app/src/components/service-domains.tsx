@@ -49,24 +49,9 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
           cell: (row) => (
             <TableCellStack as="div">
               {row.target.kind === "redirect" ? (
-                <>
-                  <DomainLink className="max-w-80" domain={row.target.hostname}>
-                    {row.target.hostname}
-                  </DomainLink>
-                  <TableCellDescription>
-                    <span
-                      className={
-                        row.target.status === 301
-                          ? "font-mono tabular-nums text-yellow-700 dark:text-yellow-400"
-                          : "font-mono tabular-nums text-orange-700 dark:text-orange-400"
-                      }
-                    >
-                      {row.target.status}
-                    </span>{" "}
-                    · {row.target.status === 301 ? "Permanent" : "Temporary"}{" "}
-                    redirect
-                  </TableCellDescription>
-                </>
+                <DomainLink className="max-w-80" domain={row.target.hostname}>
+                  {row.target.hostname}
+                </DomainLink>
               ) : (
                 <>
                   {row.target.kind === "compose" ? (
@@ -75,15 +60,40 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                     row.target.name
                   )}
                   <TableCellDescription>
-                    Port {row.target.port} ·{" "}
-                    {row.target.ingress === "cloudflare-tunnel"
-                      ? "Cloudflare Tunnel"
-                      : "Proxy"}
+                    Port {row.target.port}
                   </TableCellDescription>
                 </>
               )}
             </TableCellStack>
           ),
+        },
+        {
+          key: "function",
+          header: "Function",
+          cell: (row) =>
+            row.target.kind === "redirect" ? (
+              <TableCellStack as="div">
+                Redirect
+                <TableCellDescription>
+                  <span
+                    className={
+                      row.target.status === 301
+                        ? "font-mono tabular-nums text-yellow-700 dark:text-yellow-400"
+                        : "font-mono tabular-nums text-orange-700 dark:text-orange-400"
+                    }
+                  >
+                    {row.target.status}
+                  </span>{" "}
+                  · {row.target.status === 301 ? "Permanent" : "Temporary"}
+                </TableCellDescription>
+              </TableCellStack>
+            ) : (
+              <span className="whitespace-nowrap">
+                {row.target.ingress === "cloudflare-tunnel"
+                  ? "Cloudflare Tunnel"
+                  : "Proxy"}
+              </span>
+            ),
         },
         {
           key: "tls",
