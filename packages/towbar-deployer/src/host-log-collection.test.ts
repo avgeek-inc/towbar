@@ -56,6 +56,7 @@ async function harness(t: TestContext) {
         SecurityOptions: ["name=seccomp,profile=builtin"],
       },
       foreignVolume = false,
+      references = "",
     ) {
       await execute(
         "bash",
@@ -79,6 +80,7 @@ async function harness(t: TestContext) {
             HOST_LOG_TEST_ARGS: argsFile,
             HOST_LOG_TEST_VOLUME: path.join(directory, "volume.json"),
             HOST_LOG_TEST_FOREIGN: foreignVolume ? "1" : "",
+            HOST_LOG_TEST_REFERENCES: references,
             TOWBAR_APP_ID: "app",
             TOWBAR_DEPLOYABLE_ID: "app",
             TOWBAR_SOURCE_ID: "source",
@@ -132,8 +134,37 @@ void test("collector runtime resolves a custom Docker data-root and restricts it
     )[0]!;
   assert.equal(volume.Options.device, `${h.root}/containers`);
   assert.equal(volume.Options.o, "bind,ro,private");
+  const foreign = await harness(t);
   await assert.rejects(
-    h.start(true, undefined, true),
+    foreign.start(true, undefined, true),
+    /ownership or read-only source changed/,
+  );
+});
+
+void test("a changed Docker data-root replaces only an owned, unused host-log volume", async (t) => {
+  const h = await harness(t);
+  await h.start();
+  const root = await realpath(
+    await mkdtemp(path.join(h.directory, "moved-docker-")),
+  );
+  await mkdir(path.join(root, "containers"));
+  const info = { DockerRootDir: root, SecurityOptions: [] };
+  await assert.rejects(
+    h.start(true, info, false, "stopped-collector"),
+    /still has container references/,
+  );
+  await h.start(true, info);
+  const volume = JSON.parse(
+    await readFile(path.join(h.directory, "volume.json"), "utf8"),
+  );
+  assert.equal(volume[0].Options.device, `${root}/containers`);
+  volume[0].Labels["towbar.source"] = "another-source";
+  await writeFile(
+    path.join(h.directory, "volume.json"),
+    JSON.stringify(volume),
+  );
+  await assert.rejects(
+    h.start(true, info),
     /ownership or read-only source changed/,
   );
 });

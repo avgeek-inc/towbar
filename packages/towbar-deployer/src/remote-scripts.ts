@@ -3,6 +3,7 @@ import {
   dockerNetworkLockScript,
   validateNetworkAliasScript,
 } from "./network-alias-scripts.js";
+import { reclaimHostLogVolumeScript } from "./host-log-collection.js";
 
 export { startRemoteScript } from "./app-runtime-scripts.js";
 
@@ -914,6 +915,9 @@ fi
 docker ps -a --filter "label=towbar.app=$app_id" --format '{{.Names}}' | while read -r name; do
   if test -n "$name" && ! grep -Fxq "$name" "$retained_containers"; then docker rm -f "$name" >/dev/null; fi
 done
+python3 - "$app_id" <<'PYTHON'
+${reclaimHostLogVolumeScript}
+PYTHON
 if (( $# > 0 )); then
   {
     docker images --filter "label=towbar.app=$app_id" --format '{{.Repository}}:{{.Tag}}'
@@ -951,6 +955,9 @@ else
   printf '%s\n' "$container_names" >"$retained_containers"
 fi
 chmod 600 "$retained_file"
+cat >"$remote_dir/reclaim-host-logs.py" <<'PYTHON'
+${reclaimHostLogVolumeScript}
+PYTHON
 nohup bash -c '
   set -euo pipefail
   remote_dir="$1"
@@ -962,6 +969,7 @@ nohup bash -c '
   docker ps -a --filter "label=towbar.app=$app_id" --format "{{.Names}}" | while read -r name; do
     if test -n "$name" && ! grep -Fxq "$name" "$retained_containers"; then docker rm -f "$name" >/dev/null; fi
   done
+  python3 "$remote_dir/reclaim-host-logs.py" "$app_id"
   if test -s "$retained_file"; then
     {
       docker images --filter "label=towbar.app=$app_id" --format "{{.Repository}}:{{.Tag}}"

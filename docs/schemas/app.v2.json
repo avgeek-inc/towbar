@@ -864,6 +864,7 @@
           "properties": {
             "dockerJsonFiles": { "type": "boolean", "const": true }
           },
+          "required": ["dockerJsonFiles"],
           "additionalProperties": false
         },
         "network": {
@@ -2053,6 +2054,7 @@
                 "properties": {
                   "dockerJsonFiles": { "type": "boolean", "const": true }
                 },
+                "required": ["dockerJsonFiles"],
                 "additionalProperties": false
               },
               "network": {

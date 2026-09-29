@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { eq } from "drizzle-orm";
 import {
+  digestValue,
   isNormalizedApp,
   normalizeDeploymentManifest,
   normalizeServerConfiguration,
@@ -11,9 +12,11 @@ import {
   apps,
   deployments,
   previewEnvironments,
+  releases,
   servers,
   sourceEntities,
   sourceEnvironments,
+  sourceSyncs,
   sources,
   users,
   workspaceMembers,
@@ -28,6 +31,8 @@ void test(
   async (t) => {
     assert(url && new URL(url).pathname.endsWith("_test"));
     process.env.DATABASE_TOWBAR_URL = url;
+    if (process.env.TOWBAR_TEST_TEMPORAL_ADDRESS)
+      process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
     const { runTowbarMigrations } =
@@ -40,6 +45,7 @@ void test(
       await import("../../infrastructure/database.js");
     const { getDeploymentExecutionContext } =
       await import("../deployments/service.js");
+    const { requestAppRollback } = await import("./service.js");
     const { captureQueuedActor, withActor } =
       await import("../auth/actor-context.js");
     const { hostLogDeploymentPermissions, requireHostLogCollection } =
@@ -225,6 +231,103 @@ void test(
         },
       );
       await t.test(
+        "new and already queued rollbacks restore the collector mode and state-volume contract",
+        async () => {
+          const [environment] = await db
+            .select()
+            .from(sourceEnvironments)
+            .where(eq(sourceEnvironments.id, environmentId));
+          assert(environment);
+          const syncId = randomUUID(),
+            releaseId = randomUUID();
+          await db.insert(sourceSyncs).values({
+            id: syncId,
+            sourceId,
+            sourceEnvironmentId: environmentId,
+            mappingRevision: environment.mappingRevision,
+            status: "succeeded",
+            commitSha: common.commitSha,
+          });
+          await db
+            .update(sourceEnvironments)
+            .set({
+              latestSuccessfulSyncId: syncId,
+              latestCommitSha: common.commitSha,
+              latestManifestDigest: common.manifestDigest,
+            })
+            .where(eq(sourceEnvironments.id, environmentId));
+          await db
+            .update(servers)
+            .set({ preparedAt: new Date(), preparedConfigDigest: "test" })
+            .where(eq(servers.id, serverId));
+          await db
+            .update(apps)
+            .set({
+              config: plain,
+              configDigest: digestValue(plain),
+              deploymentDigest: "c".repeat(64),
+            })
+            .where(eq(apps.id, appId));
+          await db.insert(releases).values({
+            id: releaseId,
+            appId,
+            deploymentId: originalId,
+            status: "previous",
+            commitSha: common.commitSha,
+            imageTag: "collector:retained",
+            containerName: "previous-collector",
+          });
+          const result = await withActor(
+            { kind: "session", workspaceId, userId, role: "admin" },
+            () =>
+              requestAppRollback({
+                appId,
+                workspaceId,
+                requestedBy: userId,
+                releaseId,
+                idempotencyKey: randomUUID(),
+              }),
+          );
+          for (const id of [result.deployment.id, queuedId]) {
+            if (id === queuedId)
+              await db
+                .update(deployments)
+                .set({ appSnapshot: plain })
+                .where(eq(deployments.id, queuedId));
+            const execution = await getDeploymentExecutionContext(id);
+            assert(isNormalizedApp(execution.app));
+            assert.deepEqual(
+              execution.app.container.hostLogs,
+              config.container.hostLogs,
+            );
+            assert.deepEqual(
+              execution.app.container.resources,
+              config.container.resources,
+            );
+            assert.deepEqual(
+              execution.app.container.volumes,
+              config.container.volumes,
+            );
+            assert.deepEqual(execution.app.rollout, config.rollout);
+          }
+          await db
+            .update(deployments)
+            .set({ appSnapshot: plain })
+            .where(eq(deployments.id, originalId));
+          const plainRollback = await getDeploymentExecutionContext(queuedId);
+          assert(isNormalizedApp(plainRollback.app));
+          assert.equal(plainRollback.app.container.hostLogs, undefined);
+          await db
+            .update(deployments)
+            .set({ appSnapshot: config })
+            .where(eq(deployments.id, originalId));
+          await db
+            .update(deployments)
+            .set({ appSnapshot: config })
+            .where(eq(deployments.id, queuedId));
+        },
+      );
+      await t.test(
         "revoking the server opt-in invalidates a queued snapshot",
         async () => {
           await db
@@ -344,6 +447,7 @@ void test(
         },
       );
     } finally {
+      await db.delete(releases).where(eq(releases.appId, appId));
       await db.delete(deployments).where(eq(deployments.appId, appId));
       await db.delete(apps).where(eq(apps.id, appId));
       await db.delete(sources).where(eq(sources.id, sourceId));

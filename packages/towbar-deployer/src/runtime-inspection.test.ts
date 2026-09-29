@@ -164,6 +164,9 @@ if (args[1] === 'inspect') {
   const object = objects[args[0] + ':' + args[2]];
   if (!object) process.exit(1);
   console.log(JSON.stringify([object]));
+} else if (args[0] === 'ps' && args.some(arg => arg.startsWith('volume='))) {
+  const volume = args.find(arg => arg.startsWith('volume=')).slice(7);
+  console.log(Object.entries(objects).filter(([key, value]) => key.startsWith('container:') && (value.Mounts || []).some(mount => mount.Name === volume)).map(([key]) => key.slice(10)).join('\\n'));
 } else if (args[0] !== 'stats') {
   const kind = args[0] === 'ps' ? 'container' : args[0];
   console.log(Object.keys(objects).filter(key => key.startsWith(kind + ':')).map(key => key.slice(kind.length + 1)).join('\\n'));

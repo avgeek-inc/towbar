@@ -11,7 +11,14 @@ import { z } from "zod";
 import { normalizeDeploymentManifest } from "@workspace/towbar-core";
 import { appVolumeMounts, prepareAppStorageScript } from "./app-storage.js";
 import { startRemoteScript } from "./app-runtime-scripts.js";
-import { healthRemoteScript } from "./remote-scripts.js";
+import {
+  finalizeRemoteScript,
+  healthRemoteScript,
+  scheduleFinalizeRemoteScript,
+} from "./remote-scripts.js";
+import { reclaimHostLogVolumeScript } from "./host-log-collection.js";
+import { runtimeInspectionScript } from "./runtime-inspection.js";
+import { resourceOperationScripts } from "./resource-operations.js";
 
 const execute = promisify(execFile);
 void test(
@@ -56,7 +63,7 @@ void test(
         },
       ],
     }).apps[0]!;
-    const shell = (script: string, args: string[]) =>
+    const shell = (script: string, args: string[], hostLogs = true) =>
       remote(
         "env",
         `TOWBAR_APP_ID=${id}`,
@@ -64,7 +71,7 @@ void test(
         `TOWBAR_SOURCE_ID=${source}`,
         `TOWBAR_DEPLOYMENT_ID=${id}`,
         "TOWBAR_COMMIT_SHA=test",
-        "TOWBAR_HOST_LOG_COLLECTION=true",
+        `TOWBAR_HOST_LOG_COLLECTION=${hostLogs}`,
         `TOWBAR_VOLUME_ARGS_JSON=${JSON.stringify(appVolumeMounts(app, id))}`,
         "bash",
         "-c",
@@ -72,7 +79,7 @@ void test(
         "test",
         ...args,
       );
-    const start = async (name: string, previous = "") => {
+    const start = async (name: string, previous = "", hostLogs = true) => {
       await shell(prepareAppStorageScript, [
         id,
         id,
@@ -82,17 +89,21 @@ void test(
         previous,
         JSON.stringify(app.container.volumes),
       ]);
-      const port = await shell(startRemoteScript, [
-        "/test",
-        name,
-        "collector:test",
-        "2020",
-        "",
-        "0.25",
-        "256m",
-        "",
-        previous,
-      ]);
+      const port = await shell(
+        startRemoteScript,
+        [
+          "/test",
+          name,
+          "collector:test",
+          "2020",
+          "",
+          "0.25",
+          "256m",
+          "",
+          previous,
+        ],
+        hostLogs,
+      );
       await shell(healthRemoteScript, [port, "/api/v1/health", "15"]);
     };
     try {
@@ -319,6 +330,169 @@ void test(
           `/srv/docker-custom/containers/${collectorId}/${collectorId}-json.log`,
         ),
       );
+      const volume = `towbar-host-logs-${id}`;
+      const reclaim = () =>
+        remote("python3", "-c", reclaimHostLogVolumeScript, id);
+      await start("collector-plain", "collector-second", false);
+      const plain = inspect
+        .pick({ Mounts: true })
+        .parse(
+          JSON.parse(await remote("docker", "inspect", "collector-plain"))[0],
+        );
+      assert(
+        !plain.Mounts.some(
+          (mount) => mount.Destination === "/var/lib/docker/containers",
+        ),
+      );
+      await reclaim();
+      await remote("docker", "volume", "inspect", volume);
+      const expected = {
+        containerNames: ["collector-plain"],
+        imageTags: ["collector:test"],
+        ownedDeployableIds: [id],
+        deployables: [
+          {
+            deployableId: id,
+            sourceId: source,
+            desiredState: "running",
+            health: { type: "container", timeoutSeconds: 5 },
+            connectivity: null,
+            ingress: null,
+            release: null,
+          },
+        ],
+      };
+      const inspectRuntime = async () =>
+        JSON.parse(
+          await shell(runtimeInspectionScript, [JSON.stringify(expected)]),
+        ) as { orphans: Array<{ kind: string; name: string }> };
+      assert(
+        !(await inspectRuntime()).orphans.some((item) => item.name === volume),
+      );
+      const cleanup = async () =>
+        JSON.parse(
+          await shell(resourceOperationScripts.cleanupOrphans, [
+            JSON.stringify([
+              {
+                kind: "volume",
+                name: volume,
+                reason: "Unused collector mount",
+              },
+            ]),
+            JSON.stringify({ ...expected, deployableIds: [id] }),
+          ]),
+        ) as {
+          cleaned: Array<{ name: string }>;
+          skipped: Array<{ name: string }>;
+        };
+      assert((await cleanup()).skipped.some((item) => item.name === volume));
+      await remote("mkdir", "-p", "/finalize");
+      await shell(
+        finalizeRemoteScript,
+        ["/finalize", id, "collector-plain", "collector:test"],
+        false,
+      );
+      await assert.rejects(remote("docker", "volume", "inspect", volume));
+      assert.match(
+        await remote(
+          "cat",
+          `/srv/docker-custom/containers/${producer}/${producer}-json.log`,
+        ),
+        /source-log-marker/,
+      );
+      await start("collector-rollback", "collector-plain");
+      await remote("docker", "volume", "inspect", volume);
+      assert.equal(
+        await remote(
+          "docker",
+          "exec",
+          "collector-rollback",
+          "cat",
+          "/var/lib/fluent-bit/cursor.db",
+        ),
+        "cursor-marker",
+      );
+      assert.equal(
+        await remote(
+          "docker",
+          "exec",
+          "collector-rollback",
+          "cat",
+          "/var/lib/fluent-bit/buffer.chunk",
+        ),
+        "chunk-marker",
+      );
+      await remote("docker", "rm", "-f", "collector-rollback");
+      assert(
+        (await inspectRuntime()).orphans.some((item) => item.name === volume),
+      );
+      assert((await cleanup()).cleaned.some((item) => item.name === volume));
+      await assert.rejects(remote("docker", "volume", "inspect", volume));
+      await remote(
+        "docker",
+        "volume",
+        "create",
+        "--driver",
+        "local",
+        "--opt",
+        "type=none",
+        "--opt",
+        "o=bind,ro,private",
+        "--opt",
+        "device=/previous-docker-root/containers",
+        "--label",
+        "towbar.managed=true",
+        "--label",
+        "towbar.storage=host-logs",
+        "--label",
+        `towbar.runtime=${id}`,
+        "--label",
+        `towbar.deployable=${id}`,
+        "--label",
+        `towbar.source=${source}`,
+        volume,
+      );
+      await start("collector-moved-root", "collector-plain");
+      assert.equal(
+        await remote(
+          "docker",
+          "volume",
+          "inspect",
+          "--format",
+          "{{.Options.device}}",
+          volume,
+        ),
+        "/srv/docker-custom/containers",
+      );
+      assert.equal(
+        await remote(
+          "docker",
+          "exec",
+          "collector-moved-root",
+          "cat",
+          "/var/lib/fluent-bit/cursor.db",
+        ),
+        "cursor-marker",
+      );
+      await start("collector-plain-final", "collector-moved-root", false);
+      await remote("mkdir", "-p", "/finalize-deferred");
+      await shell(
+        scheduleFinalizeRemoteScript,
+        [
+          "/finalize-deferred",
+          id,
+          "collector-plain-final",
+          "0",
+          "collector:test",
+        ],
+        false,
+      );
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const volumes = await remote("docker", "volume", "ls", "-q");
+        if (!volumes.split("\n").includes(volume)) break;
+        await wait(100);
+      }
+      await assert.rejects(remote("docker", "volume", "inspect", volume));
     } finally {
       await docker("rm", "-f", "-v", target);
       await rm(directory, { recursive: true, force: true });

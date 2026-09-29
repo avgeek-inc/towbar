@@ -12,6 +12,7 @@ import { and, desc, eq, notInArray } from "drizzle-orm";
 import { deploymentWorkflowId } from "@workspace/towbar-core/temporal";
 import {
   digestValue,
+  getDeployableDeploymentDigest,
   isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
@@ -41,6 +42,7 @@ import { cloudflareDnsCredential } from "../deployments/cloudflare-readiness.js"
 import {
   hostLogDeploymentPermissions,
   requireHostLogCollection,
+  rollbackHostLogConfiguration,
 } from "./host-log-collection.js";
 
 export { getApp, getResource, listApps, listResources } from "./queries.js";
@@ -377,9 +379,12 @@ export async function requestAppRollback(input: {
     throw conflict("The rollback release belongs to a different server");
   requireHostLogCollection(app.serverConfig, app.config, original.appSnapshot);
   const rollbackUsesSource = isNormalizedCompose(original.appSnapshot);
-  cloudflareDnsCredential(
-    rollbackUsesSource ? original.appSnapshot : app.config,
-  );
+  const rollbackApp = rollbackUsesSource
+    ? original.appSnapshot
+    : rollbackHostLogConfiguration(app.config, original.appSnapshot);
+  const rollbackRuntimeChanged =
+    digestValue(rollbackApp) !== digestValue(app.config);
+  cloudflareDnsCredential(rollbackApp);
   const deploymentId = randomUUID();
   let deployment;
   try {
@@ -420,7 +425,7 @@ export async function requestAppRollback(input: {
         .insert(deployments)
         .values({
           appId: app.id,
-          appSnapshot: rollbackUsesSource ? original.appSnapshot : app.config,
+          appSnapshot: rollbackApp,
           requiredSecrets: rollbackUsesSource
             ? original.requiredSecrets
             : app.requiredSecrets,
@@ -430,10 +435,16 @@ export async function requestAppRollback(input: {
             : (app.commitSha ?? original.commitSha),
           configDigest: rollbackUsesSource
             ? original.configDigest
-            : app.configDigest,
+            : digestValue(rollbackApp),
           deploymentDigest: rollbackUsesSource
             ? original.deploymentDigest
-            : (app.deploymentDigest ?? original.deploymentDigest),
+            : rollbackRuntimeChanged
+              ? getDeployableDeploymentDigest({
+                  deployable: rollbackApp,
+                  server: app.serverConfig,
+                  sourceInputDigest: app.sourceInputDigest,
+                })
+              : (app.deploymentDigest ?? original.deploymentDigest),
           deployableKind: original.deployableKind,
           id: deploymentId,
           idempotencyKey: request.idempotencyKey,

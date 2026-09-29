@@ -37,6 +37,23 @@ if host_log_collection:
         "towbar.deployable": runtime_identity["TOWBAR_DEPLOYABLE_ID"],
     }
     options = {"type": "none", "device": str(log_directory), "o": "bind,ro,private"}
+    existing = subprocess.run(["/usr/bin/docker", "volume", "ls", "-q"], check=True, capture_output=True, text=True)
+    if log_volume in existing.stdout.splitlines():
+        inspected = subprocess.run(["/usr/bin/docker", "volume", "inspect", log_volume], check=True, capture_output=True, text=True)
+        volume = json.loads(inspected.stdout)[0]
+        stored_options = volume.get("Options") or {}
+        device = stored_options.get("device")
+        if (volume.get("Driver") != "local"
+            or any((volume.get("Labels") or {}).get(key) != value for key, value in labels.items())
+            or set(stored_options) != set(options)
+            or stored_options.get("type") != "none" or stored_options.get("o") != "bind,ro,private"
+            or not isinstance(device, str) or not device.startswith("/") or not device.endswith("/containers")):
+            raise SystemExit("Host log volume ownership or read-only source changed before startup")
+        if stored_options != options:
+            attached = subprocess.run(["/usr/bin/docker", "ps", "-aq", "--filter", "volume=" + log_volume], check=True, capture_output=True, text=True)
+            if attached.stdout.strip():
+                raise SystemExit("Host log volume still has container references to the previous Docker data-root")
+            subprocess.run(["/usr/bin/docker", "volume", "rm", log_volume], check=True, capture_output=True, text=True)
     create = ["/usr/bin/docker", "volume", "create", "--driver", "local"]
     for key, value in options.items():
         create.extend(["--opt", key + "=" + value])
@@ -53,4 +70,26 @@ if host_log_collection:
         "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
         "--log-driver", "local", "--log-opt", "max-size=10m", "--log-opt", "max-file=3",
     ])
+`;
+
+export const reclaimHostLogVolumeScript = String.raw`
+import json
+import subprocess
+import sys
+
+runtime_id = sys.argv[1]
+name = "towbar-host-logs-" + runtime_id
+listed = subprocess.run(["docker", "volume", "ls", "-q"], check=True, capture_output=True, text=True)
+if name not in listed.stdout.splitlines():
+    sys.exit(0)
+inspected = subprocess.run(["docker", "volume", "inspect", name], check=True, capture_output=True, text=True)
+volume = json.loads(inspected.stdout)[0]
+labels = volume.get("Labels") or {}
+if (labels.get("towbar.managed") != "true" or labels.get("towbar.storage") != "host-logs"
+    or labels.get("towbar.runtime") != runtime_id or labels.get("towbar.deployable") != runtime_id
+    or not labels.get("towbar.source")):
+    sys.exit(0)
+attached = subprocess.run(["docker", "ps", "-aq", "--filter", "volume=" + name], check=True, capture_output=True, text=True)
+if not attached.stdout.strip():
+    subprocess.run(["docker", "volume", "rm", name], check=True, capture_output=True, text=True)
 `;

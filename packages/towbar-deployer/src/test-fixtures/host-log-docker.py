@@ -9,7 +9,10 @@ if args[0] == "info":
     print(os.environ["HOST_LOG_TEST_INFO"])
 elif args[:2] == ["volume", "inspect"]:
     if args[-1].startswith("towbar-host-logs-"):
-        print(Path(os.environ["HOST_LOG_TEST_VOLUME"]).read_text())
+        volume = Path(os.environ["HOST_LOG_TEST_VOLUME"])
+        if not volume.exists():
+            sys.exit(1)
+        print(volume.read_text())
         sys.exit(0)
     print(json.dumps([{"Labels": {
         "towbar.managed": "true", "towbar.storage": "app",
@@ -22,7 +25,16 @@ elif args[:2] == ["volume", "create"]:
     options = dict(args[i + 1].split("=", 1) for i, arg in enumerate(args) if arg == "--opt")
     if os.environ.get("HOST_LOG_TEST_FOREIGN"):
         options["device"] = "/etc"
-    Path(os.environ["HOST_LOG_TEST_VOLUME"]).write_text(json.dumps([{"Driver": "local", "Options": options, "Labels": labels}]))
+    volume = Path(os.environ["HOST_LOG_TEST_VOLUME"])
+    if not volume.exists():
+        volume.write_text(json.dumps([{"Driver": "local", "Options": options, "Labels": labels}]))
+elif args[:2] == ["volume", "ls"]:
+    if Path(os.environ["HOST_LOG_TEST_VOLUME"]).exists():
+        print("towbar-host-logs-" + os.environ["TOWBAR_APP_ID"])
+elif args[:2] == ["volume", "rm"]:
+    Path(os.environ["HOST_LOG_TEST_VOLUME"]).unlink()
+elif args[0] == "ps":
+    print(os.environ.get("HOST_LOG_TEST_REFERENCES", ""))
 elif args[0] == "run":
     Path(os.environ["HOST_LOG_TEST_ARGS"]).write_text(json.dumps(args))
     print("candidate")

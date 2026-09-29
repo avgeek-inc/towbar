@@ -252,7 +252,8 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     .where(eq(deployments.id, deploymentId))
     .limit(1);
   if (!context) throw notFound("Deployment");
-  const hostLogDeployables = await hostLogExecutionDeployables(context);
+  const execution = await hostLogExecutionDeployables(context);
+  context.app = execution.app;
   if (!isNormalizedResource(context.app))
     await assertAppStorageServer(
       getTowbarDatabase(),
@@ -263,7 +264,7 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     const actor = await authorizeQueuedEffect(
       context.requestedByActor,
       context.workspaceId,
-      hostLogDeploymentPermissions(...hostLogDeployables),
+      hostLogDeploymentPermissions(...execution.deployables),
     );
     if (actor.kind === "system")
       await requireActiveAutomation({
