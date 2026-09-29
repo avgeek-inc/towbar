@@ -29,7 +29,7 @@
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@lezer/highlight": "1.2.4",
-    "@simplewebauthn/browser": "13.3.0",
+    "@simplewebauthn/browser": "14.0.0",
     "@workspace/identity-web-ui": "workspace:*",
     "@workspace/towbar-access": "workspace:*",
     "@workspace/towbar-web-client": "workspace:*",
