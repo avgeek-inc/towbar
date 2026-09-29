@@ -85,6 +85,7 @@ try {
       TOWBAR_TEST_PR: "1",
       TOWBAR_TEST_HTTPS: "1",
     });
+    await lifecycle("compose", "compose-lifecycle");
     await lifecycle("preview-cleanup", "preview-cleanup-lifecycle");
   }
   if (group === "resources") {

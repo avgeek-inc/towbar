@@ -325,7 +325,11 @@ void test("Compose DNS TLS prepares Caddy, transfers its token privately and cle
     fixture.uploads.get("/var/lib/towbar/compose/stack/cloudflare.env"),
     "CLOUDFLARE_API_TOKEN=test-token\n",
   );
-  assert(fixture.commands[0]!.includes("dns.providers.cloudflare"));
+  assert(
+    fixture.commands.some((script) =>
+      script.includes("dns.providers.cloudflare"),
+    ),
+  );
   assert.deepEqual(result.warnings, []);
 });
 

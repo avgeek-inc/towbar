@@ -39,6 +39,33 @@ import type {
 
 const generatedOverrideFile = ".towbar.generated.override.json";
 
+const prepareComposeStorageScript = String.raw`
+set -euo pipefail
+parent=/var/lib/towbar
+state="$parent/compose"
+owner_uid="$(id -u)"
+owner_gid="$(id -g)"
+if test -L "$parent" || test -L "$state"; then
+  printf 'Compose state path cannot be a symbolic link.\n' >&2
+  exit 72
+fi
+if test -e "$state"; then
+  if ! test -d "$state"; then
+    printf 'Compose state path is not a directory.\n' >&2
+    exit 72
+  fi
+  existing_uid="$(stat -c '%u' "$state")"
+  if test "$existing_uid" != 0 && test "$existing_uid" != "$owner_uid"; then
+    printf 'Compose state belongs to another user; operator attention is required.\n' >&2
+    exit 72
+  fi
+fi
+if test "$owner_uid" -eq 0; then SUDO=(); else SUDO=(sudo -n); fi
+"${"$"}{SUDO[@]}" install -d -m 0755 "$parent"
+"${"$"}{SUDO[@]}" install -d -m 0700 -o "$owner_uid" -g "$owner_gid" "$state"
+test -O "$state" && test -w "$state"
+`;
+
 export function buildComposeServiceOverride(
   app: Extract<DeploymentExecutionContext["app"], { kind: "compose" }>,
   environment: string,
@@ -241,6 +268,9 @@ for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
       if docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --remove-orphans --wait --wait-timeout 300 >/dev/null 2>&1; then
+        printf 'Previous Compose release restarted after deployment failure.\n' >&2
+      else
+        printf 'Previous Compose release could not be restarted; operator attention is required.\n' >&2
       fi
     fi
   fi
@@ -306,7 +336,7 @@ services = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")).get
 print("TOWBAR_SERVICES=" + json.dumps(sorted(services), separators=(",", ":")))
 PYTHON
 config_digest="$(sha256sum "$stable/config.json" | awk '{print $1}')"
-test "${"#"}{config_digest}" = 64
+test "${"$"}{#config_digest}" = 64
 rm -f -- "$archive" "${"$"}{archive}.env"
 trap - EXIT
 printf '%s\n' "$config_digest"
@@ -380,6 +410,13 @@ stable="$2"
 rm -rf -- "$previous"
 rm -f -- "$stable/cloudflare.env" "$stable/cloudflare.previous" "$stable/cloudflare.previous.state" "$stable/caddy.previous" "$stable/caddy.previous.state"
 `;
+
+export const composeDeploymentScripts = {
+  prepareStorage: prepareComposeStorageScript,
+  deploy: composeDeployScript,
+  rollback: composeRollbackScript,
+  finalize: composeFinalizeScript,
+} as const;
 
 async function prepareComposeDns(input: {
   context: DeploymentExecutionContext;
@@ -473,6 +510,10 @@ export async function executeComposeDeployment(input: {
   let cloudflareTunnelTransition: CloudflareTunnelTransition | undefined;
   let cloudflareDnsTransition: CloudflareDnsTransition | undefined;
   try {
+    await session.run(prepareComposeStorageScript, [], {
+      signal,
+      timeoutMs: 30_000,
+    });
     await prepareComposeDns({ context, secrets, session, signal });
     await transition(
       hooks,
