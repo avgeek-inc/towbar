@@ -78,6 +78,15 @@ test("upgrade fixture covers confirmation, blockers, reconnect and persisted out
     assert.equal(nextJob.planId, nextPlan.id);
     await request("/__fixture/upgrade", { state: "reconnecting" });
     assert.equal((await request("/v1/core/system-health/upgrade")).status, 503);
+    assert.equal((await request("/v1/public/auth/state")).status, 502);
+    await request("/__fixture/upgrade", { state: "succeeded" });
+    const session = await (await request("/v1/public/auth/state")).json();
+    assert(session.user);
+    assert.equal(
+      (await (await request("/v1/core/system-health/upgrade")).json()).job
+        .state,
+      "succeeded",
+    );
     await request("/__fixture/upgrade", { state: "unsupported" });
     response = await request("/v1/core/system-health/upgrade");
     assert.equal((await response.json()).supported, false);

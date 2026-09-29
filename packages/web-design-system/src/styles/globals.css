@@ -85,6 +85,10 @@ a {
     @apply py-[10px];
   }
 
+  .table-root--primary:has(> .table__footer) {
+    @apply pb-0;
+  }
+
   .table__content {
     width: max-content;
     min-width: 100% !important;

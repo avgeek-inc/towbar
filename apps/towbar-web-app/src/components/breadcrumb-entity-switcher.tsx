@@ -8,7 +8,13 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 
-import type { App, Resource, Server } from "@workspace/towbar-web-client";
+import type {
+  App,
+  Resource,
+  Server,
+  Source,
+} from "@workspace/towbar-web-client";
+import { Header } from "@workspace/web-design-system/collections/list-box";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
 import {
   Autocomplete,
@@ -51,6 +57,7 @@ type SwitchOption = {
     | { kind: "server"; provider: CloudProviderId };
   instanceIds: string[];
   label: string;
+  sourceId?: string;
 };
 
 function deployableOptions<T extends App | Resource>(
@@ -70,6 +77,7 @@ function deployableOptions<T extends App | Resource>(
       identity: identity(preferred),
       instanceIds: group.items.map((item) => item.id),
       label: preferred.name,
+      sourceId: preferred.sourceId,
     };
   });
 }
@@ -89,6 +97,10 @@ export function BreadcrumbEntitySwitcher({
     resources?: Resource[];
     servers?: Server[];
   }>(`/v1/core/${kind}`, 30_000);
+  const sources = useApiQuery<{ sources: Source[] }>(
+    kind === "servers" ? null : "/v1/core/sources",
+    30_000,
+  );
   const options: SwitchOption[] = (
     kind === "servers"
       ? (query.data?.servers ?? []).map((server) => ({
@@ -124,6 +136,75 @@ export function BreadcrumbEntitySwitcher({
   }
   const entityLabel = entityLabels[kind];
   const icon = entityIcons[kind];
+  const repositories = new Map(
+    sources.data?.sources.map((source) => [source.id, source]),
+  );
+  const sections = new Map<
+    string,
+    { id: string; label: string; options: SwitchOption[] }
+  >();
+  for (const option of options) {
+    const source = option.sourceId
+      ? repositories.get(option.sourceId)
+      : undefined;
+    const id = source?.id ?? "other";
+    const section = sections.get(id) ?? {
+      id,
+      label: source
+        ? `${source.repositoryOwner}/${source.repositoryName}`
+        : `Other ${entityLabel}`,
+      options: [],
+    };
+    section.options.push(option);
+    sections.set(id, section);
+  }
+  const sortedSections = [...sections.values()].sort((left, right) => {
+    if (left.id === "other") return 1;
+    if (right.id === "other") return -1;
+    return left.label.localeCompare(right.label);
+  });
+
+  function renderOption(option: SwitchOption, repository?: string) {
+    return (
+      <ListBox.Item
+        id={option.id}
+        key={option.id}
+        textValue={[option.label, option.detail, repository]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {option.identity?.kind === "app" ? (
+          <ServiceLogo app={option.identity.app} size="compact" />
+        ) : option.identity?.kind === "resource" ? (
+          <ResourceLogo brand={option.identity.brand} size="compact" />
+        ) : option.identity?.kind === "server" ? (
+          <CloudProviderLogo
+            provider={option.identity.provider}
+            className="size-4"
+            size={16}
+          />
+        ) : (
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted"
+            icon={icon}
+          />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate">{option.label}</span>
+          {option.detail ? (
+            <span className="block truncate text-xs text-muted">
+              {option.detail}
+            </span>
+          ) : null}
+        </span>
+        {option.archived ? (
+          <span className="text-xs text-muted">Archived</span>
+        ) : null}
+        <ListBox.ItemIndicator />
+      </ListBox.Item>
+    );
+  }
 
   return (
     <Select
@@ -184,45 +265,18 @@ export function BreadcrumbEntitySwitcher({
               </p>
             )}
           >
-            {options.map((option) => (
-              <ListBox.Item
-                id={option.id}
-                key={option.id}
-                textValue={[option.label, option.detail]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {option.identity?.kind === "app" ? (
-                  <ServiceLogo app={option.identity.app} size="compact" />
-                ) : option.identity?.kind === "resource" ? (
-                  <ResourceLogo brand={option.identity.brand} size="compact" />
-                ) : option.identity?.kind === "server" ? (
-                  <CloudProviderLogo
-                    provider={option.identity.provider}
-                    className="size-4"
-                    size={16}
-                  />
-                ) : (
-                  <HugeiconsIcon
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-muted"
-                    icon={icon}
-                  />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{option.label}</span>
-                  {option.detail ? (
-                    <span className="block truncate text-xs text-muted">
-                      {option.detail}
-                    </span>
-                  ) : null}
-                </span>
-                {option.archived ? (
-                  <span className="text-xs text-muted">Archived</span>
-                ) : null}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            ))}
+            {kind === "servers" || !sources.data
+              ? options.map((option) => renderOption(option))
+              : sortedSections.map((section) => (
+                  <ListBox.Section id={section.id} key={section.id}>
+                    <Header className="truncate text-xs" title={section.label}>
+                      {section.label}
+                    </Header>
+                    {section.options.map((option) =>
+                      renderOption(option, section.label),
+                    )}
+                  </ListBox.Section>
+                ))}
           </ListBox>
         </Autocomplete.Filter>
       </Select.Popover>

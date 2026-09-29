@@ -112,6 +112,8 @@ If replacement fails, the CLI restores the previous release symlink and starts t
 
 After success, Towbar keeps the current and immediately previous release directories and Towbar application images. It removes older unreferenced Towbar images without pruning PostgreSQL, Temporal, Caddy, application volumes, or images owned by unrelated Docker workloads.
 
+On a compatible standard installation, the updated CLI also enables upgrades from System Health automatically. This setup restarts the API with access to the private host upgrade service. Custom installations keep the manual CLI path.
+
 <Warning>
   Do not use `towbar install` to upgrade an existing installation. It stops when
   Towbar is already installed. Use `sudo towbar upgrade`.
@@ -119,7 +121,7 @@ After success, Towbar keeps the current and immediately previous release directo
 
 ## `towbar upgrade-service`
 
-Enable the optional host service that lets recently authenticated Admins upgrade from System Health:
+Standard CLI installs and upgrades enable the host service automatically when supported. If an older CLI left it disabled, enable it once so recently authenticated Admins can upgrade from System Health:
 
 ```bash
 sudo towbar upgrade-service enable

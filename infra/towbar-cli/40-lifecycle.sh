@@ -417,6 +417,9 @@ upgrade_release() {
   cleanup_installation_artifacts \
     "$release_dir" "$commit" "$previous_release" "$previous_commit"
   log "$version is healthy at $commit"
+  trap 'ui_failure_step "Towbar upgraded, but in-app upgrades could not be enabled"; exit 1' ERR
+  enable_host_upgrades_after_upgrade "$release_dir"
+  trap - ERR
 }
 
 current_release_dir() {
@@ -470,10 +473,14 @@ restart_preflight_failure() {
 }
 
 restart_release() {
-  local release_dir commit
   require_root restart
   require_runtime_tools
   acquire_lock
+  restart_release_locked
+}
+
+restart_release_locked() {
+  local release_dir commit
   release_dir="$(current_release_dir)"
   commit="$(metadata_value "$release_dir" COMMIT)"
 

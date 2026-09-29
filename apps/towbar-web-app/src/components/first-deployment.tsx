@@ -47,12 +47,12 @@ export function FirstDeployment({
       <Widget.Content className="flex items-center">
         {!readiness.data ? (
           <div className="grid gap-1">
-            <p>
+            <p className="text-sm font-medium text-foreground">
               {readiness.error
                 ? "Secret status unavailable"
                 : "Checking required secrets…"}
             </p>
-            <p className="text-sm text-muted">
+            <p className="text-xs leading-relaxed font-normal text-muted">
               {readiness.error
                 ? "Review the required values before starting the first deployment."
                 : "Towbar is checking whether this workload can be deployed."}
@@ -73,8 +73,10 @@ export function FirstDeployment({
               <HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-5" />
             </span>
             <div className="min-w-48 flex-1">
-              <p>All secrets are configured</p>
-              <p className="text-sm text-muted">
+              <p className="text-sm font-medium text-foreground">
+                All secrets are configured
+              </p>
+              <p className="text-xs leading-relaxed font-normal text-muted">
                 This {label} is ready for its first deployment.
               </p>
             </div>
@@ -112,8 +114,10 @@ export function FirstDeployment({
               <HugeiconsIcon icon={AlertCircleIcon} className="size-5" />
             </span>
             <div className="min-w-48 flex-1">
-              <p>Deployment paused</p>
-              <p className="text-sm text-muted">
+              <p className="text-sm font-medium text-foreground">
+                Deployment paused
+              </p>
+              <p className="text-xs leading-relaxed font-normal text-muted">
                 Configure the pending secrets before the first deployment.
               </p>
             </div>
