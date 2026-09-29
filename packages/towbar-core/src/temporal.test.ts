@@ -27,6 +27,31 @@ void test("accepts only forward or terminal deployment transitions", () => {
   assert.throws(() => assertDeploymentTransition("queued", "building"));
 });
 
+void test("only Compose may promote after TLS without a public endpoint probe", () => {
+  assert.equal(
+    canTransitionDeployment("provisioning_tls", "switching_traffic"),
+    false,
+  );
+  assert.equal(
+    canTransitionDeployment("provisioning_tls", "switching_traffic", "compose"),
+    true,
+  );
+  assert.throws(() =>
+    assertDeploymentTransition("provisioning_tls", "switching_traffic"),
+  );
+  assert.doesNotThrow(() =>
+    assertDeploymentTransition(
+      "provisioning_tls",
+      "switching_traffic",
+      "compose",
+    ),
+  );
+  assert.equal(
+    canTransitionDeployment("checking_health", "switching_traffic", "compose"),
+    false,
+  );
+});
+
 void test("accepts only bounded pull request reconciliation events", () => {
   assert.deepEqual(
     previewPullRequestEventSchema.parse({

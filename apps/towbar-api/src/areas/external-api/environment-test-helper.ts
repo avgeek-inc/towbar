@@ -26,11 +26,15 @@ export async function seedConnectedEnvironment(workspaceId: string) {
     repositoryOwner: "api-test",
     repositoryName: "platform",
   });
-  await database.insert(sourceEnvironments).values({
-    sourceId,
-    name: "production",
-    branch: "main",
-  });
+  const [environment] = await database
+    .insert(sourceEnvironments)
+    .values({
+      sourceId,
+      name: "production",
+      branch: "main",
+    })
+    .returning({ id: sourceEnvironments.id });
+  return { sourceId, environmentId: environment!.id };
 }
 
 export async function seedApiServers(

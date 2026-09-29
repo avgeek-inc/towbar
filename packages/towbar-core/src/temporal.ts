@@ -67,15 +67,24 @@ terminalDeploymentStates.forEach((state) =>
 export function canTransitionDeployment(
   from: DeploymentState,
   to: DeploymentState,
+  deployableKind?: "compose",
 ) {
+  // Compose checks Caddy configuration and container health, but does not probe public HTTPS.
+  if (
+    deployableKind === "compose" &&
+    from === "provisioning_tls" &&
+    to === "switching_traffic"
+  )
+    return true;
   return allowedTransitions.get(from)?.has(to) ?? false;
 }
 
 export function assertDeploymentTransition(
   from: DeploymentState,
   to: DeploymentState,
+  deployableKind?: "compose",
 ) {
-  if (!canTransitionDeployment(from, to)) {
+  if (!canTransitionDeployment(from, to, deployableKind)) {
     throw new Error(`Invalid deployment transition from '${from}' to '${to}'`);
   }
 }

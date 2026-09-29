@@ -12,6 +12,10 @@ import {
   connectTestMcpClient,
 } from "./scout-access-test-helper.js";
 import { defaultKeyHasher } from "@better-auth/api-key";
+import {
+  normalizeDeploymentManifest,
+  normalizeServerConfiguration,
+} from "@workspace/towbar-core";
 import { assertServerConfigReadback } from "./server-config-test-helper.js";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
@@ -20,8 +24,12 @@ import { eq } from "drizzle-orm";
 import {
   apiKeyPolicies,
   apiKeys,
+  apps,
   auditEvents,
   authRateLimitBuckets,
+  deploymentSteps,
+  deployments,
+  sourceEntities,
   users,
   workspaceMembers,
   workspaces,
@@ -127,6 +135,8 @@ void test(
       });
     const connect = (token: string) =>
       connectTestMcpClient(token, (request) => app.fetch(request));
+    let connectedEnvironment:
+      Awaited<ReturnType<typeof seedConnectedEnvironment>> | undefined;
     const clearRateBucket = async () => {
       for (const key of [read.key, write.key])
         await db
@@ -330,7 +340,7 @@ void test(
               "delete_gitlab_oauth_connection",
             ],
           ];
-          await seedConnectedEnvironment(workspaceId);
+          connectedEnvironment = await seedConnectedEnvironment(workspaceId);
           const client = await connect(write.token);
           try {
             const tools = await client.listTools();
@@ -511,6 +521,154 @@ void test(
                 .set({ role })
                 .where(eq(workspaceMembers.userId, userId)),
           }),
+      );
+      await t.test(
+        "MCP inspects a Compose service through the app read path",
+        async () => {
+          assert(connectedEnvironment);
+          const { sourceId, environmentId } = connectedEnvironment;
+          const entityId = randomUUID();
+          const composeId = randomUUID();
+          const deploymentId = randomUUID();
+          const config = normalizeDeploymentManifest({
+            version: 2,
+            compose: [
+              {
+                id: "search",
+                name: "Search",
+                server: "192.0.2.10",
+                file: "compose.yml",
+                services: {
+                  opensearch: {
+                    port: 9200,
+                    domains: ["search.example.com"],
+                  },
+                },
+              },
+            ],
+          }).compose![0]!;
+          try {
+            await db.insert(sourceEntities).values({
+              id: entityId,
+              sourceId,
+              entityType: "compose",
+              manifestId: config.id,
+            });
+            await db.insert(apps).values({
+              id: composeId,
+              workspaceId,
+              sourceId,
+              serverId: ownedServerId,
+              entityId,
+              sourceEnvironmentId: environmentId,
+              manifestId: config.id,
+              kind: "compose",
+              name: config.name,
+              config,
+              configDigest: "compose-test",
+              sourceRevision: "a".repeat(40),
+              requiredSecrets: {
+                build: [],
+                runtime: [],
+                preDeploy: [],
+                postDeploy: [],
+              },
+            });
+            await db.insert(deployments).values({
+              id: deploymentId,
+              workspaceId,
+              sourceId,
+              serverId: ownedServerId,
+              appId: composeId,
+              deployableKind: "compose",
+              state: "provisioning_tls",
+              idempotencyKey: randomUUID(),
+              temporalWorkflowId: randomUUID(),
+              commitSha: "a".repeat(40),
+              manifestDigest: "b".repeat(64),
+              requiredSecrets: {
+                build: [],
+                runtime: [],
+                preDeploy: [],
+                postDeploy: [],
+              },
+              appSnapshot: config,
+              serverSnapshot: normalizeServerConfiguration({
+                ip: "192.0.2.10",
+                ssh: { username: "ubuntu" },
+              }),
+              targetEnvironment: {
+                id: environmentId,
+                name: "production",
+                branch: "main",
+                mappingRevision: randomUUID(),
+              },
+            });
+            const { recordDeploymentEvent } =
+              await import("../deployments/deployment-events.js");
+            await recordDeploymentEvent(deploymentId, {
+              state: "switching_traffic",
+            });
+            const [recordedDeployment] = await db
+              .select({ state: deployments.state })
+              .from(deployments)
+              .where(eq(deployments.id, deploymentId));
+            assert.equal(recordedDeployment?.state, "switching_traffic");
+            const [recordedStep] = await db
+              .select({ state: deploymentSteps.state })
+              .from(deploymentSteps)
+              .where(eq(deploymentSteps.deploymentId, deploymentId));
+            assert.equal(recordedStep?.state, "switching_traffic");
+            assert.equal(
+              (await request(`/apps/${composeId}`, write.token)).status,
+              200,
+            );
+            assert.equal(
+              (
+                await request(
+                  `/apps/${composeId}/auto-deploy-control`,
+                  write.token,
+                )
+              ).status,
+              200,
+            );
+            assert.equal(
+              (
+                await request(
+                  `/resources/${composeId}/auto-deploy-control`,
+                  write.token,
+                )
+              ).status,
+              404,
+            );
+            const client = await connect(write.token);
+            try {
+              const inspection = await client.callTool({
+                name: "towbar_workload_inspect",
+                arguments: { kind: "app", workloadId: composeId },
+              });
+              assert.equal(
+                inspection.isError,
+                false,
+                JSON.stringify(inspection.content),
+              );
+              const { result } = inspection.structuredContent as {
+                result: { workload: { app: { kind: string } } };
+              };
+              assert.equal(result.workload.app.kind, "compose");
+            } finally {
+              await client.close();
+            }
+          } finally {
+            await db
+              .delete(deployments)
+              .where(eq(deployments.id, deploymentId));
+            await db.delete(apps).where(eq(apps.id, composeId));
+            await db
+              .delete(sourceEntities)
+              .where(eq(sourceEntities.id, entityId));
+          }
+        },
       );
       await t.test(
         "official MCP client initializes, lists tools, reads and mutates through shared handlers",

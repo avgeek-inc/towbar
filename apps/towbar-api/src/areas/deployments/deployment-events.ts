@@ -29,7 +29,10 @@ export async function recordDeploymentEvent(
 ) {
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [deployment] = await transaction
-      .select({ state: deployments.state })
+      .select({
+        deployableKind: deployments.deployableKind,
+        state: deployments.state,
+      })
       .from(deployments)
       .where(eq(deployments.id, deploymentId))
       .for("update")
@@ -37,7 +40,11 @@ export async function recordDeploymentEvent(
     if (!deployment) throw notFound("Deployment");
 
     if (input.state && input.state !== deployment.state) {
-      assertDeploymentTransition(deployment.state, input.state);
+      assertDeploymentTransition(
+        deployment.state,
+        input.state,
+        deployment.deployableKind === "compose" ? "compose" : undefined,
+      );
       const [lastStep] = await transaction
         .select({
           id: deploymentSteps.id,

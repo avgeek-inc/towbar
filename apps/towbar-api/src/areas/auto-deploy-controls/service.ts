@@ -178,7 +178,9 @@ function matchesExpectedType(
   kind: import("@workspace/towbar-core").DeployableKind,
   expected: "app" | "resource",
 ) {
-  return expected === "app" ? kind === "app" : kind !== "app";
+  return expected === "app"
+    ? kind === "app" || kind === "compose"
+    : kind !== "app" && kind !== "compose";
 }
 
 export async function updateEnvironmentAutomation(input: {

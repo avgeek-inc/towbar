@@ -383,7 +383,6 @@ rm -f -- "$stable/cloudflare.env" "$stable/cloudflare.previous" "$stable/cloudfl
 
 async function prepareComposeDns(input: {
   context: DeploymentExecutionContext;
-  hooks: ExecutorHooks;
   secrets: DeploymentSecrets;
   session: SshSession;
   signal?: AbortSignal;
@@ -391,11 +390,6 @@ async function prepareComposeDns(input: {
   if (!deploymentCloudflareDnsDomains(input.context.app).length) return;
   if (!input.secrets.cloudflare)
     throw new Error("Cloudflare DNS credentials were not resolved");
-  await transition(
-    input.hooks,
-    "checking_server",
-    "Preparing Cloudflare DNS support",
-  );
   await ensureCloudflareCaddyModule(input.session, input.signal);
 }
 
@@ -453,47 +447,10 @@ export async function executeComposeDeployment(input: {
     "validating_credentials",
     "Credentials resolved and validated",
   );
-  const checkout = await fetchDeploymentSource(
-    context,
-    input.localDirectory,
-    signal,
-  );
   await transition(
     hooks,
-    "fetching_source",
-    `${context.kind === "rollback" ? "Fetched retained" : "Fetched immutable"} source revision ${context.commitSha.slice(0, 12)}`,
-  );
-  await writeFile(
-    path.join(checkout, generatedOverrideFile),
-    JSON.stringify(
-      buildComposeServiceOverride(
-        context.app,
-        context.environmentName,
-        context.sourceId,
-        context,
-      ),
-      null,
-      2,
-    ),
-    { mode: 0o600 },
-  );
-  await validateComposeRepository(checkout, [
-    context.app.file,
-    ...context.app.overrides,
-  ]);
-  const archive = path.join(input.localDirectory, "compose-source.tar.gz");
-  await runCommand("tar", ["-czf", archive, "-C", checkout, "."], {
-    signal,
-    timeoutMs: 120_000,
-  });
-  const environment = path.join(input.localDirectory, "compose.env");
-  await writeFile(
-    environment,
-    Object.entries(secrets.runtime)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
-      .join("\n") + "\n",
-    { mode: 0o600 },
+    "checking_server",
+    "Checking Compose server connectivity and DNS support",
   );
   const session = await SshSession.connect({
     login: secrets.login,
@@ -516,15 +473,57 @@ export async function executeComposeDeployment(input: {
   let cloudflareTunnelTransition: CloudflareTunnelTransition | undefined;
   let cloudflareDnsTransition: CloudflareDnsTransition | undefined;
   try {
-    await prepareComposeDns({ context, hooks, secrets, session, signal });
-    await transition(hooks, "transferring", "Transferring Compose source");
-    await session.upload(archive, remoteArchive, { signal });
-    await session.upload(environment, `${remoteArchive}.env`, { signal });
+    await prepareComposeDns({ context, secrets, session, signal });
+    await transition(
+      hooks,
+      "fetching_source",
+      `${context.kind === "rollback" ? "Fetching retained" : "Fetching immutable"} source revision ${context.commitSha.slice(0, 12)}`,
+    );
+    const checkout = await fetchDeploymentSource(
+      context,
+      input.localDirectory,
+      signal,
+    );
+    await writeFile(
+      path.join(checkout, generatedOverrideFile),
+      JSON.stringify(
+        buildComposeServiceOverride(
+          context.app,
+          context.environmentName,
+          context.sourceId,
+          context,
+        ),
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
+    await validateComposeRepository(checkout, [
+      context.app.file,
+      ...context.app.overrides,
+    ]);
+    const archive = path.join(input.localDirectory, "compose-source.tar.gz");
+    await runCommand("tar", ["-czf", archive, "-C", checkout, "."], {
+      signal,
+      timeoutMs: 120_000,
+    });
     await transition(
       hooks,
       "resolving_secrets",
-      "Runtime environment prepared without logging secret values",
+      "Preparing runtime environment without logging secret values",
     );
+    const environment = path.join(input.localDirectory, "compose.env");
+    await writeFile(
+      environment,
+      Object.entries(secrets.runtime)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+        .join("\n") + "\n",
+      { mode: 0o600 },
+    );
+    await transition(hooks, "transferring", "Transferring Compose source");
+    await session.upload(archive, remoteArchive, { signal });
+    await session.upload(environment, `${remoteArchive}.env`, { signal });
     await transition(
       hooks,
       "building",
