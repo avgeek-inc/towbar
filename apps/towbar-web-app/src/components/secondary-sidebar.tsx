@@ -95,7 +95,7 @@ export function SecondaryEntityHeader({
         <div
           data-secondary-menu
           data-secondary-header
-          className="order-[-2] flex min-w-0 items-center gap-2 px-2 pb-3 text-sm font-medium text-foreground lg:pt-4 lg:text-xl"
+          className="order-[-2] flex min-w-0 items-center gap-2 px-2 pb-1.5 text-sm font-medium text-foreground lg:pt-4 lg:text-xl"
         >
           <span
             aria-hidden="true"
