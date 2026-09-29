@@ -5,6 +5,20 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.20] - 2026-09-30
+
+### Changed
+
+- The Domains table shows each route's destination and function in separate
+  columns, with clear markers for primary and alternate domains.
+
+### Fixed
+
+- Compose deployments move through their progress steps in the right order so
+  they can finish successfully. MCP inspection can read Compose services again.
+- Integration checks build shared API and worker packages in order, preventing
+  intermittent build failures.
+
 ## [2.0.19] - 2026-09-29
 
 ### Added
@@ -459,7 +473,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.13...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...HEAD
+[2.0.20]: https://github.com/avgeek-inc/towbar/compare/v2.0.19...v2.0.20
 [2.0.13]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...v2.0.13
 [2.0.12]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...v2.0.12
 [2.0.11]: https://github.com/avgeek-inc/towbar/compare/v2.0.10...v2.0.11
