@@ -1,9 +1,25 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 
 import { normalizeDeploymentManifest } from "@workspace/towbar-core";
 
-import { buildComposeServiceOverride } from "./compose-deployment.js";
+import {
+  buildComposeServiceOverride,
+  composeDeploymentScripts,
+} from "./compose-deployment.js";
+
+void describe("Compose remote scripts", () => {
+  for (const [name, script] of Object.entries(composeDeploymentScripts)) {
+    void it(`${name} parses as Bash`, () => {
+      const result = spawnSync("bash", ["-n"], {
+        encoding: "utf8",
+        input: script,
+      });
+      assert.equal(result.status, 0, `${name}: ${result.stderr}`);
+    });
+  }
+});
 
 function workload() {
   const manifest = normalizeDeploymentManifest({

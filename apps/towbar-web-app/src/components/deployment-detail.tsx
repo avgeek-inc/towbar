@@ -56,7 +56,7 @@ import { useDeploymentStream } from "@/hooks/use-deployment-stream";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { deploymentHref } from "@/lib/deployment-route";
+import { deploymentDetailTarget, deploymentHref } from "@/lib/deployment-route";
 import { formatDate } from "./dashboard-overview";
 import {
   DeploymentTriggerChip,
@@ -90,24 +90,19 @@ export function DeploymentDetail() {
       ? `/v1/core/deployments/${deploymentId}/source-revision`
       : null,
   );
+  const detailTarget = stream.deployment
+    ? deploymentDetailTarget(stream.deployment, { appId, resourceId })
+    : null;
   const deployable = useApiQuery<{
     app?: { name: string; serverIp: string };
     resource?: { name: string; serverIp: string };
-  }>(
-    stream.deployment
-      ? `/v1/core/${stream.deployment.deployableKind === "app" ? "apps" : "resources"}/${stream.deployment.appId}`
-      : null,
-  );
+  }>(detailTarget?.queryPath ?? null);
   const routeDeployableKind = appId
     ? "app"
     : resourceId
       ? "resource"
       : undefined;
-  const deploymentDeployableKind = stream.deployment
-    ? stream.deployment.deployableKind === "app"
-      ? "app"
-      : "resource"
-    : routeDeployableKind;
+  const deploymentDeployableKind = detailTarget?.kind ?? routeDeployableKind;
   const deployableSection =
     deploymentDeployableKind === "resource" ? "resources" : "apps";
   const deployableBreadcrumb =
@@ -157,11 +152,7 @@ export function DeploymentDetail() {
       ? `https://github.com/${encodeURIComponent(repository.repositoryOwner)}/${encodeURIComponent(repository.repositoryName)}/commit/${encodeURIComponent(item.commitSha)}`
       : undefined;
   const displayStatus = getDeploymentDisplayStatus(item);
-  const routeDeployableId = appId ?? resourceId;
-  if (
-    routeDeployableId !== item.appId ||
-    routeDeployableKind !== deploymentDeployableKind
-  ) {
+  if (!detailTarget?.belongsToRoute) {
     return (
       <DashboardPage
         icon={Rocket01Icon}
