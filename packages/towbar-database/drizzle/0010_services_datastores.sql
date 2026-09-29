@@ -1,12 +1,60 @@
+DO $$
+DECLARE
+  conflicts text;
+BEGIN
+  SELECT string_agg(format('%s/%s (source %s), id %s, image entity %s',
+    source.repository_owner, source.repository_name, image.source_id,
+    image.manifest_id, image.id), E'\n' ORDER BY image.source_id, image.manifest_id)
+  INTO conflicts
+  FROM "towbar_source_entities" image
+  JOIN "towbar_source_entities" app
+    ON app.source_id = image.source_id AND app.manifest_id = image.manifest_id
+    AND app.entity_type = 'app'
+  JOIN "towbar_sources" source ON source.id = image.source_id
+  WHERE image.entity_type = 'resource' AND image.resource_type = 'image';
+  IF conflicts IS NOT NULL THEN
+    RAISE EXCEPTION 'Image workloads share IDs with apps. Rename the conflicting workload before upgrading. No workload data has been changed.'
+      USING DETAIL = conflicts,
+        HINT = 'Follow https://www.towbar.dev/docs/self-hosting/upgrades#resolve-a-legacy-image-id-conflict to rename the existing records and repository manifest together.';
+  END IF;
+END $$;
+
 CREATE FUNCTION pg_temp.towbar_image_as_service(value jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
   container jsonb := value->'container';
   health jsonb := value->'health';
   deployment jsonb;
+  volumes jsonb := COALESCE(container->'volumes', '[]'::jsonb);
+  volume jsonb;
+  mount_path text;
 BEGIN
   IF value->>'kind' IS DISTINCT FROM 'image' THEN
     RETURN value;
+  END IF;
+  FOR volume IN SELECT item FROM jsonb_array_elements(volumes) AS entries(item) LOOP
+    mount_path := volume->>'mountPath';
+    IF mount_path IS NULL
+       OR length(mount_path) > 1024
+       OR mount_path !~ '^/[a-zA-Z0-9_./-]+$'
+       OR mount_path ~ '/$|//|/\.(\.?)(/|$)'
+       OR mount_path ~ '^/(proc|sys|dev|etc|run|var/run)(/|$)' THEN
+      RAISE EXCEPTION 'Image workload % has a service-incompatible volume mount: %. No workload data has been changed.', value->>'id', mount_path
+        USING HINT = 'Use a canonical application data path such as /data or /app/uploads. Keep the volume name and migrate its contents before changing the mount. See https://www.towbar.dev/docs/self-hosting/upgrades#legacy-image-volume-settings.';
+    END IF;
+  END LOOP;
+  IF jsonb_array_length(volumes) > 20 OR EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(volumes) WITH ORDINALITY AS first_volume(item, position)
+    JOIN jsonb_array_elements(volumes) WITH ORDINALITY AS second_volume(item, position)
+      ON first_volume.position < second_volume.position
+    WHERE first_volume.item->>'name' = second_volume.item->>'name'
+       OR first_volume.item->>'mountPath' = second_volume.item->>'mountPath'
+       OR starts_with(first_volume.item->>'mountPath', (second_volume.item->>'mountPath') || '/')
+       OR starts_with(second_volume.item->>'mountPath', (first_volume.item->>'mountPath') || '/')
+  ) THEN
+    RAISE EXCEPTION 'Image workload % needs at most 20 uniquely named volumes with non-overlapping mount paths. No workload data has been changed.', value->>'id'
+      USING HINT = 'Review the existing volumes before upgrading. See https://www.towbar.dev/docs/self-hosting/upgrades#legacy-image-volume-settings.';
   END IF;
   IF container->>'port' IS NULL
      OR jsonb_array_length(COALESCE(container->'command', '[]'::jsonb)) > 0

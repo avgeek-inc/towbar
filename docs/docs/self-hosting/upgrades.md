@@ -45,6 +45,62 @@ sudo towbar restart
 
 Do not replace `security.credentialsKey`: existing encrypted records require the matching key. Changing database values in the file does not rotate credentials inside the existing PostgreSQL volume.
 
+## Upgrade legacy image workloads
+
+Older releases allowed arbitrary images as resources. The image-to-service migration keeps their existing workload IDs, saved secrets, volumes, and deployment history. It stops the upgrade if an image shares its manifest ID with an app in the same repository, or if its settings cannot be used by a Service. The failed migration leaves the database unchanged.
+
+### Resolve a legacy image ID conflict
+
+The migration error lists the repository, manifest ID, and image entity UUID for each conflict. Choose a new manifest ID for the image, such as `infisical-image`. Keep the existing entity and workload UUIDs so the saved secrets and history remain connected.
+
+1. Back up the database and configuration. Keep deployments paused and stop the API and worker while changing the identity, so repository syncs cannot create a replacement workload.
+2. Change the image's `id` in the repository manifest for every environment branch that declares it. Update any references to that ID. Keep the image, network alias, volume names, and stored secret values unchanged.
+3. Open a PostgreSQL session on the control-plane host. Run the transaction below with the image entity UUID from the error and your new manifest ID. It updates all environments of that image together. A missing entity or conflicting ID stops the transaction.
+4. Retry the upgrade before starting the API and worker. Afterward, convert the repository's image resource declaration to a `.service.yml` manifest with the same new ID, sync the repository, and check its saved secrets and deployment history before deploying.
+
+```sql
+BEGIN;
+DO $$
+DECLARE
+  image_entity uuid := 'IMAGE-ENTITY-UUID';
+  new_manifest_id text := 'infisical-image';
+  repository_id uuid;
+BEGIN
+  IF new_manifest_id !~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$' THEN
+    RAISE EXCEPTION 'Choose a valid manifest ID';
+  END IF;
+  SELECT source_id INTO repository_id
+  FROM towbar_source_entities
+  WHERE id = image_entity AND entity_type = 'resource' AND resource_type = 'image'
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'The image entity was not found';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM towbar_source_entities
+    WHERE source_id = repository_id AND manifest_id = new_manifest_id
+      AND id <> image_entity
+  ) THEN
+    RAISE EXCEPTION 'The new manifest ID is already used in this repository';
+  END IF;
+  UPDATE towbar_source_entities SET manifest_id = new_manifest_id
+  WHERE id = image_entity;
+  UPDATE towbar_apps
+  SET manifest_id = new_manifest_id,
+      config = jsonb_set(config, '{id}', to_jsonb(new_manifest_id))
+  WHERE entity_id = image_entity;
+END $$;
+COMMIT;
+```
+
+Historical deployment snapshots keep the ID used at the time of deployment. Do not delete and re-import the workload, change its UUID, or recreate its secret records to resolve this conflict.
+
+### Legacy image volume settings
+
+Services require absolute application data paths such as `/data` or `/app/uploads`. Mounts cannot use `/`, a trailing slash, repeated slashes, `.` or `..` segments, or protected directories such as `/etc`, `/proc`, `/sys`, `/dev`, `/run`, and `/var/run`. Each volume needs a unique name, and mount paths cannot overlap.
+
+If the migration reports an incompatible mount, keep the upgrade paused. Back up the volume and adapt the application to a supported data path on the installed release first. Keep its named volume and verify the application can still read its existing data. The migration also checks saved deployment snapshots; an incompatible historical snapshot requires operator review before retrying. Do not remove a volume or its data just to pass the check.
+
 ## Admin account recovery
 
 Use **Forgot password** when SMTP and the account's mailbox are available. Host operators can reset an Admin password, change a lost Admin email address, or reset an authenticator for any active team member. Follow [Account recovery](/docs/self-hosting/account-recovery) for the maintenance window, commands, revoked access, and verification steps.

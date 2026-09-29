@@ -80,7 +80,7 @@ test(
           network: "platform-services",
           networkAlias: "infisical",
           command: [],
-          volumes: [],
+          volumes: [{ name: "infisical-data", mountPath: "/data" }],
         },
         health: { type: "http", path: "/api/status", timeoutSeconds: 180 },
       };
@@ -114,24 +114,129 @@ test(
       const before =
         await client`select * from towbar_managed_secrets where id=${secretId}`;
 
-      // Unsupported commands must stop the transaction without removing records.
-      await client`update towbar_apps set config=jsonb_set(config,'{container,command}','["custom-command"]') where id=${app.id}`;
+      async function rejectUpgrade(message) {
+        await assert.rejects(
+          migrateDatabase(isolated.href, folder),
+          (error) => {
+            assert.equal(error.cause?.code, "P0001");
+            assert.match(error.cause.message, message);
+            return true;
+          },
+        );
+        assert.equal(
+          (await client`select kind from towbar_apps where id=${app.id}`)[0]
+            .kind,
+          "image",
+        );
+        assert.equal(
+          (
+            await client`select entity_type from towbar_source_entities where id=${entity.id}`
+          )[0].entity_type,
+          "resource",
+        );
+        assert.equal(
+          (
+            await client`select deployable_kind from towbar_deployments where id=${deployment.id}`
+          )[0].deployable_kind,
+          "image",
+        );
+        assert.deepEqual(
+          await client`select * from towbar_managed_secrets where id=${secretId}`,
+          before,
+        );
+      }
+
+      const [otherEntity] =
+        await client`insert into towbar_source_entities (source_id,entity_type,manifest_id) values (${source.id},'app','infisical') returning id`;
+      const [otherApp] =
+        await client`insert into towbar_apps (workspace_id,source_id,server_id,entity_id,source_environment_id,required_secrets,manifest_id,kind,name,config,config_digest,source_revision) select workspace_id,source_id,server_id,${otherEntity.id},source_environment_id,required_secrets,manifest_id,'app','Existing app',jsonb_set(config,'{kind}','"app"'),config_digest,source_revision from towbar_apps where id=${app.id} returning *`;
+      await rejectUpgrade(/Image workloads share IDs with apps/u);
+      await assert.rejects(migrateDatabase(isolated.href, folder), (error) => {
+        assert.match(error.cause.detail, /example\/platform-services/u);
+        assert(error.cause.detail.includes(entity.id));
+        assert.match(error.cause.hint, /resolve-a-legacy-image-id-conflict/u);
+        return true;
+      });
+
+      const [staging] =
+        await client`insert into towbar_source_environments (source_id,name,branch) values (${source.id},'staging','staging') returning id`;
+      const [stagingApp] =
+        await client`insert into towbar_apps (workspace_id,source_id,server_id,entity_id,source_environment_id,required_secrets,manifest_id,kind,name,config,config_digest,source_revision) select workspace_id,source_id,server_id,entity_id,${staging.id},required_secrets,manifest_id,kind,name,config,config_digest,source_revision from towbar_apps where id=${app.id} returning id`;
+      const recoveryDocs = await readFile(
+        new URL("../../../docs/docs/self-hosting/upgrades.md", import.meta.url),
+        "utf8",
+      );
+      const renameSql = recoveryDocs
+        .match(/```sql\n([\s\S]*?)\n```/u)[1]
+        .replace("IMAGE-ENTITY-UUID", entity.id);
       await assert.rejects(
-        migrateDatabase(isolated.href, folder),
-        /custom runtime settings converted to a service/u,
+        client.unsafe(renameSql.replaceAll("infisical-image", "infisical")),
+        /already used/u,
       );
+      await client`rollback`;
+      await client.unsafe(renameSql);
+      config.id = "infisical-image";
       assert.equal(
-        (await client`select kind from towbar_apps where id=${app.id}`)[0].kind,
-        "image",
+        (
+          await client`select manifest_id from towbar_apps where id=${stagingApp.id}`
+        )[0].manifest_id,
+        config.id,
       );
-      assert.deepEqual(
-        await client`select * from towbar_managed_secrets where id=${secretId}`,
-        before,
-      );
+
+      await client`update towbar_apps set config=jsonb_set(config,'{container,command}','["custom-command"]') where id=${app.id}`;
+      await rejectUpgrade(/custom runtime settings converted to a service/u);
       await client`update towbar_apps set config=${client.json(config)} where id=${app.id}`;
+
+      for (const mountPath of [
+        "/",
+        "/etc/config",
+        "/proc/data",
+        "/sys/data",
+        "/dev/data",
+        "/run/data",
+        "/var/run/data",
+        "/data/",
+        "/data//uploads",
+        "/data/./uploads",
+        "/data/../uploads",
+        "/data uploads",
+      ]) {
+        const volumes = [{ name: "infisical-data", mountPath }];
+        await client`update towbar_apps set config=jsonb_set(config,'{container,volumes}',${client.json(volumes)}) where id=${app.id}`;
+        await rejectUpgrade(/service-incompatible volume mount/u);
+      }
+      for (const volumes of [
+        [
+          { name: "data", mountPath: "/data" },
+          { name: "uploads", mountPath: "/data/uploads" },
+        ],
+        [
+          { name: "uploads", mountPath: "/data/uploads" },
+          { name: "data", mountPath: "/data" },
+        ],
+        [
+          { name: "data", mountPath: "/data" },
+          { name: "uploads", mountPath: "/data" },
+        ],
+        [
+          { name: "data", mountPath: "/data" },
+          { name: "data", mountPath: "/uploads" },
+        ],
+      ]) {
+        await client`update towbar_apps set config=jsonb_set(config,'{container,volumes}',${client.json(volumes)}) where id=${app.id}`;
+        await rejectUpgrade(/uniquely named volumes with non-overlapping/u);
+      }
+      await client`update towbar_apps set config=${client.json(config)} where id=${app.id}`;
+      await client`update towbar_deployments set app_snapshot=jsonb_set(app_snapshot,'{container,volumes}','[{"name":"data","mountPath":"/etc/config"}]') where id=${deployment.id}`;
+      await rejectUpgrade(/service-incompatible volume mount/u);
+      await client`update towbar_deployments set app_snapshot=${client.json({ ...config, id: "infisical" })} where id=${deployment.id}`;
 
       await migrateDatabase(isolated.href, folder);
       await migrateDatabase(isolated.href, folder);
+      assert.deepEqual(
+        (await client`select * from towbar_apps where id=${otherApp.id}`)[0],
+        otherApp,
+      );
       const [converted] =
         await client`select * from towbar_apps where id=${app.id}`;
       assert.equal(converted.kind, "app");
@@ -167,6 +272,7 @@ test(
               port: 8080,
               network: "platform-services",
               networkAlias: "infisical",
+              volumes: config.container.volumes,
             },
             health: { path: "/api/status", timeoutSeconds: 180 },
             rollout: {
@@ -183,7 +289,7 @@ test(
         await client`select deployable_kind,app_snapshot,state from towbar_deployments where id=${deployment.id}`;
       assert.equal(history.deployable_kind, "app");
       assert.equal(history.state, "succeeded");
-      assert.deepEqual(history.app_snapshot, expected);
+      assert.deepEqual(history.app_snapshot, { ...expected, id: "infisical" });
       for (const table of [
         "towbar_releases",
         "towbar_deployment_steps",
