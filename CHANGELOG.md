@@ -5,6 +5,34 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.19] - 2026-09-29
+
+### Added
+
+- Services have a Domains page showing their public addresses and TLS settings.
+  Compose services can use Cloudflare DNS for certificate renewal.
+
+### Changed
+
+- Compatible CLI installations and upgrades enable dashboard upgrades
+  automatically.
+- Service and Datastore breadcrumb menus group options by repository, with
+  smaller headings and search by repository name.
+- First-deployment checks use the same text sizes as deployment progress. The
+  secondary sidebar and tables with footers have less bottom padding.
+- Release scripts derive their versions from the root package version. Checks
+  reject an installer or CLI that has not been regenerated after a version bump.
+
+### Fixed
+
+- The upgrade modal stays open while the API restarts. Temporary connection
+  failures no longer redirect signed-in users to the sign-in page.
+- Server details return the saved container log collection setting.
+- Compose deployments check DNS credentials and update DNS records when changing
+  between public access and a Cloudflare Tunnel.
+- Updated dashboard, MCP, authentication, email, and development dependencies
+  with security and reliability fixes.
+
 ## [2.0.18] - 2026-09-29
 
 ### Added

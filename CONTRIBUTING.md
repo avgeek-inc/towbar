@@ -71,8 +71,20 @@ documentation path.
 
 ## Release images
 
-Update the root package and installer CLI versions in a release pull request. After
-it merges, create and push the matching `v2.x.y` tag from the merge commit, then run
+Update only the release version in the root `package.json`, then run
+`pnpm cli:build` and commit the generated installer and CLI files. The dashboard,
+API, installer, and CLI all use that version. `pnpm cli:check`, CI, and the release
+workflow reject stale generated scripts. Update the release notes in
+`CHANGELOG.md`; version numbers in historical notes and test scenarios do not
+need to change.
+
+Edit the installer in `infra/install.sh.in` and CLI modules in `infra/towbar-cli/`.
+`install.sh`, `infra/towbar`, and `infra/towbar-cli/00-version.sh` are generated;
+run `pnpm cli:build` after changing their sources. Installed hosts do not need
+Node.js to run them.
+
+After the release pull request merges, create and push the matching `v2.x.y` tag
+from the merge commit, then run
 the **Publish release images** workflow from `main` with that tag. The workflow
 refuses a tag that does not point at the selected `main` commit.
 

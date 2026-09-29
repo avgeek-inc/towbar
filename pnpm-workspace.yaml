@@ -42,7 +42,7 @@ catalog:
   "@heroui/react": 3.2.6
   "@heroui/styles": 3.2.6
   "@hookform/resolvers": ^5.2.2
-  "@hugeicons/core-free-icons": 4.3.0
+  "@hugeicons/core-free-icons": 4.3.5
   "@hugeicons/react": ^1.1.10
   "@sentry/nextjs": ^10.75.0
   "@tailwindcss/postcss": ^4.2.4
@@ -50,15 +50,15 @@ catalog:
   "@temporalio/client": ^1.24.0
   "@temporalio/worker": ^1.24.0
   "@temporalio/workflow": ^1.24.0
-  "@types/node": ^26.6.1
+  "@types/node": 26.6.3
   "@types/react": ^19.3.0
   "@types/react-dom": ^19.3.0
   clsx: ^2.1.1
-  drizzle-orm: ^0.45.2
+  drizzle-orm: 0.45.3
   eslint: ^9.39.4
-  next: ^16.3.5
+  next: 16.3.6
   postgres: ^3.4.9
-  prettier: ^3.9.8
+  prettier: 3.9.9
   react: ^19.3.0
   react-aria-components: ^1.21.1
   react-dom: ^19.3.0

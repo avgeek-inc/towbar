@@ -1,6 +1,6 @@
 {
   "name": "towbar",
-  "version": "2.0.18",
+  "version": "2.0.19",
   "description": "Opinionated, source-driven deployments to Ubuntu servers you own.",
   "keywords": [
     "deployment",
@@ -29,7 +29,7 @@
   "scripts": {
     "build": "turbo build",
     "cli:build": "node tools/build-towbar-cli.mjs",
-    "cli:check": "node tools/build-towbar-cli.mjs --check && bash tools/test-towbar-cli.sh",
+    "cli:check": "node tools/build-towbar-cli.mjs --check && node --test tools/build-towbar-cli.test.mjs && bash tools/test-towbar-cli.sh",
     "dev": "turbo dev dev:worker --concurrency 10",
     "email:preview": "pnpm --filter @workspace/towbar-email preview",
     "env:check": "node tools/check-env-example.mjs",
@@ -61,7 +61,7 @@
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "prettier": "catalog:",
-    "turbo": "^2.10.13",
+    "turbo": "2.11.4",
     "typescript": "catalog:",
     "yaml": "catalog:"
   },

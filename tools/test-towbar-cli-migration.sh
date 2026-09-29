@@ -10,6 +10,9 @@ TOWBAR_CONFIG_DIR="$temporary_root/etc"
 TOWBAR_ENV_FILE="$TOWBAR_CONFIG_DIR/towbar.env"
 TOWBAR_YAML_FILE="$TOWBAR_CONFIG_DIR/config.yml"
 
+# shellcheck source=../infra/towbar-cli/00-version.sh
+# shellcheck disable=SC1091
+source "$repository/infra/towbar-cli/00-version.sh"
 # shellcheck source=../infra/towbar-cli/00-runtime.sh
 # shellcheck disable=SC1091
 source "$repository/infra/towbar-cli/00-runtime.sh"

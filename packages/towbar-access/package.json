@@ -13,7 +13,7 @@
     "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
-    "better-auth": "1.7.5"
+    "better-auth": "1.7.6"
   },
   "devDependencies": {
     "@types/node": "catalog:",
