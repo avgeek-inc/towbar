@@ -31,10 +31,12 @@ try {
     "--format",
     "{{.ServerVersion}}",
   ]);
+  // The API and worker prebuild scripts rebuild shared packages; keep their writes serialized.
   await run.step("build", "pnpm", [
     "exec",
     "turbo",
     "build",
+    "--concurrency=1",
     "--filter=towbar-api",
     "--filter=towbar-worker",
   ]);
