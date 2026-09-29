@@ -2253,6 +2253,11 @@ export function createFixtureApiServer({
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
     const path = requestUrl.pathname;
     if (eventHistory(request, response, requestUrl)) return;
+    if (
+      path === "/v1/public/auth/state" &&
+      (await upgradeFixture(request, response, path))
+    )
+      return;
     if (await teamAccess.handle(request, response, requestUrl)) return;
     if (await upgradeFixture(request, response, path)) return;
     if (

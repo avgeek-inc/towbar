@@ -39,6 +39,7 @@ import { Spinner } from "@workspace/web-design-system/feedback/spinner";
 import { Toast } from "@workspace/web-design-system/overlays/toast";
 
 import { api } from "@/lib/api";
+import { createSessionRefresh } from "@/lib/session-refresh";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
   applicationHeader,
@@ -129,6 +130,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     [router],
   );
   const [user, setUser] = useState<TowbarUser | null>();
+  const [sessionUnavailable, setSessionUnavailable] = useState(false);
   const [isSignOutConfirming, setIsSignOutConfirming] = useState(false);
   const apps = useApiQuery<{ apps: App[] }>(
     user && !user.mustChangePassword ? "/v1/core/apps" : null,
@@ -193,40 +195,31 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     if (isSessionTransition) return;
-    let active = true;
-    let refreshing = false;
-    const refresh = async () => {
-      if (refreshing) return;
-      refreshing = true;
-      try {
-        // Public auth state also supports verified invitees who do not have a membership yet.
-        const response = await api.get<{ user: TowbarUser | null }>(
-          "/v1/public/auth/state",
-        );
-        if (!active) return;
-        if (JSON.stringify(userRef.current) !== JSON.stringify(response.user)) {
+    const session = createSessionRefresh({
+      // Public auth state also supports verified invitees without a membership.
+      load: () => api.get<{ user: TowbarUser | null }>("/v1/public/auth/state"),
+      onUser: (nextUser) => {
+        setSessionUnavailable(false);
+        if (JSON.stringify(userRef.current) !== JSON.stringify(nextUser)) {
           clearApiQueryCache();
-          userRef.current = response.user;
-          setUser(response.user);
+          userRef.current = nextUser;
+          setUser(nextUser);
         }
-      } catch {
-        if (active) {
-          clearApiQueryCache();
-          setUser(null);
-        }
-      } finally {
-        refreshing = false;
-      }
-    };
+      },
+      onUnavailable: () => setSessionUnavailable(true),
+    });
+    const refresh = () => void session.refresh();
     void refresh();
     window.addEventListener("focus", refresh);
     window.addEventListener("towbar:access-error", refresh);
     window.addEventListener("towbar:identity-changed", refresh);
+    window.addEventListener("towbar:refresh", refresh);
     return () => {
-      active = false;
+      session.stop();
       window.removeEventListener("focus", refresh);
       window.removeEventListener("towbar:access-error", refresh);
       window.removeEventListener("towbar:identity-changed", refresh);
+      window.removeEventListener("towbar:refresh", refresh);
     };
   }, [isSessionTransition, pathname]);
   useEffect(() => {
@@ -258,7 +251,14 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
   if (!user || user.mustChangePassword) {
     return (
       <div className="grid min-h-dvh place-items-center" aria-busy="true">
-        <Spinner aria-label="Loading Towbar" />
+        <div className="grid justify-items-center gap-3" role="status">
+          <Spinner aria-label="Loading Towbar" />
+          {sessionUnavailable ? (
+            <p className="text-sm text-muted">
+              Towbar is temporarily unavailable. Reconnecting automatically…
+            </p>
+          ) : null}
+        </div>
       </div>
     );
   }

@@ -102,6 +102,13 @@ export function createUpgradeFixture(
       writeJson(response, { ok: true });
       return true;
     }
+    if (scenario === "reconnecting" && path === "/v1/public/auth/state") {
+      response.writeHead(502, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({ error: { message: "Towbar API returned 502" } }),
+      );
+      return true;
+    }
     if (initial && scenario !== "unsupported" && path === "/v1/core/version") {
       writeJson(response, {
         checkedAt,
