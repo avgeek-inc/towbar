@@ -16,6 +16,10 @@ import {
   normalizeServerConfiguration,
 } from "@workspace/towbar-core";
 import {
+  type DeploymentState,
+  assertDeploymentTransition,
+} from "@workspace/towbar-core/temporal";
+import {
   executeComposeDeployment,
   renderComposeCaddy,
 } from "./compose-deployment.js";
@@ -25,7 +29,11 @@ import {
   DeploymentCommittedError,
 } from "./promotion-boundary.js";
 import { SshSession } from "./ssh.js";
-import type { DeploymentExecutionContext, DeploymentSecrets } from "./types.js";
+import type {
+  DeploymentExecutionContext,
+  DeploymentSecrets,
+  ExecutorHooks,
+} from "./types.js";
 
 async function deploymentFixture(
   t: TestContext,
@@ -126,19 +134,25 @@ async function deploymentFixture(
     apiToken: "test-token",
     hostnames: ["obsolete.example.com", "api.example.com"],
   };
+  const actions: string[] = [];
   t.mock.method(
     globalThis,
     "fetch",
-    (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
-      String(url).startsWith("https://source.example.com/")
-        ? Promise.resolve(new Response(archiveBytes))
-        : fixture.fetcher(url, init),
+    (url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      if (String(url).startsWith("https://source.example.com/")) {
+        actions.push("source_fetch");
+        return Promise.resolve(new Response(archiveBytes));
+      }
+      return fixture.fetcher(url, init);
+    },
   );
   const commands: string[] = [];
   const uploads = new Map<string, string>();
-  t.mock.method(SshSession, "connect", () =>
-    Promise.resolve({
+  t.mock.method(SshSession, "connect", () => {
+    actions.push("server_connect");
+    return Promise.resolve({
       upload: async (local: string, remote: string) => {
+        actions.push("upload");
         if (remote.endsWith("cloudflare.env"))
           assert.equal((await stat(local)).mode & 0o777, 0o600);
         if (remote.endsWith("app.caddy") || remote.endsWith("cloudflare.env"))
@@ -147,6 +161,7 @@ async function deploymentFixture(
       run: (script: string) => {
         commands.push(script);
         if (script.includes("TOWBAR_ROUTING=")) {
+          actions.push("compose_run");
           const routes = Object.entries(app.services).map(
             ([service, policy], index) => ({
               service,
@@ -168,10 +183,120 @@ async function deploymentFixture(
         return Promise.resolve({ stdout: "", stderr: "" });
       },
       close: () => Promise.resolve(),
-    }),
-  );
-  return { ...fixture, commands, uploads, context, secrets, localDirectory };
+    });
+  });
+  return {
+    ...fixture,
+    actions,
+    commands,
+    uploads,
+    context,
+    secrets,
+    localDirectory,
+  };
 }
+
+function validatedTransitions(actions: string[]) {
+  const states: DeploymentState[] = [];
+  let previous: DeploymentState = "waiting_for_server";
+  const hooks: ExecutorHooks = {
+    transition: (state) => {
+      assertDeploymentTransition(previous, state, "compose");
+      states.push(state);
+      actions.push(state);
+      previous = state;
+      return Promise.resolve();
+    },
+  };
+  return {
+    hooks,
+    states,
+    fail: () => assertDeploymentTransition(previous, "failed", "compose"),
+  };
+}
+
+const successfulComposeStates: DeploymentState[] = [
+  "preparing",
+  "validating_credentials",
+  "checking_server",
+  "fetching_source",
+  "resolving_secrets",
+  "transferring",
+  "building",
+  "starting_candidate",
+  "checking_health",
+  "configuring_routing",
+  "provisioning_tls",
+  "switching_traffic",
+  "cleaning_up",
+  "succeeded",
+];
+
+void test("Compose emits a valid, work-aligned deployment sequence with DNS TLS", async (t) => {
+  const fixture = await deploymentFixture(t);
+  const recorder = validatedTransitions(fixture.actions);
+  await executeComposeDeployment({ ...fixture, hooks: recorder.hooks });
+  assert.deepEqual(recorder.states, successfulComposeStates);
+  const position = (step: string) => fixture.actions.indexOf(step);
+  assert(position("checking_server") < position("server_connect"));
+  assert(position("server_connect") < position("fetching_source"));
+  assert(position("fetching_source") < position("source_fetch"));
+  assert(position("resolving_secrets") < position("transferring"));
+  assert(position("transferring") < position("upload"));
+  assert(position("building") < position("compose_run"));
+});
+
+void test("Compose validates the same sequence without Cloudflare DNS, including rollback", async (t) => {
+  for (const kind of ["deploy", "rollback"] as const) {
+    await t.test(kind, async (caseContext) => {
+      const fixture = await deploymentFixture(caseContext);
+      const app = fixture.context.app;
+      assert(app.kind === "compose");
+      fixture.context.kind = kind;
+      for (const service of Object.values(app.services))
+        service.tls = { mode: "direct" };
+      fixture.secrets.cloudflare = null;
+      const recorder = validatedTransitions(fixture.actions);
+      await executeComposeDeployment({ ...fixture, hooks: recorder.hooks });
+      assert.deepEqual(recorder.states, successfulComposeStates);
+      assert(
+        !fixture.commands.some((script) =>
+          script.includes("dns.providers.cloudflare"),
+        ),
+      );
+    });
+  }
+});
+
+void test("Compose failures retain a valid transition to failed before and after startup", async (t) => {
+  await t.test("source failure", async (caseContext) => {
+    const fixture = await deploymentFixture(caseContext);
+    fixture.context.sourceCredential = null;
+    const recorder = validatedTransitions(fixture.actions);
+    await assert.rejects(
+      executeComposeDeployment({ ...fixture, hooks: recorder.hooks }),
+      /Repository credentials are required/u,
+    );
+    recorder.fail();
+    assert.deepEqual(recorder.states, [
+      "preparing",
+      "validating_credentials",
+      "checking_server",
+      "fetching_source",
+    ]);
+  });
+  await t.test("routing failure", async (caseContext) => {
+    const fixture = await deploymentFixture(caseContext, "routing");
+    const recorder = validatedTransitions(fixture.actions);
+    await assert.rejects(
+      executeComposeDeployment({ ...fixture, hooks: recorder.hooks }),
+      /Caddy rejected routing/u,
+    );
+    recorder.fail();
+    assert.deepEqual(recorder.states, successfulComposeStates.slice(0, 11));
+    assert(fixture.commands.some((script) => script.includes('runtime="$6"')));
+  });
+});
 
 void test("Compose DNS TLS prepares Caddy, transfers its token privately and cleans obsolete DNS after commit", async (t) => {
   const fixture = await deploymentFixture(t);
