@@ -99,7 +99,7 @@ export function SecondaryEntityHeader({
         >
           <span
             aria-hidden="true"
-            className="inline-flex shrink-0 [&_img]:size-4 [&_svg]:size-4"
+            className="inline-flex shrink-0 [&_img]:size-5 [&_svg]:size-5"
           >
             {icon}
           </span>
@@ -189,7 +189,7 @@ export function SecondaryItems({
             {!item.disabled ? (
               <span
                 aria-hidden="true"
-                className="inline-flex shrink-0 [&_img]:size-4 [&_svg]:size-4"
+                className="inline-flex shrink-0 [&_img]:size-5 [&_svg]:size-5"
               >
                 {item.icon ?? (
                   <HugeiconsIcon
