@@ -1,6 +1,10 @@
 "use client";
 
-import { Copy01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowTurnForwardIcon,
+  Copy01Icon,
+  Route01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App } from "@workspace/towbar-web-client";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
@@ -38,7 +42,13 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                 {row.hostname}
               </DomainLink>
               {row.role ? (
-                <TableCellDescription>{row.role} domain</TableCellDescription>
+                <TableCellDescription className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`size-1.5 shrink-0 rounded-full ${row.role === "Primary" ? "bg-success" : "bg-warning"}`}
+                  />
+                  {row.role} domain
+                </TableCellDescription>
               ) : null}
             </TableCellStack>
           ),
@@ -49,24 +59,9 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
           cell: (row) => (
             <TableCellStack as="div">
               {row.target.kind === "redirect" ? (
-                <>
-                  <DomainLink className="max-w-80" domain={row.target.hostname}>
-                    {row.target.hostname}
-                  </DomainLink>
-                  <TableCellDescription>
-                    <span
-                      className={
-                        row.target.status === 301
-                          ? "font-mono tabular-nums text-yellow-700 dark:text-yellow-400"
-                          : "font-mono tabular-nums text-orange-700 dark:text-orange-400"
-                      }
-                    >
-                      {row.target.status}
-                    </span>{" "}
-                    · {row.target.status === 301 ? "Permanent" : "Temporary"}{" "}
-                    redirect
-                  </TableCellDescription>
-                </>
+                <DomainLink className="max-w-80" domain={row.target.hostname}>
+                  {row.target.hostname}
+                </DomainLink>
               ) : (
                 <>
                   {row.target.kind === "compose" ? (
@@ -75,15 +70,52 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                     row.target.name
                   )}
                   <TableCellDescription>
-                    Port {row.target.port} ·{" "}
-                    {row.target.ingress === "cloudflare-tunnel"
-                      ? "Cloudflare Tunnel"
-                      : "Proxy"}
+                    Port {row.target.port}
                   </TableCellDescription>
                 </>
               )}
             </TableCellStack>
           ),
+        },
+        {
+          key: "function",
+          header: "Function",
+          cell: (row) =>
+            row.target.kind === "redirect" ? (
+              <TableCellStack as="div">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <HugeiconsIcon
+                    icon={ArrowTurnForwardIcon}
+                    className="size-4"
+                    aria-hidden="true"
+                  />
+                  Redirect
+                </span>
+                <TableCellDescription>
+                  <span
+                    className={
+                      row.target.status === 301
+                        ? "font-mono tabular-nums text-yellow-700 dark:text-yellow-400"
+                        : "font-mono tabular-nums text-orange-700 dark:text-orange-400"
+                    }
+                  >
+                    {row.target.status}
+                  </span>{" "}
+                  / {row.target.status === 301 ? "Permanent" : "Temporary"}
+                </TableCellDescription>
+              </TableCellStack>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <HugeiconsIcon
+                  icon={Route01Icon}
+                  className="size-4"
+                  aria-hidden="true"
+                />
+                {row.target.ingress === "cloudflare-tunnel"
+                  ? "Cloudflare Tunnel"
+                  : "Proxy"}
+              </span>
+            ),
         },
         {
           key: "tls",
