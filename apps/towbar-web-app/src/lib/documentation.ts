@@ -56,6 +56,10 @@ export const documentationTopics = {
     "previews",
     "Run isolated service instances for eligible pull requests, with separate preview secrets and automatic cleanup.",
   ),
+  domains: guide(
+    "domains-tls",
+    "Review primary domains, alternate redirects, and Compose service routes. Domain and TLS settings are configured in the service manifest.",
+  ),
   servers: guide(
     "servers",
     "Register an Ubuntu server, configure trusted SSH access, and prepare it to run services and datastores.",
@@ -339,6 +343,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
     "compare-deployments": "comparison",
     vulnerabilities: "vulnerabilities",
     previews: "previews",
+    domains: "domains",
     deployments: "deployments",
     logs: "logs",
     secrets: "secrets",

@@ -31,6 +31,7 @@ export default async function Page({
       "deployments",
       "previews",
       "logs",
+      "domains",
       "storage",
       "jobs",
       "settings",

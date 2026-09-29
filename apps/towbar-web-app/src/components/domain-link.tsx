@@ -18,7 +18,7 @@ export function DomainLink({
   return (
     <a
       className={cn(
-        "focus-visible:ring-focus inline-flex min-w-0 max-w-full items-center rounded-sm outline-none focus-visible:ring-2",
+        "group/domain focus-visible:ring-focus inline-flex min-w-0 max-w-full items-center rounded-sm outline-none focus-visible:ring-2",
         className,
       )}
       href={`https://${domain}`}
@@ -33,14 +33,14 @@ export function DomainLink({
     >
       {showTooltip ? (
         <TooltipText
-          className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4"
+          className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4 group-hover/domain:decoration-foreground group-focus-visible/domain:decoration-foreground"
           tabIndex={-1}
           tooltip={title}
         >
           {children}
         </TooltipText>
       ) : (
-        <span className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4">
+        <span className="min-w-0 truncate underline decoration-dashed decoration-muted underline-offset-4 group-hover/domain:decoration-foreground group-focus-visible/domain:decoration-foreground">
           {children}
         </span>
       )}
