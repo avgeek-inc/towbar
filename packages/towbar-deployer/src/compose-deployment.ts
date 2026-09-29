@@ -49,6 +49,22 @@ if test -L "$parent" || test -L "$state"; then
   printf 'Compose state path cannot be a symbolic link.\n' >&2
   exit 72
 fi
+if test -e "$parent"; then
+  if ! test -d "$parent" || test "$(stat -c '%u' "$parent")" != 0; then
+    printf 'Compose parent must be a root-owned directory; operator attention is required.\n' >&2
+    exit 72
+  fi
+  if ! test -x "$parent"; then
+    printf 'Compose parent must be searchable by the deploy user; operator attention is required.\n' >&2
+    exit 72
+  fi
+  writable_parent="$(find "$parent" -maxdepth 0 -perm /022 -print -quit)"
+  if test -n "$writable_parent"; then
+    printf 'Compose parent must not be group- or world-writable.\n' >&2
+    exit 72
+  fi
+fi
+if test "$owner_uid" -eq 0; then SUDO=(); else SUDO=(sudo -n); fi
 if test -e "$state"; then
   if ! test -d "$state"; then
     printf 'Compose state path is not a directory.\n' >&2
@@ -59,10 +75,22 @@ if test -e "$state"; then
     printf 'Compose state belongs to another user; operator attention is required.\n' >&2
     exit 72
   fi
+  writable_state="$(find "$state" -maxdepth 0 -perm /022 -print -quit)"
+  if test -n "$writable_state"; then
+    printf 'Compose state must not be group- or world-writable.\n' >&2
+    exit 72
+  fi
+  if test "$existing_uid" = 0 && test "$owner_uid" != 0; then
+    existing_entry="$("${"$"}{SUDO[@]}" find "$state" -mindepth 1 -print -quit)"
+    if test -n "$existing_entry"; then
+      printf 'Root-owned Compose state contains existing releases; operator attention is required.\n' >&2
+      exit 72
+    fi
+  fi
 fi
-if test "$owner_uid" -eq 0; then SUDO=(); else SUDO=(sudo -n); fi
-"${"$"}{SUDO[@]}" install -d -m 0755 "$parent"
+"${"$"}{SUDO[@]}" install -d -m 0755 -o 0 -g 0 "$parent"
 "${"$"}{SUDO[@]}" install -d -m 0700 -o "$owner_uid" -g "$owner_gid" "$state"
+test "$(stat -c '%u' "$parent")" = 0
 test -O "$state" && test -w "$state"
 `;
 

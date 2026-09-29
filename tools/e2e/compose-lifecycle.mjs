@@ -33,18 +33,34 @@ try {
     "root:root 755",
   );
   target.ssh("test ! -e /var/lib/towbar/compose");
-  target.ssh("sudo ln -s /tmp /var/lib/towbar/compose");
   const storageScript = Buffer.from(
     composeDeploymentScripts.prepareStorage,
   ).toString("base64");
-  assert.throws(
-    () => target.ssh(`printf '%s' '${storageScript}' | base64 -d | bash -s --`),
-    (error) => {
-      assert.match(String(error.stderr), /cannot be a symbolic link/u);
+  const prepareStorage = () =>
+    target.ssh(`printf '%s' '${storageScript}' | base64 -d | bash -s --`);
+  const rejectStorage = (message) =>
+    assert.throws(prepareStorage, (error) => {
+      assert.match(String(error.stderr), message);
       return true;
-    },
-  );
+    });
+  target.ssh("sudo ln -s /tmp /var/lib/towbar/compose");
+  rejectStorage(/cannot be a symbolic link/u);
   target.ssh("sudo rm /var/lib/towbar/compose");
+  target.ssh("sudo chown deploy:deploy /var/lib/towbar");
+  rejectStorage(/parent must be a root-owned directory/u);
+  target.ssh("sudo chown root:root /var/lib/towbar");
+  target.ssh("sudo install -d -m 0700 -o root -g root /var/lib/towbar/compose");
+  target.ssh("sudo touch /var/lib/towbar/compose/existing-release");
+  target.ssh("sudo chmod 0700 /var/lib/towbar");
+  rejectStorage(/parent must be searchable by the deploy user/u);
+  target.ssh("sudo chmod 0755 /var/lib/towbar");
+  rejectStorage(/Root-owned Compose state contains existing releases/u);
+  assert.equal(
+    target.ssh("stat -c '%U:%G %a' /var/lib/towbar/compose"),
+    "root:root 700",
+  );
+  target.ssh("sudo rm /var/lib/towbar/compose/existing-release");
+  target.ssh("sudo rmdir /var/lib/towbar/compose");
 
   const checkout = path.join(directory, "checkout");
   mkdirSync(checkout);
