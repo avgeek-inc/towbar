@@ -186,14 +186,16 @@ These screenshots show a local example of upgrading from v2.0.16 to v2.0.17. Ava
 
 ### Enable in-app upgrades
 
-Host-managed upgrades are opt-in. First install a release that includes the host upgrade runner using the existing CLI path. On the control-plane host, enable it:
+Standard CLI installations enable in-app upgrades automatically after a successful install or upgrade. The host must use the upstream installation paths, Linux with systemd, and a release that supports the host upgrade service.
+
+If an older CLI installed or upgraded Towbar without enabling the service, run this once on the control-plane host:
 
 ```bash
 sudo towbar upgrade-service enable
 sudo systemctl status towbar-upgrade
 ```
 
-Enabling the service restarts Towbar with a private runner socket mounted into the API. Schedule this setup during a maintenance window. It requires a standard upstream CLI installation at `/opt/towbar`, configuration at `/etc/towbar`, the CLI at `/usr/local/bin/towbar`, Python 3, Linux with systemd, and Docker Compose v2. Custom paths, forks, container-only Compose installs, Kubernetes, and older releases without the admission protocol retain the manual CLI path. Both the installed and target releases must support protocol 2, which includes dedicated-group access and runner updates. Use a host maintenance window for a protocol or major-version migration; the current CLI accepts only its own major version.
+Setup restarts Towbar with a private runner socket mounted into the API. It requires a standard upstream CLI installation at `/opt/towbar`, configuration at `/etc/towbar`, the CLI at `/usr/local/bin/towbar`, Python 3, Linux with systemd, and Docker Compose v2. Custom paths, forks, container-only Compose installs, Kubernetes, and older releases without the admission protocol retain the manual CLI path. Both the installed and target releases must support protocol 2, which includes dedicated-group access and runner updates. Use a host maintenance window for a protocol or major-version migration; the current CLI accepts only its own major version.
 
 Setup creates a dedicated system group and saves its identity in the root-only `/etc/towbar/upgrade-group.json`. If `towbar-upgrade` already names a host group, setup chooses a new name rather than adopting it. The generated Compose override grants only the API container the group's numeric ID through `group_add`; it does not add host users. Startup rejects a saved group that has host members, a primary user, another group sharing its ID, or a changed ID. The runtime directory, token, and socket belong to root and this group, never a fixed host group ID.
 

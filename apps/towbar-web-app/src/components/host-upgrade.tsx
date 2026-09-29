@@ -148,10 +148,12 @@ export function HostUpgrade({
         ) : null}
       </div>
       {status.data?.supported === false ? (
-        <p className="text-sm text-muted sm:col-span-2">{status.data.reason}</p>
+        <p className="ml-8 text-sm text-warning sm:col-span-2">
+          {status.data.reason}
+        </p>
       ) : null}
       {status.error && !job ? (
-        <p className="text-sm text-warning sm:col-span-2" role="status">
+        <p className="ml-8 text-sm text-warning sm:col-span-2" role="status">
           {active || uncertain
             ? "Reconnecting to Towbar. The host keeps running the upgrade. This page will check again automatically."
             : status.error}{" "}
