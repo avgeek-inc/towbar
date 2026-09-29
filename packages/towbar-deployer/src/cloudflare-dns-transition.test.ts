@@ -158,6 +158,87 @@ void test("uncertain DNS writes fail with a visible rollback warning", async () 
   );
 });
 
+void test("rejected DNS creates preserve the provider error and roll back earlier writes", async (t) => {
+  for (const status of [403, 200]) {
+    await t.test(`provider rejection with HTTP ${status}`, async () => {
+      const fixture = dnsFixture([owned]);
+      const fetcher: typeof fetch = (url, init) =>
+        init?.method === "POST"
+          ? Promise.resolve(
+              new Response(
+                JSON.stringify({
+                  success: false,
+                  errors: [{ code: 10000, message: "Authentication error" }],
+                }),
+                { status },
+              ),
+            )
+          : fixture.fetcher(url, init);
+      await assert.rejects(
+        reconcileCloudflareDns({
+          ...input,
+          domains: [owned.name, "new.example.com"],
+          fetcher,
+        }),
+        (error: unknown) => {
+          assert(error instanceof Error);
+          assert(!(error instanceof AggregateError));
+          assert.match(error.message, /Cloudflare rejected.*10000/u);
+          return true;
+        },
+      );
+      assert.deepEqual([...fixture.records.values()], [owned]);
+    });
+  }
+});
+
+void test("a server error after a DNS create remains an uncertain write", async () => {
+  const fixture = dnsFixture();
+  const fetcher: typeof fetch = async (url, init) => {
+    const response = await fixture.fetcher(url, init);
+    return init?.method === "POST"
+      ? new Response(JSON.stringify({ success: false }), { status: 503 })
+      : response;
+  };
+  await assert.rejects(
+    reconcileCloudflareDns({ ...input, fetcher }),
+    /rollback needs operator attention/u,
+  );
+  assert.equal(fixture.records.size, 1);
+  assert.equal(fixture.mutations.length, 1);
+});
+
+void test("rollback reports a missing preexisting DNS record without recreating it", async () => {
+  const fixture = dnsFixture([owned]);
+  const transition = await reconcileCloudflareDns({
+    ...input,
+    fetcher: fixture.fetcher,
+  });
+  fixture.records.delete(owned.id);
+  await assert.rejects(transition.rollback(), (error: unknown) => {
+    assert(error instanceof AggregateError);
+    assert.match(error.message, /operator attention/u);
+    const rollbackError: unknown = error.errors[0];
+    assert(rollbackError instanceof Error);
+    assert.match(rollbackError.message, /removed after reconciliation/u);
+    return true;
+  });
+  assert.equal(fixture.records.size, 0);
+  assert.deepEqual(fixture.mutations, [{ method: "PATCH", name: owned.name }]);
+});
+
+void test("rollback accepts an already removed record created by this transition", async () => {
+  const fixture = dnsFixture();
+  const transition = await reconcileCloudflareDns({
+    ...input,
+    fetcher: fixture.fetcher,
+  });
+  fixture.records.clear();
+  await transition.rollback();
+  assert.equal(fixture.records.size, 0);
+  assert.deepEqual(fixture.mutations, [{ method: "POST", name: owned.name }]);
+});
+
 void test("cleanup deletes only obsolete owned address records and protects current routes", async () => {
   const live = { ...owned, id: "live", name: "live.example.com" };
   const foreign = { ...owned, id: "foreign", comment: "Operator note" };
@@ -175,6 +256,7 @@ void test("cleanup deletes only obsolete owned address records and protects curr
       hostnames: [owned.name, live.name, owned.name],
     },
     protectedHostnames: ["LIVE.EXAMPLE.COM"],
+    managedHostnames: [live.name],
     fetcher: fixture.fetcher,
   });
   assert.deepEqual([...fixture.records.values()], [live, foreign, tunnel]);

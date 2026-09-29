@@ -75,3 +75,5 @@ Configure the token, zone permissions, and Full (strict) mode described in [Doma
 Compose waits for service health and validates the Caddy configuration before recording a release. Verify each HTTPS hostname after deployment.
 
 Towbar refuses conflicting or foreign address records. An unmanaged address record may be adopted only when its type and target IP already match. Before release commit, a failed route rolls back DNS writes that still match the records Towbar changed and restores the previous Compose project. After commit, cleanup removes only obsolete owned address records, preserving current domains and unrelated records. Provider uncertainty leaves an error or cleanup warning for operator review. Compose rollback uses the retained source and route policies; it does not reverse changes to persistent volumes.
+
+When a route switches from `cloudflare-dns` to direct TLS, Towbar preserves its address record and clears the ownership comment after release commit. Manage that record manually from then on, including removing it if the route is removed.

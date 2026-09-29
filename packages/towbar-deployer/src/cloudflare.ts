@@ -53,6 +53,8 @@ type CloudflareEnvelope<T> = {
   success?: boolean;
 };
 
+class CloudflareRequestRejectedError extends Error {}
+
 const managedTunnelMetadata = "managed_by";
 
 export function deploymentPublicHostnames(app: NormalizedDeployable) {
@@ -641,17 +643,22 @@ async function reconcileCloudflareDnsRecords(
     if (!existing) {
       const change = { zoneId, after: { ...body, id: "" } };
       changes.push(change);
-      const created = await cloudflareRequest<CloudflareRecord>(
-        `/zones/${zoneId}/dns_records`,
-        input.apiToken,
-        fetcher,
-        { body, method: "POST" },
-      );
-      if (!created.id)
-        throw new Error(
-          "Cloudflare did not return the created DNS record identity",
+      try {
+        const created = await cloudflareRequest<CloudflareRecord>(
+          `/zones/${zoneId}/dns_records`,
+          input.apiToken,
+          fetcher,
+          { body, method: "POST" },
         );
-      change.after.id = created.id;
+        if (!created.id)
+          throw new Error(
+            "Cloudflare did not return the created DNS record identity",
+          );
+        change.after.id = created.id;
+      } catch (error) {
+        if (error instanceof CloudflareRequestRejectedError) changes.pop();
+        throw error;
+      }
       continue;
     }
     if (
@@ -711,7 +718,13 @@ async function rollbackCloudflareDns(
         fetcher,
       );
       const current = records.find(({ id }) => id === change.after.id);
-      if (!current) continue;
+      if (!current) {
+        if (change.before)
+          throw new Error(
+            `DNS record '${change.after.name}' was removed after reconciliation`,
+          );
+        continue;
+      }
       if (sameDnsRecord(current, change.before)) continue;
       if (!sameDnsRecord(current, change.after))
         throw new Error(
@@ -763,18 +776,22 @@ export async function cleanupCloudflareDnsTransition(input: {
   appId: string;
   previous: { apiToken: string; hostnames: string[] } | null;
   protectedHostnames: string[];
+  managedHostnames: string[];
   fetcher?: CloudflareFetch;
 }) {
   if (!input.previous) return;
   const protectedHostnames = new Set(
     input.protectedHostnames.map(normalizeHostname),
   );
+  const managedHostnames = new Set(
+    input.managedHostnames.map(normalizeHostname),
+  );
   const fetcher = input.fetcher ?? fetch;
   const zoneCache = new Map<string, string>();
   for (const hostname of new Set(
     input.previous.hostnames.map(normalizeHostname),
   )) {
-    if (protectedHostnames.has(hostname)) continue;
+    if (managedHostnames.has(hostname)) continue;
     const zoneId = await findZoneId(
       hostname,
       input.previous.apiToken,
@@ -796,7 +813,9 @@ export async function cleanupCloudflareDnsTransition(input: {
         `/zones/${zoneId}/dns_records/${record.id}`,
         input.previous.apiToken,
         fetcher,
-        { method: "DELETE" },
+        protectedHostnames.has(hostname)
+          ? { method: "PATCH", body: { name: record.name, comment: "" } }
+          : { method: "DELETE" },
       );
     }
   }
@@ -1095,15 +1114,28 @@ async function cloudflareRequest<T = unknown>(
   } catch {
     value = null;
   }
-  if (!response.ok || !value?.success || value.result === undefined) {
-    const code = value?.errors?.[0]?.code;
-    throw new Error(
-      code
-        ? `Cloudflare rejected the DNS change (error ${code})`
-        : "Cloudflare rejected the DNS change",
-    );
-  }
+  if (!response.ok || !value?.success || value.result === undefined)
+    throw cloudflareResponseError(response, value);
   return value.result as T;
+}
+
+function cloudflareResponseError(
+  response: Response,
+  value: CloudflareEnvelope<unknown> | null,
+) {
+  const code = value?.errors?.[0]?.code;
+  const ErrorType =
+    (response.status >= 400 &&
+      response.status < 500 &&
+      response.status !== 408) ||
+    (response.ok && value?.success === false)
+      ? CloudflareRequestRejectedError
+      : Error;
+  return new ErrorType(
+    code
+      ? `Cloudflare rejected the DNS change (error ${code})`
+      : "Cloudflare rejected the DNS change",
+  );
 }
 
 function normalizeHostname(value: string) {

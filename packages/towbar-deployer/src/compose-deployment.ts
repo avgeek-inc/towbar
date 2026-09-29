@@ -433,6 +433,7 @@ async function cleanupPreviousComposeDns(input: {
     appId: deploymentRuntimeId(input.context),
     previous: input.secrets.previousCloudflareDns ?? null,
     protectedHostnames: deploymentPublicHostnames(input.context.app),
+    managedHostnames: deploymentCloudflareDnsDomains(input.context.app),
   });
 }
 

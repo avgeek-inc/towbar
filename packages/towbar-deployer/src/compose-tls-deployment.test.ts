@@ -194,7 +194,7 @@ void test("Compose DNS TLS prepares Caddy, transfers its token privately and cle
   );
   const caddy = fixture.uploads.get("/var/lib/towbar/compose/stack/app.caddy")!;
   assert.equal(caddy.match(/dns cloudflare/g)?.length, 2);
-  assert.match(caddy, /direct.example.com \{/);
+  assert.match(caddy, /direct\.example\.com \{/u);
   assert(!caddy.includes("test-token"));
   assert.equal(
     fixture.uploads.get("/var/lib/towbar/compose/stack/cloudflare.env"),
@@ -212,6 +212,43 @@ void test("routing failure rolls DNS and Compose back before commit without dele
     ["obsolete.example.com"],
   );
   assert(fixture.commands.some((script) => script.includes('runtime="$6"')));
+});
+
+void test("switching a Compose route to direct TLS relinquishes DNS ownership after commit", async (t) => {
+  const fixture = await deploymentFixture(t);
+  const app = fixture.context.app;
+  assert(app.kind === "compose");
+  const record = {
+    id: "api",
+    name: "api.example.com",
+    type: "A",
+    content: app.server,
+    comment: "Managed by Towbar: stack",
+    proxied: true,
+    ttl: 1,
+  };
+  fixture.records.set(record.id, { ...record });
+  app.services.api!.tls = { mode: "direct" };
+  const result = await executeComposeDeployment({
+    ...fixture,
+    hooks: {
+      commitRelease: () => {
+        assert.deepEqual(fixture.records.get(record.id), record);
+        return Promise.resolve({ retainedImageTags: [] });
+      },
+    },
+  });
+  assert.deepEqual(result.warnings, []);
+  const releasedRecord = { ...record, comment: "" };
+  assert.deepEqual(fixture.records.get(record.id), releasedRecord);
+
+  fixture.secrets.previousCloudflareDns!.hostnames = ["console.example.com"];
+  delete app.services.api;
+  const nextDirectory = path.join(fixture.localDirectory, "next");
+  await mkdir(nextDirectory);
+  fixture.context.deploymentId = "next-deployment";
+  await executeComposeDeployment({ ...fixture, localDirectory: nextDirectory });
+  assert.deepEqual(fixture.records.get(record.id), releasedRecord);
 });
 
 void test("an uncertain release commit preserves the candidate DNS and rollback state", async (t) => {
@@ -271,6 +308,6 @@ void test("Compose renders Tunnel HTTP and legacy direct TLS alongside DNS TLS",
       tls: { mode: "cloudflare-dns" },
     },
   ]);
-  assert.match(caddy, /http:\/\/tunnel.example.com/);
+  assert.match(caddy, /http:\/\/tunnel\.example\.com/u);
   assert.equal(caddy.match(/dns cloudflare/g)?.length, 1);
 });
