@@ -282,33 +282,39 @@ async function startAndVerifyNamedCandidate(
           timeoutMs: startupTimeout(startupDeadline, 180_000),
         },
       )
-    : await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
-        [
-          deploymentRuntimeId(input.context),
-          input.context.deploymentId,
-          input.context.commitSha,
-          input.context.sourceId,
-          input.context.deployableId,
-          deploymentVolumeArguments(input.context),
-          String(collectsHostDockerLogs(input.context.app)),
-          input.remoteDirectory,
-          containerName,
-          input.imageTag,
-          String(input.context.app.container.port),
-          deploymentNetwork(input.context) ?? "",
-          input.context.app.container.resources
-            ? String(input.context.app.container.resources.cpus)
-            : "",
-          input.context.app.container.resources?.memory ?? "",
-          input.context.app.container.networkAlias ?? "",
-          previousContainer,
-        ],
-        {
-          signal: input.signal,
-          timeoutMs: startupTimeout(startupDeadline, 120_000),
-        },
-      );
+    : await runWithSafeLogs({
+        hooks: input.hooks,
+        sensitiveValues: input.sensitiveValues,
+        run: (handlers) =>
+          input.session.run(
+            `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
+            [
+              deploymentRuntimeId(input.context),
+              input.context.deploymentId,
+              input.context.commitSha,
+              input.context.sourceId,
+              input.context.deployableId,
+              deploymentVolumeArguments(input.context),
+              String(collectsHostDockerLogs(input.context.app)),
+              input.remoteDirectory,
+              containerName,
+              input.imageTag,
+              String(input.context.app.container.port),
+              deploymentNetwork(input.context) ?? "",
+              input.context.app.container.resources
+                ? String(input.context.app.container.resources.cpus)
+                : "",
+              input.context.app.container.resources?.memory ?? "",
+              input.context.app.container.networkAlias ?? "",
+              previousContainer,
+            ],
+            {
+              ...handlers,
+              signal: input.signal,
+              timeoutMs: startupTimeout(startupDeadline, 120_000),
+            },
+          ),
+      });
   const requiresPublishedPort = !resource || Boolean(resource.container.port);
   const candidatePort = parseCandidatePort(
     startResult.stdout,
