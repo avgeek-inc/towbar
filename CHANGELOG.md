@@ -5,6 +5,41 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.21] - 2026-09-30
+
+### Changed
+
+- Deployment progress uses yellow for running steps, smaller descriptions, and
+  compact timestamps such as `18:52 (<1s)`. Unfinished steps hide the finished
+  timestamp, and log links use muted text with dashed underlines.
+- Mobile sidebars truncate long labels. Notifications show dates below entity
+  details, and secret variables have more space between names, values, and rows.
+  Input text appears smaller while keeping a 16px CSS font size.
+- Analytics uses HTTP analytics and Web analytics labels and shows summary
+  metrics in two columns on mobile. Truncated city names open a tooltip on hover
+  or tap, and empty tables use smaller, muted text. Mobile hides the Filters
+  action; performance menus omit the 30-minute and 15-day ranges.
+- Incident details, General settings, notifications, and progress cards remove
+  redundant headings, icons, and controls.
+- Operational emails use readable labels, rounded measurements with units,
+  compact references, and links to the relevant deployment or incidents page.
+  SSH command failures show connection guidance or identify the failed step.
+
+### Fixed
+
+- Incident charts include the triggering measurement bucket and retain the
+  initial reading for incidents created after this upgrade, even after sample
+  cleanup. Single readings appear as dots, and recovered charts end five minutes
+  after recovery instead of extending to the current time.
+- Compose deployments prepare state safely for non-root users on fresh hosts.
+  Failed replacements report whether the previous release restarted, and
+  Compose deployment links open under Services.
+- Table description links highlight their dashed underline and arrow on hover,
+  including links in Recent deployments.
+- Updated `brace-expansion`, `fast-uri`, and `ip-address` to patched versions.
+  Integration test images use official Ubuntu repositories over HTTPS, retry
+  package downloads, and stop when package indexes cannot be loaded.
+
 ## [2.0.20] - 2026-09-30
 
 ### Changed
@@ -473,7 +508,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...HEAD
+[2.0.21]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...v2.0.21
 [2.0.20]: https://github.com/avgeek-inc/towbar/compare/v2.0.19...v2.0.20
 [2.0.13]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...v2.0.13
 [2.0.12]: https://github.com/avgeek-inc/towbar/compare/v2.0.11...v2.0.12
