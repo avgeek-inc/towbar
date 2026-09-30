@@ -45,6 +45,7 @@ const publicColumns = {
   scope: apiKeyPolicies.scope,
   access: apiKeyPolicies.access,
   includeAdmin: apiKeyPolicies.includeAdmin,
+  permissionMode: apiKeyPolicies.permissionMode,
   grants: apiKeyPolicies.grants,
   prefix: apiKeys.start,
   expiresAt: apiKeys.expiresAt,
@@ -136,6 +137,10 @@ export async function createApiKey(
     .digest("hex");
   const scope = input.scope ?? "personal";
   const includeAdmin = input.includeAdmin ?? false;
+  const permissionMode =
+    !input.oauth && includeAdmin && input.access === "edit"
+      ? ("full-admin" as const)
+      : ("scoped" as const);
   const expiresAt =
     input.expiresAt === null
       ? null
@@ -207,6 +212,7 @@ export async function createApiKey(
       scope,
       access: input.access,
       includeAdmin,
+      permissionMode,
       grants,
       ownerUserId: scope === "personal" ? user.id : null,
       creatorUserId: user.id,
@@ -222,6 +228,7 @@ export async function createApiKey(
         scope,
         access: input.access,
         includeAdmin,
+        permissionMode,
         expiresAt: expiresAt?.toISOString() ?? null,
         ...tokenMetadata,
       },
@@ -242,6 +249,7 @@ export async function createApiKey(
         scope,
         access: input.access,
         includeAdmin,
+        permissionMode,
         grants,
         prefix: key.start,
         expiresAt: key.expiresAt,
@@ -394,6 +402,7 @@ export async function resolveApiKeyPrincipal(id: string) {
     scope: stored.policy.scope,
     access: stored.policy.access,
     includeAdmin: stored.policy.includeAdmin,
+    permissionMode: stored.policy.permissionMode,
     grants: stored.policy.grants.filter(isAction),
   };
   if (policy.scope === "team") {

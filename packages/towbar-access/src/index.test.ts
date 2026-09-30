@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   actorAllows,
+  actorActions,
   allActions,
   canCreateKey,
   constrainPersonalKey,
@@ -55,7 +56,7 @@ test("roles separate operational reads, member edits, and administration", () =>
   assert.ok(allActions.every((action) => roleAllows("admin", action)));
 });
 
-test("host log collection requires an explicit administrative automation grant", () => {
+test("scoped host log collection requires a saved administrative grant", () => {
   const actor: AccessActor = {
     kind: "team-key",
     workspaceId: "workspace",
@@ -90,6 +91,97 @@ test("host log collection requires an explicit administrative automation grant",
     keyCeiling("member", "edit", false).includes("server.collectLogs"),
     false,
   );
+});
+test("full admin personal and team keys acquire current automation permissions", () => {
+  for (const kind of ["personal-key", "team-key"] as const) {
+    const base = {
+      workspaceId: "workspace",
+      keyId: "key",
+      policy: {
+        scope: kind === "personal-key" ? "personal" : "team",
+        access: "edit",
+        includeAdmin: true,
+        permissionMode: "full-admin",
+        grants: keyCeiling("admin", "edit", true).filter(
+          (action) => action !== "server.collectLogs",
+        ),
+      } satisfies KeyPolicy,
+    };
+    const actor =
+      kind === "personal-key"
+        ? { ...base, kind, userId: "user", role: "admin" as const }
+        : { ...base, kind };
+    assert(actorAllows(actor, ["deployment.create", "server.collectLogs"]));
+    assert.deepEqual(actorActions(actor), keyCeiling("admin", "edit", true));
+    assert(!actorAllows(actor, ["server.collectLogs"], "another-workspace"));
+    for (const action of [
+      "server.terminal",
+      "secret.reveal",
+      "sharedSecret.reveal",
+      "apikey.create",
+      "member.update",
+      "personal.manage",
+      "privateKey.manage",
+    ] as Action[])
+      assert(!actorAllows(actor, [action]), action);
+    assert(
+      !actorAllows(
+        { ...actor, policy: { ...actor.policy, permissionMode: "scoped" } },
+        ["server.collectLogs"],
+      ),
+    );
+    assert(
+      !actorAllows({ ...actor, policy: { ...actor.policy, access: "read" } }, [
+        "server.collectLogs",
+      ]),
+    );
+    assert(
+      !actorAllows(
+        { ...actor, policy: { ...actor.policy, includeAdmin: false } },
+        ["server.collectLogs"],
+      ),
+    );
+    if (actor.kind === "personal-key") {
+      assert(
+        !actorAllows({ ...actor, role: "member" }, ["server.collectLogs"]),
+      );
+      assert(
+        !actorAllows({ ...actor, role: "viewer" }, ["server.collectLogs"]),
+      );
+      assert(
+        !actorAllows(
+          {
+            ...actor,
+            tokenAttribution: {
+              tokenType: "mcp-oauth",
+              oauthClientId: "client",
+              oauthClientName: "Client",
+              oauthClientTrust: "unverified",
+            },
+          },
+          ["server.collectLogs"],
+        ),
+      );
+    }
+  }
+});
+test("demotion permanently scopes a full admin key before re-promotion", () => {
+  const admin: KeyPolicy = {
+    scope: "personal",
+    access: "edit",
+    includeAdmin: true,
+    permissionMode: "full-admin",
+    grants: ["deployment.create"],
+  };
+  const member = constrainPersonalKey(admin, "member");
+  assert.equal(member.permissionMode, "scoped");
+  assert.equal(member.includeAdmin, false);
+  assert.deepEqual(member.grants, keyCeiling("member", "edit", false));
+  assert.deepEqual(constrainPersonalKey(member, "admin"), member);
+  const viewer = constrainPersonalKey(admin, "viewer");
+  assert.equal(viewer.permissionMode, "scoped");
+  assert.equal(viewer.access, "read");
+  assert.deepEqual(constrainPersonalKey(viewer, "admin"), viewer);
 });
 test("API keys cannot grant browser privileges or escape their ceilings", () => {
   assert(!keyCeiling("admin", "edit", true).includes("server.terminal"));

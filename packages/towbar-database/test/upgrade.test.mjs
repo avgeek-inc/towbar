@@ -31,12 +31,13 @@ test("migration journal keeps notification destinations and failure subscription
     "0014_scout_analytics.sql",
     "0015_host_upgrades.sql",
     "0016_incident_trigger_observation.sql",
+    "0017_admin_key_permissions.sql",
     "001_team_access_v2.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 16);
+  assert.equal(journal.entries.length, 17);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -205,7 +206,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 16);
+      assert.equal(count, 17);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
@@ -226,6 +227,7 @@ test(
         ["towbar_deployments", "requested_by_actor"],
         ["towbar_source_syncs", "requested_by_actor"],
         ["towbar_api_key_policies", "creation_request_id"],
+        ["towbar_api_key_policies", "permission_mode"],
         ["towbar_users", "must_change_password"],
         ["towbar_sessions", "authenticated_at"],
         ["towbar_preview_environments", "cleanup_requested_by_actor"],

@@ -7,7 +7,9 @@ type ServerResponse = {
 };
 type Identity = { capabilities: string[] };
 
-function resultData<T>(result: Awaited<ReturnType<Client["callTool"]>>): T {
+export function resultData<T>(
+  result: Awaited<ReturnType<Client["callTool"]>>,
+): T {
   assert.equal(result.isError, false, JSON.stringify(result.content));
   const content = result.content as Array<{ type: string; text?: string }>;
   const envelope = JSON.parse(

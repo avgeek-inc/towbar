@@ -125,7 +125,8 @@ async function resolveQueuedActor(
       ...principal.actor,
       policy: {
         ...principal.actor.policy,
-        grants: principal.actor.policy.grants.filter((action) =>
+        permissionMode: "scoped",
+        grants: actorActions(principal.actor).filter((action) =>
           reference.grants!.includes(action),
         ),
       },

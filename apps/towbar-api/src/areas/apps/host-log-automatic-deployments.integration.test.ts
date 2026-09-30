@@ -198,6 +198,7 @@ void test(
       await db
         .update(apiKeyPolicies)
         .set({
+          permissionMode: "scoped",
           grants: [
             "repository.sync",
             "deployment.create",

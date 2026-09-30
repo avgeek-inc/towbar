@@ -230,6 +230,7 @@ export async function updateMemberRole(
         .set({
           access: constrained.access,
           includeAdmin: constrained.includeAdmin,
+          permissionMode: constrained.permissionMode ?? "scoped",
           grants: [...constrained.grants],
           version: policy.version + 1,
         })

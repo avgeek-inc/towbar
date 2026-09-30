@@ -113,6 +113,13 @@
       "when": 1790712000000,
       "tag": "0016_incident_trigger_observation",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790722800000,
+      "tag": "0017_admin_key_permissions",
+      "breakpoints": true
     }
   ]
 }

@@ -16,7 +16,10 @@ import {
   normalizeDeploymentManifest,
   normalizeServerConfiguration,
 } from "@workspace/towbar-core";
-import { assertServerConfigReadback } from "./server-config-test-helper.js";
+import {
+  assertServerConfigReadback,
+  resultData,
+} from "./server-config-test-helper.js";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -160,43 +163,76 @@ void test(
             ownedServerId,
             foreignServerId,
           });
-          const [stored] = await db
-            .select({ grants: apiKeyPolicies.grants })
-            .from(apiKeyPolicies)
-            .where(eq(apiKeyPolicies.keyId, write.key.id));
-          assert(stored?.grants);
-          const original = stored.grants;
-          await db
-            .update(apiKeyPolicies)
-            .set({
-              grants: original.filter(
-                (action) => action !== "server.collectLogs",
-              ),
-            })
-            .where(eq(apiKeyPolicies.keyId, write.key.id));
-          try {
-            const identity = (await (
-              await request("/identity", write.token)
-            ).json()) as { capabilities: string[] };
-            assert(!identity.capabilities.includes("server.collectLogs"));
-            const client = await connect(write.token);
-            try {
-              const result = await client.callTool({
-                name: "towbar_workspace_inspect",
-                arguments: {},
-              });
-              assert.equal(result.isError, false);
-              assert(
-                !JSON.stringify(result.content).includes("server.collectLogs"),
-              );
-            } finally {
-              await client.close();
-            }
-          } finally {
+          const team = await createApiKey(user, {
+            name: "Team automation",
+            scope: "team",
+            access: "edit",
+            includeAdmin: true,
+          });
+          for (const credential of [write, team]) {
+            const [stored] = await db
+              .select({ grants: apiKeyPolicies.grants })
+              .from(apiKeyPolicies)
+              .where(eq(apiKeyPolicies.keyId, credential.key.id));
+            assert(stored?.grants);
+            const original = stored.grants;
             await db
               .update(apiKeyPolicies)
-              .set({ grants: original })
-              .where(eq(apiKeyPolicies.keyId, write.key.id));
+              .set({
+                grants: original.filter(
+                  (action) => action !== "server.collectLogs",
+                ),
+              })
+              .where(eq(apiKeyPolicies.keyId, credential.key.id));
+            try {
+              const identity = (await (
+                await request("/identity", credential.token)
+              ).json()) as { capabilities: string[] };
+              assert(identity.capabilities.includes("server.collectLogs"));
+              const client = await connect(credential.token);
+              try {
+                const result = await client.callTool({
+                  name: "towbar_workspace_inspect",
+                  arguments: {},
+                });
+                assert.deepEqual(
+                  resultData<{ identity: { capabilities: string[] } }>(result)
+                    .identity.capabilities,
+                  identity.capabilities,
+                );
+              } finally {
+                await client.close();
+              }
+              await db
+                .update(apiKeyPolicies)
+                .set({ permissionMode: "scoped" })
+                .where(eq(apiKeyPolicies.keyId, credential.key.id));
+              const restrictedIdentity = (await (
+                await request("/identity", credential.token)
+              ).json()) as { capabilities: string[] };
+              assert(
+                !restrictedIdentity.capabilities.includes("server.collectLogs"),
+              );
+              const restrictedClient = await connect(credential.token);
+              try {
+                const result = await restrictedClient.callTool({
+                  name: "towbar_workspace_inspect",
+                  arguments: {},
+                });
+                assert.deepEqual(
+                  resultData<{ identity: { capabilities: string[] } }>(result)
+                    .identity.capabilities,
+                  restrictedIdentity.capabilities,
+                );
+              } finally {
+                await restrictedClient.close();
+              }
+            } finally {
+              await db
+                .update(apiKeyPolicies)
+                .set({ grants: original, permissionMode: "full-admin" })
+                .where(eq(apiKeyPolicies.keyId, credential.key.id));
+            }
           }
         },
       );
