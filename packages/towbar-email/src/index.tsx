@@ -27,7 +27,6 @@ import {
 const emailTheme = {
   fontFamily:
     'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
-  background: "#f5f5f5",
   surface: "#ffffff",
   foreground: "#18181b",
   muted: "#71717a",
@@ -221,18 +220,16 @@ function EmailShell({ message: content }: { message: Message }) {
       <Preview>{previewText(content)}</Preview>
       <Body
         style={{
-          backgroundColor: emailTheme.background,
+          backgroundColor: emailTheme.surface,
           color: emailTheme.foreground,
           fontFamily: emailTheme.fontFamily,
           WebkitFontSmoothing: "antialiased",
           margin: 0,
-          padding: "32px 12px",
+          padding: 0,
         }}
       >
         <Container
           style={{
-            backgroundColor: emailTheme.surface,
-            borderRadius: 24,
             maxWidth: 560,
             padding: "32px 24px",
           }}
