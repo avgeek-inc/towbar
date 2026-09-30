@@ -404,8 +404,17 @@ async function sendSmtpNotification(input: {
   const rendered = await renderOperationalEmail({
     title: input.payload.title,
     summary: input.payload.message,
-    details: input.payload.details,
-    actionUrl: getEnv().TOWBAR_APP_BASE_URL,
+    details: {
+      ...(input.payload.entity.name ? { name: input.payload.entity.name } : {}),
+      ...(input.payload.source?.name
+        ? { repository: input.payload.source.name }
+        : {}),
+      ...input.payload.details,
+    },
+    actionUrl: emailNotificationUrl(
+      input.payload,
+      getEnv().TOWBAR_APP_BASE_URL,
+    ),
   });
   return sendSmtpEmail(
     {
@@ -415,6 +424,37 @@ async function sendSmtpNotification(input: {
     },
     input.providerConfiguration,
   );
+}
+
+export function emailNotificationUrl(
+  payload: NotificationEventPayload,
+  baseUrl: string,
+) {
+  const { entity, details } = payload;
+  const id = encodeURIComponent(entity.id);
+  let path = "/manage/notifications";
+  if (
+    entity.kind === "deployment" &&
+    typeof details.deployableId === "string"
+  ) {
+    const collection =
+      details.deployableKind === "app" || details.deployableKind === "compose"
+        ? "services"
+        : "datastores";
+    path = `/${collection}/${encodeURIComponent(details.deployableId)}/deployments/${id}`;
+  } else if (entity.kind === "deployment") path = "/deployments";
+  else if (entity.kind === "server")
+    path = `/servers/${id}/${details.incidentId ? "incidents" : "overview"}`;
+  else if (entity.kind === "app")
+    path = `/services/${id}/${details.incidentId ? "incidents" : "overview"}`;
+  else if (entity.kind === "resource")
+    path = `/datastores/${id}/${details.incidentId ? "incidents" : "overview"}`;
+  else if (entity.kind === "backup" || entity.kind === "restore")
+    path = `/datastores/${id}/${entity.kind}`;
+  else if (entity.kind === "source") path = `/repositories/${id}/environments`;
+  else if (entity.kind === "preview" && payload.source)
+    path = `/repositories/${encodeURIComponent(payload.source.id)}/environments`;
+  return new URL(path, baseUrl).href;
 }
 
 function classifyNetworkError(error: unknown, message: string) {

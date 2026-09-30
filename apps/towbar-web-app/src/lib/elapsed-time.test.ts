@@ -61,6 +61,14 @@ void test("long durations preserve seconds and roll over cleanly", () => {
     "1d 0h 0m 0s",
   );
 });
+void test("sub-second durations display less than one second", () => {
+  for (const milliseconds of [0, 1, 999]) {
+    const finishedAt = new Date(Date.parse(start) + milliseconds).toISOString();
+    assert.equal(formatElapsedTime({ ...running, finishedAt }, now), "<1s");
+    assert.equal(formatElapsedTime(running, Date.parse(finishedAt)), "<1s");
+  }
+  assert.equal(formatElapsedTime(running, Date.parse(start) + 1_000), "1s");
+});
 void test("queued, missing, malformed, and future timestamps are safe", () => {
   assert.equal(
     formatElapsedTime({ ...running, startedAt: null, status: "queued" }, now),
@@ -71,6 +79,6 @@ void test("queued, missing, malformed, and future timestamps are safe", () => {
     formatElapsedTime({ ...running, finishedAt: "invalid" }, now),
     "—",
   );
-  assert.equal(formatElapsedTime(running, Date.parse(start) - 1_000), "0s");
+  assert.equal(formatElapsedTime(running, Date.parse(start) - 1_000), "<1s");
   assert.equal(formatElapsedTime(running, 0), "—");
 });

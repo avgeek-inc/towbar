@@ -2,6 +2,7 @@
 @import "@heroui/styles";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/geist-mono/wght.css";
+@import "./input-font.css";
 
 @theme {
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
@@ -123,7 +124,7 @@ a {
 
   .select__value,
   .autocomplete__value {
-    @apply text-base;
+    @apply text-sm;
   }
 
   .input-group {
@@ -235,6 +236,25 @@ a {
     .autocomplete__popover [data-slot="list-box-item"],
     .dropdown__popover [data-slot="menu-item"] {
       @apply min-h-8 gap-2 rounded-lg px-2 py-1;
+    }
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .input.font-mono,
+    .textarea.font-mono,
+    .input-group__input.font-mono,
+    .search-field__input.font-mono {
+      --font-mono:
+        "Geist Mono Input Variable", "Geist Mono Variable", ui-monospace,
+        monospace;
+    }
+
+    .input,
+    .textarea,
+    .input-group__input,
+    .search-field__input {
+      @apply text-base leading-5;
+      font-family: "Inter Input Variable", "Inter Variable", Inter, sans-serif;
     }
   }
 

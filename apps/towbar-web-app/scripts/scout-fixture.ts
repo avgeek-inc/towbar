@@ -401,7 +401,12 @@ export function createScoutFixture(
         );
         if (!incident) fail();
         else {
-          const end = Date.now(),
+          const end = Math.min(
+              Date.now(),
+              incident.resolvedAt
+                ? new Date(incident.resolvedAt).getTime() + 5 * 60_000
+                : Date.now(),
+            ),
             start = new Date(incident.openedAt).getTime();
           const stepSeconds = Math.max(
             30,

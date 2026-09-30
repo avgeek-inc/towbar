@@ -30,6 +30,7 @@ import { CopyTextButton } from "./copy-text-button";
 import { ApiMcpSettings } from "./api-mcp-settings";
 import { Key01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
+import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
@@ -39,12 +40,7 @@ import {
   type ResourceTableColumn,
 } from "@workspace/towbar-web-ui/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import {
-  DashboardPage,
-  FormCard,
-  SimpleForm,
-  ActionButton,
-} from "./page-parts";
+import { DashboardPage, SimpleForm, ActionButton } from "./page-parts";
 import { SecondaryItems } from "./secondary-sidebar";
 import { PageSelectionTitle } from "./page-selection-title";
 import { AuthForm } from "./auth-form";
@@ -226,40 +222,39 @@ function TeamGeneral() {
   if (!query.data) return <QueryLoading />;
   return (
     <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <FormCard
-        title="Team details"
-        icon={<HugeiconsIcon icon={Settings01Icon} />}
-      >
-        <SimpleForm
-          key={query.data.team.name}
-          fields={[
-            {
-              name: "name",
-              label: "Team name",
-              required: true,
-              maxLength: 120,
-              defaultValue: query.data.team.name,
-              variant: "secondary",
-            },
-            {
-              name: "description",
-              label: "Description",
-              type: "textarea",
-              rows: 3,
-              maxLength: 500,
-              defaultValue: query.data.team.description ?? "",
-              variant: "secondary",
-            },
-          ]}
-          submitLabel="Update"
-          successMessage="Team updated"
-          onSubmit={async (values) => {
-            await api.patch("/v1/core/team", values);
-            refreshApiQueries();
-            window.dispatchEvent(new Event("towbar:identity-changed"));
-          }}
-        />
-      </FormCard>
+      <Widget>
+        <Widget.Content>
+          <SimpleForm
+            key={query.data.team.name}
+            fields={[
+              {
+                name: "name",
+                label: "Team name",
+                required: true,
+                maxLength: 120,
+                defaultValue: query.data.team.name,
+                variant: "secondary",
+              },
+              {
+                name: "description",
+                label: "Description",
+                type: "textarea",
+                rows: 3,
+                maxLength: 500,
+                defaultValue: query.data.team.description ?? "",
+                variant: "secondary",
+              },
+            ]}
+            submitLabel="Update"
+            successMessage="Team updated"
+            onSubmit={async (values) => {
+              await api.patch("/v1/core/team", values);
+              refreshApiQueries();
+              window.dispatchEvent(new Event("towbar:identity-changed"));
+            }}
+          />
+        </Widget.Content>
+      </Widget>
     </div>
   );
 }

@@ -142,6 +142,7 @@ export function NotificationCenter() {
               <Popover.Heading className="flex min-w-0">
                 <Widget.Title
                   icon={<HugeiconsIcon icon={Notification02Icon} />}
+                  help={false}
                 >
                   Notifications
                 </Widget.Title>
@@ -170,25 +171,23 @@ export function NotificationCenter() {
                             aria-hidden="true"
                             className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
                           />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="text-sm font-medium">
-                                {notification.payload.title}
-                              </p>
-                              <time
-                                className="shrink-0 text-xs text-muted"
-                                dateTime={notification.occurredAt}
-                              >
-                                {formatDate(notification.occurredAt)}
-                              </time>
-                            </div>
-                            <p className="mt-0.5 text-sm text-muted">
+                          <div className="grid min-w-0 flex-1 gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                            <p className="text-sm font-medium">
+                              {notification.payload.title}
+                            </p>
+                            <p className="mt-0.5 text-sm text-muted sm:col-span-2">
                               {notification.payload.message}
                             </p>
-                            <p className="mt-1 text-xs text-muted">
+                            <p className="mt-1 text-xs text-muted sm:col-span-2">
                               {notification.payload.source?.name ??
                                 notification.payload.entity.name}
                             </p>
+                            <time
+                              className="mt-1 text-xs text-muted sm:col-start-2 sm:row-start-1 sm:mt-0"
+                              dateTime={notification.occurredAt}
+                            >
+                              {formatDate(notification.occurredAt)}
+                            </time>
                           </div>
                         </Link>
                       </li>

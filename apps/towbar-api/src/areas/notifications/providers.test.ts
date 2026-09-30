@@ -8,6 +8,7 @@ import {
 } from "@workspace/towbar-core";
 
 import {
+  emailNotificationUrl,
   isPrivateOrReservedAddress,
   renderSlackDeploymentMessage,
   requirePublicHttpsUrl,
@@ -62,6 +63,56 @@ const deploymentPayload = notificationEventPayloadSchema.parse({
     name: "platform",
   },
   title: "Deployment succeeded",
+});
+
+void test("email actions open the notification's entity in the correct collection", () => {
+  const payload = {
+    ...deploymentPayload,
+    details: { deployableId: "service-1", deployableKind: "app" },
+  };
+  assert.equal(
+    emailNotificationUrl(payload, "https://towbar.example.test"),
+    "https://towbar.example.test/services/service-1/deployments/deployment-1",
+  );
+  assert.equal(
+    emailNotificationUrl(
+      {
+        ...payload,
+        details: { ...payload.details, deployableKind: "postgres" },
+      },
+      "https://towbar.example.test",
+    ),
+    "https://towbar.example.test/datastores/service-1/deployments/deployment-1",
+  );
+  assert.equal(
+    emailNotificationUrl(
+      {
+        ...payload,
+        entity: { kind: "server", id: "server-1", name: "Server" },
+        details: { incidentId: "incident-1" },
+      },
+      "https://towbar.example.test",
+    ),
+    "https://towbar.example.test/servers/server-1/incidents",
+  );
+  for (const [kind, collection] of [
+    ["app", "services"],
+    ["resource", "datastores"],
+  ] as const) {
+    for (const incidentId of [null, "incident-1"]) {
+      assert.equal(
+        emailNotificationUrl(
+          {
+            ...payload,
+            entity: { kind, id: "workload-1", name: "Workload" },
+            details: { incidentId },
+          },
+          "https://towbar.example.test",
+        ),
+        `https://towbar.example.test/${collection}/workload-1/${incidentId ? "incidents" : "overview"}`,
+      );
+    }
+  }
 });
 
 void test("renders a compact Slack deployment summary with a Towbar link", () => {

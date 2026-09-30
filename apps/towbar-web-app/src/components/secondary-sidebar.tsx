@@ -198,7 +198,7 @@ export function SecondaryItems({
                 )}
               </span>
             ) : null}
-            <span className="min-w-0 flex-1 break-words">{item.label}</span>
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.badge ? (
               <span className="inline-flex shrink-0 items-center text-xs font-mono tabular-nums text-muted">
                 {item.badge}

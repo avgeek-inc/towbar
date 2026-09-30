@@ -697,7 +697,7 @@ function SecretVariablesEditor({
               ) : null}
               {!fileMode &&
               (visibleKeys.length > 0 || newEntries.length > 0) ? (
-                <div className="grid gap-2 sm:gap-1">
+                <div className="grid gap-4 sm:gap-1">
                   {visibleKeys.map((key) => {
                     const configured =
                       !Object.hasOwn(replacements, key) &&
@@ -721,7 +721,7 @@ function SecretVariablesEditor({
                     return (
                       <div
                         key={key}
-                        className="grid min-w-0 sm:gap-2 sm:grid-cols-2"
+                        className="grid min-w-0 gap-2 sm:grid-cols-2"
                       >
                         <div className="flex min-h-10 min-w-0 items-center gap-2">
                           <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -807,7 +807,7 @@ function SecretVariablesEditor({
                   {newEntries.map((entry) => (
                     <div
                       key={entry.id}
-                      className="grid min-w-0 sm:gap-2 sm:grid-cols-2"
+                      className="grid min-w-0 gap-2 sm:grid-cols-2"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <Input
@@ -1052,7 +1052,7 @@ function SecretValueInput({
           onChange(nextValue);
         }}
       />
-      <InputGroup.Suffix>
+      <InputGroup.Suffix className="pl-0 pr-1">
         {!configured || reveal ? (
           <Button
             type="button"

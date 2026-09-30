@@ -173,6 +173,7 @@ export async function evaluateScoutAlerts(
           { server, workload },
           result,
           now,
+          observations,
         );
       });
       await enqueue(deliveries);
@@ -437,6 +438,7 @@ async function applyRuleResult(
   context: Parameters<typeof queueScoutNotification>[3],
   result: ReturnType<typeof evaluateScoutCondition>,
   now: Date,
+  observations: ScoutObservation[],
 ) {
   await tx
     .update(scoutAlertRules)
@@ -473,6 +475,15 @@ async function applyRuleResult(
       );
     }
   } else if (result.state === "firing") {
+    const trigger = observations.reduce<ScoutObservation | undefined>(
+      (latest, point) =>
+        Number.isFinite(point.at) &&
+        point.at <= now.getTime() &&
+        (!latest || point.at >= latest.at)
+          ? point
+          : latest,
+      undefined,
+    );
     const [incident] = await tx
       .insert(scoutAlertIncidents)
       .values({
@@ -488,6 +499,9 @@ async function applyRuleResult(
         openedAt: now,
         conditionStartedAt: new Date(result.since ?? now.getTime()),
         lastValue: result.value,
+        triggerObservation: trigger
+          ? { at: new Date(trigger.at).toISOString(), value: result.value }
+          : null,
       })
       .returning();
     if (incident)

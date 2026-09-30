@@ -9,12 +9,13 @@ overrides:
   "@grpc/grpc-js@1.14.3": 1.14.4
   "axios@1.15.2": 1.18.0
   "brace-expansion@2.1.0": 2.1.2
-  "brace-expansion@5.0.5": 5.0.9
-  "fast-uri@>=3.0.0 <3.1.7": 3.1.7
+  "brace-expansion@>=5.0.0 <5.0.12": 5.0.12
+  "fast-uri@>=3.0.0 <3.1.8": 3.1.8
   "fast-xml-builder@1.1.5": 1.1.7
   "form-data@2.5.5": 2.5.6
   "form-data@4.0.5": 4.0.6
   "gaxios@6.7.1>uuid": 11.1.1
+  "ip-address@10.7.0": 10.7.1
   "minimatch@9.0.9": 10.2.5
   "nanoid@3.3.16": 3.3.18
   "postcss@8.4.31": 8.5.18

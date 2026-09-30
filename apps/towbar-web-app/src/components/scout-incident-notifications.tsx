@@ -48,14 +48,24 @@ export function ScoutIncidentNotifications({
     {
       key: "destination",
       header: "Destination",
-      cell: (d) => (
-        <TableCellStack as="div" className="min-w-40">
-          <span>{d.destination}</span>
-          <TableCellDescription>
-            {providerLabel(d.provider)}
-          </TableCellDescription>
-        </TableCellStack>
-      ),
+      cell: (d) => {
+        const characters = Array.from(d.destination);
+        return (
+          <TableCellStack as="div" className="min-w-40">
+            <span
+              className="max-w-64 truncate sm:max-w-[64ch]"
+              title={d.destination}
+            >
+              {characters.length > 64
+                ? `${characters.slice(0, 63).join("")}…`
+                : d.destination}
+            </span>
+            <TableCellDescription>
+              {providerLabel(d.provider)}
+            </TableCellDescription>
+          </TableCellStack>
+        );
+      },
     },
     {
       key: "status",
