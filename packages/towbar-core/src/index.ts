@@ -6,6 +6,7 @@ export * from "./notifications.js";
 export * from "./preview.js";
 export * from "./reconciliation.js";
 export * from "./request-signing.js";
+export * from "./release-commit.js";
 export * from "./resource-operations.js";
 export * from "./security.js";
 export * from "./server-capacity.js";

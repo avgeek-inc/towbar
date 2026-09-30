@@ -1,7 +1,9 @@
+import { releaseCommitSchema } from "@workspace/towbar-core";
+
 import type { DeploymentResult } from "@workspace/towbar-deployer";
 
 export function releaseCommitPayload(result: DeploymentResult) {
-  return {
+  return releaseCommitSchema.parse({
     ...(result.composeServices?.length
       ? { composeServices: result.composeServices }
       : {}),
@@ -10,5 +12,5 @@ export function releaseCommitPayload(result: DeploymentResult) {
     imageDigest: result.imageDigest,
     imagePlatform: result.imagePlatform,
     imageTag: result.imageTag,
-  };
+  });
 }

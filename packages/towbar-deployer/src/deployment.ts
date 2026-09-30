@@ -28,7 +28,11 @@ import { selectDeploymentImage } from "./release-selection.js";
 import { collectSensitiveValues } from "./secrets.js";
 import { SshSession } from "./ssh.js";
 import { inspectImageProvenance } from "./image-provenance.js";
-import { executeComposeDeployment } from "./compose-deployment.js";
+import {
+  executeComposeDeployment,
+  finalizeInterruptedComposeDeployment,
+  rollbackInterruptedComposeDeployment,
+} from "./compose-deployment.js";
 import type { CloudflareTunnelTransition } from "./cloudflare.js";
 import {
   isNormalizedCompose,
@@ -300,7 +304,9 @@ function usedAdmissionBuildFallback(context: DeploymentExecutionContext) {
 export async function rollbackInterruptedDeployment(input: {
   context: DeploymentExecutionContext;
   login: SshLoginSecret;
-}) {
+}): Promise<"removed" | "not-found"> {
+  if (isNormalizedCompose(input.context.app))
+    return await rollbackInterruptedComposeDeployment(input);
   const { containerName, imageTag, remoteDirectory } = deploymentRemoteIdentity(
     input.context,
   );
@@ -355,6 +361,7 @@ export async function rollbackInterruptedDeployment(input: {
   } finally {
     await session.close().catch(() => undefined);
   }
+  return "removed";
 }
 
 export async function finalizeInterruptedDeployment(input: {
@@ -362,6 +369,10 @@ export async function finalizeInterruptedDeployment(input: {
   login: SshLoginSecret;
   retainedImageTags: string[];
 }) {
+  if (isNormalizedCompose(input.context.app)) {
+    await finalizeInterruptedComposeDeployment(input);
+    return;
+  }
   const { containerName, remoteDirectory } = deploymentRemoteIdentity(
     input.context,
   );

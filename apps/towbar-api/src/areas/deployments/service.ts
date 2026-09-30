@@ -25,6 +25,7 @@ import {
   isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
+import type { ReleaseCommitPayload } from "@workspace/towbar-core";
 import {
   apps,
   deployableRuntimeStates,
@@ -50,6 +51,7 @@ import { publicDeploymentSelection } from "../deployment-selection.js";
 import { isVulnerabilityScanningEnabled } from "../vulnerability-scans/admission.js";
 import { getDeploymentVulnerabilityScan } from "../vulnerability-scans/service.js";
 import { collectRetainedImageTags } from "./image-retention.js";
+import { assertReleaseKindMatchesDeployment } from "./release-kind.js";
 import { propagatePreviewDeploymentState } from "./preview-status.js";
 import { attachDeploymentQueueBlockers } from "./queue-blocker-query.js";
 
@@ -435,6 +437,7 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
   const [deployment] = await getTowbarDatabase()
     .select({
       appId: deployments.appId,
+      appSnapshot: deployments.appSnapshot,
       environment: deployments.environment,
       previewEnvironmentId: deployments.previewEnvironmentId,
       state: deployments.state,
@@ -449,7 +452,12 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
     .where(eq(releases.deploymentId, deploymentId))
     .limit(1);
   if (!release) {
-    return { committed: false, retainedImageTags: [], state: deployment.state };
+    return {
+      committed: false,
+      compose: isNormalizedCompose(deployment.appSnapshot),
+      retainedImageTags: [],
+      state: deployment.state,
+    };
   }
   const retainedReleases = await getTowbarDatabase()
     .select({ imageTag: releases.imageTag })
@@ -490,6 +498,7 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
     );
   return {
     committed: true,
+    compose: isNormalizedCompose(deployment.appSnapshot),
     retainedImageTags: collectRetainedImageTags(
       retainedReleases,
       rollbackReservations,
@@ -500,14 +509,7 @@ export async function getDeploymentRecoveryStatus(deploymentId: string) {
 
 export async function commitDeploymentRelease(
   deploymentId: string,
-  input: {
-    composeServices?: string[];
-    containerName: string;
-    containerNames: string[];
-    imageDigest: string;
-    imagePlatform: string;
-    imageTag: string;
-  },
+  input: ReleaseCommitPayload,
 ) {
   const result = await getTowbarDatabase().transaction(async (transaction) => {
     const [deployment] = await transaction
@@ -527,6 +529,7 @@ export async function commitDeploymentRelease(
       .for("update")
       .limit(1);
     if (!deployment) throw notFound("Deployment");
+    assertReleaseKindMatchesDeployment(deployment.appSnapshot, input);
     if (
       deployment.admittedImageDigest &&
       deployment.admittedImageDigest !== input.imageDigest

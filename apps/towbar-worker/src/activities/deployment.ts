@@ -14,6 +14,7 @@ import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import { getEnv } from "../env.js";
 import { signedApiRequest } from "../infrastructure/towbar-api.js";
 import { releaseCommitPayload } from "./release-commit.js";
+import { composeCommitNeedsReconciliation } from "./deployment-recovery.js";
 import { deploymentErrorMessage as safeErrorMessage } from "./deployment-error.js";
 
 import type {
@@ -119,6 +120,7 @@ export async function continueAutomaticDeploymentsActivity(
 export async function recoverDeploymentActivity(deploymentId: string) {
   const status = await signedApiRequest<{
     committed: boolean;
+    compose: boolean;
     retainedImageTags: string[];
     state: DeploymentState;
   }>("GET", `/v1/internal/deployments/${deploymentId}/recovery`);
@@ -164,7 +166,18 @@ export async function recoverDeploymentActivity(deploymentId: string) {
     return "succeeded";
   }
 
+  if (composeCommitNeedsReconciliation(status)) {
+    await recordEvent(deploymentId, {
+      errorCode: "DEPLOYMENT_COMMIT_UNCERTAIN",
+      message:
+        "Compose release commit was not confirmed. The candidate and routing were left in place; inspect the server and reconcile this deployment before retrying.",
+      state: "failed",
+    });
+    return "failed";
+  }
+
   let cleanupPending = false;
+  let candidateRemoval: "removed" | "not-found" = "not-found";
   try {
     const [contextResponse, secretsResponse] = await Promise.all([
       signedApiRequest<{ context: DeploymentExecutionContext }>(
@@ -176,7 +189,7 @@ export async function recoverDeploymentActivity(deploymentId: string) {
         `/v1/internal/deployments/${deploymentId}/secrets/resolve`,
       ),
     ]);
-    await rollbackInterruptedDeployment({
+    candidateRemoval = await rollbackInterruptedDeployment({
       context: contextResponse.context,
       login: secretsResponse.secrets.login,
     });
@@ -189,7 +202,9 @@ export async function recoverDeploymentActivity(deploymentId: string) {
       : "DEPLOYMENT_INTERRUPTED",
     message: cleanupPending
       ? "Deployment executor stopped; remote cleanup is still required"
-      : "Deployment executor stopped and its candidate was removed",
+      : candidateRemoval === "removed"
+        ? "Deployment executor stopped and its candidate was removed"
+        : "Deployment executor stopped; no candidate from this deployment remains",
     state: "failed",
   });
   return "failed";

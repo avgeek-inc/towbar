@@ -25,4 +25,28 @@ void describe("release commit payload", () => {
       },
     );
   });
+
+  void it("accepts the Compose executor's release metadata", () => {
+    assert.deepEqual(
+      releaseCommitPayload({
+        candidatePort: 0,
+        candidatePorts: [],
+        composeServices: ["web", "worker"],
+        containerName: "towbar-stack",
+        containerNames: ["towbar-stack"],
+        imageDigest: `sha256:${"b".repeat(64)}`,
+        imagePlatform: "compose",
+        imageTag: "compose:towbar-stack",
+        warnings: [],
+      }),
+      {
+        composeServices: ["web", "worker"],
+        containerName: "towbar-stack",
+        containerNames: ["towbar-stack"],
+        imageDigest: `sha256:${"b".repeat(64)}`,
+        imagePlatform: "compose",
+        imageTag: "compose:towbar-stack",
+      },
+    );
+  });
 });

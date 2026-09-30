@@ -35,6 +35,7 @@ import type {
   DeploymentResult,
   DeploymentSecrets,
   ExecutorHooks,
+  SshLoginSecret,
 } from "./types.js";
 
 const generatedOverrideFile = ".towbar.generated.override.json";
@@ -140,8 +141,10 @@ strategy="$8"
 policies_json="$9"
 deployable_id="${"$"}{10}"
 source_id="${"$"}{11}"
+deployment_id="${"$"}{12}"
 rm -rf -- "$staged" "$previous"
 install -d -m 700 "$staged/source"
+printf '%s' "$deployment_id" >"$staged/deployment-id"
 expanded_bytes="$(gzip -cd "$archive" | wc -c)"
 test "$expanded_bytes" -le 2147483648
 entries="$(tar -tzf "$archive" | wc -l)"
@@ -295,7 +298,7 @@ for value in json.loads(sys.argv[2]):
 for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
-      if docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --remove-orphans --wait --wait-timeout 300 >/dev/null 2>&1; then
+      if docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --build --remove-orphans --wait --wait-timeout 300 >/dev/null 2>&1; then
         printf 'Previous Compose release restarted after deployment failure.\n' >&2
       else
         printf 'Previous Compose release could not be restarted; operator attention is required.\n' >&2
@@ -378,6 +381,11 @@ project="$3"
 files_json="$4"
 profiles_json="$5"
 runtime="$6"
+expected_deployment_id="${"$"}{7:-}"
+if test -n "$expected_deployment_id"; then
+  test -f "$stable/deployment-id"
+  test "$(cat "$stable/deployment-id")" = "$expected_deployment_id"
+fi
 if test -d "$stable"; then
   mapfile -t current_args < <(python3 - "$stable/source" "$files_json" "$profiles_json" <<'PYTHON'
 import json, pathlib, sys
@@ -386,7 +394,12 @@ for value in json.loads(sys.argv[2]): print("-f"); print(str((root / value).reso
 for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
-  docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{current_args[@]}" down --remove-orphans >/dev/null 2>&1 || true
+  if ! docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{current_args[@]}" down --remove-orphans >/dev/null 2>&1; then
+    mapfile -t container_ids < <(docker ps -aq --filter "label=com.docker.compose.project=$project")
+    if test "${"$"}{#container_ids[@]}" -gt 0; then docker rm -f "${"$"}{container_ids[@]}" >/dev/null; fi
+  fi
+  remaining_containers="$(docker ps -aq --filter "label=com.docker.compose.project=$project")"
+  test -z "$remaining_containers"
 fi
 if test -f "$stable/caddy.previous.state"; then
   if test "$(cat "$stable/caddy.previous.state")" = present; then
@@ -427,7 +440,25 @@ for value in json.loads(sys.argv[2]): print("-f"); print(str((root / value).reso
 for profile in json.loads(sys.argv[3]): print("--profile"); print(profile)
 PYTHON
 )
-  docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --remove-orphans --wait --wait-timeout 300
+  docker compose --project-name "$project" --env-file "$stable/runtime.env" "${"$"}{old_args[@]}" up --detach --build --remove-orphans --wait --wait-timeout 300
+fi
+`;
+
+const composeInspectInterruptedScript = String.raw`
+set -euo pipefail
+stable="$1"
+previous="$2"
+staged="$3"
+deployment_id="$4"
+if test -d "$previous"; then
+  test -f "$stable/deployment-id"
+  test "$(cat "$stable/deployment-id")" = "$deployment_id"
+fi
+if test -f "$stable/deployment-id" && test "$(cat "$stable/deployment-id")" = "$deployment_id"; then
+  printf 'candidate\n'
+else
+  rm -rf -- "$staged"
+  printf 'none\n'
 fi
 `;
 
@@ -443,8 +474,83 @@ export const composeDeploymentScripts = {
   prepareStorage: prepareComposeStorageScript,
   deploy: composeDeployScript,
   rollback: composeRollbackScript,
+  inspectInterrupted: composeInspectInterruptedScript,
   finalize: composeFinalizeScript,
 } as const;
+
+export async function rollbackInterruptedComposeDeployment(input: {
+  context: DeploymentExecutionContext;
+  login: SshLoginSecret;
+}): Promise<"removed" | "not-found"> {
+  const { context } = input;
+  if (!isNormalizedCompose(context.app))
+    throw new Error("Compose recovery requires a Compose workload");
+  const runtime = deploymentRuntimeId(context);
+  const base = `/var/lib/towbar/compose/${runtime}`;
+  const previous = `${base}.previous-${context.deploymentId}`;
+  const staged = `${base}.staged-${context.deploymentId}`;
+  const project = `towbar-${runtime}`.slice(0, 63);
+  const files = [
+    context.app.file,
+    ...context.app.overrides,
+    generatedOverrideFile,
+  ];
+  const session = await SshSession.connect({
+    login: input.login,
+    server: context.server,
+    trustedHostKeys: context.trustedHostKeys,
+  });
+  try {
+    const { stdout } = await session.run(
+      composeInspectInterruptedScript,
+      [base, previous, staged, context.deploymentId],
+      { timeoutMs: 30_000 },
+    );
+    if (stdout.trim() === "none") return "not-found";
+    if (stdout.trim() !== "candidate")
+      throw new Error("Compose recovery returned an unknown candidate state");
+    await session.run(
+      composeRollbackScript,
+      [
+        base,
+        previous,
+        project,
+        JSON.stringify(files),
+        JSON.stringify(context.app.profiles),
+        runtime,
+        context.deploymentId,
+      ],
+      { timeoutMs: 10 * 60_000 },
+    );
+    return "removed";
+  } finally {
+    await session.close().catch(() => undefined);
+  }
+}
+
+export async function finalizeInterruptedComposeDeployment(input: {
+  context: DeploymentExecutionContext;
+  login: SshLoginSecret;
+}) {
+  const { context } = input;
+  if (!isNormalizedCompose(context.app))
+    throw new Error("Compose recovery requires a Compose workload");
+  const runtime = deploymentRuntimeId(context);
+  const base = `/var/lib/towbar/compose/${runtime}`;
+  const previous = `${base}.previous-${context.deploymentId}`;
+  const session = await SshSession.connect({
+    login: input.login,
+    server: context.server,
+    trustedHostKeys: context.trustedHostKeys,
+  });
+  try {
+    await session.run(composeFinalizeScript, [previous, base], {
+      timeoutMs: 30_000,
+    });
+  } finally {
+    await session.close().catch(() => undefined);
+  }
+}
 
 async function prepareComposeDns(input: {
   context: DeploymentExecutionContext;
@@ -618,6 +724,7 @@ export async function executeComposeDeployment(input: {
         JSON.stringify(context.app.services),
         context.deployableId,
         context.sourceId,
+        context.deploymentId,
       ],
       {
         signal,
