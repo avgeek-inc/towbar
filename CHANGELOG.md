@@ -5,6 +5,21 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.23] - 2026-09-30
+
+### Changed
+
+- Emails use a white background throughout, with the gray outer area and rounded
+  content card removed.
+
+### Fixed
+
+- Host-log collectors can start when a non-root deploy user has Docker access
+  but cannot traverse Docker's root-owned data directory. Read-only path checks
+  use passwordless sudo when needed, while retaining mount safety checks.
+- Candidate startup failures appear in redacted deployment logs. Docker data-root
+  checks that cannot run report the deploy user's required passwordless sudo access.
+
 ## [2.0.22] - 2026-09-30
 
 ### Changed
@@ -527,7 +542,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.22...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.23...HEAD
+[2.0.23]: https://github.com/avgeek-inc/towbar/compare/v2.0.22...v2.0.23
 [2.0.22]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...v2.0.22
 [2.0.21]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...v2.0.21
 [2.0.20]: https://github.com/avgeek-inc/towbar/compare/v2.0.19...v2.0.20
