@@ -54,10 +54,10 @@
     "@workspace/eslint-config": "workspace:^",
     "@workspace/towbar-core": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
-    "esbuild": "0.25.12",
+    "esbuild": "0.28.2",
     "eslint": "catalog:",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "catalog:",
-    "ws": "8.21.3"
+    "ws": "8.22.0"
   }
 }
