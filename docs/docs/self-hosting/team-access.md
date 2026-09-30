@@ -39,12 +39,13 @@ There must always be at least one active Admin. Removing a member revokes their 
 
 Open **My Settings → API Keys** for your own keys. Admins manage team keys under **Team Settings → API Keys**, and stored SSH keys under **Team Settings → SSH keys**. The MCP Guide is in My Settings; the REST reference is on this documentation site.
 
-- Personal keys are constrained by their saved grants and the owner's current role. Demotion immediately narrows their stored permissions. Promotion does not restore removed grants; create a replacement key when broader access is needed.
+- Administrative keys (Edit with administrative permissions) follow Towbar's current automation permissions, including new capabilities introduced by upgrades. This applies to personal and team keys. Upgrades recognize complete, unmodified historical admin grant snapshots; narrower or previously changed policies retain their saved grants. MCP OAuth consent, Read-only, and ordinary Edit keys remain scoped to their saved grants.
+- Personal keys also follow the owner's current role and membership. Demotion permanently converts a full administrative key to scoped permissions and removes access above the new role. Promotion does not restore removed grants or full administrative access; create a replacement key when broader access is needed.
 - Team keys represent the team and survive the creator leaving. All Admins can view and revoke them.
-- Choose Read-only or Edit. Only Admins can include administrative permissions with Edit. Viewers are limited to Read-only. Stored credential reveal and account/key creation are never API or MCP operations.
+- Choose Read-only or Edit. Only Admins can include administrative permissions with Edit. Viewers are limited to Read-only. SSH terminals, credential reveal, and account/key management stay in the browser.
 - Keys expire after 90 days by default. Only Admins can choose no expiry. Copy the token when creating it: Towbar cannot show it again. Replace with an overlapping key, verify the consumer, then revoke the old key.
 
-Queued operations retain their requesting identity and permissions. Towbar rechecks authority before starting effects; a role change or revoked key can prevent pending work. Work already performed cannot be undone by key revocation. Automatic GitHub and maintenance work uses narrow system authority and current repository/environment controls.
+Queued operations retain their requesting identity and permissions. Upgrades cannot add permissions to already queued work. Towbar rechecks current authority, expiry and revocation before starting effects; a role change or revoked key can prevent pending work. Work already performed cannot be undone by key revocation. Automatic GitHub and maintenance work uses narrow system authority and current repository/environment controls.
 
 ## Account security
 

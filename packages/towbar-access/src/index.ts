@@ -103,10 +103,12 @@ export function roleActions(role: WorkspaceRole): Action[] {
 
 export type KeyAccess = "read" | "edit";
 export type KeyScope = "personal" | "team";
+export type KeyPermissionMode = "scoped" | "full-admin";
 export type KeyPolicy = {
   scope: KeyScope;
   access: KeyAccess;
   includeAdmin: boolean;
+  permissionMode?: KeyPermissionMode;
   grants: readonly Action[];
 };
 const browserOnlyResources = new Set<Resource>([
@@ -170,7 +172,13 @@ export function constrainPersonalKey(
     ...policy,
     access,
     includeAdmin,
-    grants: policy.grants.filter((action) => allowed.has(action)),
+    ...(policy.permissionMode === "full-admin" && role !== "admin"
+      ? { permissionMode: "scoped" as const }
+      : {}),
+    grants: (policy.permissionMode === "full-admin"
+      ? keyCeiling("admin", policy.access, policy.includeAdmin)
+      : policy.grants
+    ).filter((action) => allowed.has(action)),
   };
 }
 export type AccessActor =
@@ -224,6 +232,16 @@ export function actorAllows(
   const allowed = new Set(
     keyCeiling(role, actor.policy.access, actor.policy.includeAdmin),
   );
+  if (actor.policy.permissionMode === "full-admin") {
+    if (
+      actor.policy.access !== "edit" ||
+      !actor.policy.includeAdmin ||
+      (actor.kind === "personal-key" &&
+        actor.tokenAttribution?.tokenType === "mcp-oauth")
+    )
+      return false;
+    return required.every((action) => allowed.has(action));
+  }
   return required.every(
     (action) => allowed.has(action) && actor.policy.grants.includes(action),
   );

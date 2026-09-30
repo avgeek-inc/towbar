@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { randomBytes, randomUUID } from "node:crypto";
+import { assertAdminCollectorKeyAccess } from "./admin-collector-key-test-helper.js";
+import { generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { eq } from "drizzle-orm";
 import {
@@ -37,6 +38,25 @@ void test(
     process.env.TEMPORAL_ADDRESS = process.env.TOWBAR_TEST_TEMPORAL_ADDRESS!;
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
+    const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    process.env.TOWBAR_GITHUB_ENABLED = "true";
+    process.env.TOWBAR_GITHUB_APP_ID = "1001";
+    process.env.TOWBAR_GITHUB_APP_SLUG = "towbar-test";
+    process.env.TOWBAR_GITHUB_PRIVATE_KEY_BASE64 = Buffer.from(
+      privateKey.export({ type: "pkcs8", format: "pem" }),
+    ).toString("base64");
+    t.mock.method(globalThis, "fetch", (url: string) => {
+      assert.match(
+        url,
+        /^https:\/\/api\.github\.com\/app\/installations\/[^/]+\/access_tokens$/u,
+      );
+      return Promise.resolve(
+        Response.json({
+          token: "fixture-installation-token",
+          expires_at: "2099-01-01T00:00:00Z",
+        }),
+      );
+    });
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
     await runTowbarMigrations({
@@ -452,6 +472,11 @@ void test(
             /Access changed/,
           );
         },
+      );
+      await t.test(
+        "old full admin keys admit collectors and revalidate captured permissions, expiry and revocation",
+        () =>
+          assertAdminCollectorKeyAccess({ appId, workspaceId, userId, config }),
       );
     } finally {
       await db.delete(releases).where(eq(releases.appId, appId));

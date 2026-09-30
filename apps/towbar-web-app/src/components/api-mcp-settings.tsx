@@ -6,7 +6,11 @@ import {
   TableCellDescription,
 } from "@workspace/towbar-web-ui/table-cell-text";
 
-import { type KeyScope, type KeyAccess } from "@workspace/towbar-access";
+import {
+  type KeyScope,
+  type KeyAccess,
+  type KeyPermissionMode,
+} from "@workspace/towbar-access";
 import { useAccess } from "./access-context";
 import { PageSelectionTitle } from "./page-selection-title";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -51,6 +55,7 @@ type ApiKey = {
   prefix: string;
   access: KeyAccess;
   includeAdmin: boolean;
+  permissionMode: KeyPermissionMode;
   scope: KeyScope;
   createdAt: string;
   lastUsedAt: string | null;
@@ -223,7 +228,9 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
         key.access === "read"
           ? "Read-only"
           : key.includeAdmin
-            ? "Administrative"
+            ? key.permissionMode === "full-admin"
+              ? "Administrative"
+              : "Scoped administrative"
             : "Edit",
     },
     {
@@ -501,7 +508,7 @@ function CreateKey({
                 [
                   "admin",
                   "Administrative",
-                  "Edit access plus deployment, infrastructure, and integration management. Account settings and credential reveal remain browser-only.",
+                  "Edit access plus deployment, infrastructure, and integration management, including new automation permissions after upgrades. Account settings and credential reveal remain browser-only.",
                 ] as [string, string, string],
               ]
             : []),

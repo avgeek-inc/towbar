@@ -269,6 +269,7 @@ void test(
           assert.equal(key.oauthClientTrust, "unverified");
           assert.equal(key.oauthClientLogo, null);
           assert.equal(key.includeAdmin, false);
+          assert.equal(key.permissionMode, "scoped");
           assert(key.expiresAt);
           assert(
             Math.abs(
