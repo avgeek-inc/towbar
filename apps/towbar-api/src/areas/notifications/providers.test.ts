@@ -95,6 +95,24 @@ void test("email actions open the notification's entity in the correct collectio
     ),
     "https://towbar.example.test/servers/server-1/incidents",
   );
+  for (const [kind, collection] of [
+    ["app", "services"],
+    ["resource", "datastores"],
+  ] as const) {
+    for (const incidentId of [null, "incident-1"]) {
+      assert.equal(
+        emailNotificationUrl(
+          {
+            ...payload,
+            entity: { kind, id: "workload-1", name: "Workload" },
+            details: { incidentId },
+          },
+          "https://towbar.example.test",
+        ),
+        `https://towbar.example.test/${collection}/workload-1/${incidentId ? "incidents" : "overview"}`,
+      );
+    }
+  }
 });
 
 void test("renders a compact Slack deployment summary with a Towbar link", () => {

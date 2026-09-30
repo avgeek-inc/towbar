@@ -93,6 +93,7 @@ test("deployment email labels are readable and long values remain escaped", asyn
       deployableKind: "app",
       environment: "production",
       note: `<script>${"a".repeat(100)}</script>`,
+      upperCaseNote: "<SCRIPT>alert(1)</SCRIPT>",
       configuration: "javascript:alert(1)",
     },
   });
@@ -100,7 +101,8 @@ test("deployment email labels are readable and long values remain escaped", asyn
   assert.match(mail.text, /Deployable ID:/u);
   assert.match(mail.text, /Deployable type: Service/u);
   assert.match(mail.text, /Environment: Production/u);
-  assert.doesNotMatch(mail.html, /<script>|href="javascript:/u);
+  assert.doesNotMatch(mail.html, /<script>|href="javascript:/iu);
   assert.match(mail.html, /d90d0070…/u);
   assert.match(mail.html, /&lt;script&gt;/u);
+  assert.match(mail.html, /&lt;SCRIPT&gt;/u);
 });

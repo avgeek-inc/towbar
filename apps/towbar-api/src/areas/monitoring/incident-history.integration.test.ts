@@ -206,6 +206,35 @@ void test(
         },
       );
       await t.test(
+        "partial retention keeps the trigger alongside newer measurements",
+        async () => {
+          const later = new Date(openedAt.getTime() + 16 * 86400_000);
+          await ingestMonitoringSample(
+            serverId,
+            generation,
+            monitoringSampleSchema.parse({
+              id: randomBytes(16).toString("hex"),
+              collectedAt: later.toISOString(),
+              version: "1.1.0",
+              collectionDurationMs: 5,
+              collectionErrors: 0,
+              droppedSamples: 0,
+              entities: [{ id: "host", metrics: { cpuPercent: 40 } }],
+            }),
+            later,
+          );
+          const details = await getScoutIncident(input, later);
+          assert.equal(details.history.startAt, bucketAt);
+          assert.deepEqual(
+            details.history.points
+              .filter((point) => point.value !== null)
+              .map((point) => point.value),
+            [95, 40],
+          );
+          assert(details.history.points.length <= 362);
+        },
+      );
+      await t.test(
         "history cleanup keeps a real point at its original timestamp",
         async () => {
           await db

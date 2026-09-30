@@ -152,14 +152,9 @@ function retainTriggerObservation(
   points: Array<{ at: string; value: number | null }>,
   trigger: typeof scoutAlertIncidents.$inferSelect.triggerObservation,
 ) {
-  if (
-    points.some((point) => point.value !== null) ||
-    !trigger ||
-    trigger.value === null
-  )
-    return points;
+  if (!trigger || trigger.value === null) return points;
   const existing = points.find((point) => point.at === trigger.at);
-  if (existing) existing.value = trigger.value;
+  if (existing) existing.value ??= trigger.value;
   else {
     points.push(trigger);
     points.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));

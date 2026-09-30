@@ -445,8 +445,10 @@ export function emailNotificationUrl(
   } else if (entity.kind === "deployment") path = "/deployments";
   else if (entity.kind === "server")
     path = `/servers/${id}/${details.incidentId ? "incidents" : "overview"}`;
-  else if (entity.kind === "app") path = `/services/${id}/overview`;
-  else if (entity.kind === "resource") path = `/datastores/${id}/overview`;
+  else if (entity.kind === "app")
+    path = `/services/${id}/${details.incidentId ? "incidents" : "overview"}`;
+  else if (entity.kind === "resource")
+    path = `/datastores/${id}/${details.incidentId ? "incidents" : "overview"}`;
   else if (entity.kind === "backup" || entity.kind === "restore")
     path = `/datastores/${id}/${entity.kind}`;
   else if (entity.kind === "source") path = `/repositories/${id}/environments`;
