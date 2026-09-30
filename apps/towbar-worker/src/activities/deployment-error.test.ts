@@ -45,6 +45,19 @@ void test("remote command failures describe the failed step without guessing a c
   assert.doesNotMatch(message, /private|secret|SSH connection/u);
 });
 
+void test("explains host-log path permissions without exposing command output", () => {
+  const message = deploymentErrorMessage(
+    new CommandError(
+      "ssh exited unsuccessfully",
+      "private output",
+      "Host log collection could not inspect Docker's data-root; check passwordless sudo access\nTOKEN=private",
+    ),
+    "starting_candidate",
+  );
+  assert.match(message, /passwordless sudo access/u);
+  assert.doesNotMatch(message, /TOKEN|private|ssh exited/u);
+});
+
 void test("safe non-command errors retain their reason and redact bearer credentials", () => {
   assert.equal(
     deploymentErrorMessage(new Error("Registry rejected Bearer private-token")),

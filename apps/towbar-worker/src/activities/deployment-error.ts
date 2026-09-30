@@ -2,6 +2,13 @@ import { CommandError } from "@workspace/towbar-deployer";
 
 export function deploymentErrorMessage(error: unknown, state?: string) {
   if (error instanceof CommandError) {
+    if (
+      state === "starting_candidate" &&
+      /Host log collection could not inspect Docker's data-root/u.test(
+        error.stderr,
+      )
+    )
+      return "Host log collection could not inspect Docker's data-root. Check the deploy user's passwordless sudo access for the Docker log directory.";
     if (/^ssh exited unsuccessfully$/iu.test(error.message)) {
       if (/permission denied \(publickey(?:,[^)]+)?\)/iu.test(error.stderr))
         return "Towbar could not sign in to the server over SSH. Check that the selected private key is authorized for the configured SSH username.";

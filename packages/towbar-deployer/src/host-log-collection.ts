@@ -23,9 +23,37 @@ if host_log_collection:
     docker_root = docker_info.get("DockerRootDir")
     if not isinstance(docker_root, str) or not docker_root.startswith("/") or any(character in docker_root for character in (",", "\n", "\r", "\x00")):
         raise SystemExit("Docker returned an unsafe data-root for host log collection")
-    root = Path(docker_root).resolve(strict=True)
-    log_directory = root / "containers"
-    if root == Path("/") or not log_directory.is_dir() or log_directory.resolve() != log_directory:
+    try:
+        root = Path(docker_root).resolve(strict=True)
+        log_directory = root / "containers"
+        if not stat.S_ISDIR(log_directory.lstat().st_mode):
+            raise SystemExit("Docker's container log directory must be a real directory under its data-root")
+    except PermissionError:
+        privileged = [] if os.geteuid() == 0 else ["/usr/bin/sudo", "-n"]
+        def inspect_path(*arguments):
+            try:
+                return subprocess.run(
+                    [*privileged, *arguments], capture_output=True, text=True,
+                )
+            except OSError:
+                raise SystemExit("Host log collection could not inspect Docker's data-root; check passwordless sudo access") from None
+        resolved_root = inspect_path("/usr/bin/readlink", "-e", "--", docker_root)
+        if resolved_root.returncode:
+            raise SystemExit("Host log collection could not inspect Docker's data-root; check passwordless sudo access")
+        canonical_root = resolved_root.stdout.removesuffix("\n")
+        if not canonical_root.startswith("/") or any(character in canonical_root for character in (",", "\n", "\r", "\x00")):
+            raise SystemExit("Docker returned an unsafe data-root for host log collection")
+        root = Path(canonical_root)
+        log_directory = root / "containers"
+        resolved_logs = inspect_path("/usr/bin/readlink", "-e", "--", str(log_directory))
+        directory_check = inspect_path("/usr/bin/test", "-d", str(log_directory))
+        if resolved_logs.returncode or directory_check.returncode or resolved_logs.stdout.removesuffix("\n") != str(log_directory):
+            raise SystemExit("Docker's container log directory must be a real directory under its data-root")
+    except (FileNotFoundError, NotADirectoryError):
+        raise SystemExit("Docker's container log directory must be a real directory under its data-root") from None
+    if any(character in str(root) for character in (",", "\n", "\r", "\x00")):
+        raise SystemExit("Docker returned an unsafe data-root for host log collection")
+    if root == Path("/"):
         raise SystemExit("Docker's container log directory must be a real directory under its data-root")
     # The local driver creates a non-recursive read-only bind. Docker then mounts
     # the volume privately, excluding existing and future host submounts.

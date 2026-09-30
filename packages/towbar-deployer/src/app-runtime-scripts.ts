@@ -52,6 +52,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import stat
 import subprocess
 import sys
 

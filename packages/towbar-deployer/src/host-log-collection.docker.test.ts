@@ -40,6 +40,8 @@ void test(
         })
       ).stdout.trim();
     const remote = (...args: string[]) => docker("exec", target, ...args);
+    const remoteAsDeploy = (...args: string[]) =>
+      docker("exec", "--user", "deploy", target, ...args);
     const app = normalizeDeploymentManifest({
       version: 2,
       source: { branch: "main" },
@@ -64,7 +66,7 @@ void test(
       ],
     }).apps[0]!;
     const shell = (script: string, args: string[], hostLogs = true) =>
-      remote(
+      remoteAsDeploy(
         "env",
         `TOWBAR_APP_ID=${id}`,
         `TOWBAR_DEPLOYABLE_ID=${id}`,
@@ -143,6 +145,26 @@ void test(
       );
       await docker("cp", dockerfile, `${target}:/test/Dockerfile`);
       await remote("docker", "build", "-q", "-t", "collector:test", "/test");
+      await remote("chown", "-R", "deploy:deploy", "/test");
+      await remote("chmod", "0700", "/srv/docker-custom");
+      assert.notEqual(await remoteAsDeploy("id", "-u"), "0");
+      assert.equal(
+        await remoteAsDeploy(
+          "docker",
+          "info",
+          "--format",
+          "{{.DockerRootDir}}",
+        ),
+        "/srv/docker-custom",
+      );
+      await assert.rejects(
+        remoteAsDeploy(
+          "python3",
+          "-c",
+          "from pathlib import Path; Path('/srv/docker-custom/containers').resolve(strict=True)",
+        ),
+        /PermissionError|Permission denied/u,
+      );
       const producer = await remote(
         "docker",
         "run",
@@ -332,7 +354,7 @@ void test(
       );
       const volume = `towbar-host-logs-${id}`;
       const reclaim = () =>
-        remote("python3", "-c", reclaimHostLogVolumeScript, id);
+        remoteAsDeploy("python3", "-c", reclaimHostLogVolumeScript, id);
       await start("collector-plain", "collector-second", false);
       const plain = inspect
         .pick({ Mounts: true })
@@ -386,10 +408,10 @@ void test(
           skipped: Array<{ name: string }>;
         };
       assert((await cleanup()).skipped.some((item) => item.name === volume));
-      await remote("mkdir", "-p", "/finalize");
+      await remoteAsDeploy("mkdir", "-p", "/test/finalize");
       await shell(
         finalizeRemoteScript,
-        ["/finalize", id, "collector-plain", "collector:test"],
+        ["/test/finalize", id, "collector-plain", "collector:test"],
         false,
       );
       await assert.rejects(remote("docker", "volume", "inspect", volume));
@@ -475,11 +497,11 @@ void test(
         "cursor-marker",
       );
       await start("collector-plain-final", "collector-moved-root", false);
-      await remote("mkdir", "-p", "/finalize-deferred");
+      await remoteAsDeploy("mkdir", "-p", "/test/finalize-deferred");
       await shell(
         scheduleFinalizeRemoteScript,
         [
-          "/finalize-deferred",
+          "/test/finalize-deferred",
           id,
           "collector-plain-final",
           "0",
