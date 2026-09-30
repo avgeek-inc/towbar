@@ -5,6 +5,25 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.22] - 2026-09-30
+
+### Changed
+
+- Full administrative API keys follow Towbar's current automation permissions,
+  including capabilities added by upgrades. Existing complete, unmodified admin
+  keys are recognized during migration. Scoped keys and MCP OAuth consent retain
+  their saved grants; personal keys permanently narrow when their owner is
+  demoted, and queued work cannot gain new permissions through an upgrade.
+
+### Fixed
+
+- Compose deployments can commit their release metadata without being rejected
+  as image deployments. The API verifies that release metadata matches the
+  deployment kind.
+- Interrupted Compose deployments reconcile the host's committed release before
+  cleanup, preserving the running release and restoring the previous release
+  when the replacement did not commit.
+
 ## [2.0.21] - 2026-09-30
 
 ### Changed
@@ -508,7 +527,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.22...HEAD
+[2.0.22]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...v2.0.22
 [2.0.21]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...v2.0.21
 [2.0.20]: https://github.com/avgeek-inc/towbar/compare/v2.0.19...v2.0.20
 [2.0.13]: https://github.com/avgeek-inc/towbar/compare/v2.0.12...v2.0.13
