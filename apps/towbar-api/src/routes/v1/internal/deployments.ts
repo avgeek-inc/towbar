@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import { deploymentLogChunkCharacterLimit } from "@workspace/towbar-core/temporal";
+import { releaseCommitSchema } from "@workspace/towbar-core";
 
 import {
   commitDeploymentRelease,
@@ -32,23 +33,6 @@ const eventSchema = z
     state: deploymentStateSchema.optional(),
   })
   .strict();
-const releaseSchema = z
-  .object({
-    composeServices: z
-      .array(z.string().trim().min(1).max(255))
-      .max(100)
-      .optional(),
-    containerName: z.string().trim().min(1).max(255),
-    containerNames: z.array(z.string().trim().min(1).max(255)).min(1).max(100),
-    imageDigest: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-    imagePlatform: z
-      .string()
-      .regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/u)
-      .max(64),
-    imageTag: z.string().trim().min(1).max(255),
-  })
-  .strict();
-
 export const internalDeploymentRoutes = new Hono();
 
 internalDeploymentRoutes.get("/:deploymentId/context", async (context) =>
@@ -106,7 +90,7 @@ internalDeploymentRoutes.post("/:deploymentId/events", async (context) => {
 internalDeploymentRoutes.post(
   "/:deploymentId/releases/commit",
   async (context) => {
-    const body = await readJson(context, releaseSchema);
+    const body = await readJson(context, releaseCommitSchema);
     return context.json(
       await commitDeploymentRelease(
         deploymentId(context.req.param("deploymentId")),
