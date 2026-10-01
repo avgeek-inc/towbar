@@ -1074,9 +1074,16 @@ function MetricChange({
       className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
       title={`${label}: ${format(previous)}`}
     >
-      {change > 0 ? "+" : ""}
-      {change.toFixed(1)}%{" "}
-      <span className="text-muted">vs previous period</span>
+      {change !== 0 ? (
+        <>
+          <span aria-hidden="true">{change > 0 ? "↑" : "↓"} </span>
+          <span className="sr-only">
+            {change > 0 ? "Increase of " : "Decrease of "}
+          </span>
+        </>
+      ) : null}
+      {Math.abs(change).toFixed(1)}%
+      <span className="sr-only"> compared with the previous period</span>
     </p>
   );
 }
