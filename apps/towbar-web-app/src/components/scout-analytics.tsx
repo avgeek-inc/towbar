@@ -664,37 +664,30 @@ export function AnalyticsView({
                           ...(days === 1 ? { timeStyle: "short" } : {}),
                         })
                       }
-                      valueFormatter={(value, key) => (
-                        <span
-                          className={
-                            String(key).startsWith("previous")
-                              ? "text-muted"
-                              : undefined
-                          }
-                        >
-                          {format(Number(value))}
-                        </span>
-                      )}
-                    >
-                      {!pageviews && point?.previous != null ? (
-                        <div className="mt-1 border-t border-separator pt-1">
-                          <MetricChange
-                            current={
-                              activeMetric === "errors"
-                                ? point.errors
-                                : point.count
-                            }
-                            previous={
-                              activeMetric === "errors"
-                                ? point.previousErrors
-                                : point.previous
-                            }
-                            lowerIsBetter={activeMetric === "errors"}
-                            label={comparisonLabel}
-                          />
-                        </div>
-                      ) : null}
-                    </LineChart.TooltipContent>
+                      valueFormatter={(value, key) => {
+                        const series = chartSeries.find(
+                          (series) => series.key === key,
+                        );
+                        const previous =
+                          series && point ? point[series.previousKey] : null;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-2 whitespace-nowrap ${String(key).startsWith("previous") ? "text-muted" : ""}`}
+                          >
+                            {format(Number(value))}
+                            {showComparison && series && previous != null ? (
+                              <MetricChange
+                                current={Number(value)}
+                                previous={previous}
+                                lowerIsBetter={series.key === "errors"}
+                                label={comparisonLabel}
+                                inline
+                              />
+                            ) : null}
+                          </span>
+                        );
+                      }}
+                    />
                   );
                 }}
               />
@@ -1073,28 +1066,35 @@ function MetricChange({
   previous,
   lowerIsBetter,
   label,
+  inline = false,
 }: {
   current: number | null;
   previous: number | null | undefined;
   lowerIsBetter: boolean;
   label: string;
+  inline?: boolean;
 }) {
+  const layout = inline ? "inline" : "mt-1 block";
   if (current === null || previous === null || previous === undefined)
-    return <p className="mt-1 text-xs text-muted">No prior period data</p>;
+    return (
+      <span className={`${layout} text-xs text-muted`}>
+        No prior period data
+      </span>
+    );
   if (previous === 0 && current !== 0)
     return (
-      <p
-        className={`mt-1 text-xs ${lowerIsBetter ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}
+      <span
+        className={`${layout} text-xs ${lowerIsBetter ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}
         title={`${label}: 0`}
       >
         New
-      </p>
+      </span>
     );
   const change = previous === 0 ? 0 : ((current - previous) / previous) * 100;
   const improved = lowerIsBetter ? change < 0 : change > 0;
   return (
-    <p
-      className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
+    <span
+      className={`${layout} text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
       title={`${label}: ${format(previous)}`}
     >
       {change !== 0 ? (
@@ -1107,7 +1107,7 @@ function MetricChange({
       ) : null}
       {Math.abs(change).toFixed(1)}%
       <span className="sr-only"> compared with the previous period</span>
-    </p>
+    </span>
   );
 }
 
