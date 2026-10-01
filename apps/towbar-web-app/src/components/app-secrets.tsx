@@ -194,6 +194,8 @@ function EnvironmentSecretSettings({
     active && environment && environment !== environments[0]
       ? `${endpoint}?environment=${encodeURIComponent(environment)}`
       : null,
+    undefined,
+    { keepPreviousData: false },
   );
   const query = environment === environments[0] ? defaults : selectedQuery;
   if (!active) return null;

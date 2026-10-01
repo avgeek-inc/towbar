@@ -3,6 +3,7 @@
 import { Chip as HeroChip, Spinner } from "@heroui/react";
 import type { ComponentProps, ReactNode } from "react";
 import { TooltipText } from "../overlays/tooltip";
+import { cn } from "../lib/utils";
 
 type ChipVariant =
   | "default"
@@ -11,7 +12,8 @@ type ChipVariant =
   | "success"
   | "warning"
   | "info"
-  | "yellow";
+  | "yellow"
+  | "purple";
 type ChipSize = "small" | "default" | "large";
 export type ChipProps = Omit<
   ComponentProps<typeof HeroChip>,
@@ -33,6 +35,7 @@ const colors = {
   warning: "warning",
   info: "accent",
   yellow: "warning",
+  purple: "default",
 } as const;
 const sizes = { small: "sm", default: "md", large: "lg" } as const;
 
@@ -43,6 +46,7 @@ export function Chip({
   size,
   tooltip,
   variant,
+  className,
   ...props
 }: ChipProps) {
   const numeric =
@@ -55,6 +59,11 @@ export function Chip({
       color={variant ? colors[variant] : undefined}
       size={size ? sizes[size] : undefined}
       variant="soft"
+      className={cn(
+        variant === "purple" &&
+          "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+        className,
+      )}
       {...props}
     >
       {loading ? <Spinner color="current" size="sm" /> : null}

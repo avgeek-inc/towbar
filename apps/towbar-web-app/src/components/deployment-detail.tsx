@@ -11,6 +11,7 @@ import {
   FileViewIcon,
   GitBranchIcon,
   GitPullRequestIcon,
+  GitMergeIcon,
   InformationSquareIcon,
   ReloadIcon,
   Rocket01Icon,
@@ -132,7 +133,7 @@ export function DeploymentDetail() {
       <DashboardPage
         icon={Rocket01Icon}
         breadcrumbAncestors={deployableBreadcrumb}
-        title="Deployment"
+        title={deploymentId.slice(0, 8)}
       >
         <QueryError message={stream.error} />
       </DashboardPage>
@@ -142,7 +143,7 @@ export function DeploymentDetail() {
       <DashboardPage
         icon={Rocket01Icon}
         breadcrumbAncestors={deployableBreadcrumb}
-        title="Deployment"
+        title={deploymentId.slice(0, 8)}
       >
         <QueryLoading variant="detail" />
       </DashboardPage>
@@ -160,7 +161,7 @@ export function DeploymentDetail() {
       <DashboardPage
         icon={Rocket01Icon}
         breadcrumbAncestors={deployableBreadcrumb}
-        title="Deployment"
+        title={deploymentId.slice(0, 8)}
       >
         <QueryError
           message={`This Deployment does not belong to the selected ${routeDeployableKind === "resource" ? "Datastore" : "Service"}.`}
@@ -255,13 +256,7 @@ export function DeploymentDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={activeSectionTitle}
-      title={`Deployment ${item.id.slice(0, 8)}`}
-      titleContent={
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <span>Deployment</span>
-          <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
-        </span>
-      }
+      title={item.id.slice(0, 8)}
     >
       {item.errorMessage ? (
         <Widget className="min-w-0" role="alert">
@@ -511,14 +506,21 @@ export function DeploymentDetail() {
                     <Attributes.Item label="Status">
                       <Chip
                         size="small"
+                        icon={
+                          revision.data.pullRequest.merged ? (
+                            <HugeiconsIcon icon={GitMergeIcon} />
+                          ) : undefined
+                        }
                         tooltip={pullRequestStateTooltip(
                           revision.data.pullRequest,
                         )}
                         variant={
-                          revision.data.pullRequest.state === "open" &&
-                          !revision.data.pullRequest.draft
-                            ? "success"
-                            : "secondary"
+                          revision.data.pullRequest.merged
+                            ? "purple"
+                            : revision.data.pullRequest.state === "open" &&
+                                !revision.data.pullRequest.draft
+                              ? "success"
+                              : "secondary"
                         }
                       >
                         {revision.data.pullRequest.merged

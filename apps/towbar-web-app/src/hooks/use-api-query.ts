@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { clearDateTimeLabels } from "@/lib/date-time-display";
+import { canKeepQueryData } from "./api-query-state";
 
 type ApiQueryCacheEntry = {
   cachedAt?: number;
@@ -66,14 +67,16 @@ export function refreshApiQueries() {
 export function useApiQuery<T>(
   path: string | null,
   refreshMs?: number,
-  { keepPreviousData = false }: { keepPreviousData?: boolean } = {},
+  { keepPreviousData = true }: { keepPreviousData?: boolean } = {},
 ) {
-  const [result, setResult] = useState<{ data: T; path: string } | undefined>(
-    () => {
-      const data = getCachedApiQuery<T>(path);
-      return path && data !== undefined ? { data, path } : undefined;
-    },
-  );
+  const [result, setResult] = useState<
+    { data: T; path: string; generation: number } | undefined
+  >(() => {
+    const data = getCachedApiQuery<T>(path);
+    return path && data !== undefined
+      ? { data, path, generation: cacheGeneration }
+      : undefined;
+  });
   const [failure, setFailure] = useState<{ message: string; path: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [revision, setRevision] = useState(0);
@@ -90,11 +93,11 @@ export function useApiQuery<T>(
       try {
         const result = await loadApiQuery<T>(path, force);
         if (active && generation === cacheGeneration) {
-          setResult({ data: result, path });
+          setResult({ data: result, path, generation });
           setFailure(undefined);
         }
       } catch (cause) {
-        if (active)
+        if (active && generation === cacheGeneration)
           setFailure({
             message: cause instanceof Error ? cause.message : "Request failed",
             path,
@@ -135,12 +138,19 @@ export function useApiQuery<T>(
         );
     };
   }, [path, refreshMs, revision]);
+  const availableResult =
+    result?.generation === cacheGeneration ? result : undefined;
   const currentData =
-    result?.path === path ? result.data : getCachedApiQuery<T>(path);
+    availableResult?.path === path
+      ? availableResult.data
+      : getCachedApiQuery<T>(path);
+  const isPreviousData =
+    currentData === undefined &&
+    availableResult !== undefined &&
+    canKeepQueryData(availableResult.path, path, keepPreviousData);
   return {
-    data: currentData ?? (keepPreviousData ? result?.data : undefined),
-    isPreviousData:
-      keepPreviousData && currentData === undefined && result !== undefined,
+    data: currentData ?? (isPreviousData ? availableResult?.data : undefined),
+    isPreviousData,
     error: failure?.path === path ? failure.message : undefined,
     isRefreshing,
     refresh,

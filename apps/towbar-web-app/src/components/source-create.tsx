@@ -133,6 +133,8 @@ function SourceCreate({
         : null;
   const repositories = useApiQuery<{ repositories: RepositoryOption[] }>(
     repositoryPath,
+    undefined,
+    { keepPreviousData: false },
   );
   const [fullName, setFullName] = useState("");
   const [owner, repository] = fullName.split("/");
@@ -142,6 +144,8 @@ function SourceCreate({
         ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "" })}`
         : `/v1/core/gitlab/branches?${new URLSearchParams({ integration: gitlabIntegration, owner: owner ?? "", repository: repository ?? "" })}`
       : null,
+    undefined,
+    { keepPreviousData: false },
   );
 
   const [customEnvironment, setCustomEnvironment] = useState("");

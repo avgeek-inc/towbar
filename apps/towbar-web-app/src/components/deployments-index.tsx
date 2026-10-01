@@ -194,10 +194,10 @@ export function DeploymentsIndex() {
   const filterKey = params.toString();
   useEffect(() => reset(), [filterKey, reset]);
   useEffect(() => {
-    if (!query.data) return;
+    if (!query.data || query.isPreviousData) return;
     setTotal(query.data.pagination.total);
     if (!query.data.pagination.total) reset();
-  }, [query.data, reset, setTotal]);
+  }, [query.data, query.isPreviousData, reset, setTotal]);
 
   return (
     <DashboardPage icon={Rocket01Icon} title="Deployments">
