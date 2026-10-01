@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -66,6 +72,8 @@ export function SecondarySection({
   className?: string;
 }) {
   const { host } = useContext(SecondaryContext);
+  const { registerSecondaryNavigation } = useMobileNavigation();
+  useEffect(registerSecondaryNavigation, [registerSecondaryNavigation]);
   const content = (
     <section
       data-secondary-menu

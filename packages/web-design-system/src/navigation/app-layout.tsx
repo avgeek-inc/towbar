@@ -4,6 +4,7 @@ import {
   createContext,
   type ReactNode,
   useContext,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -13,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "../lib/utils";
 import { Drawer } from "../overlays/drawer";
 import { bindSidebarSwipe } from "../lib/sidebar-swipe";
+import styles from "./app-layout.module.css";
 
 const desktopQuery = "(min-width: 64rem)";
 const subscribeToViewport = (callback: () => void) => {
@@ -27,7 +29,13 @@ const MobileNavigationContext = createContext<{
   host: HTMLElement | null;
   isMobile: boolean;
   close: () => void;
-}>({ host: null, isMobile: false, close: () => {} });
+  registerSecondaryNavigation: () => () => void;
+}>({
+  host: null,
+  isMobile: false,
+  close: () => {},
+  registerSecondaryNavigation: () => () => {},
+});
 
 export function useMobileNavigation() {
   return useContext(MobileNavigationContext);
@@ -67,11 +75,22 @@ export function AppLayout({
   const root = useRef<HTMLDivElement>(null);
   const hasSidebar = Boolean(sidebar);
   const [mobileHost, setMobileHost] = useState<HTMLElement | null>(null);
+  const [secondaryMenuCount, setSecondaryMenuCount] = useState(0);
+  const [motionReady, setMotionReady] = useState(false);
+  const registerSecondaryNavigation = useCallback(() => {
+    setSecondaryMenuCount((count) => count + 1);
+    return () => setSecondaryMenuCount((count) => count - 1);
+  }, []);
   const isDesktop = useSyncExternalStore(
     subscribeToViewport,
     isDesktopViewport,
     serverViewport,
   );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMotionReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (
@@ -115,6 +134,7 @@ export function AppLayout({
         value={{
           host: mobileHost,
           isMobile: !isDesktop,
+          registerSecondaryNavigation,
           close: () => {
             if (!isDesktop) onSidebarOpenChange?.(false);
           },
@@ -122,20 +142,19 @@ export function AppLayout({
       >
         <div
           ref={root}
-          className={cn(
-            "min-h-dvh",
-            sidebar && sidebarOpen
-              ? "lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]"
-              : "",
-            className,
-          )}
+          data-sidebar-open={sidebarOpen}
+          data-has-sidebar={hasSidebar && isDesktop}
+          data-motion-ready={motionReady}
+          className={cn("min-h-dvh", styles.layout, className)}
         >
-          {sidebar && sidebarOpen && isDesktop ? (
+          {sidebar && isDesktop ? (
             <aside
               id="application-navigation"
-              className="sticky top-[var(--app-shell-top-offset,0px)] h-[calc(100dvh-var(--app-shell-top-offset,0px))] w-60 overflow-hidden border-r border-separator bg-background"
+              aria-hidden={!sidebarOpen}
+              inert={!sidebarOpen}
+              className={styles.desktopSidebar}
             >
-              {sidebar}
+              <div className={styles.sidebarPanel}>{sidebar}</div>
             </aside>
           ) : null}
           <div className="grid min-h-dvh min-w-0 grid-cols-1 grid-rows-[auto_1fr_auto]">
@@ -146,6 +165,7 @@ export function AppLayout({
         </div>
         {sidebar ? (
           <Drawer.Backdrop
+            className={styles.drawerBackdrop}
             isOpen={sidebarOpen && !isDesktop}
             isKeyboardDismissDisabled
             onOpenChange={onSidebarOpenChange}
@@ -154,7 +174,11 @@ export function AppLayout({
               <Drawer.Dialog
                 id="application-navigation"
                 aria-label="Navigation"
-                className="group/navigation grid w-72 max-w-[calc(100vw-1rem)] grid-cols-1 overflow-hidden bg-background p-0 has-[[data-secondary-menu]]:w-[min(28rem,calc(100vw-1rem))] has-[[data-secondary-menu]]:grid-cols-[calc(50%-0.75rem)_calc(50%+0.75rem)] sm:w-72"
+                data-secondary-navigation={secondaryMenuCount > 0}
+                className={cn(
+                  "group/navigation grid max-w-[calc(100vw-1rem)] overflow-hidden bg-background p-0",
+                  styles.drawerDialog,
+                )}
               >
                 <div
                   className="relative min-h-0 min-w-0"
@@ -163,11 +187,11 @@ export function AppLayout({
                   {sidebar}
                   <Drawer.CloseTrigger
                     aria-label="Close navigation"
-                    className="end-3 top-2.5 size-11 bg-transparent hover:bg-transparent data-[hovered=true]:bg-transparent group-has-[[data-secondary-menu]]/navigation:hidden"
+                    className="end-3 top-2.5 size-11 bg-transparent hover:bg-transparent data-[hovered=true]:bg-transparent group-data-[secondary-navigation=true]/navigation:hidden"
                   />
                 </div>
                 <div
-                  className="hidden min-h-0 min-w-0 flex-col border-s border-separator has-[[data-secondary-menu]]:flex"
+                  className="hidden min-h-0 min-w-0 flex-col border-s border-separator group-data-[secondary-navigation=true]/navigation:flex"
                   data-slot="drawer-body"
                 >
                   <div className="flex min-h-16 shrink-0 items-center justify-end border-b border-separator px-3">
