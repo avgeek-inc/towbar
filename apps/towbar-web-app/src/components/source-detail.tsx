@@ -260,6 +260,7 @@ export function SourceDetail() {
         </div>
       }
       breadcrumbAncestors={sourcesBreadcrumb}
+      breadcrumbSwitcher={{ id: sourceId, kind: "sources" }}
       badge={
         (detailNavigation.section ?? "environments") === "environments" ? (
           latestSync ? (

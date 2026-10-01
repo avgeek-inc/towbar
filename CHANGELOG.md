@@ -5,6 +5,30 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.25] - 2026-10-01
+
+### Added
+
+- Services and datastores show their synced manifest under Operate, with the
+  workload's environment and file selected automatically.
+- Repository breadcrumbs include a searchable selector that opens the selected
+  repository's Environments page. Sync breadcrumbs let users switch between
+  syncs, with status, environment, branch, and timestamp shown in the list.
+- OpenTelemetry collectors and related OCI images reuse product logos instead
+  of the generic icon, including ClickHouse Keeper and SigNoz Collector.
+
+### Changed
+
+- Inventory group headings use smaller text and icons.
+- Deployment breadcrumbs include the workload's Deployments page and the
+  deployment ID. The secondary sidebar identifies the deployment by its ID.
+
+### Fixed
+
+- SigNoz artwork is centered on desktop and mobile.
+- Manifest links use the correct GitHub or GitLab provider, preserving
+  self-hosted GitLab URLs and nested namespaces.
+
 ## [2.0.24] - 2026-10-01
 
 ### Added
@@ -558,7 +582,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.24...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.25...HEAD
+[2.0.25]: https://github.com/avgeek-inc/towbar/compare/v2.0.24...v2.0.25
 [2.0.24]: https://github.com/avgeek-inc/towbar/compare/v2.0.23...v2.0.24
 [2.0.23]: https://github.com/avgeek-inc/towbar/compare/v2.0.22...v2.0.23
 [2.0.22]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...v2.0.22

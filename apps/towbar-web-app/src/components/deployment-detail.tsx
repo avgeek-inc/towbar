@@ -103,7 +103,7 @@ export function DeploymentDetail() {
       : undefined;
   const deploymentDeployableKind = detailTarget?.kind ?? routeDeployableKind;
   const deployableSection =
-    deploymentDeployableKind === "resource" ? "resources" : "apps";
+    deploymentDeployableKind === "resource" ? "datastores" : "services";
   const deployableBreadcrumb =
     deploymentDeployableKind === "resource"
       ? resourcesBreadcrumb
@@ -119,6 +119,10 @@ export function DeploymentDetail() {
           {
             href: `/${deployableSection}/${stream.deployment.appId}`,
             label: deployableName,
+          },
+          {
+            href: `/${deployableSection}/${stream.deployment.appId}/deployments`,
+            label: "Deployments",
           },
         ]
       : deployableBreadcrumb
@@ -251,7 +255,13 @@ export function DeploymentDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       breadcrumbLabel={activeSectionTitle}
-      title={deployableName ? `${deployableName} deployment` : "Deployment"}
+      title={`Deployment ${item.id.slice(0, 8)}`}
+      titleContent={
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <span>Deployment</span>
+          <TypographyCode title={item.id}>{item.id.slice(0, 8)}</TypographyCode>
+        </span>
+      }
     >
       {item.errorMessage ? (
         <Widget className="min-w-0" role="alert">

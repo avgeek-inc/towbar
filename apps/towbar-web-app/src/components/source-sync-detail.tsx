@@ -86,6 +86,7 @@ export function SourceSyncDetail() {
       }
       breadcrumbAncestors={breadcrumbAncestors}
       title={`Sync ${sync.id.slice(0, 8)}`}
+      breadcrumbSwitcher={{ id: syncId, kind: "syncs", sourceId }}
       titleContent={
         <span className="inline-flex min-w-0 items-center gap-2">
           <span>Sync</span>

@@ -1558,6 +1558,44 @@ test("deployment history paginates all apps, resources, and environments in stab
   }
 });
 
+test("repository sync history has scoped, selectable recent and legacy entries", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}/v1/core/sources`;
+  try {
+    const { syncs } = await (
+      await fetch(`${baseUrl}/${fixtureIds.source}/syncs`)
+    ).json();
+    assert.deepEqual(
+      syncs.map((sync) => sync.id),
+      [fixtureIds.sync, fixtureIds.previousSync, fixtureIds.legacySync],
+    );
+    assert.deepEqual(
+      syncs.map((sync) => sync.environment?.name ?? null),
+      ["production", "staging", null],
+    );
+    assert(Date.parse(syncs[0].createdAt) > Date.parse(syncs[1].createdAt));
+    for (const sync of syncs) {
+      const response = await fetch(
+        `${baseUrl}/${fixtureIds.source}/syncs/${sync.id}`,
+      );
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).sync, sync);
+      assert.equal(
+        (await fetch(`${baseUrl}/${fixtureIds.docsSource}/syncs/${sync.id}`))
+          .status,
+        404,
+      );
+    }
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("fixture Sources have distinct inventories and working scoped routes", async () => {
   const server = createFixtureApiServer();
   server.listen(0, "127.0.0.1");
