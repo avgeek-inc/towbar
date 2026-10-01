@@ -274,6 +274,9 @@ export function AnalyticsView({
 }) {
   const [eventActive, setEventActive] = useState(false);
   const [compareEnabled, setCompareEnabled] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<
+    "count" | "visitors" | "sessions" | null
+  >(null);
   if (!report.enabled)
     return (
       <EmptyState>
@@ -366,6 +369,9 @@ export function AnalyticsView({
       color: "var(--danger)",
     },
   ] as const;
+  const visibleWebSeries = webSeries.filter(
+    ({ key }) => selectedMetric === null || key === selectedMetric,
+  );
   const showWebComparison = compareEnabled && Boolean(report.comparison);
   const breakdowns: {
     name: string;
@@ -608,10 +614,18 @@ export function AnalyticsView({
                   const point = trend.find(
                     (point) => point.at === Number(label),
                   );
+                  const orderedPayload = pageviews
+                    ? visibleWebSeries.flatMap(({ key, previousKey }) =>
+                        [
+                          payload.find((item) => item.dataKey === key),
+                          payload.find((item) => item.dataKey === previousKey),
+                        ].filter((item) => item !== undefined),
+                      )
+                    : payload;
                   return (
                     <LineChart.TooltipContent
                       active={active}
-                      payload={payload.map(
+                      payload={orderedPayload.map(
                         ({ color, dataKey, name, value }) => ({
                           color,
                           dataKey: String(dataKey),
@@ -626,7 +640,17 @@ export function AnalyticsView({
                           ...(days === 1 ? { timeStyle: "short" } : {}),
                         })
                       }
-                      valueFormatter={(value) => format(Number(value))}
+                      valueFormatter={(value, key) => (
+                        <span
+                          className={
+                            pageviews && String(key).startsWith("previous")
+                              ? "text-muted"
+                              : undefined
+                          }
+                        >
+                          {format(Number(value))}
+                        </span>
+                      )}
                     >
                       {!pageviews && point?.previous != null ? (
                         <div className="mt-1 border-t border-separator pt-1">
@@ -660,7 +684,7 @@ export function AnalyticsView({
                   />
                 ))}
               {pageviews ? (
-                webSeries.map(({ key, label, color }) => (
+                visibleWebSeries.map(({ key, label, color }) => (
                   <LineChart.Line
                     key={key}
                     dataKey={key}
@@ -682,13 +706,13 @@ export function AnalyticsView({
                 />
               )}
               {showWebComparison && pageviews
-                ? webSeries.map(({ previousKey, label, color }) => (
+                ? visibleWebSeries.map(({ previousKey, label, color }) => (
                     <LineChart.Line
                       key={previousKey}
                       dataKey={previousKey}
-                      name={`${label} (${comparisonLabel.toLowerCase()})`}
+                      name={`${label} (${comparisonLabel})`}
                       stroke={color}
-                      strokeOpacity={0.45}
+                      strokeOpacity={0.25}
                       strokeDasharray="5 4"
                       strokeWidth={1.8}
                       isAnimationActive={false}
@@ -721,9 +745,24 @@ export function AnalyticsView({
             {pageviews ? (
               <Widget.Legend className="mt-2 flex-wrap">
                 {webSeries.map(({ key, label, color }) => (
-                  <Widget.LegendItem key={key} color={color}>
-                    {label}
-                  </Widget.LegendItem>
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={selectedMetric === key}
+                    className={`widget__legend-item rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-focus ${selectedMetric !== null && selectedMetric !== key ? "opacity-40" : ""}`}
+                    onClick={() =>
+                      setSelectedMetric((current) =>
+                        current === key ? null : key,
+                      )
+                    }
+                  >
+                    <span
+                      className="widget__legend-item-dot"
+                      style={{ backgroundColor: color }}
+                      aria-hidden="true"
+                    />
+                    <span className="widget__legend-item-label">{label}</span>
+                  </button>
                 ))}
               </Widget.Legend>
             ) : report.comparison ? (
@@ -732,7 +771,7 @@ export function AnalyticsView({
                   Requests
                 </Widget.LegendItem>
                 <Widget.LegendItem color="var(--warning)">
-                  {comparisonLabel} (dashed)
+                  {comparisonLabel}
                 </Widget.LegendItem>
                 <Widget.LegendItem color="var(--danger)">
                   HTTP errors
@@ -740,9 +779,7 @@ export function AnalyticsView({
               </Widget.Legend>
             ) : null}
             {pageviews && showWebComparison ? (
-              <p className="mt-2 text-xs text-muted">
-                Dashed lines show the {comparisonLabel.toLowerCase()}.
-              </p>
+              <p className="mt-2 text-xs text-muted">{comparisonLabel}</p>
             ) : null}
             {pageviews && !report.comparison ? (
               <p className="mt-2 text-xs text-muted">
