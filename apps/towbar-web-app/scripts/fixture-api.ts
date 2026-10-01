@@ -161,8 +161,10 @@ const sources: Source[] = [
   {
     ...source,
     id: fixtureIds.docsSource,
+    provider: "gitlab",
     repositoryName: "documentation",
-    repositoryUrl: "https://github.com/example-inc/documentation",
+    repositoryOwner: "example-inc/docs",
+    repositoryUrl: "https://gitlab.example.com/example-inc/docs/documentation",
   },
   {
     ...source,

@@ -17,6 +17,7 @@ import { TypographyCode } from "@workspace/web-design-system/typography/typograp
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { usePageQuery } from "@/hooks/use-page-query";
+import { repositoryFileLink } from "@/lib/repository-file-link";
 import {
   findDeployableManifest,
   type ManifestDeployable,
@@ -68,6 +69,13 @@ export function SourceEnvironmentManifest({
         Connect an environment to inspect its synced configuration.
       </p>
     );
+  const repositoryLink = file
+    ? repositoryFileLink(
+        source.data.source,
+        snapshot.data?.manifest?.commitSha || environment.branch,
+        file.path,
+      )
+    : undefined;
   return (
     <div className="content-grid">
       {!deployable ? (
@@ -178,17 +186,16 @@ export function SourceEnvironmentManifest({
                   {snapshot.data.manifest?.commitSha.slice(0, 12)}
                 </TypographyCode>
               </span>
-              <InlineExternalLink
-                className="text-sm"
-                href={`https://github.com/${encodeURIComponent(source.data.source.repositoryOwner)}/${encodeURIComponent(source.data.source.repositoryName)}/blob/${encodeURIComponent(snapshot.data.manifest?.commitSha ?? environment.branch)}/${file.path
-                  .split("/")
-                  .map(encodeURIComponent)
-                  .join("/")}`}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Open in GitHub
-              </InlineExternalLink>
+              {repositoryLink ? (
+                <InlineExternalLink
+                  className="text-sm"
+                  href={repositoryLink.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {repositoryLink.label}
+                </InlineExternalLink>
+              ) : null}
             </Widget.Footer>
           </CodeBlock>
         </>
