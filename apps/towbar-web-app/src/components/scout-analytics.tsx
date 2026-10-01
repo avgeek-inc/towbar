@@ -1038,7 +1038,7 @@ function AnalyticsRowLabel({
             isIconOnly
             variant="ghost"
             aria-label={`${filtered ? "Remove filter for" : "Filter by"} path ${value}`}
-            className={`hidden size-5 min-w-0 shrink-0 rounded-sm bg-transparent! p-0 hover:bg-transparent! sm:inline-flex ${styles.rowAction}`}
+            className={`hidden size-5 min-w-0 shrink-0 rounded-lg bg-transparent p-0 hover:bg-default focus-visible:bg-default sm:inline-flex ${styles.rowAction}`}
             onPress={() => onFilterPath(value)}
           >
             <HugeiconsIcon
