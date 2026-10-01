@@ -1,4 +1,5 @@
 "use client";
+import { SourceEnvironmentManifest } from "./source-environment-manifest";
 import { ContainerRuntimeDetails } from "./container-runtime-details";
 import { useAccess } from "./access-context";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
@@ -27,6 +28,7 @@ import {
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
+  SourceCodeIcon,
   Key01Icon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
@@ -415,6 +417,15 @@ export function ResourceDetail() {
           ]
         : []),
     ],
+    {
+      value: "manifest",
+      label: "Manifest",
+      group: "Operate",
+      icon: <HugeiconsIcon icon={SourceCodeIcon} />,
+      content: (
+        <SourceEnvironmentManifest sourceId={item.sourceId} deployable={item} />
+      ),
+    },
     {
       value: "settings",
       label: "Settings",

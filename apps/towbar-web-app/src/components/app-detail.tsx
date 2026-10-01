@@ -1,4 +1,5 @@
 "use client";
+import { SourceEnvironmentManifest } from "./source-environment-manifest";
 import { ContainerRuntimeDetails } from "./container-runtime-details";
 import { ScoutAnalytics } from "./scout-analytics";
 import { AppJobs } from "./app-jobs";
@@ -32,6 +33,7 @@ import {
   Rocket01Icon,
   ServerStack01Icon,
   Settings01Icon,
+  SourceCodeIcon,
   Key01Icon,
   Notification01Icon,
 } from "@hugeicons/core-free-icons";
@@ -524,6 +526,18 @@ export function AppDetail() {
             group: "Operate",
             icon: <HugeiconsIcon icon={PackageIcon} />,
             content: <AppStorage appId={appId} />,
+          },
+          {
+            value: "manifest",
+            label: "Manifest",
+            group: "Operate",
+            icon: <HugeiconsIcon icon={SourceCodeIcon} />,
+            content: (
+              <SourceEnvironmentManifest
+                sourceId={item.sourceId}
+                deployable={item}
+              />
+            ),
           },
           {
             value: "settings",

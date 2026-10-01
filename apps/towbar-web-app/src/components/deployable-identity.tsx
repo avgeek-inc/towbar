@@ -322,7 +322,7 @@ export function ResourceLogo({
     >
       <Image
         alt=""
-        className={`max-h-full max-w-full object-contain ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
+        className={`block max-h-full max-w-full object-contain ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"} ${dark ? "dark:hidden" : ""}`}
         height={pixels}
         width={pixels}
         src={logo}
@@ -334,7 +334,7 @@ export function ResourceLogo({
       {dark ? (
         <Image
           alt=""
-          className={`hidden object-contain dark:block ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"}`}
+          className={`hidden max-h-full max-w-full object-contain dark:block ${size === "compact" ? "size-4" : size === "small" ? "size-6" : "size-8"}`}
           height={pixels}
           width={pixels}
           src={dark}

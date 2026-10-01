@@ -96,6 +96,52 @@ void test("managed datastore types use their engine logos", () => {
   }
 });
 
+void test("companion OCI images reuse their product artwork with exact repository matching", () => {
+  const families = {
+    SigNoz: [
+      "signoz/signoz-otel-collector:v0.144.12",
+      "signoz/signoz-schema-migrator",
+      "signoz/frontend",
+    ],
+    ClickHouse: [
+      "clickhouse/clickhouse-keeper:25.12.5",
+      "clickhouse/clickhouse-client",
+    ],
+    OpenTelemetry: [
+      "otel/opentelemetry-collector-contrib:0.148.0",
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-k8s",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.148.0",
+    ],
+    Prometheus: [
+      "prom/node-exporter",
+      "prom/blackbox-exporter",
+      "quay.io/prometheus/pushgateway",
+    ],
+    OpenSearch: ["opensearchproject/opensearch-dashboards"],
+    "Grafana Loki": ["grafana/promtail"],
+    Jaeger: [
+      "jaegertracing/jaeger-agent",
+      "jaegertracing/jaeger-collector",
+      "jaegertracing/jaeger-query",
+      "jaegertracing/jaeger-ingester",
+    ],
+  };
+  for (const [label, images] of Object.entries(families)) {
+    for (const image of images) {
+      assert.equal(resourceImageBrand("image", image).label, label, image);
+    }
+  }
+  for (const image of [
+    "private.example/otel/opentelemetry-collector-contrib",
+    "company/signoz-otel-collector",
+    "clickhouse/clickhouse-keeper-extra",
+    "otel/custom-collector",
+  ]) {
+    assert.equal(resourceImageBrand("image", image).label, "Image", image);
+  }
+});
+
 void test("every catalog entry has unique valid repositories and bundled artwork", () => {
   const repositories = new Set<string>();
   const ids = new Set<string>();

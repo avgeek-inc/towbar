@@ -334,6 +334,9 @@ importers:
       react-dom:
         specifier: "catalog:"
         version: 19.3.0(react@19.3.0)
+      yaml:
+        specifier: "catalog:"
+        version: 2.9.1
     devDependencies:
       "@simplewebauthn/server":
         specifier: 13.3.2

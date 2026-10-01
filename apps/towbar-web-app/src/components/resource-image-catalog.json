@@ -76,7 +76,11 @@
   {
     "id": "clickhouse",
     "label": "ClickHouse",
-    "repositories": ["clickhouse/clickhouse-server"],
+    "repositories": [
+      "clickhouse/clickhouse-server",
+      "clickhouse/clickhouse-keeper",
+      "clickhouse/clickhouse-client"
+    ],
     "logo": "/resource-logos/clickhouse.webp"
   },
   {
@@ -194,7 +198,10 @@
   {
     "id": "opensearch",
     "label": "OpenSearch",
-    "repositories": ["opensearchproject/opensearch"],
+    "repositories": [
+      "opensearchproject/opensearch",
+      "opensearchproject/opensearch-dashboards"
+    ],
     "logo": "/resource-logos/opensearch.webp",
     "darkPlate": true
   },
@@ -357,7 +364,16 @@
   {
     "id": "prometheus",
     "label": "Prometheus",
-    "repositories": ["prom/prometheus", "quay.io/prometheus/prometheus"],
+    "repositories": [
+      "prom/prometheus",
+      "quay.io/prometheus/prometheus",
+      "prom/node-exporter",
+      "quay.io/prometheus/node-exporter",
+      "prom/blackbox-exporter",
+      "quay.io/prometheus/blackbox-exporter",
+      "prom/pushgateway",
+      "quay.io/prometheus/pushgateway"
+    ],
     "logo": "/resource-logos/prometheus.webp"
   },
   {
@@ -369,7 +385,7 @@
   {
     "id": "loki",
     "label": "Grafana Loki",
-    "repositories": ["grafana/loki"],
+    "repositories": ["grafana/loki", "grafana/promtail"],
     "logo": "/resource-logos/loki.webp"
   },
   {
@@ -417,13 +433,40 @@
   {
     "id": "signoz",
     "label": "SigNoz",
-    "repositories": ["signoz/signoz", "signoz/query-service"],
-    "logo": "/resource-logos/signoz.webp"
+    "repositories": [
+      "signoz/signoz",
+      "signoz/query-service",
+      "signoz/signoz-otel-collector",
+      "signoz/signoz-schema-migrator",
+      "signoz/frontend",
+      "signoz/alertmanager"
+    ],
+    "logo": "/resource-logos/signoz.svg"
+  },
+  {
+    "id": "opentelemetry",
+    "label": "OpenTelemetry",
+    "repositories": [
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-contrib",
+      "otel/opentelemetry-collector-k8s",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s"
+    ],
+    "logo": "/resource-logos/opentelemetry.svg"
   },
   {
     "id": "jaeger",
     "label": "Jaeger",
-    "repositories": ["jaegertracing/jaeger", "jaegertracing/all-in-one"],
+    "repositories": [
+      "jaegertracing/jaeger",
+      "jaegertracing/all-in-one",
+      "jaegertracing/jaeger-agent",
+      "jaegertracing/jaeger-collector",
+      "jaegertracing/jaeger-query",
+      "jaegertracing/jaeger-ingester"
+    ],
     "logo": "/resource-logos/jaeger.webp"
   },
   {
