@@ -67,7 +67,12 @@ import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 import { serviceTypeLabel } from "./service-type";
 import { EnvironmentIcon } from "./environment-icon";
 
-const inventoryLayouts = ["grouped", "environment", "unified"] as const;
+const inventoryLayouts = [
+  "grouped",
+  "environment",
+  "server",
+  "unified",
+] as const;
 
 function isApp(item: App | Resource): item is App {
   return item.kind === "app" || item.kind === "compose";
@@ -110,6 +115,16 @@ function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
           <EnvironmentIcon />
         </ToggleButton>
         <Tooltip.Content>Group by environment</Tooltip.Content>
+      </Tooltip>
+      <Tooltip>
+        <ToggleButton id="server" isIconOnly aria-label="Group by server">
+          <HugeiconsIcon
+            icon={ServerStack01Icon}
+            className="size-4"
+            aria-hidden="true"
+          />
+        </ToggleButton>
+        <Tooltip.Content>Group by server</Tooltip.Content>
       </Tooltip>
       <Tooltip>
         <ToggleButton id="unified" isIconOnly aria-label="Unified view">
@@ -400,7 +415,10 @@ function DeployableInventoryTable({
     layout === "unified" ? ResourceTable : GroupedDeployableTable;
   return (
     <InventoryTable
-      groupBy={layout === "environment" ? "environment" : "manifest"}
+      groupBy={
+        layout === "environment" || layout === "server" ? layout : "manifest"
+      }
+      servers={servers}
       ariaLabel={kind === "app" ? "Services" : "Datastores"}
       columns={columns}
       emptyDescription={

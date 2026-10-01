@@ -2,5 +2,5 @@
 # Generated from package.json; run pnpm cli:build.
 set -Eeuo pipefail
 
-CLI_VERSION="2.0.23"
+CLI_VERSION="2.0.24"
 CLI_RELEASE="v$CLI_VERSION"
