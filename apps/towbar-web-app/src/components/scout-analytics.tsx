@@ -567,8 +567,8 @@ export function AnalyticsView({
                 onChange={setCompareEnabled}
                 isDisabled={!report.comparison}
               >
-                <Checkbox.Content>
-                  <Checkbox.Control className="border! border-muted/50">
+                <Checkbox.Content className="gap-2">
+                  <Checkbox.Control>
                     <Checkbox.Indicator />
                   </Checkbox.Control>
                   <Label className="text-xs">Enable Compare</Label>
