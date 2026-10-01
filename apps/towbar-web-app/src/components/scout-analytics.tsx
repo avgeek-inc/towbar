@@ -950,13 +950,13 @@ function AnalyticsRows({
         </Table.Content>
       </Table.ScrollContainer>
       {sortedRows.length > 10 ? (
-        <Table.Footer className="flex min-h-11 items-center px-4 sm:min-h-8">
+        <Table.Footer className="flex items-center px-4 py-0!">
           <button
             type="button"
             aria-expanded={expanded}
             aria-controls={tableId}
             aria-label={`${expanded ? "Show fewer" : "Show more"} ${name.toLowerCase()}`}
-            className="min-h-11 rounded-sm text-xs text-muted underline decoration-muted/30 decoration-dashed underline-offset-2 outline-none hover:decoration-muted focus-visible:ring-2 focus-visible:ring-focus sm:min-h-8"
+            className="rounded-sm py-0 text-xs text-muted underline decoration-muted/30 decoration-dashed underline-offset-2 outline-none hover:decoration-muted focus-visible:ring-2 focus-visible:ring-focus"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? "Show Less" : "Show More"}
