@@ -580,7 +580,7 @@ export function AnalyticsView({
             }
           >
             <Widget.Title
-              icon={<ScoutIcon name={pageviews ? "pageview" : "request"} />}
+              icon={pageviews ? undefined : <ScoutIcon name="request" />}
             >
               {pageviews ? "Trends" : "Request trend"}
             </Widget.Title>
@@ -863,7 +863,7 @@ function AnalyticsRows({
       <Table.ScrollContainer id={tableId}>
         <Table.Content
           aria-label={name}
-          className={`w-full table-fixed ${styles.breakdown} ${numbered ? styles.numbered : ""}`}
+          className={`w-full table-fixed ${styles.breakdown} ${numbered ? styles.numbered : ""} ${numbered && orderedRows.length > 9 ? styles.doubleDigitRanks : ""}`}
         >
           <Table.Header>
             {numbered ? (
@@ -963,7 +963,7 @@ function AnalyticsRows({
         </Table.Content>
       </Table.ScrollContainer>
       {sortedRows.length > 10 ? (
-        <Table.Footer className="flex items-center px-4 py-0!">
+        <Table.Footer className="flex items-center">
           <button
             type="button"
             aria-expanded={expanded}

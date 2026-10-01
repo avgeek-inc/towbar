@@ -51,6 +51,10 @@
     content: none;
   }
 
+  .numbered.doubleDigitRanks .rankColumn {
+    width: 1.5rem !important;
+  }
+
   .breakdown.numbered [data-slot="table-row"] .rankCell {
     padding-inline: 0;
     border-bottom: 0;
