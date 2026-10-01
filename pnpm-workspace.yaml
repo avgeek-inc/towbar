@@ -36,8 +36,8 @@ allowBuilds:
   ssh2: false
 
 catalog:
-  "@aws-sdk/client-s3": ^3.1134.0
-  "@aws-sdk/lib-storage": 3.1127.0
+  "@aws-sdk/client-s3": ^3.1141.0
+  "@aws-sdk/lib-storage": 3.1141.0
   "@eslint/js": ^9.39.4
   "@fontsource-variable/inter": ^5.3.0
   "@heroui/react": 3.2.6
@@ -63,13 +63,13 @@ catalog:
   react: ^19.3.0
   react-aria-components: ^1.21.1
   react-dom: ^19.3.0
-  react-hook-form: ^7.88.0
+  react-hook-form: ^7.89.0
   recharts: ^3.10.1
   tailwind-merge: ^3.7.0
   tailwindcss: ^4.2.4
   typescript: ^5.9.3
   yaml: ^2.9.1
-  zod: ^4.5.4
+  zod: ^4.6.5
 
 packageExtensions:
   "@heroui/react@3.2.4":
