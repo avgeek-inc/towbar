@@ -115,9 +115,9 @@ a[href^="/docs/integrations/"] img[src^="/assets/integration-logos/"] {
   --towbar-doc-brand: url("/assets/integration-logos/infisical.webp");
 }
 #content-area:has(
-  .towbar-doc-brand-logo[src="/assets/integration-logos/doppler.ico"]
+  .towbar-doc-brand-logo[src="/assets/integration-logos/doppler.svg"]
 ) {
-  --towbar-doc-brand: url("/assets/integration-logos/doppler.ico");
+  --towbar-doc-brand: url("/assets/integration-logos/doppler.svg");
 }
 #content-area:has(
   .towbar-doc-brand-logo[src="/assets/integration-logos/slack.svg"]

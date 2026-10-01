@@ -1,10 +1,9 @@
-# Bundled service favicons
+# Bundled service logos
 
-Favicons for the example services are served locally in both the fixture and public demo. This avoids third-party image requests and works with the demo Content Security Policy. Product names and marks belong to their respective owners.
+Logos for recognized service domains are served locally in both the application and public demo. The catalog also supplies analytics referring-website icons. This avoids third-party image requests and works with the demo Content Security Policy. Product names and marks belong to their respective owners.
 
-- `nextjs.ico`: https://nextjs.org/favicon.ico
-- `docker.ico`: https://docs.docker.com/favicon.ico
-- `wikipedia.ico`: https://www.wikipedia.org/favicon.ico
-- `nextcloud.png`: https://nextcloud.com/favicon.ico
-- `nodejs.png`: https://nodejs.org/favicon.ico
-- `python.ico`: https://www.python.org/favicon.ico
+- `nextjs.svg` and `wikipedia.svg`: unchanged vectors from [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons/tree/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/svg), Apache-2.0. The collection license is included in [LICENSE-dashboard-icons](../resource-logos/LICENSE-dashboard-icons).
+- Node.js and Python reuse the scalable `/resource-logos/nodejs.svg` and `/resource-logos/python.svg` marks. Docker, Nextcloud, and Directus reuse the high-resolution resource artwork. Their upstream URLs and licenses are recorded in the [resource logo catalog](../resource-logos/README.md).
+- Towbar uses the 256px `/brand/towbar-logo.png` artwork rather than the smaller browser favicon.
+
+Keep bundled identities scalable or large enough for a 32px logo on a display with a device pixel ratio of 3. Do not substitute 16px or 32px website favicons for available product artwork.

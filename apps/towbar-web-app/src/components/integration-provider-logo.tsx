@@ -6,7 +6,7 @@ const providerLogos = {
   gitlab: "/integration-logos/gitlab.svg",
   registry: "/resource-logos/docker.webp",
   infisical: "/resource-logos/infisical.webp",
-  doppler: "/integration-logos/doppler.ico",
+  doppler: "/integration-logos/doppler.svg",
   slack: "/integration-logos/slack.svg",
   discord: "/integration-logos/discord.svg",
   telegram: "/integration-logos/telegram.svg",

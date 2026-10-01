@@ -20,7 +20,7 @@ Registry or publisher references for the catalog expansion are recorded in
 date, not a guarantee of continued maintenance or image safety.
 
 - Dashboard Icons by Homarr Labs and contributors, Apache-2.0, revision
-  `f651f5798c7d58bff3cff4d3a9c4645d87657bbd`. WebP assets are copied unchanged.
+  `f651f5798c7d58bff3cff4d3a9c4645d87657bbd`. WebP assets and the Node.js and Python SVGs are copied unchanged.
   The license is included in `LICENSE-dashboard-icons`. Theme variants are used
   where available; some dark artwork sits on a light plate in dark mode.
   Mailpit uses a dark plate in both themes to preserve its white envelope.

@@ -973,14 +973,14 @@
   {
     "product": "Node.js",
     "repositories": ["node"],
-    "file": "nodejs.webp",
-    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nodejs.webp"
+    "file": "nodejs.svg",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/svg/nodejs.svg"
   },
   {
     "product": "Python",
     "repositories": ["python"],
-    "file": "python.webp",
-    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/python.webp"
+    "file": "python.svg",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/svg/python.svg"
   },
   {
     "product": "Go",
