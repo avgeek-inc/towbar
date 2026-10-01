@@ -6,7 +6,7 @@ import {
 } from "./monitoring-events";
 import { PageSelectionTitle } from "./page-selection-title";
 import {
-  Analytics01Icon,
+  ChartNoAxesColumnIcon,
   FilterIcon,
   FilterRemoveIcon,
 } from "@hugeicons/core-free-icons";
@@ -87,12 +87,16 @@ export function ScoutAnalytics({
   appId,
   domain,
   supported = true,
+  webAnalyticsEnabled = true,
 }: {
   appId: string;
   domain?: string;
   supported?: boolean;
+  webAnalyticsEnabled?: boolean;
 }) {
-  const [kind, setKind] = useState<"request" | "pageview">("request");
+  const [kind, setKind] = useState<"request" | "pageview">(
+    webAnalyticsEnabled ? "pageview" : "request",
+  );
   const [days, setDays] = useState(7);
   const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
   const filterLabels: Record<AnalyticsFilter["field"], string> = {
@@ -154,7 +158,7 @@ export function ScoutAnalytics({
       <>
         <PageSelectionTitle
           label="Analytics"
-          icon={<HugeiconsIcon icon={Analytics01Icon} />}
+          icon={<HugeiconsIcon icon={ChartNoAxesColumnIcon} />}
           keepEntityName
         />
         <EmptyState>
@@ -173,7 +177,7 @@ export function ScoutAnalytics({
     <>
       <PageSelectionTitle
         label="Analytics"
-        icon={<HugeiconsIcon icon={Analytics01Icon} />}
+        icon={<HugeiconsIcon icon={ChartNoAxesColumnIcon} />}
         keepEntityName
         actions={
           <div className="hidden sm:block">
@@ -452,10 +456,10 @@ export function AnalyticsView({
             value={report.kind}
             onChange={(value) => setKind(value as "request" | "pageview")}
             options={[
-              { id: "request", label: "HTTP analytics" },
               ...(report.config?.pageviews
                 ? [{ id: "pageview", label: "Web analytics" }]
                 : []),
+              { id: "request", label: "HTTP analytics" },
             ]}
           />
           <ScoutSelect

@@ -18,8 +18,8 @@ import {
 } from "./scout-panel";
 
 import {
-  Activity01Icon,
-  Analytics01Icon,
+  SquareActivityIcon,
+  ChartNoAxesColumnIcon,
   Clock01Icon,
   Alert02Icon,
   AlertCircleIcon,
@@ -407,7 +407,7 @@ export function AppDetail() {
           {
             value: "analytics",
             contentOwnsTitle: true,
-            icon: <HugeiconsIcon icon={Analytics01Icon} />,
+            icon: <HugeiconsIcon icon={ChartNoAxesColumnIcon} />,
             label: "Analytics",
             group: "Monitor",
             content: (
@@ -415,6 +415,10 @@ export function AppDetail() {
                 appId={appId}
                 domain={item.config.domains?.primary}
                 supported={item.config.kind !== "compose"}
+                webAnalyticsEnabled={
+                  item.config.kind !== "compose" &&
+                  Boolean(item.config.analytics?.pageviews)
+                }
               />
             ),
           },
@@ -423,7 +427,7 @@ export function AppDetail() {
             label: "Performance",
             contentOwnsTitle: true,
             group: "Monitor",
-            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            icon: <HugeiconsIcon icon={SquareActivityIcon} />,
             content: (
               <ScoutPerformance
                 path={`/v1/core/apps/${appId}/metrics`}

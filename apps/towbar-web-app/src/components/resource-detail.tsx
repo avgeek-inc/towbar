@@ -15,6 +15,7 @@ import {
 
 import {
   Activity01Icon,
+  SquareActivityIcon,
   Alert02Icon,
   AlertCircleIcon,
   SecurityCheckIcon,
@@ -320,7 +321,7 @@ export function ResourceDetail() {
       label: "Performance",
       contentOwnsTitle: true,
       group: "Monitor",
-      icon: <HugeiconsIcon icon={Activity01Icon} />,
+      icon: <HugeiconsIcon icon={SquareActivityIcon} />,
       content: (
         <ScoutPerformance
           path={`/v1/core/resources/${resourceId}/metrics`}

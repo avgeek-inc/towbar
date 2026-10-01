@@ -5,7 +5,7 @@ import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Activity01Icon,
+  SquareActivityIcon,
   Delete02Icon,
   Menu01Icon,
   DashboardCircleIcon,
@@ -127,7 +127,7 @@ export type SecondaryItem = {
 };
 export const menuIcons: Record<string, typeof Menu01Icon> = {
   credentials: Key01Icon,
-  monitoring: Activity01Icon,
+  monitoring: SquareActivityIcon,
   cleanup: Delete02Icon,
   danger: Delete02Icon,
   backups: ReloadIcon,
