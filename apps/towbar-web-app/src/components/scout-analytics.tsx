@@ -570,7 +570,7 @@ export function AnalyticsView({
                   isDisabled={!report.comparison}
                 >
                   <Checkbox.Content>
-                    <Checkbox.Control>
+                    <Checkbox.Control className="border! border-muted/50">
                       <Checkbox.Indicator />
                     </Checkbox.Control>
                     <Label className="text-xs">Enable Compare</Label>
@@ -741,7 +741,7 @@ export function AnalyticsView({
                   key={key}
                   type="button"
                   aria-pressed={activeMetric === key}
-                  className={`widget__legend-item rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-focus ${activeMetric !== null && activeMetric !== key ? "opacity-40" : ""}`}
+                  className={`widget__legend-item cursor-pointer rounded-lg px-2 py-1 outline-none transition-colors duration-150 hover:bg-default focus-visible:bg-default focus-visible:ring-2 focus-visible:ring-focus aria-pressed:bg-default motion-reduce:transition-none ${activeMetric !== null && activeMetric !== key ? "opacity-40" : ""}`}
                   onClick={() =>
                     setSelectedMetric((current) =>
                       current === key ? null : key,
@@ -757,9 +757,6 @@ export function AnalyticsView({
                 </button>
               ))}
             </Widget.Legend>
-            {showComparison ? (
-              <p className="mt-2 text-xs text-muted">{comparisonLabel}</p>
-            ) : null}
             {pageviews && !report.comparison ? (
               <p className="mt-2 text-xs text-muted">
                 No prior period data to compare.
