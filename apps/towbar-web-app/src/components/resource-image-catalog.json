@@ -441,7 +441,7 @@
       "signoz/frontend",
       "signoz/alertmanager"
     ],
-    "logo": "/resource-logos/signoz.svg"
+    "logo": "/resource-logos/signoz-mark.svg"
   },
   {
     "id": "opentelemetry",

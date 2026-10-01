@@ -282,6 +282,22 @@ const apps: FixtureApp[] = [
     servers[1]!,
   ),
 ];
+apps[1]!.config.deploymentInputs = [
+  ".dockerignore",
+  ".npmrc",
+  "Dockerfile",
+  "content/**",
+  "data/**",
+  "next.config.ts",
+  "package.json",
+  "patches/**",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "postcss.config.mjs",
+  "public/**",
+  "src/**",
+  "tsconfig.json",
+];
 apps[0]!.config.domains = {
   primary: "example.com",
   redirects: [],

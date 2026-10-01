@@ -439,7 +439,7 @@
   },
   {
     "product": "SigNoz",
-    "file": "signoz.svg",
+    "file": "signoz-mark.svg",
     "source": "https://raw.githubusercontent.com/SigNoz/signoz/572345be63f2db40d591b0a5fbc7027a8835c12f/frontend/src/assets/Logos/signoz-brand-logo.svg",
     "repositories": [
       "signoz/signoz",
@@ -449,7 +449,8 @@
       "signoz/frontend",
       "signoz/alertmanager"
     ],
-    "license": "LICENSE-signoz"
+    "license": "LICENSE-signoz",
+    "modifications": "Added a scalable viewBox and removed rasterized shadow filters; original paths and colors retained."
   },
   {
     "product": "OpenTelemetry",

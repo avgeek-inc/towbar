@@ -70,6 +70,10 @@ void test("analytics filters validate bounded AND conditions", async () => {
     { field: "referrer", operator: "in", value: ["example.com", "Unknown"] },
     { field: "country", operator: "in", value: ["IN", "US"] },
     { field: "browser", operator: "in", value: ["Chrome"] },
+    { field: "device", operator: "in", value: ["Mobile"] },
+    { field: "destination", operator: "in", value: ["github.com"] },
+    { field: "status", operator: "in", value: ["200", "404"] },
+    { field: "method", operator: "in", value: ["GET", "POST"] },
     {
       field: "city",
       operator: "in",
@@ -95,6 +99,11 @@ void test("analytics filters validate bounded AND conditions", async () => {
       { ...filters[0], value: "/" + "a".repeat(256) },
       { ...filters[0], extra: true },
       { field: "referrer", operator: "in", value: [] },
+      { field: "status", operator: "in", value: ["600"] },
+      { field: "method", operator: "in", value: ["get"] },
+      { field: "device", operator: "in", value: ["mobile"] },
+      { field: "destination", operator: "in", value: ["https://github.com/"] },
+      { field: "responseTime", operator: "in", value: ["fast"] },
       { field: "country", operator: "in", value: ["IND"] },
       { field: "browser", operator: "in", value: ["chrome"] },
       { field: "city", operator: "in", value: ["Chennai\n"] },
@@ -204,5 +213,25 @@ void test("engagement fields are bounded and cannot alter response measurements"
       destination: "https://github.com/?secret=yes",
     }).success,
     false,
+  );
+});
+
+void test("response time filters accept only recorded histogram ranges", async () => {
+  const { analyticsFilterSchema, analyticsResponseTimeRanges } =
+    await import("./analytics.js");
+  for (const range of analyticsResponseTimeRanges)
+    assert(
+      analyticsFilterSchema.safeParse({
+        field: "responseTime",
+        operator: "in",
+        value: [range],
+      }).success,
+    );
+  assert(
+    !analyticsFilterSchema.safeParse({
+      field: "responseTime",
+      operator: "equals",
+      value: "10",
+    }).success,
   );
 });

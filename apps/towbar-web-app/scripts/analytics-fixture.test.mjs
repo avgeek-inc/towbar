@@ -99,3 +99,47 @@ test("city filters apply consistently to pageview reports", () => {
   );
   assert.equal(report("request").dimensions.city, undefined);
 });
+
+test("HTTP dimension filters keep totals, errors and latency ranges consistent", () => {
+  const selected = report("request", [
+    { field: "status", operator: "in", value: ["404"] },
+    { field: "method", operator: "in", value: ["POST"] },
+    { field: "responseTime", operator: "in", value: ["50 to 100 ms"] },
+  ]);
+  assert(selected.total > 0);
+  assert.deepEqual(selected.dimensions.status, [
+    { value: "404", count: selected.total },
+  ]);
+  assert.deepEqual(selected.dimensions.method, [
+    { value: "POST", count: selected.total },
+  ]);
+  assert.equal(selected.errors, selected.total);
+  assert.equal(
+    selected.trend.reduce((sum, point) => sum + point.errors, 0),
+    selected.errors,
+  );
+  assert.equal(selected.comparison.errors, selected.comparison.total);
+  assert.equal(selected.histogram[2], selected.total);
+  assert.equal(
+    selected.histogram.reduce((sum, count) => sum + count, 0),
+    selected.total,
+  );
+});
+
+test("web device and outbound filters preserve click totals and retain cities for expansion", () => {
+  assert.equal(report("pageview").dimensions.city.length, 25);
+  const selected = report("pageview", [
+    { field: "device", operator: "in", value: ["Mobile"] },
+    { field: "destination", operator: "in", value: ["github.com"] },
+  ]);
+  assert(selected.total > 0);
+  assert.deepEqual(selected.dimensions.device, [
+    { value: "Mobile", count: selected.total },
+  ]);
+  assert(selected.dimensions.city.length <= 25);
+  assert.equal(selected.errors, 0);
+  assert(selected.trend.every((point) => point.errors === 0));
+  assert.deepEqual(selected.outboundLinks, [
+    { value: "github.com", count: selected.outboundClicks },
+  ]);
+});

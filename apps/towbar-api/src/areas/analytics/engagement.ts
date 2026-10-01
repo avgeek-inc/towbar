@@ -45,7 +45,7 @@ export async function getPageEngagement(
     from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c
     where ${scope} and s.collected_at >= ${start.toISOString()}::timestamptz
       and c->>'kind'='outbound' and ${conditions}
-    group by 1 order by sum((c->>'count')::bigint) desc,1 limit 20`);
+    group by 1 order by sum((c->>'count')::bigint) desc,1 limit 25`);
   const averageTimeMs =
     time && Number(time.pages)
       ? Number(time.duration) / Number(time.pages)
@@ -92,7 +92,7 @@ export async function getPageEngagement(
         order by coalesce((c->>'pageStartedAt')::timestamptz,at) desc, at desc, c->>'pageId' desc) rank
       from events where c->>'kind'='pageview' and c->>'session' in (select session from completed where ordered)
     ) select c->>'path' value, count(*)::text count, sum(count(*)) over()::text total from ranked where rank=1 and ${conditions}
-      group by 1 order by count(*) desc,1 limit 20`);
+      group by 1 order by count(*) desc,1 limit 25`);
   return {
     averageTimeMs,
     bounceRate:

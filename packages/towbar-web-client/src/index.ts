@@ -43,3 +43,9 @@ export type {
   TowbarUpgradePlan,
   TowbarUpgradeStatus,
 } from "@workspace/towbar-core";
+
+export {
+  analyticsResponseTimeRanges,
+  analyticsHttpFilterFields,
+  analyticsWebFilterFields,
+} from "@workspace/towbar-core/analytics";
