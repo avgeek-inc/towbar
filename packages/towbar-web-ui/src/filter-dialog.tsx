@@ -80,7 +80,11 @@ export function FilterDialog<Field extends string, Operator extends string>({
         <HugeiconsIcon icon={FilterIcon} />
         Filters
         {value.length ? (
-          <Chip size="small" aria-label={`${value.length} active filters`}>
+          <Chip
+            size="small"
+            variant="info"
+            aria-label={`${value.length} active filters`}
+          >
             {value.length}
           </Chip>
         ) : null}

@@ -57,6 +57,10 @@ import { ScoutIcon } from "./scout-icons";
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
+import {
+  analyticsRowFilterMatches,
+  toggleAnalyticsRowFilter,
+} from "@/lib/analytics-row-filter";
 
 const axisTick = { fill: "var(--muted)", fontSize: 10 };
 const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
@@ -91,15 +95,6 @@ const filterIcon = (icon: typeof FilterIcon) => (
     aria-hidden="true"
   />
 );
-function pathFilterMatches(filter: AnalyticsFilter, path: string) {
-  return (
-    filter.field === "path" &&
-    typeof filter.value === "string" &&
-    (filter.operator === "equals"
-      ? filter.value === path
-      : filter.operator === "startsWith" && path.startsWith(filter.value))
-  );
-}
 const pathFilterField: FilterField<
   AnalyticsFilter["field"],
   AnalyticsFilter["operator"]
@@ -130,7 +125,7 @@ export function ScoutAnalytics({
   supported?: boolean;
 }) {
   const [kind, setKind] = useState<"request" | "pageview">("pageview");
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState(1);
   const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
   const filterLabels: Record<AnalyticsFilter["field"], string> = {
     path: "Path",
@@ -256,61 +251,79 @@ export function ScoutAnalytics({
           </div>
         }
       />
-      {query.error ? (
-        <QueryError message={query.error} />
-      ) : !query.data ? (
-        <QueryLoading />
-      ) : (
-        <AnalyticsView
-          report={query.data}
-          domain={domain}
-          days={days}
-          setDays={setDays}
-          setKind={(next) => {
-            const available =
-              next === "request"
-                ? analyticsHttpFilterFields
-                : analyticsWebFilterFields;
-            setFilters((current) =>
-              current.filter((filter) =>
-                available.some((field) => field === filter.field),
-              ),
-            );
-            setKind(next);
-          }}
-          onFilterPath={(path) =>
-            setFilters((current) => {
-              if (current.some((filter) => pathFilterMatches(filter, path)))
-                return current.filter(
-                  (filter) => !pathFilterMatches(filter, path),
-                );
-              if (current.length >= 8) return current;
-              return [
-                ...current,
-                { field: "path", operator: "equals", value: path },
-              ];
-            })
-          }
-        />
-      )}
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
+          <ScoutSelect
+            label="Measure"
+            value={kind}
+            onChange={(value) => {
+              const next = value as "request" | "pageview";
+              const available =
+                next === "request"
+                  ? analyticsHttpFilterFields
+                  : analyticsWebFilterFields;
+              setFilters((current) =>
+                current.filter((filter) =>
+                  available.some((field) => field === filter.field),
+                ),
+              );
+              setKind(next);
+            }}
+            options={[
+              { id: "pageview", label: "Web analytics" },
+              { id: "request", label: "HTTP analytics" },
+            ]}
+          />
+          <ScoutSelect
+            label="Time range"
+            value={String(days)}
+            onChange={(value) => setDays(Number(value))}
+            options={[1, 7, 14, 30, 90]
+              .filter((n) => n <= (query.data?.config?.retentionDays ?? 30))
+              .map((n) => ({
+                id: String(n),
+                label: `Last ${n === 1 ? "24 hours" : `${n} days`}`,
+              }))}
+          />
+        </div>
+        {query.error ? <QueryError message={query.error} /> : null}
+        {!query.data ? (
+          query.error ? null : (
+            <QueryLoading />
+          )
+        ) : (
+          <AnalyticsView
+            report={query.data}
+            kind={kind}
+            filters={filters}
+            updating={query.isRefreshing || query.isPreviousData}
+            domain={domain}
+            onFilter={(field, value) =>
+              setFilters((current) =>
+                toggleAnalyticsRowFilter(current, field, value),
+              )
+            }
+          />
+        )}
+      </div>
     </>
   );
 }
 
 export function AnalyticsView({
   report,
+  kind = report.kind,
+  filters = report.filters,
+  updating = false,
   domain,
-  days,
-  setDays,
-  setKind,
-  onFilterPath,
+  onFilter,
 }: {
   report: AnalyticsReport;
+  kind?: "request" | "pageview";
+  filters?: AnalyticsFilter[];
+  updating?: boolean;
   domain?: string;
-  days: number;
-  setDays: (n: number) => void;
-  setKind: (kind: "request" | "pageview") => void;
-  onFilterPath: (path: string) => void;
+  onFilter: (field: AnalyticsFilter["field"], value: string) => void;
 }) {
   const [eventActive, setEventActive] = useState(false);
   const [compareEnabled, setCompareEnabled] = useState(false);
@@ -330,6 +343,9 @@ export function AnalyticsView({
       </EmptyState>
     );
   const pageviews = report.kind === "pageview";
+  const reportDays = Math.round(
+    (Date.parse(report.end) - Date.parse(report.start)) / 86_400_000,
+  );
   const metrics = pageviews
     ? [
         {
@@ -435,12 +451,17 @@ export function AnalyticsView({
   const breakdowns: {
     name: string;
     dimension: string;
+    field?: AnalyticsFilter["field"];
     rows: { value: string; count: number }[];
     total: number;
     help?: string;
   }[] = Object.entries(report.dimensions).map(([dimension, rows]) => ({
     name: labels[dimension] ?? dimension,
     dimension,
+    field: (pageviews
+      ? analyticsWebFilterFields
+      : analyticsHttpFilterFields
+    ).find((field) => field === dimension),
     rows,
     total: report.total,
   }));
@@ -448,6 +469,7 @@ export function AnalyticsView({
     breakdowns.push({
       name: "Response times",
       dimension: "responseTime",
+      field: "responseTime",
       rows: report.histogram
         .map((count, i) => ({ value: latencyLabels[i]!, count }))
         .filter((row) => row.count > 0),
@@ -458,6 +480,7 @@ export function AnalyticsView({
       breakdowns.push({
         name: "Exit pages",
         dimension: "path",
+        field: "path",
         rows: report.exitPages ?? [],
         total: report.exits ?? 0,
         help: "The last page viewed in each finished visit. A visit finishes after 30 minutes without activity.",
@@ -465,6 +488,7 @@ export function AnalyticsView({
     breakdowns.push({
       name: "Outbound websites",
       dimension: "referrer",
+      field: "destination",
       rows: report.outboundLinks ?? [],
       total: report.outboundClicks ?? 0,
       help: "Websites whose links visitors clicked, including links opened in a new tab. A click does not prove the visitor left your site.",
@@ -481,33 +505,14 @@ export function AnalyticsView({
       (breakdown.rows.length > 10 ? 1 : 0);
   }
   const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
-  const comparisonLabel = `Prev. ${days === 1 ? "24 hours" : `${days} days`}`;
+  const comparisonLabel = `Prev. ${reportDays === 1 ? "24 hours" : `${reportDays} days`}`;
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
-          <ScoutSelect
-            label="Measure"
-            value={report.kind}
-            onChange={(value) => setKind(value as "request" | "pageview")}
-            options={[
-              { id: "pageview", label: "Web analytics" },
-              { id: "request", label: "HTTP analytics" },
-            ]}
-          />
-          <ScoutSelect
-            label="Time range"
-            value={String(days)}
-            onChange={(value) => setDays(Number(value))}
-            options={[1, 7, 14, 30, 90]
-              .filter((n) => n <= (report.config?.retentionDays ?? 30))
-              .map((n) => ({
-                id: String(n),
-                label: `Last ${n === 1 ? "24 hours" : `${n} days`}`,
-              }))}
-          />
-        </div>
-      </div>
+    <div className="space-y-6" aria-busy={updating}>
+      {updating ? (
+        <span className="sr-only" role="status">
+          Updating analytics
+        </span>
+      ) : null}
       {report.filters.some((filter) => filter.field === "responseTime") &&
       report.meanMs === null &&
       report.total > 0 ? (
@@ -600,20 +605,30 @@ export function AnalyticsView({
         <Widget>
           <Widget.Header
             endContent={
-              <Checkbox
-                className="shrink-0"
-                variant="secondary"
-                isSelected={compareEnabled}
-                onChange={setCompareEnabled}
-                isDisabled={!report.comparison}
+              <TooltipText
+                className="inline-flex shrink-0"
+                tabIndex={!report.comparison ? 0 : undefined}
+                tooltip={
+                  !report.comparison
+                    ? "No prior period data to compare."
+                    : undefined
+                }
               >
-                <Checkbox.Content className="gap-2">
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                  <Label className="text-xs">Enable Compare</Label>
-                </Checkbox.Content>
-              </Checkbox>
+                <Checkbox
+                  className="shrink-0"
+                  variant="secondary"
+                  isSelected={compareEnabled}
+                  onChange={setCompareEnabled}
+                  isDisabled={!report.comparison}
+                >
+                  <Checkbox.Content className="gap-2">
+                    <Checkbox.Control>
+                      <Checkbox.Indicator />
+                    </Checkbox.Control>
+                    <Label className="text-xs">Enable Compare</Label>
+                  </Checkbox.Content>
+                </Checkbox>
+              </TooltipText>
             }
           >
             <Widget.Title
@@ -660,7 +675,7 @@ export function AnalyticsView({
                   new Date(Number(value)).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
-                    ...(days === 1 ? { hour: "numeric" } : {}),
+                    ...(reportDays === 1 ? { hour: "numeric" } : {}),
                   })
                 }
               />
@@ -698,7 +713,7 @@ export function AnalyticsView({
                       labelFormatter={(value) =>
                         new Date(Number(value)).toLocaleString(undefined, {
                           dateStyle: "medium",
-                          ...(days === 1 ? { timeStyle: "short" } : {}),
+                          ...(reportDays === 1 ? { timeStyle: "short" } : {}),
                         })
                       }
                       valueFormatter={(value, key) => {
@@ -711,7 +726,6 @@ export function AnalyticsView({
                           <span
                             className={`inline-flex items-center gap-2 whitespace-nowrap ${String(key).startsWith("previous") ? "text-muted" : ""}`}
                           >
-                            {format(Number(value))}
                             {showComparison && series && previous != null ? (
                               <MetricChange
                                 current={Number(value)}
@@ -721,6 +735,7 @@ export function AnalyticsView({
                                 inline
                               />
                             ) : null}
+                            {format(Number(value))}
                           </span>
                         );
                       }}
@@ -794,17 +809,12 @@ export function AnalyticsView({
                 </button>
               ))}
             </Widget.Legend>
-            {!report.comparison ? (
-              <p className="mt-2 text-xs text-muted">
-                No prior period data to compare.
-              </p>
-            ) : null}
           </Widget.Content>
         </Widget>
       )}
       {report.total > 0 ? (
         <div
-          key={`${report.kind}:${days}:${JSON.stringify(report.filters)}`}
+          key={`${report.kind}:${report.start}:${JSON.stringify(report.filters)}`}
           className="grid grid-cols-1 items-start gap-4 md:grid-cols-2"
         >
           {breakdownColumns.map((column, index) => (
@@ -814,23 +824,18 @@ export function AnalyticsView({
                   key={breakdown.name}
                   {...breakdown}
                   domain={domain}
-                  onFilterPath={
-                    breakdown.dimension === "path" ? onFilterPath : undefined
+                  onFilter={
+                    breakdown.field && kind === report.kind
+                      ? (value) => onFilter(breakdown.field!, value)
+                      : undefined
                   }
-                  filters={report.filters}
+                  filterField={breakdown.field}
+                  filters={filters}
                 />
               ))}
             </div>
           ))}
         </div>
-      ) : null}
-      {pageviews && report.total > 0 ? (
-        <p className="text-xs text-muted">
-          IP Geolocation by{" "}
-          <InlineExternalLink href="https://db-ip.com" tone="secondary">
-            DB-IP
-          </InlineExternalLink>
-        </p>
       ) : null}
       {pageviews ? (
         <section
@@ -863,7 +868,8 @@ function AnalyticsRows({
   dimension = "",
   help,
   domain,
-  onFilterPath,
+  onFilter,
+  filterField,
   filters = [],
 }: {
   name: string;
@@ -871,7 +877,8 @@ function AnalyticsRows({
   dimension?: string;
   help?: string;
   domain?: string;
-  onFilterPath?: (path: string) => void;
+  onFilter?: (value: string) => void;
+  filterField?: AnalyticsFilter["field"];
   rows: { value: string; count: number }[];
   total: number;
 }) {
@@ -981,9 +988,25 @@ function AnalyticsRows({
                       }
                       dimension={dimension}
                       domain={domain}
-                      onFilterPath={onFilterPath}
-                      filtered={filters.some((filter) =>
-                        pathFilterMatches(filter, row.value),
+                      onFilter={onFilter}
+                      filterField={filterField}
+                      filtered={Boolean(
+                        filterField &&
+                        filters.some((filter) =>
+                          analyticsRowFilterMatches(
+                            filter,
+                            filterField,
+                            row.value,
+                          ),
+                        ),
+                      )}
+                      filterDisabled={Boolean(
+                        filterField &&
+                        toggleAnalyticsRowFilter(
+                          filters,
+                          filterField,
+                          row.value,
+                        ) === filters,
                       )}
                     />
                   </span>
@@ -1037,7 +1060,9 @@ function AnalyticsRowLabel({
   label,
   dimension,
   domain,
-  onFilterPath,
+  onFilter,
+  filterField,
+  filterDisabled,
   filtered,
 }: {
   value: string;
@@ -1045,7 +1070,9 @@ function AnalyticsRowLabel({
   label: string;
   dimension: string;
   domain?: string;
-  onFilterPath?: (path: string) => void;
+  onFilter?: (value: string) => void;
+  filterField?: AnalyticsFilter["field"];
+  filterDisabled: boolean;
 }) {
   const href =
     dimension === "path" && domain && value.startsWith("/")
@@ -1074,14 +1101,15 @@ function AnalyticsRowLabel({
           {label}
         </span>
       )}
-      {onFilterPath && value.startsWith("/") ? (
+      {onFilter && filterField ? (
         <Tooltip>
           <Button
             isIconOnly
             variant="ghost"
-            aria-label={`${filtered ? "Remove filter for" : "Filter by"} path ${value}`}
-            className={`hidden size-5 min-w-0 shrink-0 rounded-lg bg-transparent p-0 hover:bg-default focus-visible:bg-default sm:inline-flex ${styles.rowAction}`}
-            onPress={() => onFilterPath(value)}
+            aria-label={`${filtered ? "Remove filter for" : "Filter by"} ${filterField} ${value}`}
+            className={`size-5 min-w-0 shrink-0 rounded-lg bg-transparent p-0 hover:bg-default focus-visible:bg-default ${styles.rowAction}`}
+            isDisabled={filterDisabled}
+            onPress={() => onFilter(value)}
           >
             <HugeiconsIcon
               icon={filtered ? FilterRemoveIcon : FilterIcon}
@@ -1089,7 +1117,7 @@ function AnalyticsRowLabel({
             />
           </Button>
           <Tooltip.Content>
-            {filtered ? "Remove path filter" : "Filter by this path"}
+            {filtered ? "Remove this filter" : "Filter by this value"}
           </Tooltip.Content>
         </Tooltip>
       ) : null}
