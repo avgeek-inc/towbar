@@ -87,16 +87,12 @@ export function ScoutAnalytics({
   appId,
   domain,
   supported = true,
-  webAnalyticsEnabled = true,
 }: {
   appId: string;
   domain?: string;
   supported?: boolean;
-  webAnalyticsEnabled?: boolean;
 }) {
-  const [kind, setKind] = useState<"request" | "pageview">(
-    webAnalyticsEnabled ? "pageview" : "request",
-  );
+  const [kind, setKind] = useState<"request" | "pageview">("pageview");
   const [days, setDays] = useState(7);
   const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
   const filterLabels: Record<AnalyticsFilter["field"], string> = {
@@ -333,7 +329,7 @@ export function AnalyticsView({
           lowerIsBetter: false,
         },
         {
-          label: "HTTP errors (4xx + 5xx)",
+          label: "4xx + 5xx",
           value: report.errors,
           previous: report.comparison?.errors,
           lowerIsBetter: true,
@@ -456,9 +452,7 @@ export function AnalyticsView({
             value={report.kind}
             onChange={(value) => setKind(value as "request" | "pageview")}
             options={[
-              ...(report.config?.pageviews
-                ? [{ id: "pageview", label: "Web analytics" }]
-                : []),
+              { id: "pageview", label: "Web analytics" },
               { id: "request", label: "HTTP analytics" },
             ]}
           />

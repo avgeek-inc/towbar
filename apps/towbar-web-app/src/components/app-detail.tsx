@@ -415,10 +415,6 @@ export function AppDetail() {
                 appId={appId}
                 domain={item.config.domains?.primary}
                 supported={item.config.kind !== "compose"}
-                webAnalyticsEnabled={
-                  item.config.kind !== "compose" &&
-                  Boolean(item.config.analytics?.pageviews)
-                }
               />
             ),
           },
