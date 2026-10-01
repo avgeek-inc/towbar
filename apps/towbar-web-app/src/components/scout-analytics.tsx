@@ -732,7 +732,7 @@ export function AnalyticsView({
                   ))
                 : null}
             </LineChart>
-            <Widget.Legend className="mt-2 flex-wrap">
+            <Widget.Legend className="mt-2 flex-wrap gap-1">
               {chartSeries.map(({ key, label, color }) => (
                 <button
                   key={key}
