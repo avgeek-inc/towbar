@@ -1,0 +1,51 @@
+id: collector
+name: Ingestion collector
+autoDeploy: false
+deployment:
+  type: image
+  image: signoz/signoz-otel-collector:v0.144.12
+  platform: linux/arm64
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: One collector owns the private ingestion alias
+container:
+  port: 4318
+  network: independent-oci
+  networkAlias: collector
+  entrypoint: /bin/sh
+  command:
+    - -ec
+    - |
+      /signoz-otel-collector migrate sync check
+      exec /signoz-otel-collector --config=/etc/otel-collector-config.yaml --manager-config=/etc/opamp-config.yaml --copy-path=/var/tmp/collector-config.yaml
+  resources:
+    cpus: 1
+    memory: 1g
+  configFiles:
+    - source: config/ingester.yaml
+      mountPath: /etc/otel-collector-config.yaml
+    - source: config/opamp.yaml
+      mountPath: /etc/opamp-config.yaml
+health:
+  path: /
+  port: 13133
+  timeoutSeconds: 120
+hooks:
+  preDeploy:
+    entrypoint: /bin/sh
+    timeoutSeconds: 900
+    command:
+      - -ec
+      - |
+        /signoz-otel-collector migrate ready
+        /signoz-otel-collector migrate bootstrap
+        /signoz-otel-collector migrate sync up
+        /signoz-otel-collector migrate async up
+secrets:
+  runtime: [SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN, SIGNOZ_OTEL_COLLECTOR_TIMEOUT]
+  preDeploy:
+    [SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN, SIGNOZ_OTEL_COLLECTOR_TIMEOUT]
+environments:
+  production:
+    server: 192.0.2.10

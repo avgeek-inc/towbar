@@ -72,7 +72,9 @@ void test("parses and canonicalizes a version 2 resolved manifest", () => {
   assert.equal(result.manifest.apps[0]?.sourceBranch, "release");
   assert.equal(result.manifest.apps[0]?.domains?.primary, "app.towbar.dev");
   assert.equal(result.manifest.apps[0]?.domains?.redirects[0]?.status, 301);
-  assert.equal(result.manifest.apps[0]?.health.path, "/api/health");
+  const health = result.manifest.apps[0]!.health;
+  assert("path" in health);
+  assert.equal(health.path, "/api/health");
   assert.equal(result.manifest.apps[0]?.container.network, "towbar-platform");
   assert.deepEqual(result.manifest.apps[0]?.container.resources, {
     cpus: 0.5,

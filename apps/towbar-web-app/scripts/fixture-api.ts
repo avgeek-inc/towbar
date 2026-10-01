@@ -552,6 +552,43 @@ const domainlessApp = createAppFixture(
   "background-worker",
   servers[1]!,
 );
+domainlessApp.config.container = {
+  ...domainlessApp.config.container,
+  port: 4318,
+  entrypoint: "/bin/sh",
+  command: ["-ec", "exec collector --config=/etc/collector/configuration.yaml"],
+  configFiles: [
+    {
+      source: "observability/collector/configuration.yaml",
+      mountPath: "/etc/collector/configuration.yaml",
+    },
+    {
+      source: "observability/collector/health-check",
+      mountPath: "/app/bin/health-check",
+      mode: "0555",
+    },
+  ],
+};
+domainlessApp.config.health = { path: "/", port: 13133, timeoutSeconds: 60 };
+domainlessApp.config.deployment = {
+  type: "image",
+  image: "signoz/signoz-otel-collector:v0.144.12",
+  platform: "linux/arm64",
+  pullPolicy: "if-not-present",
+};
+domainlessApp.config.rollout = {
+  type: "recreate",
+  maintenanceMode: true,
+  reason: "Collector keeps a singleton network alias",
+  terminationSeconds: 30,
+};
+domainlessApp.config.hooks = {
+  preDeploy: {
+    entrypoint: "/bin/sh",
+    command: ["-ec", "initialize && migrate"],
+    timeoutSeconds: 300,
+  },
+};
 apps.push(domainlessApp);
 (apps[0]!.config as NormalizedApp).analytics = {
   enabled: true,

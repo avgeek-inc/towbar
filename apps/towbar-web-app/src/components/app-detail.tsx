@@ -1,4 +1,5 @@
 "use client";
+import { ContainerRuntimeDetails } from "./container-runtime-details";
 import { ScoutAnalytics } from "./scout-analytics";
 import { AppJobs } from "./app-jobs";
 import { AppStorage } from "./app-storage";
@@ -643,14 +644,32 @@ function AppConfiguration({ item }: { item: AppRecord }) {
               "Default bridge"
             )}
           </Attributes.Item>
+          <ContainerRuntimeDetails container={item.config.container} />
           <Attributes.Item label="CPU limit">
             {item.config.container.resources?.cpus ?? "Docker default"}
           </Attributes.Item>
           <Attributes.Item label="Memory limit">
             {item.config.container.resources?.memory ?? "Docker default"}
           </Attributes.Item>
-          <Attributes.Item label="Health endpoint">
-            <TypographyCode>{item.config.health.path}</TypographyCode>
+          <Attributes.Item label="Health check">
+            <TypographyCode className="break-all">
+              {"path" in item.config.health
+                ? item.config.health.path
+                : item.config.health.type === "command"
+                  ? item.config.health.command.join(" ")
+                  : "Container health"}
+            </TypographyCode>
+          </Attributes.Item>
+          {"path" in item.config.health ? (
+            <Attributes.Item label="Health port">
+              {item.config.health.port ?? item.config.container.port}
+            </Attributes.Item>
+          ) : null}
+          <Attributes.Item label="Public health path">
+            {item.config.health.publicPath ??
+              ("path" in item.config.health
+                ? item.config.health.path
+                : "Not configured")}
           </Attributes.Item>
           <Attributes.Item label="Health timeout">
             {item.config.health.timeoutSeconds} seconds
@@ -741,6 +760,7 @@ function renderHook(
   hook:
     | {
         command: string[];
+        entrypoint?: string;
         secrets?: string;
         timeoutSeconds: number;
       }
@@ -750,7 +770,9 @@ function renderHook(
   return (
     <span className="grid gap-1">
       <TypographyCode className="break-all">
-        {hook.command.join(" ")}
+        {[...(hook.entrypoint ? [hook.entrypoint] : []), ...hook.command].join(
+          " ",
+        )}
       </TypographyCode>
       <span className="typography--body-xs font-normal text-muted">
         {hook.timeoutSeconds} second timeout

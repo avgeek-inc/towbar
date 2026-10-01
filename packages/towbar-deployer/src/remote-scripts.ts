@@ -1,3 +1,4 @@
+import { containerRuntimeArgumentsScript } from "./container-runtime.js";
 /* eslint-disable max-lines -- Remote scripts are kept with their shared shell-safety primitives so quoting rules cannot drift. */
 import {
   dockerNetworkLockScript,
@@ -653,12 +654,14 @@ docker_command+=("$image_tag")
 if (( $# > 0 )); then docker_command+=("$@"); fi
 /usr/bin/python3 - "$remote_dir/secrets/runtime" "${"$"}{docker_command[@]}" <<'PYTHON' >/dev/null
 import os
+import json
 from pathlib import Path
 import sys
 
 runtime_directory = Path(sys.argv[1])
 command = sys.argv[2:]
 runtime_arguments: list[str] = []
+${containerRuntimeArgumentsScript}
 for secret_path in sorted(runtime_directory.iterdir()):
     if not secret_path.is_file():
         continue
@@ -722,6 +725,8 @@ for option in runtime_arguments[1::2]:
     labels = json.loads(result.stdout)[0].get("Labels") or {}
     if labels.get("towbar.managed") != "true" or labels.get("towbar.storage") != "app" or labels.get("towbar.runtime") != os.environ["TOWBAR_APP_ID"]:
         raise SystemExit("Persistent volume ownership changed before hook execution")
+
+${containerRuntimeArgumentsScript}
 
 for secret_path in sorted(secret_directory.iterdir()):
     if not secret_path.is_file():

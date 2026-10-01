@@ -4,6 +4,7 @@ import {
   getSourceInputDigest,
   isNormalizedCompose,
   isNormalizedResource,
+  validateConfigurationSources,
 } from "@workspace/towbar-core";
 
 import type {
@@ -24,13 +25,26 @@ export function calculateReleaseDeploymentDigest(input: {
   repositoryTree?: RepositoryTree;
   server: NormalizedServer;
 }): MaterializedDeploymentDigest {
-  const sourceInputDigest = isNormalizedResource(input.deployable)
-    ? null
-    : getSourceInputDigest({
-        commitSha: input.commitSha,
-        deploymentInputs: input.deploymentInputs,
-        tree: input.repositoryTree,
-      }).digest;
+  const files = isNormalizedCompose(input.deployable)
+    ? []
+    : (input.deployable.container.configFiles ?? []);
+  const sourceInputDigest =
+    isNormalizedResource(input.deployable) && !files.length
+      ? null
+      : getSourceInputDigest({
+          commitSha: input.commitSha,
+          deploymentInputs: isNormalizedResource(input.deployable)
+            ? files.map((file) => file.source)
+            : input.deploymentInputs.length
+              ? [
+                  ...new Set([
+                    ...input.deploymentInputs,
+                    ...files.map((file) => file.source),
+                  ]),
+                ]
+              : [],
+          tree: input.repositoryTree,
+        }).digest;
   return {
     deploymentDigest: getDeployableDeploymentDigest({
       deployable: input.deployable,
@@ -47,6 +61,17 @@ export function calculateDesiredDeploymentDigest(input: {
   repositoryTree?: RepositoryTree;
   server: NormalizedServer;
 }) {
+  if (
+    !isNormalizedCompose(input.deployable) &&
+    input.deployable.container.configFiles?.length
+  ) {
+    if (!input.repositoryTree)
+      throw new Error("Configuration files require the source snapshot tree");
+    validateConfigurationSources(
+      input.deployable.container.configFiles,
+      input.repositoryTree,
+    );
+  }
   if (isNormalizedResource(input.deployable)) {
     return {
       id: input.deployable.id,

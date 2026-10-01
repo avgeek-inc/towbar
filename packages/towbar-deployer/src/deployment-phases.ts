@@ -1,3 +1,5 @@
+import { prepareConfigurationFiles } from "./configuration-files.js";
+import { containerRuntimeOptions } from "./container-runtime.js";
 import { deploymentVolumeArguments, prepareAppStorage } from "./app-storage.js";
 import { validateHostLogCollection } from "./host-log-collection.js";
 import { chmod, mkdir, stat, statfs, writeFile } from "node:fs/promises";
@@ -131,6 +133,7 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
       signal: input.signal,
     });
   await writeSecretFiles(input.localDirectory, input.secrets);
+  await prepareConfigurationFiles({ ...input, checkout });
   if (isNormalizedResource(input.context.app)) {
     await uploadSecrets(input, input.session, ["runtime"]);
     if (input.context.kind === "deploy") {
@@ -138,7 +141,10 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
     } else {
       await verifyRetainedImage(input, false);
     }
-  } else if (checkout) {
+  } else if (
+    checkout &&
+    applicationDeployment(input.context.app).type !== "image"
+  ) {
     await buildDeploymentImage(input, checkout);
     await uploadSecrets(input, input.session, ["runtime", "hooks", "registry"]);
   } else if (
@@ -249,8 +255,9 @@ async function startAndVerifyNamedCandidate(
     : null;
   const startResult = resource
     ? await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
+        `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
         [
+          containerRuntimeOptions(input.context),
           resource.id,
           deploymentCleanupId(input.context),
           input.context.deploymentId,
@@ -287,8 +294,9 @@ async function startAndVerifyNamedCandidate(
         sensitiveValues: input.sensitiveValues,
         run: (handlers) =>
           input.session.run(
-            `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
+            `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
             [
+              containerRuntimeOptions(input.context),
               deploymentRuntimeId(input.context),
               input.context.deploymentId,
               input.context.commitSha,
@@ -336,32 +344,46 @@ async function startAndVerifyNamedCandidate(
     );
   }
   try {
-    if (resource && resource.health.type !== "http") {
+    const health = input.context.app.health;
+    if (health.type === "command" || health.type === "container") {
       await input.session.run(
         containerHealthRemoteScript,
         [
           containerName,
-          resource.health.type,
-          String(resource.health.timeoutSeconds),
-          ...(resource.health.type === "command"
-            ? resource.health.command
-            : []),
+          health.type,
+          String(health.timeoutSeconds),
+          ...(health.type === "command" ? health.command : []),
         ],
         {
           signal: input.signal,
-          timeoutMs: (resource.health.timeoutSeconds + 10) * 1_000,
+          timeoutMs: startupTimeout(
+            startupDeadline,
+            (health.timeoutSeconds + 10) * 1_000,
+          ),
         },
       );
     } else {
-      const health = resource?.health ?? input.context.app.health;
       if (!("path" in health)) throw new Error("HTTP health path is missing");
       const healthTimeoutSeconds = boundedHealthTimeout(
         health.timeoutSeconds,
         startupDeadline,
       );
+      const healthPort =
+        health.port && health.port !== input.context.app.container.port
+          ? parseCandidatePort(
+              (
+                await input.session.run(
+                  'docker port "$1" "$2/tcp" | awk -F: \'NR==1 {print $NF}\'',
+                  [containerName, String(health.port)],
+                  { signal: input.signal },
+                )
+              ).stdout,
+              true,
+            )
+          : candidatePort;
       await input.session.run(
         healthRemoteScript,
-        [String(candidatePort), health.path, String(healthTimeoutSeconds)],
+        [String(healthPort), health.path, String(healthTimeoutSeconds)],
         {
           signal: input.signal,
           timeoutMs: startupTimeout(
@@ -616,7 +638,11 @@ done
 `,
     [
       String(port),
-      input.context.app.health.path,
+      "path" in input.context.app.health
+        ? input.context.app.health.path
+        : (() => {
+            throw new Error("Rolling deployments require HTTP health");
+          })(),
       String(rollout.minimumHealthySeconds),
       String(rollout.failureThreshold),
     ],
@@ -834,6 +860,21 @@ async function selectDeploymentSource(input: DeploymentPhaseInput) {
       `Selecting retained release ${input.context.rollbackRelease?.releaseId.slice(0, 8)}`,
     );
     return undefined;
+  }
+  if (
+    !isNormalizedCompose(input.context.app) &&
+    input.context.app.container.configFiles?.length
+  ) {
+    await transition(
+      input.hooks,
+      "fetching_source",
+      `Fetching configuration files at commit ${input.context.commitSha.slice(0, 12)}`,
+    );
+    return await fetchDeploymentSource(
+      input.context,
+      input.localDirectory,
+      input.signal,
+    );
   }
   if (isNormalizedResource(input.context.app)) {
     await transition(
@@ -1364,13 +1405,11 @@ async function configureAndVerifyRouting(
 }
 
 function getPublicHealthPath(context: DeploymentExecutionContext) {
-  if (isNormalizedResource(context.app)) {
-    if (context.app.health.type !== "http") {
-      throw new Error("Public resources require an HTTP health check");
-    }
-    return context.app.health.path;
-  }
-  return context.app.health.path;
+  const health = context.app.health;
+  if (health.publicPath) return health.publicPath;
+  if (!("path" in health))
+    throw new Error("Public workloads require an HTTP publicPath");
+  return health.path;
 }
 
 async function writeSecretFiles(
@@ -1474,8 +1513,9 @@ async function runDeploymentHook(
     hooks: input.hooks,
     run: async (outputHandlers) =>
       await input.session.run(
-        `export TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_VOLUME_ARGS_JSON="$4"\nshift 4\n${hookRemoteScript}`,
+        `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_VOLUME_ARGS_JSON="$4"\nshift 4\n${hookRemoteScript}`,
         [
+          containerRuntimeOptions(input.context, input.hook),
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,

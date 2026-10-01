@@ -457,9 +457,10 @@ export async function getServerCheckExecutionContext(checkId: string) {
         deployableId: deployable.deployableId,
         sourceId: deployable.sourceId,
         desiredState: deployable.desiredState ?? "running",
-        health: isNormalizedResource(deployable.config)
-          ? deployable.config.health
-          : { ...deployable.config.health, type: "http" as const },
+        health:
+          "path" in deployable.config.health
+            ? { ...deployable.config.health, type: "http" as const }
+            : deployable.config.health,
         ingress: cloudflareTunnel ? { type: "cloudflare-tunnel" } : null,
         release: release
           ? {

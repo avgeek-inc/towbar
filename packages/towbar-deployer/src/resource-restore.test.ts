@@ -302,7 +302,11 @@ function sessionFixture(engine: Engine, failure: Failure) {
   return { commands, session };
 }
 
-async function runRestoreFixture(engine: Engine, failure: Failure) {
+async function runRestoreFixture(
+  engine: Engine,
+  failure: Failure,
+  container: Partial<NormalizedResource["container"]> = {},
+) {
   const directory = await mkdtemp(path.join(tmpdir(), "towbar-restore-test-"));
   const { commands, session } = sessionFixture(engine, failure);
   const baseStorage = storageFixture(failure);
@@ -319,8 +323,13 @@ async function runRestoreFixture(engine: Engine, failure: Failure) {
     },
   };
   try {
+    const context = restoreContext(engine);
+    context.deployable = {
+      ...resourceFixture(engine),
+      container: { ...resourceFixture(engine).container, ...container },
+    };
     const result = await executeManagedRestore({
-      context: restoreContext(engine),
+      context,
       hooks: {},
       localDirectory: directory,
       remoteDirectory: "/tmp/towbar-restore",
@@ -337,6 +346,21 @@ async function runRestoreFixture(engine: Engine, failure: Failure) {
 }
 
 void describe("managed database restore scripts", () => {
+  void it("rejects unsupported runtime configuration before changing a datastore", async () => {
+    for (const container of [
+      { configFiles: [{ source: "config/store", mountPath: "/etc/store" }] },
+      { entrypoint: "/bin/sh" },
+      { entrypoint: "" },
+    ]) {
+      const execution = await runRestoreFixture("postgres", null, container);
+      assert.match(
+        String(execution.error),
+        /Managed restore does not yet support/,
+      );
+      assert.deepEqual(execution.commands, []);
+    }
+  });
+
   void it("preflights ownership, active volume, free disk, and engine compatibility", () => {
     assert.match(restoreScripts.preflight, /towbar\.managed/);
     assert.match(restoreScripts.preflight, /towbar\.deployable/);

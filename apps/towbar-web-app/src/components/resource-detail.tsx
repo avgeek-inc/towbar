@@ -1,4 +1,5 @@
 "use client";
+import { ContainerRuntimeDetails } from "./container-runtime-details";
 import { useAccess } from "./access-context";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
@@ -616,15 +617,6 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
             {item.sourceRevision.slice(0, 12)}
           </TypographyCode>
         </Attributes.Item>
-        <Attributes.Item label="Command">
-          {item.config.container.command.length ? (
-            <TypographyCode className="break-all">
-              {item.config.container.command.join(" ")}
-            </TypographyCode>
-          ) : (
-            "Image default"
-          )}
-        </Attributes.Item>
       </Attributes>
       <Attributes
         icon={<HugeiconsIcon icon={PackageIcon} />}
@@ -642,6 +634,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
             "Default bridge"
           )}
         </Attributes.Item>
+        <ContainerRuntimeDetails container={item.config.container} />
         <Attributes.Item label="CPU limit">
           {item.config.container.resources.cpus}
         </Attributes.Item>
@@ -766,6 +759,16 @@ function ResourceHealthCheck({
       <Attributes.Item label="Timeout">
         {health.timeoutSeconds} seconds
       </Attributes.Item>
+      {health.publicPath ? (
+        <Attributes.Item label="Public health path">
+          <TypographyCode className="break-all">
+            {health.publicPath}
+          </TypographyCode>
+        </Attributes.Item>
+      ) : null}
+      {health.type === "http" && health.port ? (
+        <Attributes.Item label="Health port">{health.port}</Attributes.Item>
+      ) : null}
       {health.type === "http" ? (
         <Attributes.Item label="Endpoint path" className="col-span-2">
           <TypographyCode className="break-all">{health.path}</TypographyCode>

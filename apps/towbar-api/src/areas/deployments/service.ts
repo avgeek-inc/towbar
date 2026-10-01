@@ -336,7 +336,9 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
     ...publicContext
   } = context;
   const sourceCredential =
-    context.kind !== "deploy" || isNormalizedResource(context.app)
+    context.kind !== "deploy" ||
+    (isNormalizedResource(context.app) &&
+      !context.app.container.configFiles?.length)
       ? null
       : context.provider === "github"
         ? context.installationId

@@ -1,3 +1,4 @@
+import { containerRuntimeArgumentsScript } from "./container-runtime.js";
 import {
   dockerNetworkLockScript,
   validateNetworkAliasScript,
@@ -76,6 +77,9 @@ for option in runtime_arguments[1::2]:
         "towbar.deployable": os.environ["TOWBAR_DEPLOYABLE_ID"],
     }.items()):
         raise SystemExit("Persistent volume ownership changed before startup")
+
+${containerRuntimeArgumentsScript}
+command.extend(options.get("command") or [])
 
 for secret_path in sorted(runtime_directory.iterdir()):
     if not secret_path.is_file():

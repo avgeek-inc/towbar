@@ -103,3 +103,103 @@ API keys need edit access with administrative operations enabled and explicit `d
 Resuming a paused collector rechecks the successful sync's captured actor and its current access. A blocked collector is skipped with a reason while other automatic deployments and Preview reconciliation continue. Server consent changes preserve workload deployment digests. Rollback restores the target release's collector mode, resource limits, state volumes, and maintenance rollout.
 
 After removing `hostLogs`, deployment cleanup reclaims the owned host-log bind volume once every container reference is gone, including stopped containers. Server orphan cleanup can also reclaim an unused host-log volume for an active Service. Persistent cursor and buffer volumes remain intact. Re-enabling collection recreates the bind from the daemon's current data-root; a changed data-root can replace a stale owned bind only after its container references have been removed.
+
+## Runtime commands and repository files
+
+Services and managed Datastores accept `container.command` as an argument array
+and `container.entrypoint` as one executable path. Command arguments replace
+the image CMD and are passed to its entrypoint. An entrypoint override selects a
+different executable; put its arguments in `command`. An empty entrypoint
+clears the image entrypoint. Omit both fields to retain existing image and
+managed engine defaults.
+
+Declare each non-secret configuration file explicitly:
+
+```yaml
+rollout:
+  type: recreate
+  maintenanceMode: false
+  reason: Readiness uses a separate port
+container:
+  port: 4318
+  entrypoint: /bin/sh
+  command: [-ec, "exec collector --config=/etc/collector.yml"]
+  configFiles:
+    - source: config/collector.yml
+      mountPath: /etc/collector.yml
+    - source: config/tool
+      mountPath: /app/bin/tool
+      mode: "0555"
+health:
+  path: /
+  port: 13133
+  publicPath: /status
+```
+
+`source` is a canonical repository-relative regular file, taken from the same
+immutable commit as the deployment. Directories, traversal, and symlinks are
+rejected. `mountPath` is an absolute container file path. File targets cannot
+overlap each other or cover a volume; a file may overlay a location inside a
+named data volume. Up to 50 files, 16 MiB per file and 64 MiB in total are
+supported. Files mount read-only with mode `0444`, or `0555` for an executable.
+Their parent directories are traversable by non-root image users. This API
+does not accept arbitrary host paths or runtime/socket mounts.
+
+Declared files are included in source-input and runtime configuration digests,
+even when a Service's auto-deploy inputs select other paths. Sync requires a
+complete repository tree containing every file. Secret values stay in Towbar's
+existing runtime and hook secret bundles. Prefer the image's environment
+substitution support for credentials; Towbar does not template secrets into
+these source files.
+
+Towbar retains a checksum receipt and each release's files on the target server.
+Rollback verifies those retained bytes and modes and reuses them without needing
+repository access. Missing or altered files fail rollback before replacement.
+Retained configuration directories are not automatically garbage-collected in
+this version. Keep them while their releases remain usable. Managed backup
+capture remains available; automated datastore restore currently rejects
+configuration files or entrypoint overrides, so use engine-native recovery for
+those configurations. Deployment rollback still restores the prior runtime and
+its configuration without reversing data changes.
+
+## Readiness and public probes
+
+The default Service health check remains HTTP `/api/health` on
+`container.port`. An HTTP check may declare `health.port` to probe another
+container port; Towbar publishes that port only on target loopback. Routing
+continues to use `container.port`. Use `health.type: command` with a `command`
+array for a command executed inside the candidate, or `health.type: container`
+for image-provided Docker health (running state when the image has no check).
+These options require a `recreate` rollout. Rolling deployment continues to
+require HTTP readiness on the service port.
+
+When public routing uses a different endpoint or readiness uses a command,
+declare `health.publicPath` for a successful HTTP probe through ingress. It is
+required with a public domain when readiness uses a separate port or a
+non-HTTP check. Public TLS and routing checks remain independent of private
+readiness; the readiness port is not routed publicly.
+
+## Initialization with the selected image
+
+A deployment hook may override its image entrypoint. Hook containers receive
+the selected image, declared network, read-only configuration files, resource
+limits, and their own secret bundle. For an ordered initialization sequence:
+
+```yaml
+hooks:
+  preDeploy:
+    entrypoint: /bin/sh
+    command:
+      [
+        -ec,
+        "migrate ready && migrate bootstrap && migrate sync up && migrate async up",
+      ]
+    timeoutSeconds: 900
+```
+
+The hook exits on failure and must finish before startup. Hooks are skipped for
+rollback; keep an application-specific migration-status check in the startup
+command when needed. Independent deployables have no cross-workload ordering;
+deploy required dependencies first and wait for their health. See the
+[independent OCI example](https://github.com/avgeek-inc/towbar/tree/main/examples/independent-oci)
+for a five-entity validation case.

@@ -165,7 +165,7 @@ def evaluate_health(item, container, running):
             return "unhealthy"
     if health_type == "http":
         connectivity = item.get("connectivity") or {}
-        container_port = connectivity.get("containerPort")
+        container_port = health.get("port") or connectivity.get("containerPort")
         port_key = f"{container_port}/tcp"
         bindings = (container.get("NetworkSettings", {}).get("Ports") or {}).get(port_key) or []
         host_port = next((binding.get("HostPort") for binding in bindings if binding.get("HostPort")), None)

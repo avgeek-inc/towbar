@@ -1,0 +1,29 @@
+id: clickhouse
+name: ClickHouse telemetry store
+type: clickhouse
+image: clickhouse/clickhouse-server:25.12.5@sha256:cacf32d6884291dc2ff5e0156a97f46fc53ff7c929a7906d114e268a929dfd3a
+container:
+  network: independent-oci
+  networkAlias: clickhouse
+  resources:
+    cpus: 2
+    memory: 2g
+  configFiles:
+    - source: config/clickhouse.yaml
+      mountPath: /etc/clickhouse-server/config-0-0.yaml
+    - source: config/functions.yaml
+      mountPath: /etc/clickhouse-server/functions.yaml
+    - source: config/histogramQuantile
+      mountPath: /var/lib/clickhouse/user_scripts/histogramQuantile
+      mode: "0555"
+secrets:
+  runtime:
+    [
+      CLICKHOUSE_USER,
+      CLICKHOUSE_PASSWORD,
+      CLICKHOUSE_CONFIG,
+      CLICKHOUSE_SKIP_USER_SETUP,
+    ]
+environments:
+  production:
+    server: 192.0.2.10
