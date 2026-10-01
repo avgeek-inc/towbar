@@ -75,7 +75,11 @@
     "product": "ClickHouse",
     "file": "clickhouse.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/clickhouse.webp",
-    "repositories": ["clickhouse/clickhouse-server"]
+    "repositories": [
+      "clickhouse/clickhouse-server",
+      "clickhouse/clickhouse-keeper",
+      "clickhouse/clickhouse-client"
+    ]
   },
   {
     "product": "CockroachDB",
@@ -195,7 +199,10 @@
     "product": "OpenSearch",
     "file": "opensearch.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/opensearch.webp",
-    "repositories": ["opensearchproject/opensearch"]
+    "repositories": [
+      "opensearchproject/opensearch",
+      "opensearchproject/opensearch-dashboards"
+    ]
   },
   {
     "product": "Apache Solr",
@@ -363,7 +370,16 @@
     "product": "Prometheus",
     "file": "prometheus.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/prometheus.webp",
-    "repositories": ["prom/prometheus", "quay.io/prometheus/prometheus"]
+    "repositories": [
+      "prom/prometheus",
+      "quay.io/prometheus/prometheus",
+      "prom/node-exporter",
+      "quay.io/prometheus/node-exporter",
+      "prom/blackbox-exporter",
+      "quay.io/prometheus/blackbox-exporter",
+      "prom/pushgateway",
+      "quay.io/prometheus/pushgateway"
+    ]
   },
   {
     "product": "Alertmanager",
@@ -375,7 +391,7 @@
     "product": "Grafana Loki",
     "file": "loki.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/loki.webp",
-    "repositories": ["grafana/loki"]
+    "repositories": ["grafana/loki", "grafana/promtail"]
   },
   {
     "product": "BookStack",
@@ -423,15 +439,44 @@
   },
   {
     "product": "SigNoz",
-    "file": "signoz.webp",
-    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/signoz.webp",
-    "repositories": ["signoz/signoz", "signoz/query-service"]
+    "file": "signoz.svg",
+    "source": "https://raw.githubusercontent.com/SigNoz/signoz/572345be63f2db40d591b0a5fbc7027a8835c12f/frontend/src/assets/Logos/signoz-brand-logo.svg",
+    "repositories": [
+      "signoz/signoz",
+      "signoz/query-service",
+      "signoz/signoz-otel-collector",
+      "signoz/signoz-schema-migrator",
+      "signoz/frontend",
+      "signoz/alertmanager"
+    ],
+    "license": "LICENSE-signoz"
+  },
+  {
+    "product": "OpenTelemetry",
+    "file": "opentelemetry.svg",
+    "source": "https://raw.githubusercontent.com/cncf/artwork/002662490acb2303c7301acc0256c00790e03e9f/projects/opentelemetry/icon/color/opentelemetry-icon-color.svg",
+    "repositories": [
+      "otel/opentelemetry-collector",
+      "otel/opentelemetry-collector-contrib",
+      "otel/opentelemetry-collector-k8s",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib",
+      "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s"
+    ],
+    "license": "LICENSE-cncf-artwork"
   },
   {
     "product": "Jaeger",
     "file": "jaeger.webp",
     "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/jaeger.webp",
-    "repositories": ["jaegertracing/jaeger", "jaegertracing/all-in-one"]
+    "repositories": [
+      "jaegertracing/jaeger",
+      "jaegertracing/all-in-one",
+      "jaegertracing/jaeger-agent",
+      "jaegertracing/jaeger-collector",
+      "jaegertracing/jaeger-query",
+      "jaegertracing/jaeger-ingester"
+    ]
   },
   {
     "product": "Plausible",

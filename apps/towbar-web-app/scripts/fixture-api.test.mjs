@@ -1573,7 +1573,7 @@ test("fixture Sources have distinct inventories and working scoped routes", asyn
     const expected = new Map([
       [fixtureIds.source, [12, 10, 8]],
       [fixtureIds.docsSource, [4, 0, 2]],
-      [fixtureIds.analyticsSource, [3, 1, 3]],
+      [fixtureIds.analyticsSource, [6, 1, 4]],
       [fixtureIds.sandboxSource, [0, 0, 0]],
     ]);
     for (const source of sources) {
@@ -1684,8 +1684,8 @@ test("v2 fixtures expose environment mappings and isolated sibling instances", a
     }
     const appInventory = await get("/v1/core/apps");
     const resourceInventory = await get("/v1/core/resources");
-    assert.equal(appInventory.apps.length, 19);
-    assert.equal(appInventory.counts.all, 18);
+    assert.equal(appInventory.apps.length, 22);
+    assert.equal(appInventory.counts.all, 21);
     assert.equal(
       appInventory.apps.find((app) => app.id === fixtureIds.faviconApp)?.config
         .domains?.primary,

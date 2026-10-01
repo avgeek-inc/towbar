@@ -42,7 +42,8 @@
     "next": "catalog:",
     "qrcode": "1.5.4",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@simplewebauthn/server": "13.3.2",

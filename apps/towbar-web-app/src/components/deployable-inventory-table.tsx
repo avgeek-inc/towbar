@@ -44,16 +44,16 @@ export function DeployableInventoryTable<T extends App | Resource>({
               {groupBy === "server" ? (
                 <HugeiconsIcon
                   aria-hidden="true"
-                  className="size-5 shrink-0"
+                  className="size-4 shrink-0"
                   icon={ServerStack01Icon}
                 />
               ) : (
                 <EnvironmentIcon
                   name={group.name ?? undefined}
-                  className="size-5"
+                  className="size-4"
                 />
               )}
-              <h2 className="truncate text-base">
+              <span className="truncate text-sm font-medium">
                 {groupBy === "server" ? (
                   <TooltipText tooltip={group.key} tabIndex={-1}>
                     {group.name}
@@ -61,7 +61,7 @@ export function DeployableInventoryTable<T extends App | Resource>({
                 ) : (
                   (group.name ?? "No environment")
                 )}
-              </h2>
+              </span>
               <Chip className="shrink-0" size="small" variant="secondary">
                 {group.items.length}{" "}
                 {["app", "compose"].includes(group.items[0]!.kind)
@@ -91,16 +91,16 @@ export function DeployableInventoryTable<T extends App | Resource>({
           <div className="flex min-w-0 items-center gap-2">
             <HugeiconsIcon
               aria-hidden="true"
-              className="size-5 shrink-0"
+              className="size-4 shrink-0"
               icon={
                 group.items[0]!.kind === "app" ? DashboardCircleIcon : CubeIcon
               }
             />
-            <h2 className="truncate text-base">
+            <span className="truncate text-sm font-medium">
               <TooltipText tooltip={group.manifestId} tabIndex={-1}>
                 {group.manifestId}
               </TooltipText>
-            </h2>
+            </span>
             <Chip
               className="shrink-0"
               size="small"

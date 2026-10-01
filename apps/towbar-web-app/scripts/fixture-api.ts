@@ -703,6 +703,33 @@ const imageServices = [
     data: "/metabase-data",
     sourceId: fixtureIds.analyticsSource,
   },
+  {
+    name: "SigNoz",
+    slug: "signoz",
+    image: "signoz/signoz:v0.144.0",
+    domain: "signoz.example.com",
+    port: 8080,
+    data: "/var/lib/signoz",
+    sourceId: fixtureIds.analyticsSource,
+  },
+  {
+    name: "SigNoz Keeper",
+    slug: "keeper",
+    image: "clickhouse/clickhouse-keeper:25.12.5",
+    domain: "",
+    port: 9181,
+    data: "/var/lib/clickhouse",
+    sourceId: fixtureIds.analyticsSource,
+  },
+  {
+    name: "OpenTelemetry Collector",
+    slug: "otel-collector",
+    image: "otel/opentelemetry-collector-contrib:0.148.0",
+    domain: "",
+    port: 4318,
+    data: "/var/lib/otelcol",
+    sourceId: fixtureIds.analyticsSource,
+  },
 ];
 for (const [index, spec] of imageServices.entries()) {
   const app = createAppFixture(
@@ -724,7 +751,7 @@ for (const [index, spec] of imageServices.entries()) {
   app.config.container.volumes = [
     { name: `${spec.slug}-data`, mountPath: spec.data },
   ];
-  app.config.domains = { primary: spec.domain, redirects: [] };
+  if (spec.domain) app.config.domains = { primary: spec.domain, redirects: [] };
   app.config.health = { path: "/", timeoutSeconds: 60 };
   app.config.rollout = rolloutStrategySchema.parse({
     type: "recreate",
