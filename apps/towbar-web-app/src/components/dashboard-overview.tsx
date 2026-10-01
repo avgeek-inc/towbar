@@ -12,7 +12,7 @@ import {
   Activity01Icon,
   ArrowRight01Icon,
   DashboardCircleIcon,
-  DashboardSquare01Icon,
+  DiscoverSquareIcon,
   CubeIcon,
   ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
@@ -68,13 +68,13 @@ export function DashboardOverview() {
   const error = apps.error ?? resources.error ?? servers.error;
   if (error)
     return (
-      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+      <DashboardPage icon={DiscoverSquareIcon} title="Overview">
         <QueryError message={error} />
       </DashboardPage>
     );
   if (!apps.data || !resources.data || !servers.data)
     return (
-      <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+      <DashboardPage icon={DiscoverSquareIcon} title="Overview">
         <QueryLoading variant="dashboard" />
       </DashboardPage>
     );
@@ -161,7 +161,7 @@ export function DashboardOverview() {
   ];
 
   return (
-    <DashboardPage icon={DashboardSquare01Icon} title="Overview">
+    <DashboardPage icon={DiscoverSquareIcon} title="Overview">
       {serversNeedingSetup.length ? (
         <ResourceTable
           ariaLabel="Servers pending setup"

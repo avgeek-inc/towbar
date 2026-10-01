@@ -268,7 +268,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           </span>
         </BrandLockup>
       </RoutedLink>
-      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 py-4">
+      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 py-4.5">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (
