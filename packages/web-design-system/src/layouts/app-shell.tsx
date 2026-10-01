@@ -281,7 +281,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                 item.kind === "link" ? (
                   <RoutedLink
                     className={cn(
-                      "flex min-h-9 min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
+                      "flex min-h-8 min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
                       pathname === item.href ||
                         (item.href !== "/" && pathname.startsWith(item.href))
                         ? "bg-default font-medium text-foreground"
@@ -351,7 +351,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
       aria-label={item.accessibleLabel}
       variant={item.destructive ? "danger-ghost" : "ghost"}
       className={cn(
-        "h-auto min-h-9 w-full justify-start gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal",
+        "h-auto min-h-8 w-full justify-start gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal",
         !item.destructive &&
           "text-muted hover:bg-default/60 hover:text-foreground",
       )}
