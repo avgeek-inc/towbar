@@ -216,7 +216,7 @@ export function ScoutAnalytics({
         icon={<HugeiconsIcon icon={ChartNoAxesColumnIcon} />}
         keepEntityName
         actions={
-          <div className="hidden sm:block">
+          <div>
             <FilterDialog
               fields={filterFields}
               value={filters}
