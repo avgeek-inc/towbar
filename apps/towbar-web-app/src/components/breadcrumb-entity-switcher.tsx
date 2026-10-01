@@ -4,6 +4,8 @@ import {
   DashboardCircleIcon,
   CubeIcon,
   ServerStack01Icon,
+  SourceCodeIcon,
+  RefreshIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
@@ -13,6 +15,7 @@ import type {
   Resource,
   Server,
   Source,
+  SourceSync,
 } from "@workspace/towbar-web-client";
 import { Header } from "@workspace/web-design-system/collections/list-box";
 import { ListBox, Select } from "@workspace/web-design-system/forms/select";
@@ -26,25 +29,35 @@ import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { ResourceLogo, ServiceLogo } from "./deployable-identity";
 import { CloudProviderLogo, type CloudProviderId } from "./cloud-provider-logo";
 import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
+import { IntegrationProviderLogo } from "./integration-provider-logo";
+import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { displayDateTime } from "@/lib/date-time-display";
 
-export type BreadcrumbEntityKind = "apps" | "resources" | "servers";
+export type BreadcrumbEntityKind =
+  "apps" | "resources" | "servers" | "sources" | "syncs";
 
 const entityLabels = {
   apps: "services",
   resources: "datastores",
   servers: "servers",
+  sources: "repositories",
+  syncs: "syncs",
 } as const;
 
 const entityRoutes = {
   apps: "services",
   resources: "datastores",
   servers: "servers",
+  sources: "repositories",
+  syncs: "syncs",
 } as const;
 
 const entityIcons = {
   apps: DashboardCircleIcon,
   resources: CubeIcon,
   servers: ServerStack01Icon,
+  sources: SourceCodeIcon,
+  syncs: RefreshIcon,
 } as const;
 
 type SwitchOption = {
@@ -54,10 +67,12 @@ type SwitchOption = {
   identity?:
     | { kind: "app"; app: App }
     | { kind: "resource"; brand: ResourceBrand }
-    | { kind: "server"; provider: CloudProviderId };
+    | { kind: "server"; provider: CloudProviderId }
+    | { kind: "source"; provider: Source["provider"] };
   instanceIds: string[];
   label: string;
   sourceId?: string;
+  status?: SourceSync["status"];
 };
 
 function deployableOptions<T extends App | Resource>(
@@ -86,46 +101,82 @@ export function BreadcrumbEntitySwitcher({
   currentId,
   kind,
   label,
+  sourceId,
 }: {
   currentId: string;
   kind: BreadcrumbEntityKind;
   label: string;
+  sourceId?: string;
 }) {
   const router = useRouter();
   const query = useApiQuery<{
     apps?: App[];
     resources?: Resource[];
     servers?: Server[];
-  }>(`/v1/core/${kind}`, 30_000);
-  const sources = useApiQuery<{ sources: Source[] }>(
-    kind === "servers" ? null : "/v1/core/sources",
+    sources?: Source[];
+    syncs?: SourceSync[];
+  }>(
+    kind === "syncs"
+      ? sourceId
+        ? `/v1/core/sources/${sourceId}/syncs`
+        : null
+      : `/v1/core/${kind}`,
     30_000,
   );
-  const options: SwitchOption[] = (
-    kind === "servers"
-      ? (query.data?.servers ?? []).map((server) => ({
-          archived: Boolean(server.archivedAt),
-          id: server.id,
-          identity: server.hardware?.instance
-            ? {
-                kind: "server" as const,
-                provider: server.hardware.instance.provider,
-              }
-            : undefined,
-          instanceIds: [server.id],
-          label: server.name ?? server.canonicalIp,
-          detail: server.name ? server.canonicalIp : undefined,
+  const sources = useApiQuery<{ sources: Source[] }>(
+    kind === "apps" || kind === "resources" ? "/v1/core/sources" : null,
+    30_000,
+  );
+  const options: SwitchOption[] =
+    kind === "sources"
+      ? (query.data?.sources ?? []).map((source) => ({
+          archived: false,
+          id: source.id,
+          identity: { kind: "source" as const, provider: source.provider },
+          instanceIds: [source.id],
+          label: source.repositoryName,
+          detail: `${source.repositoryOwner}/${source.repositoryName}`,
         }))
-      : kind === "apps"
-        ? deployableOptions(query.data?.apps ?? [], (app) => ({
-            kind: "app",
-            app,
+      : kind === "syncs"
+        ? (query.data?.syncs ?? []).map((sync) => ({
+            archived: false,
+            id: sync.id,
+            instanceIds: [sync.id],
+            label: `Sync ${sync.id.slice(0, 8)}`,
+            detail: [
+              sync.environment?.name ?? "Legacy sync",
+              sync.environment?.branch,
+              displayDateTime(sync.createdAt),
+            ]
+              .filter(Boolean)
+              .join(" / "),
+            status: sync.status,
           }))
-        : deployableOptions(query.data?.resources ?? [], (resource) => ({
-            kind: "resource",
-            brand: resourceImageBrand(resource.kind, resource.config.image),
-          }))
-  ).sort((left, right) => left.label.localeCompare(right.label));
+        : kind === "servers"
+          ? (query.data?.servers ?? []).map((server) => ({
+              archived: Boolean(server.archivedAt),
+              id: server.id,
+              identity: server.hardware?.instance
+                ? {
+                    kind: "server" as const,
+                    provider: server.hardware.instance.provider,
+                  }
+                : undefined,
+              instanceIds: [server.id],
+              label: server.name ?? server.canonicalIp,
+              detail: server.name ? server.canonicalIp : undefined,
+            }))
+          : kind === "apps"
+            ? deployableOptions(query.data?.apps ?? [], (app) => ({
+                kind: "app",
+                app,
+              }))
+            : deployableOptions(query.data?.resources ?? [], (resource) => ({
+                kind: "resource",
+                brand: resourceImageBrand(resource.kind, resource.config.image),
+              }));
+  if (kind !== "syncs")
+    options.sort((left, right) => left.label.localeCompare(right.label));
   if (!options.some((option) => option.instanceIds.includes(currentId))) {
     options.unshift({
       id: currentId,
@@ -169,7 +220,7 @@ export function BreadcrumbEntitySwitcher({
       <ListBox.Item
         id={option.id}
         key={option.id}
-        textValue={[option.label, option.detail, repository]
+        textValue={[option.label, option.id, option.detail, repository]
           .filter(Boolean)
           .join(" ")}
       >
@@ -183,6 +234,12 @@ export function BreadcrumbEntitySwitcher({
             className="size-4"
             size={16}
           />
+        ) : option.identity?.kind === "source" ? (
+          <IntegrationProviderLogo
+            provider={option.identity.provider}
+            className="size-4"
+            size={16}
+          />
         ) : (
           <HugeiconsIcon
             aria-hidden="true"
@@ -191,7 +248,10 @@ export function BreadcrumbEntitySwitcher({
           />
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate">{option.label}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 flex-1 truncate">{option.label}</span>
+            {option.status ? <StatusBadge status={option.status} /> : null}
+          </span>
           {option.detail ? (
             <span className="block truncate text-xs text-muted">
               {option.detail}
@@ -208,12 +268,16 @@ export function BreadcrumbEntitySwitcher({
 
   return (
     <Select
-      aria-label={`Switch ${entityLabel.slice(0, -1)}`}
+      aria-label={`Switch ${kind === "sources" ? "repository" : entityLabel.slice(0, -1)}`}
       selectedKey={currentId}
       onSelectionChange={(key) => {
         const id = String(key ?? "");
         if (id !== currentId && options.some((option) => option.id === id)) {
-          router.push(`/${entityRoutes[kind]}/${id}/overview`);
+          router.push(
+            kind === "syncs"
+              ? `/repositories/${sourceId}/syncs/${id}/overview`
+              : `/${entityRoutes[kind]}/${id}/${kind === "sources" ? "environments" : "overview"}`,
+          );
         }
       }}
     >
@@ -221,7 +285,9 @@ export function BreadcrumbEntitySwitcher({
         <Select.Value className="min-w-0 truncate">{label}</Select.Value>
         <Select.Indicator className="static! size-3 shrink-0 text-muted" />
       </Select.Trigger>
-      <Select.Popover className="w-72 max-w-[calc(100vw-2rem)] overflow-hidden">
+      <Select.Popover
+        className={`${kind === "syncs" ? "w-96" : "w-72"} max-w-[calc(100vw-2rem)] overflow-hidden`}
+      >
         <Autocomplete.Filter
           filter={(text, search) =>
             text.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())

@@ -85,7 +85,11 @@ export function DashboardPage({
   badge?: ReactNode;
   breadcrumbAncestors?: BreadcrumbAncestors;
   breadcrumbLabel?: string;
-  breadcrumbSwitcher?: { id: string; kind: BreadcrumbEntityKind };
+  breadcrumbSwitcher?: {
+    id: string;
+    kind: BreadcrumbEntityKind;
+    sourceId?: string;
+  };
   children: ReactNode;
   icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
@@ -99,6 +103,7 @@ export function DashboardPage({
       currentId={breadcrumbSwitcher.id}
       kind={breadcrumbSwitcher.kind}
       label={title}
+      sourceId={breadcrumbSwitcher.sourceId}
     />
   ) : undefined;
   const switcherKey = breadcrumbSwitcher

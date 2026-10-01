@@ -105,6 +105,8 @@ export const fixtureIds = {
   analyticsSource: "11111111-1111-4111-8111-333333333333",
   sandboxSource: "11111111-1111-4111-8111-444444444444",
   sync: "91111111-1111-4111-8111-111111111111",
+  previousSync: "92222222-1111-4111-8111-222222222222",
+  legacySync: "93333333-1111-4111-8111-333333333333",
 } as const;
 
 type FixtureApp = App & {
@@ -1388,6 +1390,42 @@ const sourceSync: SourceSync = {
   startedAt: fixtureNow,
   status: "succeeded",
 };
+const stagingSyncEnvironment = environmentMappings.find(
+  (environment) =>
+    environment.sourceId === source.id && environment.name === "staging",
+)!;
+const sourceSyncs: SourceSync[] = [
+  sourceSync,
+  {
+    ...sourceSync,
+    id: fixtureIds.previousSync,
+    environment: {
+      id: stagingSyncEnvironment.id,
+      name: stagingSyncEnvironment.name,
+      branch: stagingSyncEnvironment.branch,
+    },
+    mappingRevision: stagingSyncEnvironment.mappingRevision,
+    createdAt: new Date(Date.parse(fixtureNow) - 3_600_000).toISOString(),
+    startedAt: new Date(Date.parse(fixtureNow) - 3_600_000).toISOString(),
+    finishedAt: new Date(Date.parse(fixtureNow) - 3_590_000).toISOString(),
+    status: "failed",
+    issues: [
+      {
+        path: ["services", "website"],
+        message: "The service image is required.",
+      },
+    ],
+  },
+  {
+    ...sourceSync,
+    id: fixtureIds.legacySync,
+    environment: null,
+    mappingRevision: null,
+    createdAt: new Date(Date.parse(fixtureNow) - 7_200_000).toISOString(),
+    startedAt: new Date(Date.parse(fixtureNow) - 7_200_000).toISOString(),
+    finishedAt: new Date(Date.parse(fixtureNow) - 7_190_000).toISOString(),
+  },
+];
 
 const githubConnection: GitHubConnection = {
   accountLogin: "example-inc",
@@ -4483,7 +4521,7 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/sources/${source.id}`, { canManageSource: true, source }],
-    [`/v1/core/sources/${source.id}/syncs`, { syncs: [sourceSync] }],
+    [`/v1/core/sources/${source.id}/syncs`, { syncs: sourceSyncs }],
     [
       `/v1/core/sources/${source.id}/apps`,
       { apps: apps.filter((item) => item.sourceId === source.id) },
@@ -4523,10 +4561,10 @@ function getFixturePayload(
       },
     ],
     [`/v1/core/notifications`, { notifications: notificationEvents }],
-    [
-      `/v1/core/sources/${source.id}/syncs/${sourceSync.id}`,
-      { sync: sourceSync },
-    ],
+    ...sourceSyncs.map(
+      (sync) =>
+        [`/v1/core/sources/${source.id}/syncs/${sync.id}`, { sync }] as const,
+    ),
   ]);
   const fixed = fixedPayloads.get(path);
   if (fixed !== undefined) return fixed;
