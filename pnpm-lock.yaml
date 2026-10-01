@@ -113,7 +113,7 @@ overrides:
   "@simplewebauthn/server@<=13.3.1": 13.3.2
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
   "@esbuild-kit/core-utils>esbuild": 0.25.12
-  "@grpc/grpc-js@1.14.3": 1.14.4
+  "@grpc/grpc-js@1.14.3": 1.14.5
   axios@1.15.2: 1.18.0
   brace-expansion@2.1.0: 2.1.2
   brace-expansion@>=5.0.0 <5.0.12: 5.0.12
@@ -1903,10 +1903,10 @@ packages:
         integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==,
       }
 
-  "@grpc/grpc-js@1.14.4":
+  "@grpc/grpc-js@1.14.5":
     resolution:
       {
-        integrity: sha512-k9Dj3DV/itK9D06Y8f190Qgop7/Ui+D0njFV3LHMPwPT75DpXLQohE9Wmz0QElrJnzsjB7KPWiKJbOl7IPDArQ==,
+        integrity: sha512-7VZM+SVdEcUUqSQeNI3zM8Qs/BhQKZndPo2h5VkYkAM8Iz0wJIa8mKV5ekQGqG8UUsnkQ0NMxIxwkIHYvj0qOw==,
       }
     engines: { node: ">=12.10.0" }
 
@@ -9497,7 +9497,7 @@ snapshots:
 
   "@fontsource-variable/inter@5.3.0": {}
 
-  "@grpc/grpc-js@1.14.4":
+  "@grpc/grpc-js@1.14.5":
     dependencies:
       "@grpc/proto-loader": 0.8.1
       "@js-sdsl/ordered-map": 4.4.2
@@ -10788,7 +10788,7 @@ snapshots:
 
   "@temporalio/client@1.24.0":
     dependencies:
-      "@grpc/grpc-js": 1.14.4
+      "@grpc/grpc-js": 1.14.5
       "@temporalio/common": 1.24.0
       "@temporalio/proto": 1.24.0
       abort-controller: 3.0.0
@@ -10806,7 +10806,7 @@ snapshots:
 
   "@temporalio/core-bridge@1.24.0":
     dependencies:
-      "@grpc/grpc-js": 1.14.4
+      "@grpc/grpc-js": 1.14.5
       "@temporalio/common": 1.24.0
 
   "@temporalio/nexus@1.24.0":
@@ -10824,7 +10824,7 @@ snapshots:
 
   "@temporalio/worker@1.24.0(@swc/helpers@0.5.23)":
     dependencies:
-      "@grpc/grpc-js": 1.14.4
+      "@grpc/grpc-js": 1.14.5
       "@swc/core": 1.16.1(@swc/helpers@0.5.23)
       "@temporalio/activity": 1.24.0
       "@temporalio/client": 1.24.0
