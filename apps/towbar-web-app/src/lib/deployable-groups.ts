@@ -1,4 +1,4 @@
-import type { App, Resource } from "@workspace/towbar-web-client";
+import type { App, Resource, Server } from "@workspace/towbar-web-client";
 
 type Deployable = Pick<
   App | Resource,
@@ -54,4 +54,28 @@ export function groupDeployablesByEnvironment<T extends Deployable>(
           a.manifestId.localeCompare(b.manifestId) || a.id.localeCompare(b.id),
       ),
     }));
+}
+
+export function groupDeployablesByServer<
+  T extends Pick<App | Resource, "id" | "manifestId" | "serverIp">,
+>(items: T[], servers: Pick<Server, "canonicalIp" | "name">[]) {
+  const serversByIp = new Map(
+    servers.map((server) => [server.canonicalIp, server]),
+  );
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const group = groups.get(item.serverIp) ?? [];
+    group.push(item);
+    groups.set(item.serverIp, group);
+  }
+  return [...groups.entries()]
+    .map(([ip, group]) => ({
+      key: ip,
+      name: serversByIp.get(ip)?.name ?? ip,
+      items: group.sort(
+        (a, b) =>
+          a.manifestId.localeCompare(b.manifestId) || a.id.localeCompare(b.id),
+      ),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key));
 }

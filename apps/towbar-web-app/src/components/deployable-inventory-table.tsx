@@ -1,41 +1,66 @@
 "use client";
 
-import { CubeIcon, DashboardCircleIcon } from "@hugeicons/core-free-icons";
+import {
+  CubeIcon,
+  DashboardCircleIcon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { App, Resource } from "@workspace/towbar-web-client";
+import type { App, Resource, Server } from "@workspace/towbar-web-client";
 import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import {
   groupDeployableInstances,
   groupDeployablesByEnvironment,
+  groupDeployablesByServer,
 } from "@/lib/deployable-groups";
 import { EnvironmentIcon } from "./environment-icon";
 
 export function DeployableInventoryTable<T extends App | Resource>({
   items,
   groupBy = "manifest",
+  servers = [],
   ...props
 }: Parameters<typeof ResourceTable<T>>[0] & {
-  groupBy?: "manifest" | "environment";
+  groupBy?: "manifest" | "environment" | "server";
+  servers?: Server[];
 }) {
   if (items.length === 0) return <ResourceTable {...props} items={items} />;
-  if (groupBy === "environment") {
+  if (groupBy === "environment" || groupBy === "server") {
+    const groups =
+      groupBy === "server"
+        ? groupDeployablesByServer(items, servers)
+        : groupDeployablesByEnvironment(items);
     return (
       <div className="grid gap-6">
-        {groupDeployablesByEnvironment(items).map((group) => (
+        {groups.map((group) => (
           <section
             className="grid min-w-0 gap-3"
             key={group.key}
             aria-label={group.name ?? "No environment"}
           >
             <div className="flex min-w-0 items-center gap-2">
-              <EnvironmentIcon
-                name={group.name ?? undefined}
-                className="size-5"
-              />
+              {groupBy === "server" ? (
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  className="size-5 shrink-0"
+                  icon={ServerStack01Icon}
+                />
+              ) : (
+                <EnvironmentIcon
+                  name={group.name ?? undefined}
+                  className="size-5"
+                />
+              )}
               <h2 className="truncate text-base">
-                {group.name ?? "No environment"}
+                {groupBy === "server" ? (
+                  <TooltipText tooltip={group.key} tabIndex={-1}>
+                    {group.name}
+                  </TooltipText>
+                ) : (
+                  (group.name ?? "No environment")
+                )}
               </h2>
               <Chip className="shrink-0" size="small" variant="secondary">
                 {group.items.length}{" "}

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   groupDeployableInstances,
   groupDeployablesByEnvironment,
+  groupDeployablesByServer,
 } from "./deployable-groups";
 
 void test("inventory groups stable logical identities and preserves instance links", () => {
@@ -49,6 +50,46 @@ void test("inventory groups stable logical identities and preserves instance lin
     2,
   );
   assert.deepEqual(groupDeployableInstances([]), []);
+});
+
+test("server grouping combines workloads by host without conflating server names", () => {
+  const instance = (id: string, manifestId: string, serverIp: string) => ({
+    id,
+    manifestId,
+    serverIp,
+  });
+  const servers = [
+    { canonicalIp: "10.0.0.1", name: "Platform" },
+    { canonicalIp: "10.0.0.2", name: "Platform" },
+    { canonicalIp: "10.0.0.3", name: null },
+  ];
+  const input = [
+    instance("web-staging", "website", "10.0.0.1"),
+    instance("db", "postgres", "10.0.0.2"),
+    instance("web-production", "website", "10.0.0.1"),
+    instance("api", "api", "10.0.0.1"),
+    instance("unnamed", "redis", "10.0.0.3"),
+    instance("unknown", "redis", "10.0.0.4"),
+  ];
+  const groups = groupDeployablesByServer(input, servers);
+  assert.deepEqual(
+    groups.map(({ key, name }) => ({ key, name })),
+    [
+      { key: "10.0.0.3", name: "10.0.0.3" },
+      { key: "10.0.0.4", name: "10.0.0.4" },
+      { key: "10.0.0.1", name: "Platform" },
+      { key: "10.0.0.2", name: "Platform" },
+    ],
+  );
+  assert.deepEqual(
+    groups[2]!.items.map((item) => item.id),
+    ["api", "web-production", "web-staging"],
+  );
+  assert.equal(groups[2]!.items[0], input[3]);
+  assert.equal(groups.flatMap((group) => group.items).length, input.length);
+  assert.equal(input[0]!.id, "web-staging");
+  assert.equal(groupDeployablesByServer([input[1]!], servers).length, 1);
+  assert.deepEqual(groupDeployablesByServer([], servers), []);
 });
 
 test("environment grouping combines repositories while preserving every instance", () => {

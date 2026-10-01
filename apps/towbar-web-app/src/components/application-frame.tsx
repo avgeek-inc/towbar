@@ -250,9 +250,12 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     );
   if (!user || user.mustChangePassword) {
     return (
-      <div className="grid min-h-dvh place-items-center" aria-busy="true">
-        <div className="grid justify-items-center gap-3" role="status">
-          <Spinner aria-label="Loading Towbar" />
+      <div className="grid min-h-dvh place-items-center p-6" aria-busy="true">
+        <div
+          className="grid w-full max-w-sm justify-items-center gap-3 text-center"
+          role="status"
+        >
+          <Spinner aria-label="Loading Towbar" color="warning" />
           {sessionUnavailable ? (
             <p className="text-sm text-muted">
               Towbar is temporarily unavailable. Reconnecting automatically…

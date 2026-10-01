@@ -5,6 +5,22 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.24] - 2026-10-01
+
+### Added
+
+- Services and Datastores can be grouped by server, with a workload count for
+  each host.
+- OCI services and datastores support custom commands, mounted configuration
+  files, and container settings. Runtime details appear in the dashboard, and
+  independent-service examples cover SigNoz and ClickHouse.
+
+### Fixed
+
+- The reconnecting screen centers its message with padding on mobile and uses
+  a yellow loading indicator.
+- The gRPC dependency is patched to version 1.14.5.
+
 ## [2.0.23] - 2026-09-30
 
 ### Changed
@@ -542,7 +558,8 @@ All notable changes to Towbar are documented in this file. This project follows
 - Branch mapping errors remain visible beside the edit form while preserving
   the entered branch and previous mapping.
 
-[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.23...HEAD
+[Unreleased]: https://github.com/avgeek-inc/towbar/compare/v2.0.24...HEAD
+[2.0.24]: https://github.com/avgeek-inc/towbar/compare/v2.0.23...v2.0.24
 [2.0.23]: https://github.com/avgeek-inc/towbar/compare/v2.0.22...v2.0.23
 [2.0.22]: https://github.com/avgeek-inc/towbar/compare/v2.0.21...v2.0.22
 [2.0.21]: https://github.com/avgeek-inc/towbar/compare/v2.0.20...v2.0.21
