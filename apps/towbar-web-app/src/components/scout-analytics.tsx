@@ -571,6 +571,9 @@ export function AnalyticsView({
             <LineChart
               data={trend}
               height={240}
+              chartMargin={
+                pageviews ? { top: 5, right: 0, bottom: 5, left: 5 } : undefined
+              }
               aria-label={
                 pageviews
                   ? "Page views, estimated visitors, and estimated sessions over time"
@@ -585,7 +588,11 @@ export function AnalyticsView({
                 dataKey="at"
                 type="number"
                 scale="time"
-                domain={[Date.parse(report.start), Date.parse(report.end)]}
+                domain={
+                  pageviews
+                    ? ["dataMin", "dataMax"]
+                    : [Date.parse(report.start), Date.parse(report.end)]
+                }
                 allowDataOverflow
                 ticks={trend
                   .map((point) => point.at)
