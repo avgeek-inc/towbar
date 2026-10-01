@@ -944,11 +944,11 @@ function AnalyticsRows({
                 <Table.Cell className="relative overflow-hidden">
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none absolute inset-y-1 left-1 bg-accent ${styles.countBar}`}
+                    className={`pointer-events-none absolute inset-y-1 left-1 ${styles.countBar}`}
                     style={{
                       width: `calc((100% - 0.5rem) * ${maxCount ? row.count / maxCount : 0})`,
                       opacity: maxCount
-                        ? 0.04 + 0.16 * (row.count / maxCount)
+                        ? 0.04 + 0.24 * (row.count / maxCount)
                         : 0,
                     }}
                   />

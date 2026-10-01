@@ -18,6 +18,7 @@
 
   .countBar {
     border-radius: 0.25rem;
+    background: color-mix(in oklab, var(--accent) 80%, var(--foreground));
   }
 
   .breakdown [data-slot="table-row"]:first-child .countBar {
