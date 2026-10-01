@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowDown01Icon,
-  Cancel01Icon,
+  Delete02Icon,
   FilterIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,7 +25,8 @@ export type FilterCondition<Field extends string, Operator extends string> = {
 export type FilterField<Field extends string, Operator extends string> = {
   field: Field;
   label: string;
-  operators: readonly { value: Operator; label: string }[];
+  icon?: ReactNode;
+  operators: readonly { value: Operator; label: string; icon?: ReactNode }[];
   placeholder?: string;
   pattern?: string;
   maxLength?: number;
@@ -92,13 +93,16 @@ export function FilterDialog<Field extends string, Operator extends string>({
       >
         <Modal.Container size="lg" scroll="inside">
           <Modal.Dialog className="sm:max-w-[64rem]">
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>Filters</Modal.Heading>
-              <p className="text-sm text-muted">
-                Show results matching all conditions. You can add multiple
-                conditions to get a combined filter if needed.
-              </p>
+            <Modal.Header className="flex-row items-center justify-between gap-3">
+              <Modal.Heading className="flex items-center gap-2">
+                <HugeiconsIcon
+                  icon={FilterIcon}
+                  className="size-4"
+                  aria-hidden="true"
+                />
+                Filters
+              </Modal.Heading>
+              <Modal.CloseTrigger className="static shrink-0" />
             </Modal.Header>
             <Modal.Body>
               <form
@@ -128,7 +132,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                   return (
                     <div
                       key={index}
-                      className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-end gap-2"
+                      className="grid grid-cols-[minmax(0,1fr)_2rem] items-end gap-2"
                     >
                       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_minmax(16rem,2fr)]">
                         <FilterSelect
@@ -138,6 +142,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                           options={fields.map((field) => ({
                             value: field.field,
                             label: field.label,
+                            icon: field.icon,
                           }))}
                           onChange={(key) => {
                             const next = fields.find(
@@ -184,7 +189,11 @@ export function FilterDialog<Field extends string, Operator extends string>({
                           />
                         ) : (
                           <label className="grid gap-1 text-sm">
-                            <span className={index > 0 ? "sr-only" : ""}>
+                            <span
+                              className={
+                                index > 0 ? "sr-only" : "text-sm text-muted"
+                              }
+                            >
                               Value
                             </span>
                             <Input
@@ -211,14 +220,14 @@ export function FilterDialog<Field extends string, Operator extends string>({
                       </div>
                       <Button
                         isIconOnly
-                        variant="ghost"
-                        className="size-9 min-w-0"
+                        variant="danger-ghost"
+                        className="size-8 min-w-0 shrink-0 rounded-lg"
                         aria-label={`Remove condition ${index + 1}`}
                         onPress={() =>
                           setDraft(draft.filter((_, i) => i !== index))
                         }
                       >
-                        <HugeiconsIcon icon={Cancel01Icon} />
+                        <HugeiconsIcon icon={Delete02Icon} aria-hidden="true" />
                       </Button>
                     </div>
                   );
@@ -242,7 +251,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                   setDraft(null);
                 }}
               >
-                Clear filters
+                Clear all filters
               </Button>
               <Button variant="secondary" onPress={() => setDraft(null)}>
                 Cancel
@@ -276,9 +285,10 @@ function FilterSelect<Value extends string>({
   label: string;
   hideLabel?: boolean;
   value: Value;
-  options: readonly { value: Value; label: string }[];
+  options: readonly { value: Value; label: string; icon?: ReactNode }[];
   onChange: (value: Value) => void;
 }) {
+  const selected = options.find((option) => option.value === value);
   return (
     <Select
       className="min-w-0"
@@ -290,9 +300,16 @@ function FilterSelect<Value extends string>({
         if (selected) onChange(selected.value);
       }}
     >
-      <Label className={hideLabel ? "sr-only" : ""}>{label}</Label>
+      <Label
+        className={hideLabel ? "sr-only" : "text-sm font-normal text-muted"}
+      >
+        {label}
+      </Label>
       <Select.Trigger>
-        <Select.Value />
+        <Select.Value className="flex min-w-0 flex-1 items-center gap-2">
+          {selected?.icon}
+          <span className="truncate">{selected?.label}</span>
+        </Select.Value>
         <Select.Indicator />
       </Select.Trigger>
       <Select.Popover>
@@ -303,7 +320,10 @@ function FilterSelect<Value extends string>({
               id={option.value}
               textValue={option.label}
             >
-              {option.label}
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                {option.icon}
+                <span className="truncate">{option.label}</span>
+              </span>
               <ListBox.ItemIndicator />
             </ListBox.Item>
           ))}
@@ -359,7 +379,11 @@ function FilterValueSelect<Field extends string>({
   const visible = [...new Set([...value, ...options])];
   return (
     <div className="select select--secondary min-w-0">
-      <span className={`label ${hideLabel ? "sr-only" : ""}`}>Value</span>
+      <span
+        className={`label text-sm font-normal text-muted ${hideLabel ? "sr-only" : ""}`}
+      >
+        Value
+      </span>
       <Popover>
         <Popover.Trigger className="select__trigger" aria-label={label}>
           <span className="select__value">

@@ -7,8 +7,21 @@ import {
 import { PageSelectionTitle } from "./page-selection-title";
 import {
   ChartNoAxesColumnIcon,
+  ApiIcon,
+  BrowserIcon,
+  City01Icon,
+  Clock01Icon,
+  ComputerIcon,
+  EqualSignIcon,
+  Flag01Icon,
   FilterIcon,
   FilterRemoveIcon,
+  Globe02Icon,
+  LinkSquare02Icon,
+  ListViewIcon,
+  Route01Icon,
+  TextAlignLeftIcon,
+  CodeIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useId, useState } from "react";
@@ -59,6 +72,25 @@ const labels: Record<string, string> = {
 };
 const latencyLabels = analyticsResponseTimeRanges;
 const format = (n: number) => n.toLocaleString();
+const filterIcons = {
+  path: Route01Icon,
+  referrer: Globe02Icon,
+  status: CodeIcon,
+  method: ApiIcon,
+  responseTime: Clock01Icon,
+  country: Flag01Icon,
+  city: City01Icon,
+  browser: BrowserIcon,
+  device: ComputerIcon,
+  destination: LinkSquare02Icon,
+} satisfies Record<AnalyticsFilter["field"], typeof FilterIcon>;
+const filterIcon = (icon: typeof FilterIcon) => (
+  <HugeiconsIcon
+    icon={icon}
+    className="size-4 shrink-0 text-muted"
+    aria-hidden="true"
+  />
+);
 function pathFilterMatches(filter: AnalyticsFilter, path: string) {
   return (
     filter.field === "path" &&
@@ -74,9 +106,14 @@ const pathFilterField: FilterField<
 > = {
   field: "path",
   label: "Path",
+  icon: filterIcon(filterIcons.path),
   operators: [
-    { value: "equals", label: "is" },
-    { value: "startsWith", label: "starts with" },
+    { value: "equals", label: "is", icon: filterIcon(EqualSignIcon) },
+    {
+      value: "startsWith",
+      label: "starts with",
+      icon: filterIcon(TextAlignLeftIcon),
+    },
   ],
   placeholder: "/docs",
   pattern: "/[^?#\\r\\n]*",
@@ -118,7 +155,10 @@ export function ScoutAnalytics({
       : {
           field,
           label: filterLabels[field],
-          operators: [{ value: "in", label: "is one of" }],
+          icon: filterIcon(filterIcons[field]),
+          operators: [
+            { value: "in", label: "is one of", icon: filterIcon(ListViewIcon) },
+          ],
           searchable: true,
         },
   );
