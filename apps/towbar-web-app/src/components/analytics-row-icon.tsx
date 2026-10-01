@@ -70,7 +70,7 @@ export function AnalyticsRowIcon({
       </span>
     );
   return (
-    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-white p-[1.5px]">
+    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-white p-px">
       <Image
         alt=""
         width={16}
