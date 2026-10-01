@@ -1,3 +1,8 @@
+import {
+  analyticsCells,
+  analyticsConditions,
+  analyticsDimension,
+} from "./filters.js";
 import { getAnalyticsEngagement } from "./engagement.js";
 import { getDeploymentEvents } from "../monitoring/deployment-events.js";
 import { type SQL, and, eq, isNull, sql } from "drizzle-orm";
@@ -6,7 +11,10 @@ import {
   type AnalyticsFilter,
   type AnalyticsReport,
   type MonitoringSample,
+  analyticsHttpFilterFields,
   analyticsLatencyBounds,
+  analyticsResponseTimeRanges,
+  analyticsWebFilterFields,
   isNormalizedApp,
 } from "@workspace/towbar-core";
 import {
@@ -131,15 +139,10 @@ export async function getAnalyticsReport(input: {
   kind: "request" | "pageview";
   filters?: AnalyticsFilter[];
 }): Promise<AnalyticsReport> {
-  if (
-    input.kind === "request" &&
-    input.filters?.some((filter) =>
-      ["country", "city", "browser"].includes(filter.field),
-    )
-  )
-    throw badRequest(
-      "Country, city, and browser filters are available for pageviews only.",
-    );
+  assertFilterFields(
+    input.kind,
+    (input.filters ?? []).map((filter) => filter.field),
+  );
   const database = getTowbarDatabase();
   const [app] = await database
     .select()
@@ -164,16 +167,24 @@ export async function getAnalyticsReport(input: {
     end.getTime() -
       Math.min(input.days, config?.retentionDays ?? 30) * 86400_000,
   );
-  const conditions = analyticsConditions(input.filters ?? []);
+  const conditions = analyticsConditions(input.filters ?? [], {
+    appId: app.id,
+    start,
+    end,
+  });
+  const cells = analyticsCells(input.filters ?? []);
   const currentPeriod = sql`s.app_id=${app.id}::uuid and s.collected_at>=${start.toISOString()}::timestamptz and s.collected_at<${end.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
   const filter = sql`${currentPeriod} and ${conditions}`;
   const step = input.days === 1 ? 3600 : 86400;
+  const includeIdentity = hasVisitorIdentity(config, input.kind);
   const { totals, trend } = await periodSummary(
     database,
     filter,
     start,
     end,
     step,
+    cells,
+    includeIdentity,
   );
   const previousStart = new Date(
     start.getTime() - (end.getTime() - start.getTime()),
@@ -183,13 +194,20 @@ export async function getAnalyticsReport(input: {
     previousStart.getTime() >=
       end.getTime() - (config?.retentionDays ?? 30) * 86400_000;
   const previousPeriod = sql`s.app_id=${app.id}::uuid and s.collected_at>=${previousStart.toISOString()}::timestamptz and s.collected_at<${start.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
+  const previousConditions = analyticsConditions(input.filters ?? [], {
+    appId: app.id,
+    start: previousStart,
+    end: start,
+  });
   const previous = canCompare
     ? await periodSummary(
         database,
-        sql`${previousPeriod} and ${conditions}`,
+        sql`${previousPeriod} and ${previousConditions}`,
         previousStart,
         start,
         step,
+        cells,
+        includeIdentity,
       )
     : null;
   const previousHasData = Boolean(previous?.totals.last);
@@ -198,24 +216,16 @@ export async function getAnalyticsReport(input: {
     count: string;
   }>(sql`
     select h.ordinality::int idx,sum(h.value::text::bigint)::text count from towbar_analytics_samples s
-    cross join lateral jsonb_array_elements(s.cells) c cross join lateral jsonb_array_elements(c->'histogram') with ordinality h(value,ordinality)
+    cross join lateral ${cells} cross join lateral jsonb_array_elements(c->'histogram') with ordinality h(value,ordinality)
     where ${filter} group by h.ordinality order by h.ordinality`);
   const histogram = Array<number>(analyticsLatencyBounds.length + 1).fill(0);
   for (const row of histogramRows) histogram[row.idx - 1] = Number(row.count);
-  const dimensions: AnalyticsReport["dimensions"] = {};
-  for (const key of input.kind === "request"
-    ? ["path", "referrer", "status", "method"]
-    : ["path", "referrer", "country", "city", "browser", "device"]) {
-    const dimension = analyticsDimension(key);
-    const rows = await database.execute<{ value: string; count: string }>(sql`
-      select ${dimension} value,sum((c->>'count')::bigint)::text count
-      from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}
-      group by 1 order by sum((c->>'count')::bigint) desc,1 limit 20`);
-    dimensions[key] = rows.map((r) => ({
-      value: r.value,
-      count: Number(r.count),
-    }));
-  }
+  const dimensions = await reportDimensions(
+    database,
+    input.kind,
+    filter,
+    cells,
+  );
   const engagement = await getAnalyticsEngagement(database, {
     appId: app.id,
     kind: input.kind,
@@ -232,7 +242,7 @@ export async function getAnalyticsReport(input: {
     start: previousStart,
     end: start,
     retentionEnd: end,
-    conditions,
+    conditions: previousConditions,
   });
   return {
     ...engagement,
@@ -245,7 +255,7 @@ export async function getAnalyticsReport(input: {
     end: end.toISOString(),
     kind: input.kind,
     ...summaryMetrics(totals, input.kind, config),
-    bytes: Number(totals.bytes),
+    bytes: totals.bytes === null ? null : Number(totals.bytes),
     p50Ms: percentile(histogram, 0.5),
     p95Ms: percentile(histogram, 0.95),
     histogram,
@@ -280,13 +290,10 @@ export async function getAnalyticsFilterOptions(input: {
   workspaceId: string;
   days: number;
   kind: "request" | "pageview";
-  field: "referrer" | "country" | "city" | "browser";
+  field: Exclude<AnalyticsFilter["field"], "path">;
   search: string;
 }) {
-  if (input.kind === "request" && input.field !== "referrer")
-    throw badRequest(
-      "Country, city, and browser filters are available for pageviews only.",
-    );
+  assertFilterFields(input.kind, [input.field]);
   const database = getTowbarDatabase();
   const [app] = await database
     .select({ config: apps.config })
@@ -305,48 +312,55 @@ export async function getAnalyticsFilterOptions(input: {
   const start = new Date(
     end.getTime() - Math.min(input.days, retention) * 86400_000,
   );
+  if (input.field === "responseTime")
+    return analyticsResponseTimeRanges.filter((range) =>
+      range.toLowerCase().includes(input.search.toLowerCase()),
+    );
   const field = analyticsDimension(input.field);
   const rows = await database.execute<{ value: string }>(sql`
     select ${field} value from towbar_analytics_samples s
     cross join lateral jsonb_array_elements(s.cells) c
     where s.app_id=${input.appId}::uuid and s.collected_at>=${start.toISOString()}::timestamptz
       and s.collected_at<${end.toISOString()}::timestamptz
-      and c->>'kind'=${input.kind}
+      and c->>'kind'=${input.field === "destination" ? "outbound" : input.kind}
       and position(lower(${input.search}::text) in lower(${field})) > 0
     group by 1 order by sum((c->>'count')::bigint) desc,1 limit ${input.field === "country" ? 250 : 50}`);
   return rows.map((row) => row.value);
 }
 
-function analyticsDimension(field: string): SQL {
-  if (field === "city")
-    return sql`case when coalesce(c->>'city', '') = '' then 'Unknown'
-      else concat_ws(', ', c->>'city', nullif(c->>'region', ''), nullif(c->>'country', '')) end`;
-  return sql`coalesce(nullif(c->>${field}, ''), 'Unknown')`;
+async function reportDimensions(
+  database: AuthDatabase,
+  kind: "request" | "pageview",
+  filter: SQL,
+  cells: SQL,
+) {
+  const dimensions: AnalyticsReport["dimensions"] = {};
+  for (const key of kind === "request"
+    ? ["path", "referrer", "status", "method"]
+    : ["path", "referrer", "country", "city", "browser", "device"]) {
+    const dimension = analyticsDimension(key);
+    const rows = await database.execute<{ value: string; count: string }>(sql`
+      select ${dimension} value,sum((c->>'count')::bigint)::text count
+      from towbar_analytics_samples s cross join lateral ${cells} where ${filter}
+      group by 1 order by sum((c->>'count')::bigint) desc,1 limit 25`);
+    dimensions[key] = rows.map((r) => ({
+      value: r.value,
+      count: Number(r.count),
+    }));
+  }
+  return dimensions;
 }
 
-function analyticsConditions(filters: AnalyticsFilter[]): SQL {
-  const fields: Record<AnalyticsFilter["field"], SQL> = {
-    path: sql`c->>'path'`,
-    referrer: sql`coalesce(nullif(c->>'referrer', ''), 'Unknown')`,
-    country: analyticsDimension("country"),
-    city: analyticsDimension("city"),
-    browser: sql`coalesce(nullif(c->>'browser', ''), 'Unknown')`,
-  };
-  return (
-    and(
-      ...filters.map(({ field, operator, value }) => {
-        const expression = fields[field];
-        if (operator === "in" && Array.isArray(value))
-          return sql`${expression} in (${sql.join(
-            value.map((item) => sql`${item}`),
-            sql`, `,
-          )})`;
-        if (operator === "startsWith" && typeof value === "string")
-          return sql`left(${expression}, length(${value}::text)) = ${value}`;
-        return sql`${expression} = ${value as string}`;
-      }),
-    ) ?? sql`true`
-  );
+function assertFilterFields(
+  kind: "request" | "pageview",
+  fields: AnalyticsFilter["field"][],
+) {
+  const available =
+    kind === "request" ? analyticsHttpFilterFields : analyticsWebFilterFields;
+  if (fields.some((field) => !available.some((allowed) => allowed === field)))
+    throw badRequest(
+      "Choose filters available for the selected analytics measure.",
+    );
 }
 
 function agentDiagnostics(
@@ -385,32 +399,35 @@ function isExcludedPath(path: string, prefixes: string[]) {
 
 type PeriodTotals = {
   count: string;
-  bytes: string;
-  duration: string;
+  bytes: string | null;
+  duration: string | null;
   errors: string;
   visitors: string;
   sessions: string;
   last: string | null;
 };
+function hasVisitorIdentity(
+  config: AnalyticsConfig | null,
+  kind: "request" | "pageview",
+) {
+  return Boolean(config?.visitorIdentity && kind === "pageview");
+}
 function summaryMetrics(
   totals: PeriodTotals,
   kind: "request" | "pageview",
   config: AnalyticsConfig | null,
 ) {
   const total = Number(totals.count);
+  const includeIdentity = hasVisitorIdentity(config, kind);
   return {
     total,
     errors: Number(totals.errors),
     meanMs:
-      kind === "request" && total ? Number(totals.duration) / total : null,
-    visitors:
-      config?.visitorIdentity && kind === "pageview"
-        ? Number(totals.visitors)
+      kind === "request" && total && totals.duration !== null
+        ? Number(totals.duration) / total
         : null,
-    sessions:
-      config?.visitorIdentity && kind === "pageview"
-        ? Number(totals.sessions)
-        : null,
+    visitors: includeIdentity ? Number(totals.visitors) : null,
+    sessions: includeIdentity ? Number(totals.sessions) : null,
   };
 }
 async function periodSummary(
@@ -419,6 +436,8 @@ async function periodSummary(
   start: Date,
   end: Date,
   step: number,
+  cells: SQL,
+  includeIdentity: boolean,
 ) {
   const [
     totals = {
@@ -432,27 +451,30 @@ async function periodSummary(
     },
   ] = await database.execute<{
     count: string;
-    bytes: string;
-    duration: string;
+    bytes: string | null;
+    duration: string | null;
     errors: string;
     visitors: string;
     sessions: string;
     last: string | null;
   }>(sql`
-    select coalesce(sum((c->>'count')::bigint),0)::text count, coalesce(sum((c->>'bytes')::bigint),0)::text bytes,
-      coalesce(sum((c->>'durationMs')::double precision),0)::text duration,
+    select coalesce(sum((c->>'count')::bigint),0)::text count, case when bool_or(c->>'bytes' is null) then null else coalesce(sum((c->>'bytes')::bigint),0)::text end bytes,
+      case when bool_or(c->>'durationMs' is null) then null else coalesce(sum((c->>'durationMs')::double precision),0)::text end duration,
       coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int >= 400),0)::text errors,
       count(distinct nullif(c->>'visitor',''))::text visitors, count(distinct nullif(c->>'session',''))::text sessions,
       max(s.collected_at)::text last
-    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter}`);
+    from towbar_analytics_samples s cross join lateral ${cells} where ${filter}`);
   const trendRows = await database.execute<{
     at: string;
     count: string;
     errors: string;
+    visitors: string;
+    sessions: string;
   }>(sql`
     select (${start.toISOString()}::timestamptz + floor(extract(epoch from (s.collected_at - ${start.toISOString()}::timestamptz))/${step}) * ${step} * interval '1 second')::text at,
-      sum((c->>'count')::bigint)::text count, coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int>=400),0)::text errors
-    from towbar_analytics_samples s cross join lateral jsonb_array_elements(s.cells) c where ${filter} group by at order by at`);
+      sum((c->>'count')::bigint)::text count, coalesce(sum((c->>'count')::bigint) filter(where (c->>'status')::int>=400),0)::text errors,
+      count(distinct nullif(c->>'visitor',''))::text visitors, count(distinct nullif(c->>'session',''))::text sessions
+    from towbar_analytics_samples s cross join lateral ${cells} where ${filter} group by at order by at`);
 
   const points = new Map(
     trendRows.map((row) => [new Date(row.at).getTime(), row]),
@@ -464,6 +486,8 @@ async function periodSummary(
       at: new Date(at).toISOString(),
       count: Number(row?.count ?? 0),
       errors: Number(row?.errors ?? 0),
+      visitors: includeIdentity ? Number(row?.visitors ?? 0) : null,
+      sessions: includeIdentity ? Number(row?.sessions ?? 0) : null,
     });
   }
   return { totals, trend };

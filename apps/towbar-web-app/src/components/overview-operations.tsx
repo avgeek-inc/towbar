@@ -50,7 +50,7 @@ export function OverviewIncidents() {
         </Widget.Title>
       </Widget.Header>
       <Widget.Content
-        className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3.5 pr-[38%]`}
+        className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3 pr-[38%]`}
         style={
           !query.error && count !== undefined
             ? {
@@ -73,7 +73,7 @@ export function OverviewIncidents() {
             <div className="grid justify-items-start gap-3">
               <InlineLink
                 href="/monitoring/incidents"
-                className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight font-mono tabular-nums"
+                className="inline-flex items-center text-2xl font-semibold tracking-tight font-mono tabular-nums"
                 aria-label={`${count} active ${count === 1 ? "incident" : "incidents"} — view all`}
               >
                 {count}

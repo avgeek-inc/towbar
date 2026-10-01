@@ -162,7 +162,7 @@ function logoFor(entry) {
   if (stackEngine)
     return `/assets/database-logos/${stackEngine}.${stackEngine === "dragonfly" ? "svg" : "webp"}`;
   if (entry.id === 33) return "/assets/integration-logos/infisical.webp";
-  if (entry.id === 34) return "/assets/integration-logos/doppler.ico";
+  if (entry.id === 34) return "/assets/integration-logos/doppler.svg";
   if ([11, 12, 95].includes(entry.id))
     return "/assets/integration-logos/docker.webp";
   return null;

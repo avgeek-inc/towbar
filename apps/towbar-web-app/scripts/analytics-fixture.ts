@@ -3,6 +3,9 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   analyticsFilterOptionsQuerySchema,
   analyticsQuerySchema,
+  analyticsResponseTimeRanges,
+  analyticsHttpFilterFields,
+  analyticsWebFilterFields,
 } from "@workspace/towbar-core";
 import type { AnalyticsReport } from "@workspace/towbar-web-client";
 
@@ -24,18 +27,38 @@ export function analyticsFixture(
       );
       return true;
     }
-    const choices =
-      query.data.field === "referrer"
-        ? ["google.com", "github.com", "Unknown"]
-        : query.data.field === "country"
-          ? ["IN", "US", "Unknown"]
-          : query.data.field === "city"
-            ? [
-                "Chennai, Tamil Nadu, IN",
-                "San Francisco, California, US",
-                "Unknown",
-              ]
-            : ["Chrome", "Safari", "Unknown"];
+    const allowed =
+      query.data.kind === "request"
+        ? analyticsHttpFilterFields
+        : analyticsWebFilterFields;
+    if (!allowed.some((field) => field === query.data.field)) {
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          error: {
+            message:
+              "Choose filters available for the selected analytics measure.",
+          },
+        }),
+      );
+      return true;
+    }
+    const choices = {
+      referrer: ["google.com", "github.com", "Unknown"],
+      status: ["200", "404", "500"],
+      method: ["GET", "POST"],
+      responseTime: [...analyticsResponseTimeRanges],
+      country: ["IN", "US", "Unknown"],
+      city: [
+        "Chennai, Tamil Nadu, IN",
+        "San Francisco, California, US",
+        "Unknown",
+        ...Array.from({ length: 25 }, (_, i) => `City ${i + 1}, Region, IN`),
+      ],
+      browser: ["Chrome", "Safari", "Unknown"],
+      device: ["Desktop", "Mobile", "Unknown"],
+      destination: ["github.com", "wikipedia.org"],
+    }[query.data.field];
     response.writeHead(200, { "content-type": "application/json" });
     response.end(
       fixtureJson(response, {
@@ -58,6 +81,22 @@ export function analyticsFixture(
     return true;
   }
   const { kind, days, filters } = query.data;
+  const allowed =
+    kind === "request" ? analyticsHttpFilterFields : analyticsWebFilterFields;
+  if (
+    filters.some((filter) => !allowed.some((field) => field === filter.field))
+  ) {
+    response.writeHead(400, { "content-type": "application/json" });
+    response.end(
+      JSON.stringify({
+        error: {
+          message:
+            "Choose filters available for the selected analytics measure.",
+        },
+      }),
+    );
+    return true;
+  }
   if (
     filters.length &&
     process.env.TOWBAR_FIXTURE_ANALYTICS_STATE === "filtered-error"
@@ -73,7 +112,7 @@ export function analyticsFixture(
   const paths = [
     {
       value: "/",
-      share: 0.45,
+      share: 0.34,
       referrer: "google.com",
       country: "IN",
       city: "Chennai, Tamil Nadu, IN",
@@ -120,7 +159,27 @@ export function analyticsFixture(
       city: "Unknown",
       browser: "Unknown",
     },
-  ];
+    ...Array.from({ length: 25 }, (_, i) => ({
+      value: `/cities/${i + 1}`,
+      share: 0.11 / 25,
+      referrer: "google.com",
+      country: "IN",
+      city: `City ${i + 1}, Region, IN`,
+      browser: "Chrome",
+    })),
+  ].map((path, index) => ({
+    ...path,
+    device:
+      path.browser === "Chrome"
+        ? "Mobile"
+        : path.browser === "Safari"
+          ? "Desktop"
+          : "Unknown",
+    method: index === 2 ? "POST" : "GET",
+    status: index === 2 ? "404" : index === 5 ? "500" : "200",
+    responseTime: analyticsResponseTimeRanges[index % 8]!,
+    destination: index % 2 === 0 ? "github.com" : "wikipedia.org",
+  }));
   const matchingPaths = paths.filter((path) =>
     filters.every((filter) => {
       if (filter.field === "path")
@@ -162,20 +221,39 @@ export function analyticsFixture(
   const counts = currentBuckets.map((rows) =>
     rows.reduce((sum, row) => sum + row.count, 0),
   );
-  const previousCounts = allCounts.map((count, i) =>
-    allocate(Math.floor(count * (0.65 + (i % 3) * 0.15))).reduce(
-      (sum, row) => sum + row.count,
+  const previousBuckets = allCounts.map((count, i) =>
+    allocate(Math.floor(count * (0.65 + (i % 3) * 0.15))),
+  );
+  const previousCounts = previousBuckets.map((rows) =>
+    rows.reduce((sum, row) => sum + row.count, 0),
+  );
+  const total = counts.reduce((a, b) => a + b, 0);
+  const histogram = analyticsResponseTimeRanges.map((range) =>
+    currentBuckets.reduce(
+      (sum, rows) =>
+        sum +
+        rows.reduce(
+          (sum, row) =>
+            sum +
+            (paths.find((path) => path.value === row.value)!.responseTime ===
+            range
+              ? row.count
+              : 0),
+          0,
+        ),
       0,
     ),
   );
-  const total = counts.reduce((a, b) => a + b, 0);
-  const histogram = [0, 0.55, 0.27, 0.12, 0.015, 0.005, 0.001, 0.0005].map(
-    (share) => Math.floor(total * share),
-  );
-  histogram[0] = total - histogram.reduce((a, b) => a + b, 0);
-  const share = (fraction: number) => Math.floor(total * fraction);
   const dimensionCounts = (
-    field: "referrer" | "country" | "city" | "browser",
+    field:
+      | "referrer"
+      | "country"
+      | "city"
+      | "browser"
+      | "device"
+      | "status"
+      | "method"
+      | "destination",
   ) => {
     const counts = new Map<string, number>();
     for (const rows of currentBuckets)
@@ -185,6 +263,29 @@ export function analyticsFixture(
       }
     return [...counts].map(([value, count]) => ({ value, count }));
   };
+  const errorsIn = (rows: { value: string; count: number }[]) =>
+    kind === "pageview"
+      ? 0
+      : rows.reduce(
+          (sum, row) =>
+            sum +
+            (Number(paths.find((path) => path.value === row.value)!.status) >=
+            400
+              ? row.count
+              : 0),
+          0,
+        );
+  const errorCount = currentBuckets.reduce(
+    (sum, rows) => sum + errorsIn(rows),
+    0,
+  );
+  const outboundLinks =
+    kind === "pageview" && total
+      ? dimensionCounts("destination").map((row) => ({
+          ...row,
+          count: Math.floor(row.count * 0.1),
+        }))
+      : [];
   const report: AnalyticsReport = {
     enabled: true,
     config: {
@@ -207,7 +308,7 @@ export function analyticsFixture(
     filters,
     total,
     bytes: Math.floor(23456789 * fraction),
-    errors: Math.floor(34 * fraction),
+    errors: errorCount,
     meanMs: total ? 48.2 : null,
     p50Ms: total ? 50 : null,
     p95Ms: total ? 200 : null,
@@ -216,7 +317,7 @@ export function analyticsFixture(
     bounceRate: kind === "pageview" && total ? 36.4 : null,
     averageTimeMs: kind === "pageview" && total ? 83400 : null,
     exits: kind === "pageview" ? Math.floor(700 * fraction) : 0,
-    outboundClicks: kind === "pageview" ? Math.floor(110 * fraction) : 0,
+    outboundClicks: outboundLinks.reduce((sum, row) => sum + row.count, 0),
     exitPages:
       kind === "pageview" && total
         ? matchingPaths.map((p) => ({
@@ -224,13 +325,7 @@ export function analyticsFixture(
             count: Math.floor(700 * p.share),
           }))
         : [],
-    outboundLinks:
-      kind === "pageview" && total
-        ? [
-            { value: "github.com", count: Math.floor(80 * fraction) },
-            { value: "wikipedia.org", count: Math.floor(30 * fraction) },
-          ]
-        : [],
+    outboundLinks,
     histogram,
     deployments: [0.7, 0.3].map((fraction, index) => ({
       id: `61111111-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
@@ -243,7 +338,9 @@ export function analyticsFixture(
         end - (counts.length - i) * (days === 1 ? 3600000 : 86400000),
       ).toISOString(),
       count,
-      errors: Math.floor((i % 3) * fraction),
+      errors: errorsIn(currentBuckets[i]!),
+      visitors: kind === "pageview" ? Math.floor(count * 0.66) : null,
+      sessions: kind === "pageview" ? Math.floor(count * 0.79) : null,
     })),
     comparison:
       days * 2 > 90 || !fraction
@@ -252,7 +349,10 @@ export function analyticsFixture(
             start: new Date(end - 2 * days * 86400000).toISOString(),
             end: new Date(end - days * 86400000).toISOString(),
             total: previousCounts.reduce((sum, count) => sum + count, 0),
-            errors: Math.floor(50 * fraction),
+            errors: previousBuckets.reduce(
+              (sum, rows) => sum + errorsIn(rows),
+              0,
+            ),
             meanMs: 56.8,
             bounceRate: kind === "pageview" ? 41.2 : null,
             averageTimeMs: kind === "pageview" ? 72100 : null,
@@ -265,7 +365,15 @@ export function analyticsFixture(
                   (counts.length - i) * (days === 1 ? 3600000 : 86400000),
               ).toISOString(),
               count: previousCounts[i]!,
-              errors: Math.floor(2 * fraction),
+              errors: errorsIn(previousBuckets[i]!),
+              visitors:
+                kind === "pageview"
+                  ? Math.floor(previousCounts[i]! * 0.61)
+                  : null,
+              sessions:
+                kind === "pageview"
+                  ? Math.floor(previousCounts[i]! * 0.87)
+                  : null,
             })),
           },
     dimensions: {
@@ -280,27 +388,18 @@ export function analyticsFixture(
       referrer: dimensionCounts("referrer"),
       ...(kind === "request"
         ? {
-            status: [
-              { value: "200", count: total - Math.floor(34 * fraction) },
-              { value: "404", count: Math.floor(30 * fraction) },
-              {
-                value: "500",
-                count: Math.floor(34 * fraction) - Math.floor(30 * fraction),
-              },
-            ],
-            method: [
-              { value: "GET", count: total - Math.floor(50 * fraction) },
-              { value: "POST", count: Math.floor(50 * fraction) },
-            ],
+            status: dimensionCounts("status"),
+            method: dimensionCounts("method"),
           }
         : {
             country: dimensionCounts("country"),
-            city: dimensionCounts("city"),
+            city: dimensionCounts("city")
+              .sort(
+                (a, b) => b.count - a.count || a.value.localeCompare(b.value),
+              )
+              .slice(0, 25),
             browser: dimensionCounts("browser"),
-            device: [
-              { value: "Desktop", count: share(0.58) },
-              { value: "Mobile", count: share(0.4) },
-            ],
+            device: dimensionCounts("device"),
           }),
     },
   };

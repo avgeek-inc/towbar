@@ -14,7 +14,7 @@
 
 @media (min-width: 1280px) {
   .activityChart {
-    --overview-activity-height: 240px;
+    --overview-activity-height: 220px;
   }
 }
 

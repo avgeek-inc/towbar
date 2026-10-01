@@ -441,7 +441,7 @@
       "signoz/frontend",
       "signoz/alertmanager"
     ],
-    "logo": "/resource-logos/signoz.svg"
+    "logo": "/resource-logos/signoz-mark.svg"
   },
   {
     "id": "opentelemetry",
@@ -961,13 +961,13 @@
     "id": "nodejs",
     "label": "Node.js",
     "repositories": ["node"],
-    "logo": "/resource-logos/nodejs.webp"
+    "logo": "/resource-logos/nodejs.svg"
   },
   {
     "id": "python",
     "label": "Python",
     "repositories": ["python"],
-    "logo": "/resource-logos/python.webp"
+    "logo": "/resource-logos/python.svg"
   },
   {
     "id": "golang",

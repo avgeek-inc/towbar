@@ -5,13 +5,33 @@ import {
   monitoringEventColor,
 } from "./monitoring-events";
 import { PageSelectionTitle } from "./page-selection-title";
-import { Analytics01Icon, FilterIcon } from "@hugeicons/core-free-icons";
+import {
+  ChartNoAxesColumnIcon,
+  ApiIcon,
+  BrowserIcon,
+  City01Icon,
+  Clock01Icon,
+  ComputerIcon,
+  EqualSignIcon,
+  Flag01Icon,
+  FilterIcon,
+  FilterRemoveIcon,
+  Globe02Icon,
+  LinkSquare02Icon,
+  ListViewIcon,
+  Route01Icon,
+  TextAlignLeftIcon,
+  CodeIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import styles from "./scout-analytics.module.css";
-import type {
-  AnalyticsReport,
-  AnalyticsFilter,
+import {
+  analyticsHttpFilterFields,
+  analyticsWebFilterFields,
+  analyticsResponseTimeRanges,
+  type AnalyticsReport,
+  type AnalyticsFilter,
 } from "@workspace/towbar-web-client";
 import {
   FilterDialog,
@@ -19,6 +39,8 @@ import {
 } from "@workspace/towbar-web-ui/filter-dialog";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
+import { Label } from "@workspace/web-design-system/forms/label";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { LineChart } from "@workspace/web-design-system/charts/line-chart";
@@ -48,26 +70,50 @@ const labels: Record<string, string> = {
   browser: "Browsers",
   device: "Devices",
 };
-const latencyLabels = [
-  "<10 ms",
-  "10 to 50 ms",
-  "50 to 100 ms",
-  "100 to 200 ms",
-  "200 to 500 ms",
-  "500 ms to 1 s",
-  "1 to 2.5 s",
-  ">2.5 s",
-];
+const latencyLabels = analyticsResponseTimeRanges;
 const format = (n: number) => n.toLocaleString();
+const filterIcons = {
+  path: Route01Icon,
+  referrer: Globe02Icon,
+  status: CodeIcon,
+  method: ApiIcon,
+  responseTime: Clock01Icon,
+  country: Flag01Icon,
+  city: City01Icon,
+  browser: BrowserIcon,
+  device: ComputerIcon,
+  destination: LinkSquare02Icon,
+} satisfies Record<AnalyticsFilter["field"], typeof FilterIcon>;
+const filterIcon = (icon: typeof FilterIcon) => (
+  <HugeiconsIcon
+    icon={icon}
+    className="size-4 shrink-0 text-muted"
+    aria-hidden="true"
+  />
+);
+function pathFilterMatches(filter: AnalyticsFilter, path: string) {
+  return (
+    filter.field === "path" &&
+    typeof filter.value === "string" &&
+    (filter.operator === "equals"
+      ? filter.value === path
+      : filter.operator === "startsWith" && path.startsWith(filter.value))
+  );
+}
 const pathFilterField: FilterField<
   AnalyticsFilter["field"],
   AnalyticsFilter["operator"]
 > = {
   field: "path",
   label: "Path",
+  icon: filterIcon(filterIcons.path),
   operators: [
-    { value: "equals", label: "is" },
-    { value: "startsWith", label: "starts with" },
+    { value: "equals", label: "is", icon: filterIcon(EqualSignIcon) },
+    {
+      value: "startsWith",
+      label: "starts with",
+      icon: filterIcon(TextAlignLeftIcon),
+    },
   ],
   placeholder: "/docs",
   pattern: "/[^?#\\r\\n]*",
@@ -83,43 +129,39 @@ export function ScoutAnalytics({
   domain?: string;
   supported?: boolean;
 }) {
-  const [kind, setKind] = useState<"request" | "pageview">("request");
+  const [kind, setKind] = useState<"request" | "pageview">("pageview");
   const [days, setDays] = useState(7);
   const [filters, setFilters] = useState<AnalyticsFilter[]>([]);
+  const filterLabels: Record<AnalyticsFilter["field"], string> = {
+    path: "Path",
+    referrer: "Referring website",
+    status: "Response code",
+    method: "Method",
+    responseTime: "Response time",
+    country: "Country",
+    city: "City",
+    browser: "Browser",
+    device: "Device",
+    destination: "Outbound website",
+  };
   const filterFields: FilterField<
     AnalyticsFilter["field"],
     AnalyticsFilter["operator"]
-  >[] = [
-    pathFilterField,
-    {
-      field: "referrer",
-      label: "Referring website",
-      operators: [{ value: "in", label: "is one of" }],
-      searchable: true,
-    },
-    ...(kind === "pageview"
-      ? [
-          {
-            field: "country" as const,
-            label: "Country",
-            operators: [{ value: "in" as const, label: "is one of" }],
-            searchable: true,
-          },
-          {
-            field: "city" as const,
-            label: "City",
-            operators: [{ value: "in" as const, label: "is one of" }],
-            searchable: true,
-          },
-          {
-            field: "browser" as const,
-            label: "Browser",
-            operators: [{ value: "in" as const, label: "is one of" }],
-            searchable: true,
-          },
-        ]
-      : []),
-  ];
+  >[] = (
+    kind === "request" ? analyticsHttpFilterFields : analyticsWebFilterFields
+  ).map((field) =>
+    field === "path"
+      ? pathFilterField
+      : {
+          field,
+          label: filterLabels[field],
+          icon: filterIcon(filterIcons[field]),
+          operators: [
+            { value: "in", label: "is one of", icon: filterIcon(ListViewIcon) },
+          ],
+          searchable: true,
+        },
+  );
   const getFilterOptions = useCallback(
     async (field: AnalyticsFilter["field"], search: string) => {
       if (field === "path") return [];
@@ -152,7 +194,7 @@ export function ScoutAnalytics({
       <>
         <PageSelectionTitle
           label="Analytics"
-          icon={<HugeiconsIcon icon={Analytics01Icon} />}
+          icon={<HugeiconsIcon icon={ChartNoAxesColumnIcon} />}
           keepEntityName
         />
         <EmptyState>
@@ -171,10 +213,10 @@ export function ScoutAnalytics({
     <>
       <PageSelectionTitle
         label="Analytics"
-        icon={<HugeiconsIcon icon={Analytics01Icon} />}
+        icon={<HugeiconsIcon icon={ChartNoAxesColumnIcon} />}
         keepEntityName
         actions={
-          <div className="hidden sm:block">
+          <div>
             <FilterDialog
               fields={filterFields}
               value={filters}
@@ -196,7 +238,10 @@ export function ScoutAnalytics({
                         : "🌐"}
                     </span>
                   ) : (
-                    <AnalyticsRowIcon dimension={field} value={value} />
+                    <AnalyticsRowIcon
+                      dimension={field === "destination" ? "referrer" : field}
+                      value={value}
+                    />
                   )}
                   <span className="truncate">
                     {field === "country" && value !== "Unknown"
@@ -222,27 +267,24 @@ export function ScoutAnalytics({
           days={days}
           setDays={setDays}
           setKind={(next) => {
-            if (next === "request")
-              setFilters((current) =>
-                current.filter(
-                  (filter) =>
-                    !["country", "city", "browser"].includes(filter.field),
-                ),
-              );
+            const available =
+              next === "request"
+                ? analyticsHttpFilterFields
+                : analyticsWebFilterFields;
+            setFilters((current) =>
+              current.filter((filter) =>
+                available.some((field) => field === filter.field),
+              ),
+            );
             setKind(next);
           }}
           onFilterPath={(path) =>
             setFilters((current) => {
-              if (
-                current.length >= 8 ||
-                current.some(
-                  (filter) =>
-                    filter.field === "path" &&
-                    filter.operator === "equals" &&
-                    filter.value === path,
-                )
-              )
-                return current;
+              if (current.some((filter) => pathFilterMatches(filter, path)))
+                return current.filter(
+                  (filter) => !pathFilterMatches(filter, path),
+                );
+              if (current.length >= 8) return current;
               return [
                 ...current,
                 { field: "path", operator: "equals", value: path },
@@ -271,6 +313,10 @@ export function AnalyticsView({
   onFilterPath: (path: string) => void;
 }) {
   const [eventActive, setEventActive] = useState(false);
+  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<
+    "count" | "errors" | "visitors" | "sessions" | null
+  >(null);
   if (!report.enabled)
     return (
       <EmptyState>
@@ -292,22 +338,12 @@ export function AnalyticsView({
           previous: report.comparison?.total,
           lowerIsBetter: false,
         },
-        ...(report.visitors === null
-          ? []
-          : [
-              {
-                label: "Estimated visitors",
-                value: report.visitors,
-                previous: report.comparison?.visitors,
-                lowerIsBetter: false,
-              },
-              {
-                label: "Estimated sessions",
-                value: report.sessions,
-                previous: report.comparison?.sessions,
-                lowerIsBetter: false,
-              },
-            ]),
+        {
+          label: "Estimated visitors",
+          value: report.visitors,
+          previous: report.comparison?.visitors,
+          lowerIsBetter: false,
+        },
         {
           label: "Time spent",
           value: report.averageTimeMs ?? null,
@@ -316,18 +352,14 @@ export function AnalyticsView({
           unit: "time",
           help: "Average time a page was visible in a browser tab. Hidden tabs do not add time.",
         },
-        ...(report.visitors === null
-          ? []
-          : [
-              {
-                label: "Bounce rate",
-                value: report.bounceRate ?? null,
-                previous: report.comparison?.bounceRate,
-                lowerIsBetter: true,
-                unit: "percent",
-                help: "Share of finished visits with one pageview. A visit finishes after 30 minutes without activity.",
-              },
-            ]),
+        {
+          label: "Bounce rate",
+          value: report.bounceRate ?? null,
+          previous: report.comparison?.bounceRate,
+          lowerIsBetter: true,
+          unit: "percent",
+          help: "Share of finished visits with one pageview. A visit finishes after 30 minutes without activity.",
+        },
       ]
     : [
         {
@@ -337,7 +369,7 @@ export function AnalyticsView({
           lowerIsBetter: false,
         },
         {
-          label: "HTTP errors (4xx + 5xx)",
+          label: "4xx + 5xx",
           value: report.errors,
           previous: report.comparison?.errors,
           lowerIsBetter: true,
@@ -354,9 +386,102 @@ export function AnalyticsView({
     ...point,
     at: Date.parse(point.at),
     previous: report.comparison?.trend[index]?.count ?? null,
+    previousErrors: report.comparison?.trend[index]?.errors ?? null,
+    previousVisitors: report.comparison?.trend[index]?.visitors ?? null,
+    previousSessions: report.comparison?.trend[index]?.sessions ?? null,
   }));
+  const webSeries = [
+    {
+      key: "count",
+      previousKey: "previous",
+      label: "Page views",
+      color: "var(--accent)",
+    },
+    {
+      key: "visitors",
+      previousKey: "previousVisitors",
+      label: "Estimated visitors",
+      color: "var(--warning)",
+    },
+    {
+      key: "sessions",
+      previousKey: "previousSessions",
+      label: "Estimated sessions",
+      color: "var(--danger)",
+    },
+  ] as const;
+  const httpSeries = [
+    {
+      key: "count",
+      previousKey: "previous",
+      label: "Requests",
+      color: "var(--accent)",
+    },
+    {
+      key: "errors",
+      previousKey: "previousErrors",
+      label: "HTTP errors",
+      color: "var(--danger)",
+    },
+  ] as const;
+  const chartSeries = pageviews ? webSeries : httpSeries;
+  const activeMetric = chartSeries.some(({ key }) => key === selectedMetric)
+    ? selectedMetric
+    : null;
+  const visibleSeries = chartSeries.filter(
+    ({ key }) => activeMetric === null || key === activeMetric,
+  );
+  const showComparison = Boolean(report.comparison) && compareEnabled;
+  const breakdowns: {
+    name: string;
+    dimension: string;
+    rows: { value: string; count: number }[];
+    total: number;
+    help?: string;
+  }[] = Object.entries(report.dimensions).map(([dimension, rows]) => ({
+    name: labels[dimension] ?? dimension,
+    dimension,
+    rows,
+    total: report.total,
+  }));
+  if (!pageviews) {
+    breakdowns.push({
+      name: "Response times",
+      dimension: "responseTime",
+      rows: report.histogram
+        .map((count, i) => ({ value: latencyLabels[i]!, count }))
+        .filter((row) => row.count > 0),
+      total: report.total,
+    });
+  } else {
+    if (report.config?.visitorIdentity)
+      breakdowns.push({
+        name: "Exit pages",
+        dimension: "path",
+        rows: report.exitPages ?? [],
+        total: report.exits ?? 0,
+        help: "The last page viewed in each finished visit. A visit finishes after 30 minutes without activity.",
+      });
+    breakdowns.push({
+      name: "Outbound websites",
+      dimension: "referrer",
+      rows: report.outboundLinks ?? [],
+      total: report.outboundClicks ?? 0,
+      help: "Websites whose links visitors clicked, including links opened in a new tab. A click does not prove the visitor left your site.",
+    });
+  }
+  const breakdownColumns: [typeof breakdowns, typeof breakdowns] = [[], []];
+  const columnHeights: [number, number] = [0, 0];
+  for (const breakdown of breakdowns) {
+    const column = columnHeights[0] <= columnHeights[1] ? 0 : 1;
+    breakdownColumns[column].push(breakdown);
+    columnHeights[column] +=
+      Math.max(1, Math.min(breakdown.rows.length, 10)) +
+      1 +
+      (breakdown.rows.length > 10 ? 1 : 0);
+  }
   const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
-  const comparisonLabel = `Previous ${days === 1 ? "24 hours" : `${days} days`}`;
+  const comparisonLabel = `Prev. ${days === 1 ? "24 hours" : `${days} days`}`;
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -366,10 +491,8 @@ export function AnalyticsView({
             value={report.kind}
             onChange={(value) => setKind(value as "request" | "pageview")}
             options={[
+              { id: "pageview", label: "Web analytics" },
               { id: "request", label: "HTTP analytics" },
-              ...(report.config?.pageviews
-                ? [{ id: "pageview", label: "Web analytics" }]
-                : []),
             ]}
           />
           <ScoutSelect
@@ -385,6 +508,14 @@ export function AnalyticsView({
           />
         </div>
       </div>
+      {report.filters.some((filter) => filter.field === "responseTime") &&
+      report.meanMs === null &&
+      report.total > 0 ? (
+        <p className="text-xs text-muted">
+          Response time filters use recorded histogram ranges. An exact average
+          is unavailable when a range selects part of an aggregate.
+        </p>
+      ) : null}
       {report.agentStatus !== "online" ? (
         <p role="status" className="text-sm text-warning">
           Scout Agent is {report.agentStatus}. Install or update Scout on the
@@ -407,14 +538,11 @@ export function AnalyticsView({
       ) : null}
       {hasTrend ? (
         <div
-          className={`grid grid-cols-2 gap-4 ${pageviews ? "sm:grid-cols-6" : "sm:grid-cols-3"}`}
+          className={`grid gap-4 ${pageviews ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"}`}
         >
           {metrics.map(
-            ({ label, value, previous, lowerIsBetter, ...metric }, index) => (
-              <Widget
-                key={label}
-                className={`min-w-0 ${pageviews ? (metrics.length === 5 && index < 3 ? "sm:col-span-2" : "sm:col-span-3") : ""}`}
-              >
+            ({ label, value, previous, lowerIsBetter, ...metric }) => (
+              <Widget key={label} className="min-w-0">
                 <Widget.Header>
                   <Widget.Title>
                     {label}
@@ -470,19 +598,41 @@ export function AnalyticsView({
         </EmptyState>
       ) : (
         <Widget>
-          <Widget.Header>
+          <Widget.Header
+            endContent={
+              <Checkbox
+                className="shrink-0"
+                variant="secondary"
+                isSelected={compareEnabled}
+                onChange={setCompareEnabled}
+                isDisabled={!report.comparison}
+              >
+                <Checkbox.Content className="gap-2">
+                  <Checkbox.Control>
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                  <Label className="text-xs">Enable Compare</Label>
+                </Checkbox.Content>
+              </Checkbox>
+            }
+          >
             <Widget.Title
-              icon={<ScoutIcon name={pageviews ? "pageview" : "request"} />}
+              icon={pageviews ? undefined : <ScoutIcon name="request" />}
             >
-              {pageviews ? "Pageview trend" : "Request trend"}
+              {pageviews ? "Trends" : "Request trend"}
             </Widget.Title>
           </Widget.Header>
           <Widget.Content>
             <LineChart
               data={trend}
               height={240}
+              chartMargin={
+                pageviews ? { top: 5, right: 0, bottom: 5, left: 5 } : undefined
+              }
               aria-label={
-                pageviews ? "Pageviews over time" : "Requests over time"
+                pageviews
+                  ? "Page views, estimated visitors, and estimated sessions over time"
+                  : "Requests over time"
               }
             >
               <LineChart.Grid vertical={false} />
@@ -493,7 +643,11 @@ export function AnalyticsView({
                 dataKey="at"
                 type="number"
                 scale="time"
-                domain={[Date.parse(report.start), Date.parse(report.end)]}
+                domain={
+                  pageviews
+                    ? ["dataMin", "dataMax"]
+                    : [Date.parse(report.start), Date.parse(report.end)]
+                }
                 allowDataOverflow
                 ticks={trend
                   .map((point) => point.at)
@@ -522,10 +676,17 @@ export function AnalyticsView({
                   const point = trend.find(
                     (point) => point.at === Number(label),
                   );
+                  const orderedPayload = visibleSeries.flatMap(
+                    ({ key, previousKey }) =>
+                      [
+                        payload.find((item) => item.dataKey === key),
+                        payload.find((item) => item.dataKey === previousKey),
+                      ].filter((item) => item !== undefined),
+                  );
                   return (
                     <LineChart.TooltipContent
                       active={active}
-                      payload={payload.map(
+                      payload={orderedPayload.map(
                         ({ color, dataKey, name, value }) => ({
                           color,
                           dataKey: String(dataKey),
@@ -540,19 +701,30 @@ export function AnalyticsView({
                           ...(days === 1 ? { timeStyle: "short" } : {}),
                         })
                       }
-                      valueFormatter={(value) => format(Number(value))}
-                    >
-                      {point?.previous != null ? (
-                        <div className="mt-1 border-t border-separator pt-1">
-                          <MetricChange
-                            current={point.count}
-                            previous={point.previous}
-                            lowerIsBetter={false}
-                            label={comparisonLabel}
-                          />
-                        </div>
-                      ) : null}
-                    </LineChart.TooltipContent>
+                      valueFormatter={(value, key) => {
+                        const series = chartSeries.find(
+                          (series) => series.key === key,
+                        );
+                        const previous =
+                          series && point ? point[series.previousKey] : null;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-2 whitespace-nowrap ${String(key).startsWith("previous") ? "text-muted" : ""}`}
+                          >
+                            {format(Number(value))}
+                            {showComparison && series && previous != null ? (
+                              <MetricChange
+                                current={Number(value)}
+                                previous={previous}
+                                lowerIsBetter={series.key === "errors"}
+                                label={comparisonLabel}
+                                inline
+                              />
+                            ) : null}
+                          </span>
+                        );
+                      }}
+                    />
                   );
                 }}
               />
@@ -573,104 +745,83 @@ export function AnalyticsView({
                     }
                   />
                 ))}
-              <LineChart.Line
-                dataKey="count"
-                name={pageviews ? "Pageviews" : "Requests"}
-                stroke="var(--accent)"
-                strokeWidth={1.8}
-                isAnimationActive={false}
-                dot={false}
-              />
-              {report.comparison ? (
+              {visibleSeries.map(({ key, label, color }) => (
                 <LineChart.Line
-                  dataKey="previous"
-                  name={comparisonLabel}
-                  stroke="var(--warning)"
-                  strokeDasharray="5 4"
-                  strokeWidth={1.8}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              ) : null}
-              {!pageviews ? (
-                <LineChart.Line
-                  dataKey="errors"
-                  name="HTTP errors"
-                  stroke="var(--danger)"
+                  key={key}
+                  dataKey={key}
+                  name={label}
+                  stroke={color}
                   strokeWidth={1.8}
                   isAnimationActive={false}
                   dot={false}
                 />
-              ) : null}
+              ))}
+              {showComparison
+                ? visibleSeries.map(({ previousKey, label, color }) => (
+                    <LineChart.Line
+                      key={previousKey}
+                      dataKey={previousKey}
+                      name={`${label} (${comparisonLabel})`}
+                      stroke={color}
+                      strokeOpacity={0.25}
+                      strokeDasharray="5 4"
+                      strokeWidth={1.8}
+                      isAnimationActive={false}
+                      dot={false}
+                    />
+                  ))
+                : null}
             </LineChart>
-            {report.comparison ? (
-              <Widget.Legend className="mt-2 flex-wrap">
-                <Widget.LegendItem color="var(--accent)">
-                  {pageviews ? "Pageviews" : "Requests"}
-                </Widget.LegendItem>
-                <Widget.LegendItem color="var(--warning)">
-                  {comparisonLabel} (dashed)
-                </Widget.LegendItem>
-                {!pageviews ? (
-                  <Widget.LegendItem color="var(--danger)">
-                    HTTP errors
-                  </Widget.LegendItem>
-                ) : null}
-              </Widget.Legend>
+            <Widget.Legend className="mt-2 flex-wrap gap-1">
+              {chartSeries.map(({ key, label, color }) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={activeMetric === key}
+                  className={`widget__legend-item cursor-pointer rounded-lg px-2 py-1 outline-none transition-colors duration-150 hover:bg-default focus-visible:bg-default focus-visible:ring-2 focus-visible:ring-focus aria-pressed:bg-default motion-reduce:transition-none ${activeMetric !== null && activeMetric !== key ? "opacity-40" : ""}`}
+                  onClick={() =>
+                    setSelectedMetric((current) =>
+                      current === key ? null : key,
+                    )
+                  }
+                >
+                  <span
+                    className="widget__legend-item-dot"
+                    style={{ backgroundColor: color }}
+                    aria-hidden="true"
+                  />
+                  <span className="widget__legend-item-label">{label}</span>
+                </button>
+              ))}
+            </Widget.Legend>
+            {!report.comparison ? (
+              <p className="mt-2 text-xs text-muted">
+                No prior period data to compare.
+              </p>
             ) : null}
           </Widget.Content>
         </Widget>
       )}
       {report.total > 0 ? (
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-          {Object.entries(report.dimensions).map(([key, rows]) => (
-            <div key={key} className="min-w-0">
-              <AnalyticsRows
-                name={labels[key] ?? key}
-                rows={rows}
-                total={report.total}
-                dimension={key}
-                domain={domain}
-                onFilterPath={key === "path" ? onFilterPath : undefined}
-              />
+        <div
+          key={`${report.kind}:${days}:${JSON.stringify(report.filters)}`}
+          className="grid grid-cols-1 items-start gap-4 md:grid-cols-2"
+        >
+          {breakdownColumns.map((column, index) => (
+            <div key={index} className="grid min-w-0 content-start gap-4">
+              {column.map((breakdown) => (
+                <AnalyticsRows
+                  key={breakdown.name}
+                  {...breakdown}
+                  domain={domain}
+                  onFilterPath={
+                    breakdown.dimension === "path" ? onFilterPath : undefined
+                  }
+                  filters={report.filters}
+                />
+              ))}
             </div>
           ))}
-          {!pageviews ? (
-            <div className="min-w-0">
-              <AnalyticsRows
-                name="Response times"
-                rows={report.histogram
-                  .map((count, i) => ({
-                    value: latencyLabels[i]!,
-                    count,
-                  }))
-                  .filter((row) => row.count > 0)}
-                total={report.total}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      {pageviews && report.total > 0 ? (
-        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-          {report.config?.visitorIdentity ? (
-            <AnalyticsRows
-              name="Exit pages"
-              help="The last page viewed in each finished visit. A visit finishes after 30 minutes without activity."
-              dimension="path"
-              rows={report.exitPages ?? []}
-              total={report.exits ?? 0}
-              domain={domain}
-              onFilterPath={onFilterPath}
-            />
-          ) : null}
-          <AnalyticsRows
-            name="Outbound websites"
-            help="Websites whose links visitors clicked, including links opened in a new tab. A click does not prove the visitor left your site."
-            dimension="referrer"
-            rows={report.outboundLinks ?? []}
-            total={report.outboundClicks ?? 0}
-          />
         </div>
       ) : null}
       {pageviews && report.total > 0 ? (
@@ -713,8 +864,10 @@ function AnalyticsRows({
   help,
   domain,
   onFilterPath,
+  filters = [],
 }: {
   name: string;
+  filters?: AnalyticsFilter[];
   dimension?: string;
   help?: string;
   domain?: string;
@@ -722,6 +875,8 @@ function AnalyticsRows({
   rows: { value: string; count: number }[];
   total: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const tableId = useId();
   const country = dimension === "country";
   const location = country || dimension === "city";
   const numbered = [
@@ -732,19 +887,20 @@ function AnalyticsRows({
     "browser",
     "device",
   ].includes(dimension);
-  const orderedRows = numbered
+  const sortedRows = numbered
     ? [...rows].sort(
         (left, right) =>
           right.count - left.count || left.value.localeCompare(right.value),
       )
     : rows;
+  const orderedRows = sortedRows.slice(0, expanded ? 25 : 10);
   const maxCount = Math.max(0, ...rows.map((row) => row.count));
   return (
     <Table>
-      <Table.ScrollContainer>
+      <Table.ScrollContainer id={tableId}>
         <Table.Content
           aria-label={name}
-          className={`w-full table-fixed ${styles.breakdown} ${numbered ? styles.numbered : ""}`}
+          className={`w-full table-fixed ${styles.breakdown} ${numbered ? styles.numbered : ""} ${numbered && orderedRows.length > 9 ? styles.doubleDigitRanks : ""}`}
         >
           <Table.Header>
             {numbered ? (
@@ -788,11 +944,11 @@ function AnalyticsRows({
                 <Table.Cell className="relative overflow-hidden">
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none absolute inset-y-1 left-1 bg-accent ${styles.countBar}`}
+                    className={`pointer-events-none absolute inset-y-1 left-1 ${styles.countBar}`}
                     style={{
                       width: `calc((100% - 0.5rem) * ${maxCount ? row.count / maxCount : 0})`,
                       opacity: maxCount
-                        ? 0.04 + 0.16 * (row.count / maxCount)
+                        ? 0.04 + 0.24 * (row.count / maxCount)
                         : 0,
                     }}
                   />
@@ -826,6 +982,9 @@ function AnalyticsRows({
                       dimension={dimension}
                       domain={domain}
                       onFilterPath={onFilterPath}
+                      filtered={filters.some((filter) =>
+                        pathFilterMatches(filter, row.value),
+                      )}
                     />
                   </span>
                 </Table.Cell>
@@ -840,6 +999,22 @@ function AnalyticsRows({
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>
+      {sortedRows.length > 10 ? (
+        <Table.Footer
+          className={`flex items-center ${numbered ? (orderedRows.length > 9 ? "pl-10" : "pl-8") : ""}`}
+        >
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={tableId}
+            aria-label={`${expanded ? "Show fewer" : "Show more"} ${name.toLowerCase()}`}
+            className="rounded-sm py-0 text-xs text-muted underline decoration-muted/30 decoration-dashed underline-offset-2 outline-none hover:decoration-muted focus-visible:ring-2 focus-visible:ring-focus"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Show Less" : "Show More"}
+          </button>
+        </Table.Footer>
+      ) : null}
     </Table>
   );
 }
@@ -863,8 +1038,10 @@ function AnalyticsRowLabel({
   dimension,
   domain,
   onFilterPath,
+  filtered,
 }: {
   value: string;
+  filtered: boolean;
   label: string;
   dimension: string;
   domain?: string;
@@ -902,13 +1079,18 @@ function AnalyticsRowLabel({
           <Button
             isIconOnly
             variant="ghost"
-            aria-label={`Filter by path ${value}`}
-            className={`hidden size-5 min-w-0 shrink-0 rounded-sm bg-transparent! p-0 hover:bg-transparent! sm:inline-flex ${styles.rowAction}`}
+            aria-label={`${filtered ? "Remove filter for" : "Filter by"} path ${value}`}
+            className={`hidden size-5 min-w-0 shrink-0 rounded-lg bg-transparent p-0 hover:bg-default focus-visible:bg-default sm:inline-flex ${styles.rowAction}`}
             onPress={() => onFilterPath(value)}
           >
-            <HugeiconsIcon icon={FilterIcon} className="size-3.5" />
+            <HugeiconsIcon
+              icon={filtered ? FilterRemoveIcon : FilterIcon}
+              className={`size-3.5 ${filtered ? "text-danger" : ""}`}
+            />
           </Button>
-          <Tooltip.Content>Filter by this path</Tooltip.Content>
+          <Tooltip.Content>
+            {filtered ? "Remove path filter" : "Filter by this path"}
+          </Tooltip.Content>
         </Tooltip>
       ) : null}
     </span>
@@ -920,34 +1102,48 @@ function MetricChange({
   previous,
   lowerIsBetter,
   label,
+  inline = false,
 }: {
   current: number | null;
   previous: number | null | undefined;
   lowerIsBetter: boolean;
   label: string;
+  inline?: boolean;
 }) {
+  const layout = inline ? "inline" : "mt-1 block";
   if (current === null || previous === null || previous === undefined)
-    return <p className="mt-1 text-xs text-muted">No prior period data</p>;
+    return (
+      <span className={`${layout} text-xs text-muted`}>
+        No prior period data
+      </span>
+    );
   if (previous === 0 && current !== 0)
     return (
-      <p
-        className={`mt-1 text-xs ${lowerIsBetter ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}
+      <span
+        className={`${layout} text-xs ${lowerIsBetter ? "text-danger-soft-foreground" : "text-success-soft-foreground"}`}
         title={`${label}: 0`}
       >
         New
-      </p>
+      </span>
     );
   const change = previous === 0 ? 0 : ((current - previous) / previous) * 100;
   const improved = lowerIsBetter ? change < 0 : change > 0;
   return (
-    <p
-      className={`mt-1 text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
+    <span
+      className={`${layout} text-xs tabular-nums ${change === 0 ? "text-muted" : improved ? "text-success-soft-foreground" : "text-danger-soft-foreground"}`}
       title={`${label}: ${format(previous)}`}
     >
-      {change > 0 ? "+" : ""}
-      {change.toFixed(1)}%{" "}
-      <span className="text-muted">vs previous period</span>
-    </p>
+      {change !== 0 ? (
+        <>
+          <span aria-hidden="true">{change > 0 ? "↑" : "↓"} </span>
+          <span className="sr-only">
+            {change > 0 ? "Increase of " : "Decrease of "}
+          </span>
+        </>
+      ) : null}
+      {Math.abs(change).toFixed(1)}%
+      <span className="sr-only"> compared with the previous period</span>
+    </span>
   );
 }
 

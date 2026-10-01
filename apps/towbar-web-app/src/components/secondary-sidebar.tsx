@@ -1,11 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Activity01Icon,
+  SquareActivityIcon,
   Delete02Icon,
   Menu01Icon,
   DashboardCircleIcon,
@@ -21,7 +27,7 @@ import {
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@workspace/web-design-system/lib/utils";
-import { useMobileNavigation } from "@workspace/web-design-system/navigation/app-layout";
+import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
 
 export const DetailSettingsContext = createContext<boolean | null>(null);
 
@@ -66,6 +72,8 @@ export function SecondarySection({
   className?: string;
 }) {
   const { host } = useContext(SecondaryContext);
+  const { registerSecondaryNavigation } = useMobileNavigation();
+  useEffect(registerSecondaryNavigation, [registerSecondaryNavigation]);
   const content = (
     <section
       data-secondary-menu
@@ -127,7 +135,7 @@ export type SecondaryItem = {
 };
 export const menuIcons: Record<string, typeof Menu01Icon> = {
   credentials: Key01Icon,
-  monitoring: Activity01Icon,
+  monitoring: SquareActivityIcon,
   cleanup: Delete02Icon,
   danger: Delete02Icon,
   backups: ReloadIcon,
@@ -176,7 +184,7 @@ export function SecondaryItems({
               close();
             }}
             className={cn(
-              "flex min-h-9 w-full min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50",
+              "flex min-h-8 w-full min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-start text-sm outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50",
               selected === item.id
                 ? item.destructive
                   ? "bg-danger-soft font-medium text-danger-soft-foreground"

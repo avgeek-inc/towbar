@@ -3,6 +3,9 @@ import {
   Alert02Icon,
   AlertCircleIcon,
   Analytics01Icon,
+  BrickWallFireIcon,
+  ChartNoAxesColumnIcon,
+  SquareActivityIcon,
   ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -84,7 +87,7 @@ const icons = {
   view: ViewIcon,
   previous: ArrowLeft01Icon,
   next: ArrowRight01Icon,
-  performance: Analytics01Icon,
+  performance: SquareActivityIcon,
   alerts: Alert02Icon,
   compare: GitCompareIcon,
   average: Analytics01Icon,
@@ -107,8 +110,8 @@ const icons = {
   slack: SlackIcon,
   smtp: Mail01Icon,
   http: Globe02Icon,
-  request: Globe02Icon,
-  pageview: ViewIcon,
+  request: BrickWallFireIcon,
+  pageview: ChartNoAxesColumnIcon,
 };
 export function ScoutIcon({ name }: { name: keyof typeof icons }) {
   return (

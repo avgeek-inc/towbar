@@ -5,6 +5,7 @@ import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import {
   CommandLineIcon,
   Activity01Icon,
+  SquareActivityIcon,
   Alert02Icon,
   AlertCircleIcon,
   ComputerActivityIcon,
@@ -536,7 +537,7 @@ export function ServerDetail() {
               label: "Performance",
               contentOwnsTitle: true,
               group: "Monitor",
-              icon: <HugeiconsIcon icon={Activity01Icon} />,
+              icon: <HugeiconsIcon icon={SquareActivityIcon} />,
               content: (
                 <ScoutPerformance
                   path={`/v1/core/servers/${serverId}/metrics`}

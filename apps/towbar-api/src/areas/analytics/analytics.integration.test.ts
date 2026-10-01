@@ -1,3 +1,7 @@
+import {
+  verifyAnonymousTrend,
+  verifyDimensionFilters,
+} from "./dimension-filter-test-support.js";
 import { verifyPageEngagement } from "./engagement-test-support.js";
 import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
 import { verifyAnalyticsCities } from "./city-test-support.js";
@@ -530,6 +534,7 @@ void test(
       );
       await verifyPageEngagement({ appId, workspaceId, serverId });
       await verifyAnalyticsCities({ db, serverId, appId, workspaceId, page });
+      await verifyDimensionFilters({ db, serverId, appId, workspaceId });
       await db
         .update(apps)
         .set({
@@ -550,6 +555,7 @@ void test(
         .from(analyticsSamples)
         .where(eq(analyticsSamples.sampleId, withoutIdentity.id));
       assert.equal(anonymous?.cells[0]?.visitor, "");
+      await verifyAnonymousTrend({ appId, workspaceId });
       await db.insert(analyticsSamples).values({
         serverId,
         appId,

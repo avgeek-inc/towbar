@@ -439,7 +439,7 @@
   },
   {
     "product": "SigNoz",
-    "file": "signoz.svg",
+    "file": "signoz-mark.svg",
     "source": "https://raw.githubusercontent.com/SigNoz/signoz/572345be63f2db40d591b0a5fbc7027a8835c12f/frontend/src/assets/Logos/signoz-brand-logo.svg",
     "repositories": [
       "signoz/signoz",
@@ -449,7 +449,8 @@
       "signoz/frontend",
       "signoz/alertmanager"
     ],
-    "license": "LICENSE-signoz"
+    "license": "LICENSE-signoz",
+    "modifications": "Added a scalable viewBox and removed rasterized shadow filters; original paths and colors retained."
   },
   {
     "product": "OpenTelemetry",
@@ -972,14 +973,14 @@
   {
     "product": "Node.js",
     "repositories": ["node"],
-    "file": "nodejs.webp",
-    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/nodejs.webp"
+    "file": "nodejs.svg",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/svg/nodejs.svg"
   },
   {
     "product": "Python",
     "repositories": ["python"],
-    "file": "python.webp",
-    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/webp/python.webp"
+    "file": "python.svg",
+    "source": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/f651f5798c7d58bff3cff4d3a9c4645d87657bbd/svg/python.svg"
   },
   {
     "product": "Go",

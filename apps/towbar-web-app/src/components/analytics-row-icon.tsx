@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import bundledFavicons from "./service-favicon-catalog.json";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ComputerIcon,
@@ -52,10 +53,11 @@ export function AnalyticsRowIcon({
   if (dimension !== "browser" && dimension !== "referrer") return null;
   const src =
     dimension === "browser" && browsers[value]
-      ? `/browsers/${browsers[value]}.png`
+      ? `/browsers/${browsers[value]}.svg`
       : dimension === "referrer" &&
           /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/u.test(value)
-        ? `https://${value}/favicon.ico`
+        ? ((bundledFavicons as Record<string, string>)[value] ??
+          `https://${value}/favicon.ico`)
         : null;
   if (!src || failed)
     return (
@@ -68,7 +70,7 @@ export function AnalyticsRowIcon({
       </span>
     );
   return (
-    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-white p-[1.5px]">
+    <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-[5px] bg-white p-px">
       <Image
         alt=""
         width={16}

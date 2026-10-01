@@ -19,7 +19,7 @@ import { Toast } from "../overlays/toast";
 import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
 import { BrandLockup } from "../media/brand-lockup";
-import { useAppNavigate, useMobileNavigation } from "../navigation/app-layout";
+import { useAppNavigate, useMobileNavigation } from "../hooks/app-navigation";
 import { BreadcrumbTrail } from "../navigation/breadcrumbs";
 import { NewTabIndicator } from "../navigation/new-tab-indicator";
 import { AppShellBoundary, useAppShellHeaderState } from "./app-shell-boundary";
@@ -268,7 +268,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
           </span>
         </BrandLockup>
       </RoutedLink>
-      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 py-4">
+      <div className="grid min-h-0 flex-1 content-start gap-1 overflow-y-auto overscroll-contain px-3 py-4.5">
         {config.groups.map((group) => (
           <section className="grid gap-1 [&+&]:mt-2" key={group.id}>
             {group.label ? (
@@ -281,7 +281,7 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                 item.kind === "link" ? (
                   <RoutedLink
                     className={cn(
-                      "flex min-h-9 min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
+                      "flex min-h-8 min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-sm",
                       pathname === item.href ||
                         (item.href !== "/" && pathname.startsWith(item.href))
                         ? "bg-default font-medium text-foreground"
@@ -351,7 +351,7 @@ function SidebarAction({ item }: { item: SidebarActionConfig }) {
       aria-label={item.accessibleLabel}
       variant={item.destructive ? "danger-ghost" : "ghost"}
       className={cn(
-        "h-auto min-h-9 w-full justify-start gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal",
+        "h-auto min-h-8 w-full justify-start gap-3 rounded-2xl px-2 py-1.5 text-start text-sm font-normal",
         !item.destructive &&
           "text-muted hover:bg-default/60 hover:text-foreground",
       )}

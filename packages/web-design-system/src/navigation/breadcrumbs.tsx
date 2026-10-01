@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
 
 import { cn } from "../lib/utils";
 import type { AppShellBreadcrumbItems } from "../layouts/application-shell-types";
-import { useAppNavigate } from "./app-layout";
+import { useAppNavigate } from "../hooks/app-navigation";
 
 export function BreadcrumbTrail({
   className,

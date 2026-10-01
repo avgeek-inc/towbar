@@ -90,6 +90,10 @@ a {
     @apply pb-0;
   }
 
+  .table__footer {
+    @apply py-2;
+  }
+
   .table__content {
     width: max-content;
     min-width: 100% !important;

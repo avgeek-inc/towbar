@@ -18,8 +18,8 @@ import {
 } from "./scout-panel";
 
 import {
-  Activity01Icon,
-  Analytics01Icon,
+  SquareActivityIcon,
+  ChartNoAxesColumnIcon,
   Clock01Icon,
   Alert02Icon,
   AlertCircleIcon,
@@ -407,7 +407,7 @@ export function AppDetail() {
           {
             value: "analytics",
             contentOwnsTitle: true,
-            icon: <HugeiconsIcon icon={Analytics01Icon} />,
+            icon: <HugeiconsIcon icon={ChartNoAxesColumnIcon} />,
             label: "Analytics",
             group: "Monitor",
             content: (
@@ -423,7 +423,7 @@ export function AppDetail() {
             label: "Performance",
             contentOwnsTitle: true,
             group: "Monitor",
-            icon: <HugeiconsIcon icon={Activity01Icon} />,
+            icon: <HugeiconsIcon icon={SquareActivityIcon} />,
             content: (
               <ScoutPerformance
                 path={`/v1/core/apps/${appId}/metrics`}
@@ -697,41 +697,20 @@ function AppConfiguration({ item }: { item: AppRecord }) {
           title="Deployment configuration"
           variant="card"
         >
-          <Attributes.Item label="Auto-deploy">
+          <Attributes.Item label="Auto-deploy" className="col-span-2">
             {item.config.autoDeploy ? "Enabled" : "Disabled"}
           </Attributes.Item>
-          <Attributes.Item label="Deployment inputs">
+          <Attributes.Item label="Deployment inputs" className="col-span-2">
             {item.config.autoDeploy
               ? item.config.deploymentInputs?.length
                 ? renderCodeList(item.config.deploymentInputs)
                 : "Every Repository commit"
               : "Not used"}
           </Attributes.Item>
-          <Attributes.Item label="Primary domain">
-            {item.config.domains?.primary ? (
-              <DomainLink domain={item.config.domains.primary}>
-                {item.config.domains.primary}
-              </DomainLink>
-            ) : (
-              "Not configured"
-            )}
-          </Attributes.Item>
-          <Attributes.Item label="Redirects">
-            {item.config.domains?.redirects.length
-              ? item.config.domains.redirects.map((redirect) => (
-                  <span className="flex items-center gap-1" key={redirect.host}>
-                    <DomainLink domain={redirect.host}>
-                      {redirect.host}
-                    </DomainLink>
-                    <span>· {redirect.status}</span>
-                  </span>
-                ))
-              : "None"}
-          </Attributes.Item>
-          <Attributes.Item label="Pre-deploy hook">
+          <Attributes.Item label="Pre-deploy hook" className="col-span-2">
             {renderHook(item.config.hooks?.preDeploy)}
           </Attributes.Item>
-          <Attributes.Item label="Post-deploy hook">
+          <Attributes.Item label="Post-deploy hook" className="col-span-2">
             {renderHook(item.config.hooks?.postDeploy)}
           </Attributes.Item>
         </Attributes>

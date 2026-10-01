@@ -1,0 +1,76 @@
+@layer theme, base, components, utilities;
+
+@layer components {
+  .desktopSidebar {
+    position: sticky;
+    top: var(--app-shell-top-offset, 0px);
+    height: calc(100dvh - var(--app-shell-top-offset, 0px));
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sidebarPanel {
+    width: 15rem;
+    height: 100%;
+    border-right: 1px solid var(--separator);
+    background: var(--background);
+    transform: translateX(-100%);
+  }
+
+  .layout[data-sidebar-open="true"] .sidebarPanel {
+    transform: translateX(0);
+  }
+
+  @media (min-width: 64rem) {
+    .layout[data-has-sidebar="true"] {
+      display: grid;
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+
+    .layout[data-has-sidebar="true"][data-sidebar-open="true"] {
+      grid-template-columns: 15rem minmax(0, 1fr);
+    }
+
+    .layout[data-motion-ready="true"] {
+      transition: grid-template-columns 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .layout[data-motion-ready="true"] .sidebarPanel {
+      transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .layout[data-sidebar-open="false"],
+    .layout[data-sidebar-open="false"] .sidebarPanel {
+      transition-duration: 180ms;
+    }
+  }
+
+  .drawerBackdrop {
+    transition: opacity 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .drawerBackdrop[data-exiting="true"] {
+    transition-duration: 180ms;
+  }
+
+  .drawerDialog[data-placement="left"] {
+    --drawer-enter-duration: 220ms;
+    --drawer-exit-duration: 180ms;
+    width: 18rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .drawerDialog[data-placement="left"][data-secondary-navigation="true"] {
+    width: min(28rem, calc(100vw - 1rem));
+    grid-template-columns: calc(50% - 0.75rem) calc(50% + 0.75rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .layout[data-motion-ready="true"],
+    .layout[data-motion-ready="true"] .sidebarPanel,
+    .drawerBackdrop,
+    .drawerDialog {
+      transition: none;
+    }
+  }
+}

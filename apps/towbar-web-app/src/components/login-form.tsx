@@ -8,7 +8,7 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { IdentityCredentialsForm } from "@workspace/identity-web-ui/identity-credentials-form";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
+import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   FieldDescription,
   Field,
@@ -76,12 +76,7 @@ export function LoginForm() {
     );
   }
   if (setup === undefined) {
-    return (
-      <Skeleton
-        aria-label="Loading Towbar"
-        className="h-72 w-full rounded-2xl"
-      />
-    );
+    return <QueryLoading />;
   }
   if (setup.setupRequired) return <InitialTeamSetup options={setup.options} />;
 

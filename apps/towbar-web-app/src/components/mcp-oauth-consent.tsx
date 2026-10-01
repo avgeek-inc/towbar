@@ -6,7 +6,7 @@ import {
   ButtonLink,
 } from "@workspace/web-design-system/buttons/button";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Skeleton } from "@workspace/web-design-system/feedback/skeleton";
+import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { AuthFrame, authTextActionClassName } from "./auth-frame";
 import { McpClientLogo } from "./mcp-client-logo";
 import { config } from "@/lib/config";
@@ -205,14 +205,7 @@ function ConsentRequest({ id }: { id: string | null }) {
           </div>
         </form>
       ) : (
-        !error &&
-        id && (
-          <Skeleton
-            aria-label="Loading connection"
-            role="status"
-            className="h-48 w-full rounded-xl"
-          />
-        )
+        !error && id && <QueryLoading />
       )}
     </AuthFrame>
   );

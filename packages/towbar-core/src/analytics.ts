@@ -22,6 +22,32 @@ export type AnalyticsConfig = z.infer<typeof analyticsConfigSchema>;
 export const analyticsLatencyBounds = [
   10, 50, 100, 200, 500, 1000, 2500,
 ] as const;
+export const analyticsResponseTimeRanges = [
+  "<10 ms",
+  "10 to 50 ms",
+  "50 to 100 ms",
+  "100 to 200 ms",
+  "200 to 500 ms",
+  "500 ms to 1 s",
+  "1 to 2.5 s",
+  ">2.5 s",
+] as const;
+export const analyticsHttpFilterFields = [
+  "path",
+  "referrer",
+  "status",
+  "method",
+  "responseTime",
+] as const;
+export const analyticsWebFilterFields = [
+  "path",
+  "referrer",
+  "country",
+  "city",
+  "browser",
+  "device",
+  "destination",
+] as const;
 export const analyticsCellSchema = z
   .object({
     appId: z.string().uuid(),
@@ -141,7 +167,18 @@ export const analyticsCellSchema = z
 export type AnalyticsCell = z.infer<typeof analyticsCellSchema>;
 export const analyticsFilterSchema = z
   .object({
-    field: z.enum(["path", "referrer", "country", "city", "browser"]),
+    field: z.enum([
+      "path",
+      "referrer",
+      "status",
+      "method",
+      "responseTime",
+      "country",
+      "city",
+      "browser",
+      "device",
+      "destination",
+    ]),
     operator: z.enum(["equals", "startsWith", "in"]),
     value: z.union([
       z.string().max(256),
@@ -162,14 +199,36 @@ export const analyticsFilterSchema = z
         });
       return;
     }
+    if (filter.field === "responseTime") {
+      if (
+        filter.operator !== "in" ||
+        !Array.isArray(filter.value) ||
+        filter.value.some(
+          (value) =>
+            !analyticsResponseTimeRanges.some((range) => range === value),
+        ) ||
+        new Set(filter.value).size !== filter.value.length
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Choose valid, distinct response time ranges.",
+        });
+      return;
+    }
     const pattern =
-      filter.field === "referrer"
+      filter.field === "referrer" || filter.field === "destination"
         ? /^(?:Unknown|[a-z0-9.:[\]-]+)$/u
         : filter.field === "country"
           ? /^(?:Unknown|[A-Z]{2})$/u
           : filter.field === "city"
             ? /^[^\p{Cc}\p{Cf}]+$/u
-            : /^(?:Unknown|Chrome|Firefox|Safari|Edge|Other)$/u;
+            : filter.field === "status"
+              ? /^(?:0|[1-5][0-9]{2})$/u
+              : filter.field === "method"
+                ? /^(?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|OTHER)$/u
+                : filter.field === "device"
+                  ? /^(?:Unknown|Desktop|Mobile|Tablet|Bot|Other)$/u
+                  : /^(?:Unknown|Chrome|Firefox|Safari|Edge|Other)$/u;
     if (
       filter.operator !== "in" ||
       !Array.isArray(filter.value) ||
@@ -186,14 +245,24 @@ export const analyticsFiltersSchema = z.array(analyticsFilterSchema).max(8);
 export const analyticsFilterOptionsQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(90).default(7),
   kind: z.enum(["request", "pageview"]).default("request"),
-  field: z.enum(["referrer", "country", "city", "browser"]),
+  field: z.enum([
+    "referrer",
+    "status",
+    "method",
+    "responseTime",
+    "country",
+    "city",
+    "browser",
+    "device",
+    "destination",
+  ]),
   search: z.string().max(100).default(""),
 });
 const encodedAnalyticsFiltersSchema = z
   .string()
   .max(8192)
   .describe(
-    "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, country, city, and browser support in with an array of up to 20 values.",
+    "JSON array of up to 8 AND conditions. Path supports equals or startsWith with a string value; referrer, status, method, responseTime, country, city, browser, device, and destination support in with an array of up to 20 values. HTTP-only fields are status, method, and responseTime (histogram range labels); web-only fields are country, city, browser, device, and destination (outbound website).",
   )
   .default("[]")
   .transform((value, ctx) => {
@@ -225,7 +294,7 @@ export type AnalyticsReport = {
   end: string;
   kind: "request" | "pageview";
   total: number;
-  bytes: number;
+  bytes: number | null;
   errors: number;
   meanMs: number | null;
   p50Ms: number | null;
@@ -233,7 +302,13 @@ export type AnalyticsReport = {
   visitors: number | null;
   sessions: number | null;
   histogram: number[];
-  trend: { at: string; count: number; errors: number }[];
+  trend: {
+    at: string;
+    count: number;
+    errors: number;
+    visitors: number | null;
+    sessions: number | null;
+  }[];
   deployments: { id: string; at: string; state: string; type: "deployment" }[];
   comparison: {
     start: string;
@@ -245,7 +320,7 @@ export type AnalyticsReport = {
     sessions: number | null;
     bounceRate: number | null;
     averageTimeMs: number | null;
-    trend: { at: string; count: number; errors: number }[];
+    trend: AnalyticsReport["trend"];
   } | null;
   dimensions: Record<string, { value: string; count: number }[]>;
   bounceRate: number | null;
