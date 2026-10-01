@@ -19,7 +19,7 @@ import { Toast } from "../overlays/toast";
 import { ThemeSwitcher } from "../controls/theme-switcher";
 import { cn } from "../lib/utils";
 import { BrandLockup } from "../media/brand-lockup";
-import { useAppNavigate, useMobileNavigation } from "../navigation/app-layout";
+import { useAppNavigate, useMobileNavigation } from "../hooks/app-navigation";
 import { BreadcrumbTrail } from "../navigation/breadcrumbs";
 import { NewTabIndicator } from "../navigation/new-tab-indicator";
 import { AppShellBoundary, useAppShellHeaderState } from "./app-shell-boundary";

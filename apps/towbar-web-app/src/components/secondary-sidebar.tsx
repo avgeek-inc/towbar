@@ -27,7 +27,7 @@ import {
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@workspace/web-design-system/lib/utils";
-import { useMobileNavigation } from "@workspace/web-design-system/navigation/app-layout";
+import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
 
 export const DetailSettingsContext = createContext<boolean | null>(null);
 

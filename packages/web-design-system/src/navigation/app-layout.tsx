@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  createContext,
   type ReactNode,
-  useContext,
   useCallback,
   useEffect,
   useRef,
@@ -15,6 +13,12 @@ import { cn } from "../lib/utils";
 import { Drawer } from "../overlays/drawer";
 import { bindSidebarSwipe } from "../lib/sidebar-swipe";
 import styles from "./app-layout.module.css";
+import {
+  MobileNavigationContext,
+  NavigationContext,
+} from "../hooks/app-navigation";
+
+export { useAppNavigate, useMobileNavigation } from "../hooks/app-navigation";
 
 const desktopQuery = "(min-width: 64rem)";
 const subscribeToViewport = (callback: () => void) => {
@@ -25,28 +29,6 @@ const subscribeToViewport = (callback: () => void) => {
 const isDesktopViewport = () => window.matchMedia(desktopQuery).matches;
 const serverViewport = () => false;
 
-const MobileNavigationContext = createContext<{
-  host: HTMLElement | null;
-  isMobile: boolean;
-  close: () => void;
-  registerSecondaryNavigation: () => () => void;
-}>({
-  host: null,
-  isMobile: false,
-  close: () => {},
-  registerSecondaryNavigation: () => () => {},
-});
-
-export function useMobileNavigation() {
-  return useContext(MobileNavigationContext);
-}
-
-const NavigationContext = createContext<((href: string) => void) | undefined>(
-  undefined,
-);
-export function useAppNavigate() {
-  return useContext(NavigationContext);
-}
 export function AppLayout({
   children,
   className,

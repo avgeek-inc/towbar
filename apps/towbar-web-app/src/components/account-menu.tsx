@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 
 import type { TowbarUser } from "@workspace/towbar-web-client";
 import { Avatar } from "@workspace/web-design-system/data-display/avatar";
-import { useMobileNavigation } from "@workspace/web-design-system/navigation/app-layout";
+import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
 import {
   Dropdown,
   Header,
