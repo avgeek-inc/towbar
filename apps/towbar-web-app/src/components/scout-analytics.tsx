@@ -1000,7 +1000,9 @@ function AnalyticsRows({
         </Table.Content>
       </Table.ScrollContainer>
       {sortedRows.length > 10 ? (
-        <Table.Footer className="flex items-center">
+        <Table.Footer
+          className={`flex items-center ${numbered ? (orderedRows.length > 9 ? "pl-10" : "pl-8") : ""}`}
+        >
           <button
             type="button"
             aria-expanded={expanded}
