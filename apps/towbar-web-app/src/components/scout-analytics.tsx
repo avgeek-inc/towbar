@@ -275,7 +275,7 @@ export function AnalyticsView({
   const [eventActive, setEventActive] = useState(false);
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<
-    "count" | "visitors" | "sessions" | null
+    "count" | "errors" | "visitors" | "sessions" | null
   >(null);
   if (!report.enabled)
     return (
@@ -346,6 +346,7 @@ export function AnalyticsView({
     ...point,
     at: Date.parse(point.at),
     previous: report.comparison?.trend[index]?.count ?? null,
+    previousErrors: report.comparison?.trend[index]?.errors ?? null,
     previousVisitors: report.comparison?.trend[index]?.visitors ?? null,
     previousSessions: report.comparison?.trend[index]?.sessions ?? null,
   }));
@@ -369,10 +370,29 @@ export function AnalyticsView({
       color: "var(--danger)",
     },
   ] as const;
-  const visibleWebSeries = webSeries.filter(
-    ({ key }) => selectedMetric === null || key === selectedMetric,
+  const httpSeries = [
+    {
+      key: "count",
+      previousKey: "previous",
+      label: "Requests",
+      color: "var(--accent)",
+    },
+    {
+      key: "errors",
+      previousKey: "previousErrors",
+      label: "HTTP errors",
+      color: "var(--danger)",
+    },
+  ] as const;
+  const chartSeries = pageviews ? webSeries : httpSeries;
+  const activeMetric = chartSeries.some(({ key }) => key === selectedMetric)
+    ? selectedMetric
+    : null;
+  const visibleSeries = chartSeries.filter(
+    ({ key }) => activeMetric === null || key === activeMetric,
   );
-  const showWebComparison = compareEnabled && Boolean(report.comparison);
+  const showComparison =
+    Boolean(report.comparison) && (!pageviews || compareEnabled);
   const breakdowns: {
     name: string;
     dimension: string;
@@ -621,14 +641,13 @@ export function AnalyticsView({
                   const point = trend.find(
                     (point) => point.at === Number(label),
                   );
-                  const orderedPayload = pageviews
-                    ? visibleWebSeries.flatMap(({ key, previousKey }) =>
-                        [
-                          payload.find((item) => item.dataKey === key),
-                          payload.find((item) => item.dataKey === previousKey),
-                        ].filter((item) => item !== undefined),
-                      )
-                    : payload;
+                  const orderedPayload = visibleSeries.flatMap(
+                    ({ key, previousKey }) =>
+                      [
+                        payload.find((item) => item.dataKey === key),
+                        payload.find((item) => item.dataKey === previousKey),
+                      ].filter((item) => item !== undefined),
+                  );
                   return (
                     <LineChart.TooltipContent
                       active={active}
@@ -650,7 +669,7 @@ export function AnalyticsView({
                       valueFormatter={(value, key) => (
                         <span
                           className={
-                            pageviews && String(key).startsWith("previous")
+                            String(key).startsWith("previous")
                               ? "text-muted"
                               : undefined
                           }
@@ -662,9 +681,17 @@ export function AnalyticsView({
                       {!pageviews && point?.previous != null ? (
                         <div className="mt-1 border-t border-separator pt-1">
                           <MetricChange
-                            current={point.count}
-                            previous={point.previous}
-                            lowerIsBetter={false}
+                            current={
+                              activeMetric === "errors"
+                                ? point.errors
+                                : point.count
+                            }
+                            previous={
+                              activeMetric === "errors"
+                                ? point.previousErrors
+                                : point.previous
+                            }
+                            lowerIsBetter={activeMetric === "errors"}
                             label={comparisonLabel}
                           />
                         </div>
@@ -690,30 +717,19 @@ export function AnalyticsView({
                     }
                   />
                 ))}
-              {pageviews ? (
-                visibleWebSeries.map(({ key, label, color }) => (
-                  <LineChart.Line
-                    key={key}
-                    dataKey={key}
-                    name={label}
-                    stroke={color}
-                    strokeWidth={1.8}
-                    isAnimationActive={false}
-                    dot={false}
-                  />
-                ))
-              ) : (
+              {visibleSeries.map(({ key, label, color }) => (
                 <LineChart.Line
-                  dataKey="count"
-                  name="Requests"
-                  stroke="var(--accent)"
+                  key={key}
+                  dataKey={key}
+                  name={label}
+                  stroke={color}
                   strokeWidth={1.8}
                   isAnimationActive={false}
                   dot={false}
                 />
-              )}
-              {showWebComparison && pageviews
-                ? visibleWebSeries.map(({ previousKey, label, color }) => (
+              ))}
+              {showComparison
+                ? visibleSeries.map(({ previousKey, label, color }) => (
                     <LineChart.Line
                       key={previousKey}
                       dataKey={previousKey}
@@ -727,65 +743,30 @@ export function AnalyticsView({
                     />
                   ))
                 : null}
-              {!pageviews && report.comparison ? (
-                <LineChart.Line
-                  dataKey="previous"
-                  name={comparisonLabel}
-                  stroke="var(--warning)"
-                  strokeDasharray="5 4"
-                  strokeWidth={1.8}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              ) : null}
-              {!pageviews ? (
-                <LineChart.Line
-                  dataKey="errors"
-                  name="HTTP errors"
-                  stroke="var(--danger)"
-                  strokeWidth={1.8}
-                  isAnimationActive={false}
-                  dot={false}
-                />
-              ) : null}
             </LineChart>
-            {pageviews ? (
-              <Widget.Legend className="mt-2 flex-wrap">
-                {webSeries.map(({ key, label, color }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={selectedMetric === key}
-                    className={`widget__legend-item rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-focus ${selectedMetric !== null && selectedMetric !== key ? "opacity-40" : ""}`}
-                    onClick={() =>
-                      setSelectedMetric((current) =>
-                        current === key ? null : key,
-                      )
-                    }
-                  >
-                    <span
-                      className="widget__legend-item-dot"
-                      style={{ backgroundColor: color }}
-                      aria-hidden="true"
-                    />
-                    <span className="widget__legend-item-label">{label}</span>
-                  </button>
-                ))}
-              </Widget.Legend>
-            ) : report.comparison ? (
-              <Widget.Legend className="mt-2 flex-wrap">
-                <Widget.LegendItem color="var(--accent)">
-                  Requests
-                </Widget.LegendItem>
-                <Widget.LegendItem color="var(--warning)">
-                  {comparisonLabel}
-                </Widget.LegendItem>
-                <Widget.LegendItem color="var(--danger)">
-                  HTTP errors
-                </Widget.LegendItem>
-              </Widget.Legend>
-            ) : null}
-            {pageviews && showWebComparison ? (
+            <Widget.Legend className="mt-2 flex-wrap">
+              {chartSeries.map(({ key, label, color }) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={activeMetric === key}
+                  className={`widget__legend-item rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-focus ${activeMetric !== null && activeMetric !== key ? "opacity-40" : ""}`}
+                  onClick={() =>
+                    setSelectedMetric((current) =>
+                      current === key ? null : key,
+                    )
+                  }
+                >
+                  <span
+                    className="widget__legend-item-dot"
+                    style={{ backgroundColor: color }}
+                    aria-hidden="true"
+                  />
+                  <span className="widget__legend-item-label">{label}</span>
+                </button>
+              ))}
+            </Widget.Legend>
+            {showComparison ? (
               <p className="mt-2 text-xs text-muted">{comparisonLabel}</p>
             ) : null}
             {pageviews && !report.comparison ? (
