@@ -87,7 +87,7 @@ export type RuntimeExpectation = {
   desiredState: RuntimeDesiredState;
   health:
     | { command: string[]; timeoutSeconds: number; type: "command" }
-    | { path: string; timeoutSeconds: number; type: "http" }
+    | { path: string; port?: number; timeoutSeconds: number; type: "http" }
     | { timeoutSeconds: number; type: "container" };
   ingress: { type: "cloudflare-tunnel" } | null;
   release: {

@@ -260,3 +260,24 @@ This exercises real Redis persistence, archive transfer, checksum validation,
 remote import and promotion. The storage adapter replaces cloud object storage;
 it does not prove cloud-provider transport, API admission or operation-result
 persistence. The target and all its volumes are removed on completion.
+
+## Independent OCI runtime configuration
+
+After building the deployer, run `node tools/e2e/oci-runtime-lifecycle.mjs`.
+It uses controlled immutable source archives and the production executor over
+non-root SSH. Docker checks prove read-only and executable file modes, a UID 1000
+image reading files transferred by a different host UID, command/entrypoint
+overrides, hook-only secrets and failure cleanup, health on another port,
+managed Redis configuration, failed replacement recovery and retained-file
+rollback without repository access.
+
+`node tools/e2e/independent-oci-lifecycle.mjs` additionally runs the five entities
+in `examples/independent-oci` with real Linux ARM64 images. It prepares a
+checksum-pinned histogram executable in its temporary source snapshot, supplies
+random credentials through the existing secret bundles, and deploys in explicit
+operator order on one private network. Source archive responses and release
+callbacks are controlled; migrations, private DNS, Docker, HTTP readiness and
+ClickHouse executable functions run for real. The target is always removed.
+The fixture completes SigNoz first-run registration with a disposable account
+and verifies OTLP HTTP after the collector receives its managed configuration.
+This does not prove public ingress, API/Temporal delivery, or release compatibility.

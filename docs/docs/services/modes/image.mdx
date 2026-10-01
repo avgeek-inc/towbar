@@ -33,3 +33,10 @@ The example uses an immutable nginx digest and sets `buildServer: null` because 
 A new image digest is a new deployment input. Pin the architecture with `deployment.platform` when the image or target requires it. Image rollback selects an earlier image; it does not reverse database migrations or persistent data changes.
 
 Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Service manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.
+
+Images may also use [repository-backed configuration files, startup overrides,
+and separate readiness ports](/docs/services/configuration#runtime-commands-and-repository-files).
+Towbar fetches the immutable source snapshot only when files are needed and
+retains the selected release's files for rollback. Pre-deploy hooks can override
+the image entrypoint to run initialization with the same image on its private
+network.

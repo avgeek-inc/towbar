@@ -77,3 +77,22 @@ location, validate an isolated candidate, and promote it with rollback-volume
 protection. Server inspection is read-only. Orphan cleanup accepts only explicitly selected,
 Source-labeled objects and revalidates them against the current/previous
 release ledger; it never invokes a global Docker prune.
+
+Standalone services and managed datastores can mount explicitly declared
+repository configuration files read-only from release-owned target directories.
+Source files must be regular files without symlink traversal. Checksummed files
+and modes are retained for rollback; rollback never fetches new source for them.
+Startup command/entrypoint overrides and hook entrypoint overrides preserve
+image defaults when omitted. Standalone service readiness supports HTTP on a
+separate loopback-published port, container health, and in-container commands.
+Public probes use the service port and an explicit public path when readiness
+is separate. Rolling rollout requires HTTP readiness on the service port.
+
+Run `node tools/e2e/oci-runtime-lifecycle.mjs` after building this package for
+non-root configuration, startup/hook, health and failed-replacement coverage.
+`node tools/e2e/independent-oci-lifecycle.mjs` validates five independent Linux
+ARM64 image/datastore candidates against a shared private network. These are
+disposable SSH/Docker tests; they do not verify API/Temporal delivery or public
+TLS. Retained config directories currently require operator-managed retention.
+Managed restore rejects config files and entrypoint overrides until its isolated
+restore candidate can preserve that custom runtime contract.

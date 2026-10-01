@@ -1,3 +1,4 @@
+import { containerRuntimeArgumentsScript } from "./container-runtime.js";
 /* eslint-disable max-lines -- Remote scripts are kept with their shared shell-safety primitives so quoting rules cannot drift. */
 import {
   dockerNetworkLockScript,
@@ -653,12 +654,14 @@ docker_command+=("$image_tag")
 if (( $# > 0 )); then docker_command+=("$@"); fi
 /usr/bin/python3 - "$remote_dir/secrets/runtime" "${"$"}{docker_command[@]}" <<'PYTHON' >/dev/null
 import os
+import json
 from pathlib import Path
 import sys
 
 runtime_directory = Path(sys.argv[1])
 command = sys.argv[2:]
 runtime_arguments: list[str] = []
+${containerRuntimeArgumentsScript}
 for secret_path in sorted(runtime_directory.iterdir()):
     if not secret_path.is_file():
         continue
@@ -685,7 +688,6 @@ resource_cpus="$6"
 resource_memory="$7"
 timeout_seconds="$8"
 shift 8
-(( $# > 0 ))
 hook_container="$container_name-hook-${"$"}{hook_name,,}"
 secret_directory="$remote_dir/secrets/hooks/$hook_name"
 runtime_args=()
@@ -723,6 +725,8 @@ for option in runtime_arguments[1::2]:
     if labels.get("towbar.managed") != "true" or labels.get("towbar.storage") != "app" or labels.get("towbar.runtime") != os.environ["TOWBAR_APP_ID"]:
         raise SystemExit("Persistent volume ownership changed before hook execution")
 
+${containerRuntimeArgumentsScript}
+
 for secret_path in sorted(secret_directory.iterdir()):
     if not secret_path.is_file():
         continue
@@ -757,7 +761,17 @@ while true; do
   if test "$health_type" = container; then
     state="$(docker inspect --format '{{.State.Running}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_name" 2>/dev/null || true)"
     if test "$state" = 'true none' || test "$state" = 'true healthy'; then healthy=true; fi
-  elif docker exec "$container_name" "$@" >/dev/null 2>&1; then
+  elif /usr/bin/python3 - "$container_name" "$@" <<'PYTHON' >/dev/null 2>&1
+import json
+import os
+from pathlib import Path
+import sys
+
+runtime_file = os.environ.get("TOWBAR_CONTAINER_RUNTIME_FILE")
+health_command = json.loads(Path(runtime_file).read_text())["healthCommand"] if runtime_file else sys.argv[2:]
+os.execv("/usr/bin/docker", ["docker", "exec", sys.argv[1], *health_command])
+PYTHON
+  then
     healthy=true
   fi
   if test "$healthy" = true; then exit 0; fi

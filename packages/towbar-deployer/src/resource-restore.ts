@@ -95,6 +95,14 @@ function resolveRestorePlan(input: ManagedRestoreInput): RestorePlan {
   ) {
     throw new Error("Restore execution context is incomplete");
   }
+  if (
+    resource.container.configFiles?.length ||
+    resource.container.entrypoint !== undefined
+  ) {
+    throw new Error(
+      "Managed restore does not yet support configuration files or entrypoint overrides; use engine-native recovery",
+    );
+  }
   if (resource.container.volumes.length !== 1) {
     throw new Error("Managed restore requires exactly one database volume");
   }

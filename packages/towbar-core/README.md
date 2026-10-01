@@ -54,3 +54,12 @@ shared here so the API, worker, deployer, and web client use the same bounded
 vocabulary.
 
 [Packages](../README.md) · [Repository](../../README.md)
+
+Services and datastores accept repository `container.configFiles`, command and
+entrypoint overrides. Standalone service health also supports command/container
+checks, an independent HTTP port, and an explicit public HTTP probe path.
+Configuration sources enter deployment inputs even with a narrow auto-deploy
+file contract; target paths reject collisions and runtime/device directories.
+Secret values remain outside configuration snapshots. Hook entrypoints allow
+explicit ordered initialization using the selected image without introducing
+cross-deployable scheduling.

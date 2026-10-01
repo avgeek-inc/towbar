@@ -6,7 +6,7 @@ overrides:
   "@simplewebauthn/server@<=13.3.1": 13.3.2
   "js-yaml@>=4.0.0 <4.3.2": 4.3.2
   "@esbuild-kit/core-utils>esbuild": 0.25.12
-  "@grpc/grpc-js@1.14.3": 1.14.4
+  "@grpc/grpc-js@1.14.3": 1.14.5
   "axios@1.15.2": 1.18.0
   "brace-expansion@2.1.0": 2.1.2
   "brace-expansion@>=5.0.0 <5.0.12": 5.0.12

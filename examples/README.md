@@ -60,7 +60,7 @@ curl --fail http://localhost:3000/health
 `/health` returns `{"status":"ok"}`. The tests cover the homepage, health
 endpoint, missing routes, request methods, and graceful shutdown.
 
-The `persistent-files` and `platform-modes` directories contain additional
+The `persistent-files`, `platform-modes`, and [independent-oci](independent-oci/README.md) directories contain additional
 examples for more advanced deployment features.
 
 Never commit credentials. Store application secrets through Towbar instead of

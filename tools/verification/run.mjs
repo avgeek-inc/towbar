@@ -78,6 +78,7 @@ try {
       ["src/**/*.test.ts"],
       { TOWBAR_DOCKER_TESTS: "true" },
     );
+    await lifecycle("oci-runtime", "oci-runtime-lifecycle");
   }
   if (group === "app") {
     await lifecycle("app", "app-lifecycle", {

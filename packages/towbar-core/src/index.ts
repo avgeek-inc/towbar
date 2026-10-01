@@ -32,3 +32,5 @@ export * from "./platform-expansion.js";
 
 export * from "./analytics.js";
 export * from "./upgrades.js";
+
+export * from "./container-configuration.js";

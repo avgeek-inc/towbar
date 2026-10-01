@@ -1,0 +1,11 @@
+id: postgres
+name: PostgreSQL metastore
+type: postgres
+container:
+  network: independent-oci
+  networkAlias: postgres
+secrets:
+  runtime: [POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD]
+environments:
+  production:
+    server: 192.0.2.10

@@ -1,0 +1,30 @@
+id: signoz
+name: SigNoz server
+autoDeploy: false
+deployment:
+  type: image
+  image: signoz/signoz:v0.144.0
+  platform: linux/arm64
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: One server owns the private API alias
+container:
+  port: 8080
+  network: independent-oci
+  networkAlias: signoz
+  resources:
+    cpus: 1
+    memory: 1g
+health:
+  path: /api/v1/health
+  timeoutSeconds: 180
+secrets:
+  runtime:
+    - SIGNOZ_SQLSTORE_PROVIDER
+    - SIGNOZ_SQLSTORE_POSTGRES_DSN
+    - SIGNOZ_TELEMETRYSTORE_PROVIDER
+    - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN
+environments:
+  production:
+    server: 192.0.2.10

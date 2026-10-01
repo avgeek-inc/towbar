@@ -1,3 +1,8 @@
+import {
+  type ConfigurationFile,
+  configurationFileSchema,
+  validateConfigurationMounts,
+} from "./container-configuration.js";
 import { type AnalyticsConfig, analyticsConfigSchema } from "./analytics.js";
 import { type AppJob, appJobSchema } from "./app-jobs.js";
 import {
@@ -199,6 +204,7 @@ export const serverConfigurationSchema = z
 const deploymentHookSchema = z
   .object({
     command: z.array(hookArgumentSchema).min(1).max(64),
+    entrypoint: hookArgumentSchema.optional(),
     timeoutSeconds: z.number().int().min(5).max(1_800).optional(),
   })
   .strict();
@@ -258,6 +264,8 @@ export type AppVolume = z.infer<typeof appVolumeSchema>;
 const resourceHealthSchema = z
   .object({
     type: z.enum(["command", "container", "http"]),
+    port: z.number().int().min(1).max(65_535).optional(),
+    publicPath: z.string().trim().startsWith("/").max(1_024).optional(),
     path: z.string().trim().startsWith("/").max(1_024).optional(),
     command: z.array(hookArgumentSchema).min(1).max(64).optional(),
     timeoutSeconds: z.number().int().min(5).max(600).optional(),
@@ -278,7 +286,7 @@ const resourceHealthSchema = z
         path: ["command"],
       });
     }
-    if (health.type !== "http" && health.path) {
+    if (health.type !== "http" && (health.path || health.port)) {
       context.addIssue({
         code: "custom",
         message: "Only HTTP health checks accept a path",
@@ -456,6 +464,16 @@ export const appSchema = z
     ingress: ingressSchema.optional(),
     container: z
       .object({
+        configFiles: z.array(configurationFileSchema).max(50).optional(),
+        command: z.array(hookArgumentSchema).min(1).max(64).optional(),
+        entrypoint: z
+          .string()
+          .max(4_096)
+          .refine(
+            (value) => !value.includes("\0"),
+            "Entrypoints cannot contain null bytes",
+          )
+          .optional(),
         hostLogs: z
           .object({ dockerJsonFiles: z.literal(true) })
           .strict()
@@ -468,11 +486,18 @@ export const appSchema = z
       })
       .strict(),
     health: z
-      .object({
-        path: z.string().trim().startsWith("/").max(1_024),
-        timeoutSeconds: z.number().int().min(5).max(600).optional(),
-      })
-      .strict()
+      .union([
+        resourceHealthSchema,
+        z
+          .object({
+            type: z.literal("http").optional(),
+            port: z.number().int().min(1).max(65_535).optional(),
+            publicPath: z.string().trim().startsWith("/").max(1_024).optional(),
+            path: z.string().trim().startsWith("/").max(1_024),
+            timeoutSeconds: z.number().int().min(5).max(600).optional(),
+          })
+          .strict(),
+      ])
       .optional(),
     hooks: z
       .object({
@@ -509,6 +534,19 @@ export const appSchema = z
   .strict()
   // eslint-disable-next-line complexity -- The refinement is a declarative list of independent manifest invariants.
   .superRefine((app, context) => {
+    validateConfigurationMounts(app.container, context);
+    validatePublicHealth(app, context);
+    if (
+      (app.rollout?.type ?? "rolling") === "rolling" &&
+      (app.health?.type === "command" ||
+        app.health?.type === "container" ||
+        (app.health?.port && app.health.port !== app.container.port))
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["health"],
+        message: "Rolling deployments require HTTP health on the service port",
+      });
     if (app.container.hostLogs) {
       if (!app.container.resources || !app.container.volumes?.length)
         context.addIssue({
@@ -840,6 +878,16 @@ export const resourceSchema = z
     server: serverReferenceSchema,
     container: z
       .object({
+        configFiles: z.array(configurationFileSchema).max(50).optional(),
+        command: z.array(hookArgumentSchema).min(1).max(64).optional(),
+        entrypoint: z
+          .string()
+          .max(4_096)
+          .refine(
+            (value) => !value.includes("\0"),
+            "Entrypoints cannot contain null bytes",
+          )
+          .optional(),
         network: z.string().trim().regex(dockerNetworkPattern).optional(),
         networkAlias: z.string().trim().regex(appIdPattern).optional(),
         port: z.number().int().min(1).max(65_535).optional(),
@@ -863,6 +911,22 @@ export const resourceSchema = z
   })
   .strict()
   .superRefine((resource, context) => {
+    const port = resource.container?.port ?? defaultResourcePort(resource.type);
+    const defaultVolume = defaultResourceVolume(
+      resource.type,
+      resource.image ?? defaultResourceImage(resource.type)!,
+    );
+    validateConfigurationMounts(
+      {
+        ...resource.container,
+        volumes: [
+          ...(defaultVolume ? [defaultVolume] : []),
+          ...(resource.container?.volumes ?? []),
+        ],
+      },
+      context,
+    );
+    validatePublicHealth(resource, context, port);
     validateResourceImage(resource, context);
     validateManagedResourceImage(resource, context);
     validateResourceConnectivity(resource, context);
@@ -883,7 +947,6 @@ export const resourceSchema = z
           path: ["container", "volumes"],
         }),
     );
-    const port = resource.container?.port ?? defaultResourcePort(resource.type);
     if (resource.domains && !port) {
       context.addIssue({
         code: "custom",
@@ -892,7 +955,11 @@ export const resourceSchema = z
       });
     }
     const effectiveHealthType = resource.health?.type ?? "command";
-    if (resource.domains && effectiveHealthType !== "http") {
+    if (
+      resource.domains &&
+      effectiveHealthType !== "http" &&
+      !resource.health?.publicPath
+    ) {
       context.addIssue({
         code: "custom",
         message: "Public resources require an HTTP health check",
@@ -1114,6 +1181,7 @@ export type NormalizedServer = {
 
 export type NormalizedDeploymentHook = {
   command: string[];
+  entrypoint?: string;
   timeoutSeconds: number;
 };
 
@@ -1125,6 +1193,9 @@ export type NormalizedApp = {
   autoDeploy: boolean;
   vulnerabilityScanning: boolean;
   container: {
+    configFiles?: ConfigurationFile[];
+    command?: string[];
+    entrypoint?: string;
     hostLogs?: { dockerJsonFiles: true };
     network?: string;
     networkAlias?: string;
@@ -1142,7 +1213,7 @@ export type NormalizedApp = {
     primary: string;
     redirects: Array<{ host: string; status: 301 | 302 }>;
   };
-  health: { path: string; timeoutSeconds: number };
+  health: NormalizedHealth;
   hooks: {
     postDeploy?: NormalizedDeploymentHook;
     preDeploy?: NormalizedDeploymentHook;
@@ -1190,6 +1261,8 @@ export type NormalizedResource = {
   };
   container: {
     command: string[];
+    entrypoint?: string;
+    configFiles?: ConfigurationFile[];
     network?: string;
     networkAlias?: string;
     port?: number;
@@ -1198,10 +1271,7 @@ export type NormalizedResource = {
   };
   description?: string;
   domains?: NormalizedApp["domains"];
-  health:
-    | { command: string[]; timeoutSeconds: number; type: "command" }
-    | { timeoutSeconds: number; type: "container" }
-    | { path: string; timeoutSeconds: number; type: "http" };
+  health: NormalizedHealth & { type: "http" | "command" | "container" };
   id: string;
   image: string;
   kind: ResourceType;
@@ -1327,8 +1397,18 @@ export function normalizeDeploymentManifest(
             ? { externalSecrets: app.externalSecrets }
             : {}),
           ...(app.ingress ? { ingress: app.ingress } : {}),
-          deploymentInputs: automaticDeployment.inputs,
+          deploymentInputs: automaticDeployment.inputs.length
+            ? [
+                ...new Set([
+                  ...automaticDeployment.inputs,
+                  ...(app.container.configFiles ?? []).map(
+                    (file) => file.source,
+                  ),
+                ]),
+              ].sort()
+            : [],
           container: {
+            ...normalizeContainerOverrides(app.container),
             ...(app.container.hostLogs
               ? { hostLogs: app.container.hostLogs }
               : {}),
@@ -1355,10 +1435,7 @@ export function normalizeDeploymentManifest(
                 }
               : {}),
           },
-          health: {
-            path: app.health?.path ?? "/api/health",
-            timeoutSeconds: app.health?.timeoutSeconds ?? 60,
-          },
+          health: normalizeAppHealth(app.health),
           hooks: {
             ...(app.hooks?.postDeploy
               ? { postDeploy: normalizeDeploymentHook(app.hooks.postDeploy) }
@@ -1578,8 +1655,10 @@ function normalizeResourceContainer(
   volumes: Array<{ mountPath: string; name: string }>,
 ): NormalizedResource["container"] {
   return {
+    ...normalizeContainerOverrides(resource.container ?? {}),
     command:
-      kind === "redis"
+      resource.container?.command ??
+      (kind === "redis"
         ? [
             "sh",
             "-c",
@@ -1597,7 +1676,7 @@ function normalizeResourceContainer(
                 "-c",
                 'exec keydb-server --appendonly yes --requirepass "$REDIS_PASSWORD"',
               ]
-            : [],
+            : []),
     ...(resource.container?.network
       ? {
           network: resource.container.network.trim(),
@@ -1697,6 +1776,9 @@ function normalizeResourceHealth(
 ): NormalizedResource["health"] {
   if (resource.health?.type === "command") {
     return {
+      ...(resource.health.publicPath
+        ? { publicPath: resource.health.publicPath }
+        : {}),
       command: [...resource.health.command!],
       timeoutSeconds: resource.health.timeoutSeconds ?? 60,
       type: "command",
@@ -1705,6 +1787,10 @@ function normalizeResourceHealth(
   if (resource.health?.type === "http") {
     return {
       path: resource.health.path!,
+      ...(resource.health.port ? { port: resource.health.port } : {}),
+      ...(resource.health.publicPath
+        ? { publicPath: resource.health.publicPath }
+        : {}),
       timeoutSeconds: resource.health.timeoutSeconds ?? 60,
       type: "http",
     };
@@ -1713,6 +1799,9 @@ function normalizeResourceHealth(
     return {
       timeoutSeconds: resource.health.timeoutSeconds ?? 60,
       type: "container",
+      ...(resource.health.publicPath
+        ? { publicPath: resource.health.publicPath }
+        : {}),
     };
   }
   return {
@@ -1768,9 +1857,11 @@ function hasImmutableImageSelector(image: string) {
 function normalizeDeploymentHook(input: {
   command: string[];
   timeoutSeconds?: number;
+  entrypoint?: string;
 }): NormalizedDeploymentHook {
   return {
     command: [...input.command],
+    ...(input.entrypoint ? { entrypoint: input.entrypoint } : {}),
     timeoutSeconds: input.timeoutSeconds ?? 300,
   };
 }
@@ -1786,4 +1877,82 @@ function normalizePreviewConfig(
       ttlHours: input.ttlHours ?? 72,
     },
   };
+}
+
+export type NormalizedHealth = (
+  | { type?: "http"; path: string; port?: number; timeoutSeconds: number }
+  | { type: "command"; command: string[]; timeoutSeconds: number }
+  | { type: "container"; timeoutSeconds: number }
+) & { publicPath?: string };
+
+function normalizeContainerOverrides(container: {
+  configFiles?: ConfigurationFile[];
+  command?: string[];
+  entrypoint?: string;
+}) {
+  return {
+    ...(container.command !== undefined
+      ? { command: [...container.command] }
+      : {}),
+    ...(container.entrypoint !== undefined
+      ? { entrypoint: container.entrypoint }
+      : {}),
+    ...(container.configFiles?.length
+      ? {
+          configFiles: [...container.configFiles].sort((a, b) =>
+            a.mountPath.localeCompare(b.mountPath),
+          ),
+        }
+      : {}),
+  };
+}
+
+function normalizeAppHealth(
+  health: z.output<typeof appSchema>["health"],
+): NormalizedHealth {
+  if (health?.type === "command")
+    return {
+      type: "command",
+      command: health.command!,
+      ...(health.publicPath ? { publicPath: health.publicPath } : {}),
+      timeoutSeconds: health.timeoutSeconds ?? 60,
+    };
+  if (health?.type === "container")
+    return {
+      type: "container",
+      ...(health.publicPath ? { publicPath: health.publicPath } : {}),
+      timeoutSeconds: health.timeoutSeconds ?? 60,
+    };
+  return {
+    path: health?.path ?? "/api/health",
+    timeoutSeconds: health?.timeoutSeconds ?? 60,
+    ...(health?.port ? { port: health.port } : {}),
+    ...(health?.publicPath ? { publicPath: health.publicPath } : {}),
+  };
+}
+
+function validatePublicHealth(
+  workload: {
+    domains?: unknown;
+    health?: { type?: string; port?: number; publicPath?: string };
+    container?: { port?: number };
+  },
+  context: z.RefinementCtx,
+  containerPort = workload.container?.port,
+) {
+  const health = workload.health;
+  if (
+    workload.domains &&
+    health &&
+    (health.type === "command" ||
+      health.type === "container" ||
+      (health.port && health.port !== containerPort)) &&
+    !health.publicPath
+  )
+    context.addIssue({
+      code: "custom",
+      path: ["health", "publicPath"],
+      message:
+        "Declare a publicPath to verify ingress separately from container readiness",
+    });
 }

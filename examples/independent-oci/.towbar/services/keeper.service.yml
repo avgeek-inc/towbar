@@ -1,0 +1,33 @@
+id: keeper
+name: ClickHouse Keeper
+autoDeploy: false
+deployment:
+  type: image
+  image: clickhouse/clickhouse-keeper:25.12.5
+  platform: linux/arm64
+rollout:
+  type: recreate
+  maintenanceMode: true
+  reason: Keeper has a single private alias and persistent state
+container:
+  port: 9181
+  network: independent-oci
+  networkAlias: keeper
+  entrypoint: /usr/bin/clickhouse-keeper
+  command: [--config-file=/etc/clickhouse-keeper/keeper.yaml]
+  resources:
+    cpus: 1
+    memory: 512m
+  volumes:
+    - name: keeper
+      mountPath: /var/lib/clickhouse-keeper
+  configFiles:
+    - source: config/keeper.yaml
+      mountPath: /etc/clickhouse-keeper/keeper.yaml
+health:
+  type: command
+  command: [clickhouse-keeper-client, -h, localhost, -p, "9181", -q, ls]
+  timeoutSeconds: 120
+environments:
+  production:
+    server: 192.0.2.10

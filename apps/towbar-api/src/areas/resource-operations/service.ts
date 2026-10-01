@@ -207,6 +207,13 @@ export async function requestResourceRestore(input: {
     );
   }
   const resource = requireBackupResource(target.config);
+  if (
+    resource.container.configFiles?.length ||
+    resource.container.entrypoint !== undefined
+  )
+    throw unprocessable(
+      "Managed restore does not yet support configuration files or entrypoint overrides; use engine-native recovery",
+    );
   if (!target.currentRelease) {
     throw unprocessable("Deploy this Resource before restoring a backup");
   }
