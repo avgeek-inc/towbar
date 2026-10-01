@@ -92,7 +92,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
         }}
       >
         <Modal.Container size="lg" scroll="inside">
-          <Modal.Dialog className="sm:max-w-[64rem]">
+          <Modal.Dialog className="sm:max-w-[60rem]">
             <Modal.Header className="flex-row items-center justify-between gap-3">
               <Modal.Heading className="flex items-center gap-2">
                 <HugeiconsIcon
@@ -104,7 +104,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
               </Modal.Heading>
               <Modal.CloseTrigger className="static shrink-0" />
             </Modal.Header>
-            <Modal.Body>
+            <Modal.Body className="pt-1">
               <form
                 id={formId}
                 className="space-y-2"
@@ -134,7 +134,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                       key={index}
                       className="grid grid-cols-[minmax(0,1fr)_2rem] items-end gap-2"
                     >
-                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,1fr)_minmax(16rem,2fr)]">
+                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
                         <FilterSelect
                           label="Field"
                           hideLabel={index > 0}
@@ -191,7 +191,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                           <label className="grid gap-1 text-sm">
                             <span
                               className={
-                                index > 0 ? "sr-only" : "text-sm text-muted"
+                                index > 0 ? "sr-only" : "text-xs text-muted"
                               }
                             >
                               Value
@@ -301,7 +301,7 @@ function FilterSelect<Value extends string>({
       }}
     >
       <Label
-        className={hideLabel ? "sr-only" : "text-sm font-normal text-muted"}
+        className={hideLabel ? "sr-only" : "text-xs font-normal text-muted"}
       >
         {label}
       </Label>
@@ -380,7 +380,7 @@ function FilterValueSelect<Field extends string>({
   return (
     <div className="select select--secondary min-w-0">
       <span
-        className={`label text-sm font-normal text-muted ${hideLabel ? "sr-only" : ""}`}
+        className={`label text-xs font-normal text-muted ${hideLabel ? "sr-only" : ""}`}
       >
         Value
       </span>
