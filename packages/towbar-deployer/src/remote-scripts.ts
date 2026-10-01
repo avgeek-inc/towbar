@@ -688,7 +688,6 @@ resource_cpus="$6"
 resource_memory="$7"
 timeout_seconds="$8"
 shift 8
-(( $# > 0 ))
 hook_container="$container_name-hook-${"$"}{hook_name,,}"
 secret_directory="$remote_dir/secrets/hooks/$hook_name"
 runtime_args=()
@@ -762,7 +761,17 @@ while true; do
   if test "$health_type" = container; then
     state="$(docker inspect --format '{{.State.Running}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_name" 2>/dev/null || true)"
     if test "$state" = 'true none' || test "$state" = 'true healthy'; then healthy=true; fi
-  elif docker exec "$container_name" "$@" >/dev/null 2>&1; then
+  elif /usr/bin/python3 - "$container_name" "$@" <<'PYTHON' >/dev/null 2>&1
+import json
+import os
+from pathlib import Path
+import sys
+
+runtime_file = os.environ.get("TOWBAR_CONTAINER_RUNTIME_FILE")
+health_command = json.loads(Path(runtime_file).read_text())["healthCommand"] if runtime_file else sys.argv[2:]
+os.execv("/usr/bin/docker", ["docker", "exec", sys.argv[1], *health_command])
+PYTHON
+  then
     healthy=true
   fi
   if test "$healthy" = true; then exit 0; fi

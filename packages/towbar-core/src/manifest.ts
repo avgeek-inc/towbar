@@ -537,7 +537,7 @@ export const appSchema = z
     validateConfigurationMounts(app.container, context);
     validatePublicHealth(app, context);
     if (
-      app.rollout?.type === "rolling" &&
+      (app.rollout?.type ?? "rolling") === "rolling" &&
       (app.health?.type === "command" ||
         app.health?.type === "container" ||
         (app.health?.port && app.health.port !== app.container.port))
@@ -911,6 +911,7 @@ export const resourceSchema = z
   })
   .strict()
   .superRefine((resource, context) => {
+    const port = resource.container?.port ?? defaultResourcePort(resource.type);
     const defaultVolume = defaultResourceVolume(
       resource.type,
       resource.image ?? defaultResourceImage(resource.type)!,
@@ -925,7 +926,7 @@ export const resourceSchema = z
       },
       context,
     );
-    validatePublicHealth(resource, context);
+    validatePublicHealth(resource, context, port);
     validateResourceImage(resource, context);
     validateManagedResourceImage(resource, context);
     validateResourceConnectivity(resource, context);
@@ -946,7 +947,6 @@ export const resourceSchema = z
           path: ["container", "volumes"],
         }),
     );
-    const port = resource.container?.port ?? defaultResourcePort(resource.type);
     if (resource.domains && !port) {
       context.addIssue({
         code: "custom",
@@ -1938,6 +1938,7 @@ function validatePublicHealth(
     container?: { port?: number };
   },
   context: z.RefinementCtx,
+  containerPort = workload.container?.port,
 ) {
   const health = workload.health;
   if (
@@ -1945,7 +1946,7 @@ function validatePublicHealth(
     health &&
     (health.type === "command" ||
       health.type === "container" ||
-      (health.port && health.port !== workload.container?.port)) &&
+      (health.port && health.port !== containerPort)) &&
     !health.publicPath
   )
     context.addIssue({

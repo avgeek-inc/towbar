@@ -118,6 +118,69 @@ void test("admits command/container service health and requires a separate publi
   );
 });
 
+void test("validates health against the default rolling strategy", () => {
+  const { rollout: _rollout, ...defaults } = service;
+  for (const health of [
+    { type: "command", command: ["true"] },
+    { type: "container" },
+    { path: "/", port: 13133 },
+  ]) {
+    const result = appSchema.safeParse({ ...defaults, health });
+    assert.equal(result.success, false);
+    if (!result.success)
+      assert(
+        result.error.issues.some((issue) =>
+          issue.message.includes("Rolling deployments require HTTP health"),
+        ),
+      );
+    assert(appSchema.safeParse({ ...service, health }).success);
+  }
+  assert(appSchema.safeParse(defaults).success);
+  assert(
+    appSchema.safeParse({
+      ...defaults,
+      health: { path: "/", port: defaults.container.port },
+    }).success,
+  );
+  assert.equal(
+    normalizeDeploymentManifest({ version: 2, apps: [defaults] }).apps[0]!
+      .rollout?.type,
+    "rolling",
+  );
+});
+
+void test("compares public datastore readiness with the effective engine port", () => {
+  const resource = {
+    id: "store",
+    name: "Store",
+    type: "clickhouse" as const,
+    server: service.server,
+    domains: { primary: "store.example.com" },
+    health: { type: "http" as const, path: "/ping", port: 8123 },
+  };
+  assert(resourceSchema.safeParse(resource).success);
+  assert(
+    resourceSchema.safeParse({ ...resource, container: { port: 8123 } })
+      .success,
+  );
+  assert(
+    !resourceSchema.safeParse({
+      ...resource,
+      health: { ...resource.health, port: 8124 },
+    }).success,
+  );
+  assert(
+    !resourceSchema.safeParse({ ...resource, container: { port: 9000 } })
+      .success,
+  );
+  assert(
+    resourceSchema.safeParse({
+      ...resource,
+      health: { ...resource.health, port: 8124, publicPath: "/ping" },
+    }).success,
+  );
+});
+
 void test("rejects unsafe file sources, targets, collisions, and host-mount declarations", () => {
   const file = { source: "config/server.yml", mountPath: "/etc/server.yml" };
   for (const source of [

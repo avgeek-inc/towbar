@@ -169,7 +169,10 @@ export async function prepareConfigurationFiles(input: {
       files: entries,
       sourceId: input.context.sourceId,
       deployableId: input.context.deployableId,
-      commitSha: input.context.commitSha,
+      commitSha:
+        input.context.kind === "rollback"
+          ? input.context.rollbackRelease!.commitSha
+          : input.context.commitSha,
       rollback: input.context.kind === "rollback",
     }),
     { mode: 0o600 },

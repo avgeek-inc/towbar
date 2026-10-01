@@ -1,5 +1,8 @@
 import { prepareConfigurationFiles } from "./configuration-files.js";
-import { containerRuntimeOptions } from "./container-runtime.js";
+import {
+  containerRuntimeOptionsPath,
+  prepareContainerRuntimeOptions,
+} from "./container-runtime.js";
 import { deploymentVolumeArguments, prepareAppStorage } from "./app-storage.js";
 import { validateHostLogCollection } from "./host-log-collection.js";
 import { chmod, mkdir, stat, statfs, writeFile } from "node:fs/promises";
@@ -134,6 +137,7 @@ export async function prepareDeploymentImage(input: DeploymentPhaseInput) {
     });
   await writeSecretFiles(input.localDirectory, input.secrets);
   await prepareConfigurationFiles({ ...input, checkout });
+  await prepareContainerRuntimeOptions(input);
   if (isNormalizedResource(input.context.app)) {
     await uploadSecrets(input, input.session, ["runtime"]);
     if (input.context.kind === "deploy") {
@@ -255,9 +259,9 @@ async function startAndVerifyNamedCandidate(
     : null;
   const startResult = resource
     ? await input.session.run(
-        `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
+        `export TOWBAR_CONTAINER_RUNTIME_FILE="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_CLEANUP_ID="$2" TOWBAR_DEPLOYMENT_ID="$3" TOWBAR_COMMIT_SHA="$4" TOWBAR_SOURCE_ID="$5" TOWBAR_DEPLOYABLE_ID="$6"\nshift 6\n${startResourceRemoteScript}`,
         [
-          containerRuntimeOptions(input.context),
+          containerRuntimeOptionsPath(input.remoteDirectory),
           resource.id,
           deploymentCleanupId(input.context),
           input.context.deploymentId,
@@ -282,7 +286,6 @@ async function startAndVerifyNamedCandidate(
             volume.name,
             volume.mountPath,
           ]),
-          ...resource.container.command,
         ],
         {
           signal: input.signal,
@@ -294,9 +297,9 @@ async function startAndVerifyNamedCandidate(
         sensitiveValues: input.sensitiveValues,
         run: (handlers) =>
           input.session.run(
-            `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
+            `export TOWBAR_CONTAINER_RUNTIME_FILE="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_SOURCE_ID="$4" TOWBAR_DEPLOYABLE_ID="$5" TOWBAR_VOLUME_ARGS_JSON="$6" TOWBAR_HOST_LOG_COLLECTION="$7"\nshift 7\n${startRemoteScript}`,
             [
-              containerRuntimeOptions(input.context),
+              containerRuntimeOptionsPath(input.remoteDirectory),
               deploymentRuntimeId(input.context),
               input.context.deploymentId,
               input.context.commitSha,
@@ -347,12 +350,12 @@ async function startAndVerifyNamedCandidate(
     const health = input.context.app.health;
     if (health.type === "command" || health.type === "container") {
       await input.session.run(
-        containerHealthRemoteScript,
+        `export TOWBAR_CONTAINER_RUNTIME_FILE="$1"\nshift 1\n${containerHealthRemoteScript}`,
         [
+          containerRuntimeOptionsPath(input.remoteDirectory),
           containerName,
           health.type,
           String(health.timeoutSeconds),
-          ...(health.type === "command" ? health.command : []),
         ],
         {
           signal: input.signal,
@@ -1509,13 +1512,14 @@ async function runDeploymentHook(
     hookName: "postDeploy" | "preDeploy";
   },
 ) {
+  await prepareContainerRuntimeOptions(input);
   await runWithSafeLogs({
     hooks: input.hooks,
     run: async (outputHandlers) =>
       await input.session.run(
-        `export TOWBAR_CONTAINER_RUNTIME_JSON="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_VOLUME_ARGS_JSON="$4"\nshift 4\n${hookRemoteScript}`,
+        `export TOWBAR_CONTAINER_RUNTIME_FILE="$1"\nshift 1\nexport TOWBAR_APP_ID="$1" TOWBAR_DEPLOYMENT_ID="$2" TOWBAR_COMMIT_SHA="$3" TOWBAR_VOLUME_ARGS_JSON="$4"\nshift 4\n${hookRemoteScript}`,
         [
-          containerRuntimeOptions(input.context, input.hook),
+          containerRuntimeOptionsPath(input.remoteDirectory, input.hookName),
           deploymentRuntimeId(input.context),
           input.context.deploymentId,
           input.context.commitSha,
@@ -1530,7 +1534,6 @@ async function runDeploymentHook(
             : "",
           input.context.app.container.resources?.memory ?? "",
           String(input.hook.timeoutSeconds),
-          ...input.hook.command,
         ],
         {
           ...outputHandlers,

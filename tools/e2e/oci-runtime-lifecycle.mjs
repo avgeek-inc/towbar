@@ -144,6 +144,7 @@ for step in ready bootstrap sync-up async-up; do echo "$step" >> /state/sequence
             ? { REDIS_PASSWORD: "fixture-runtime-value" }
             : {
                 RUNTIME_TOKEN: "fixture-runtime-value",
+                TOWBAR_CONTAINER_RUNTIME_FILE: "/etc/passwd",
                 TOWBAR_CONTAINER_RUNTIME_JSON: JSON.stringify({
                   configMounts: [
                     "type=bind,src=/var/run/docker.sock,dst=/tmp/socket,readonly",
@@ -310,7 +311,7 @@ for step in ready bootstrap sync-up async-up; do echo "$step" >> /state/sequence
   const fetchedBeforeRollback = fetched.length;
   const rollback = await deploy(app, {
     kind: "rollback",
-    revision: "a",
+    revision: "b",
     rollbackRelease: {
       commitSha: first.context.commitSha,
       containerName: first.result.containerName,
@@ -326,6 +327,41 @@ for step in ready bootstrap sync-up async-up; do echo "$step" >> /state/sequence
       (mount) => mount.Destination === "/etc/oci/value",
     ).Source,
     files.find((mount) => mount.Destination === "/etc/oci/value").Source,
+  );
+  const padding = Array.from({ length: 62 }, () => 'a"\\$'.repeat(1024));
+  const largeCommand = await deploy({
+    ...app,
+    id: "large-command",
+    container: {
+      ...app.container,
+      networkAlias: "large-command",
+      command: [
+        "-ec",
+        `test "$#" -eq 61; ${app.container.command[1]}`,
+        ...padding,
+      ],
+    },
+    hooks: {
+      preDeploy: {
+        ...app.hooks.preDeploy,
+        command: ["-ec", 'test "$#" -eq 61; /etc/oci/migrate', ...padding],
+      },
+    },
+    health: {
+      type: "command",
+      command: [
+        "sh",
+        "-ec",
+        'test "$#" -eq 60; wget -q -O /dev/null http://127.0.0.1:13133/',
+        ...padding.slice(0, 61),
+      ],
+      timeoutSeconds: 10,
+    },
+  });
+  assert.equal(read(largeCommand.result), "a");
+  assert.deepEqual(
+    inspect(largeCommand.result.containerName).Config.Cmd.slice(2),
+    padding,
   );
   const retainedFile = secondFiles.find(
     (mount) => mount.Destination === "/etc/oci/value",
@@ -413,8 +449,25 @@ for step in ready bootstrap sync-up async-up; do echo "$step" >> /state/sequence
     ).RW,
     false,
   );
+  const storeRollback = await deploy(redis, {
+    kind: "rollback",
+    revision: "b",
+    rollbackRelease: {
+      commitSha: store.context.commitSha,
+      containerName: store.result.containerName,
+      imageTag: store.result.imageTag,
+      releaseId: randomUUID(),
+      sourceDeploymentId: store.context.deploymentId,
+    },
+  });
+  assert.equal(
+    target.ssh(
+      `docker exec ${storeRollback.result.containerName} redis-cli ${passwordOption} GET sentinel`,
+    ),
+    "data",
+  );
   console.log(
-    "OCI runtime lifecycle passed: non-root SSH and containers, read-only/executable files, distinct health port, hook ordering and failure, managed datastore config, failed replacement and retained-file rollback.",
+    "OCI runtime lifecycle passed: non-root SSH and containers, read-only/executable files, distinct health port, maximum-size startup/hook/health commands, hook ordering and failure, managed datastore config, failed replacement and retained-file rollback after repository advancement.",
   );
 } finally {
   globalThis.fetch = originalFetch;
