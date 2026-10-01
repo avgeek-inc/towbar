@@ -184,12 +184,12 @@ export function DashboardOverview() {
                 </Widget.Title>
               </Widget.Header>
               <Widget.Content
-                className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3.5 pr-[38%]`}
+                className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3 pr-[38%]`}
               >
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
-                    className="inline-flex min-h-11 min-w-11 items-center text-3xl font-semibold tracking-tight font-mono tabular-nums"
+                    className="inline-flex items-center text-2xl font-semibold tracking-tight font-mono tabular-nums"
                     aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
                   >
                     {metric.value}
@@ -262,7 +262,7 @@ function OverviewActivity() {
             chartMargin={{ bottom: 0, left: -8 }}
             className={`${illustrationStyles.activityChart} min-w-0`}
             data={activity}
-            height={210}
+            height={220}
             style={{ height: "var(--overview-activity-height)" }}
           >
             <LineChart.Grid vertical={false} />
