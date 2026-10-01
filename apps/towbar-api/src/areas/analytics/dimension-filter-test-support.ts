@@ -244,7 +244,7 @@ export async function verifyDimensionFilters(input: {
         field: "destination",
         search: "github",
       })
-    ).includes("github.com"),
+    ).some((destination) => destination === "github.com"),
   );
   assert(
     (
