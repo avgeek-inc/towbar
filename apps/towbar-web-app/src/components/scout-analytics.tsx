@@ -391,8 +391,7 @@ export function AnalyticsView({
   const visibleSeries = chartSeries.filter(
     ({ key }) => activeMetric === null || key === activeMetric,
   );
-  const showComparison =
-    Boolean(report.comparison) && (!pageviews || compareEnabled);
+  const showComparison = Boolean(report.comparison) && compareEnabled;
   const breakdowns: {
     name: string;
     dimension: string;
@@ -442,7 +441,7 @@ export function AnalyticsView({
       (breakdown.rows.length > 10 ? 1 : 0);
   }
   const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
-  const comparisonLabel = `Previous ${days === 1 ? "24 hours" : `${days} days`}`;
+  const comparisonLabel = `Prev. ${days === 1 ? "24 hours" : `${days} days`}`;
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -561,22 +560,20 @@ export function AnalyticsView({
         <Widget>
           <Widget.Header
             endContent={
-              pageviews ? (
-                <Checkbox
-                  className="shrink-0"
-                  variant="secondary"
-                  isSelected={compareEnabled}
-                  onChange={setCompareEnabled}
-                  isDisabled={!report.comparison}
-                >
-                  <Checkbox.Content>
-                    <Checkbox.Control className="border! border-muted/50">
-                      <Checkbox.Indicator />
-                    </Checkbox.Control>
-                    <Label className="text-xs">Enable Compare</Label>
-                  </Checkbox.Content>
-                </Checkbox>
-              ) : undefined
+              <Checkbox
+                className="shrink-0"
+                variant="secondary"
+                isSelected={compareEnabled}
+                onChange={setCompareEnabled}
+                isDisabled={!report.comparison}
+              >
+                <Checkbox.Content>
+                  <Checkbox.Control className="border! border-muted/50">
+                    <Checkbox.Indicator />
+                  </Checkbox.Control>
+                  <Label className="text-xs">Enable Compare</Label>
+                </Checkbox.Content>
+              </Checkbox>
             }
           >
             <Widget.Title
@@ -757,7 +754,7 @@ export function AnalyticsView({
                 </button>
               ))}
             </Widget.Legend>
-            {pageviews && !report.comparison ? (
+            {!report.comparison ? (
               <p className="mt-2 text-xs text-muted">
                 No prior period data to compare.
               </p>
