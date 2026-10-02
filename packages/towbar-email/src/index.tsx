@@ -32,8 +32,7 @@ const emailTheme = {
   muted: "#71717a",
   accent: "#856300",
 } as const;
-const logoSource =
-  "https://www.towbar.dev/cdn-cgi/imagedelivery/phvjnb9w1G6QHeeoMJptkQ/brands/towbar/logo/light-transparent-edge/w=128,fit=scale-down,format=png";
+const logoSource = "https://www.towbar.dev/assets/towbar-logo.png";
 
 export const transactionalTemplates = [
   "invitation",
