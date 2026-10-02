@@ -96,7 +96,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
         }}
       >
         <Modal.Container size="lg" scroll="inside">
-          <Modal.Dialog className="sm:max-w-[60rem]">
+          <Modal.Dialog className="sm:max-w-[48rem]">
             <Modal.Header className="flex-row items-center justify-between gap-3">
               <Modal.Heading className="flex items-center gap-2">
                 <HugeiconsIcon
@@ -138,7 +138,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                       key={index}
                       className="grid grid-cols-[minmax(0,1fr)_2rem] items-end gap-2"
                     >
-                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9.5rem_minmax(0,2fr)]">
                         <FilterSelect
                           label="Field"
                           hideLabel={index > 0}
