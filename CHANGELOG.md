@@ -5,6 +5,16 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.29] - 2026-10-03
+
+### Fixed
+
+- Unrelated domain ownership conflicts no longer block source syncs or deployment
+  admission. Reconciliation checks the affected environment or workload's
+  hostnames against workspace-wide ownership evidence, including retained
+  releases and active or released claims. Ambiguous legacy domains remain
+  protected without blocking unrelated workloads.
+
 ## [2.0.25] - 2026-10-01
 
 ### Added
