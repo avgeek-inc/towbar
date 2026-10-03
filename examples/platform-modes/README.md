@@ -20,3 +20,19 @@ The Compose example deliberately combines a repository-built service, a
 digest-pinned image service, health-gated dependencies, profiles, overrides,
 and managed named volumes. Its maintenance strategy communicates that the
 stack is recreated rather than silently promising rolling replacement.
+
+Compose change detection covers the full tracked repository tree by default,
+including source and configuration files. Automatic deployment remains opt-in.
+For this example in a monorepo, add the following to the Compose entity after
+validating a manual deployment:
+
+```yaml
+autoDeploy:
+  inputs:
+    - examples/platform-modes/compose/**
+```
+
+The primary Compose file and explicit overrides remain tracked even outside
+the scope. Include any shared dependencies when adapting this example. With
+`autoDeploy: true`, all tracked repository files participate instead; an
+identical-tree commit does not cause another deployment.

@@ -17,6 +17,11 @@ autoDeploy:
 
 Include shared libraries, lockfiles, build scripts, and Dockerfiles as needed. The Repository's automation control can pause automatic work during maintenance. A manual **Deploy** remains a separate action. Start with one manual deployment and verify the running service before enabling automation.
 
+Compose workloads accept the same `autoDeploy.inputs` form. Without an explicit
+scope they track the full repository tree; with one they always retain the primary
+Compose file and explicit overrides. Include every referenced config and build
+dependency in a scoped declaration. See [Compose change tracking](/docs/services/modes/compose#track-source-changes).
+
 ## Pull request previews
 
 Enable previews for an environment in `towbar.yml`, then opt the Service in with a base domain:

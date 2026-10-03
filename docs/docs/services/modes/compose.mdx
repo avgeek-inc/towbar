@@ -39,6 +39,49 @@ Remote includes, privileged containers, Docker socket mounts, host bind mounts, 
 
 Map the named environment to a branch, register and prepare its server, then sync the repository. Start with a manual deployment and verify the running service before opting into automation. See [Service manifest](/docs/services/manifest) for shared fields and [Deployment modes](/docs/platform-deployments) to compare modes.
 
+## Track source changes
+
+Compose tracks the complete Git repository tree by default, including dotfiles.
+Changes to referenced configs, included Compose files, Dockerfiles, build contexts,
+or shared dependencies therefore change the deployment digest. Added, removed,
+renamed, and executable-mode changes participate too. A commit with identical
+tracked files keeps the same digest.
+
+Set `autoDeploy: true` to deploy changed inputs after a successful sync. Omitting
+it or setting `false` keeps deployments manual while retaining full-tree tracking.
+For a monorepo, scope automatic deployment to additive, repository-relative globs:
+
+```yaml title=".towbar/services/observability.compose.yml"
+id: observability
+name: Observability
+file: observability/compose.yml
+overrides:
+  - observability/compose.production.yml
+autoDeploy:
+  inputs:
+    - observability/**
+    - shared/collector-config/**
+    - shared/docker/**
+strategy: maintenance
+environments:
+  production:
+    server: 192.0.2.10
+```
+
+The primary Compose file and explicit overrides always participate, even outside
+the declared scope. Cover every other referenced file, build context, include,
+and shared dependency in `inputs`; Towbar does not discover those dependencies
+automatically. Paths are relative to the repository root. Exclusion patterns,
+absolute paths, and parent traversal are rejected. Use the environment override
+or Repository automation controls to pause automatic deployment.
+
+Sync requires a complete repository tree and regular primary/override files at
+the selected revision. A queued deployment retains its configuration and digests;
+later syncs cannot change that release's inputs. After upgrading from the older
+Compose-file-only tracking, the next sync can queue one additional deployment for
+an opted-in workload while establishing the broader digest baseline. Rollback
+keeps the retained release's original snapshot.
+
 ## Route TLS per service
 
 Each public service chooses its own `tls.mode` alongside `port`, `domains`, and `ingress`. Omitting `tls` keeps direct Caddy certificate validation. Choose `cloudflare-dns` to reconcile Cloudflare address records and obtain certificates through the configured runtime integration. Proxy ingress still requires HTTPS access to the server; DNS validation does not create a Tunnel.

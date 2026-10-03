@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { z } from "zod";
+import { autoDeploySchema } from "./deployment-input-schema.js";
 import { manifestNotificationsSchema } from "./notifications.js";
 
 function containsAsciiControlCharacter(value: string): boolean {
@@ -362,7 +363,7 @@ export const composeWorkloadSchema = z
     id: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u),
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).optional(),
-    autoDeploy: z.boolean().default(false),
+    autoDeploy: autoDeploySchema.default(false),
     server: z.ipv4().or(z.ipv6()),
     file: repositoryPath,
     overrides: z.array(repositoryPath).max(10).default([]),
