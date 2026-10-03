@@ -4,6 +4,7 @@ import { ApplicationFailure, Context } from "@temporalio/activity";
 import {
   DeploymentCommitUncertainError,
   DeploymentCommittedError,
+  DomainHandoffRecoveryRequiredError,
   HostKeyNotTrustedError,
   executeDeployment,
   finalizeInterruptedDeployment,
@@ -40,16 +41,12 @@ export async function executeDeploymentActivity(deploymentId: string) {
     10_000,
   );
   try {
-    const [contextResponse, secretsResponse] = await Promise.all([
-      signedApiRequest<{ context: DeploymentExecutionContext }>(
-        "GET",
-        `/v1/internal/deployments/${deploymentId}/context`,
-      ),
-      signedApiRequest<{ secrets: DeploymentSecrets }>(
-        "POST",
-        `/v1/internal/deployments/${deploymentId}/secrets/resolve`,
-      ),
-    ]);
+    const contextResponse = await signedApiRequest<{
+      context: DeploymentExecutionContext;
+    }>("GET", `/v1/internal/deployments/${deploymentId}/context`);
+    const secretsResponse = await signedApiRequest<{
+      secrets: DeploymentSecrets;
+    }>("POST", `/v1/internal/deployments/${deploymentId}/secrets/resolve`);
     await executeDeployment({
       context: contextResponse.context,
       deferCleanup: isWorkerSelfDeployment(
@@ -149,9 +146,16 @@ export async function recoverDeploymentActivity(deploymentId: string) {
           `/v1/internal/deployments/${deploymentId}/secrets/login/resolve`,
         ),
       ]);
+      const handoffSecrets = contextResponse.context.domainHandoffs?.length
+        ? await signedApiRequest<{ secrets: DeploymentSecrets }>(
+            "POST",
+            `/v1/internal/deployments/${deploymentId}/secrets/resolve`,
+          )
+        : null;
       await finalizeInterruptedDeployment({
         context: contextResponse.context,
         login: loginResponse.login,
+        secrets: handoffSecrets?.secrets,
         retainedImageTags: status.retainedImageTags,
       });
     } catch {
@@ -192,6 +196,7 @@ export async function recoverDeploymentActivity(deploymentId: string) {
     candidateRemoval = await rollbackInterruptedDeployment({
       context: contextResponse.context,
       login: secretsResponse.secrets.login,
+      secrets: secretsResponse.secrets,
     });
   } catch {
     cleanupPending = true;
@@ -219,6 +224,8 @@ async function recordEvent(deploymentId: string, body: unknown) {
 }
 
 function classifyError(error: unknown) {
+  if (error instanceof DomainHandoffRecoveryRequiredError)
+    return "DOMAIN_HANDOFF_RECOVERY_REQUIRED";
   if (error instanceof DeploymentCommitUncertainError) {
     return "DEPLOYMENT_COMMIT_UNCERTAIN";
   }

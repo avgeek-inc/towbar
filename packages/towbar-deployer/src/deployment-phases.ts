@@ -1,3 +1,6 @@
+import { domainHandoffRoutingMessage } from "./domain-routing.js";
+import { type CloudflareDnsChange } from "./cloudflare.js";
+import { localDomainHandoffs } from "./domain-routing.js";
 import { prepareConfigurationFiles } from "./configuration-files.js";
 import {
   containerRuntimeOptionsPath,
@@ -21,7 +24,10 @@ import {
   deploymentRuntimeId,
 } from "./deployment-identity.js";
 import {
+  type CloudflareDnsExpectations,
+  type CloudflareDnsTransition,
   type CloudflareTunnelTransition,
+  cleanupCloudflareDnsTransition,
   cleanupCloudflareTunnelTransition,
   deploymentPublicHostnames,
   reconcileCloudflareForDeployment,
@@ -65,6 +71,8 @@ import type {
 } from "./types.js";
 import {
   collectsHostDockerLogs,
+  deploymentCloudflareDnsDomains,
+  deploymentTunnelHostnames,
   isNormalizedCompose,
   isNormalizedResource,
 } from "@workspace/towbar-core";
@@ -74,6 +82,9 @@ import type {
 } from "@workspace/towbar-core";
 
 type DeploymentPhaseInput = {
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  cloudflareDnsExpectations?: CloudflareDnsExpectations;
+  cloudflareDnsTransitions?: CloudflareDnsTransition[];
   containerName: string;
   context: DeploymentExecutionContext;
   hooks: ExecutorHooks;
@@ -587,7 +598,11 @@ async function restoreRollingRoute(
   );
   await input.session.run(
     configureCaddyScript,
-    [input.remoteDirectory, deploymentRuntimeId(input.context)],
+    [
+      input.remoteDirectory,
+      deploymentRuntimeId(input.context),
+      JSON.stringify(localDomainHandoffs(input.context)),
+    ],
     { timeoutMs: 180_000 },
   );
 }
@@ -783,6 +798,18 @@ export async function finishPromotedDeployment(
       },
     );
   }
+
+  await cleanupPreviousDeploymentDns(input).catch(async () => {
+    const warning =
+      "The release is live, but previous Cloudflare DNS records need cleanup";
+    input.warnings.push(warning);
+    await safeLog(
+      input.hooks,
+      `${warning}.\n`,
+      "stderr",
+      input.sensitiveValues,
+    );
+  });
 
   await (
     input.secrets.previousCloudflareTunnelCleanupBlocked
@@ -1320,7 +1347,8 @@ async function configureAndVerifyRouting(
     await transition(
       input.hooks,
       "configuring_routing",
-      "Reconciling DNS and validating generated Caddy routing",
+      domainHandoffRoutingMessage(input.context) ??
+        "Reconciling DNS and validating generated Caddy routing",
     );
   } else {
     await safeLog(
@@ -1330,12 +1358,6 @@ async function configureAndVerifyRouting(
       input.sensitiveValues,
     );
   }
-  await reconcileCloudflareForDeployment({
-    app: input.context.app,
-    appId: deploymentRuntimeId(input.context),
-    credentials: input.secrets.cloudflare,
-    server: input.context.server,
-  });
   await writeRoutingFiles(input, candidatePorts);
   if (!input.context.app.domains) {
     if (!verifyPublic) return;
@@ -1373,9 +1395,32 @@ async function configureAndVerifyRouting(
   }
   await input.session.run(
     configureCaddyScript,
-    [input.remoteDirectory, deploymentRuntimeId(input.context)],
+    [
+      input.remoteDirectory,
+      deploymentRuntimeId(input.context),
+      JSON.stringify(localDomainHandoffs(input.context)),
+    ],
     { signal: input.signal, timeoutMs: 180_000 },
   );
+  const dnsTransition = await reconcileCloudflareForDeployment({
+    app: input.context.app,
+    appId: deploymentRuntimeId(input.context),
+    onDnsChange: input.onDnsChange,
+    handoffs: input.context.domainHandoffs,
+    expectedRecords: input.cloudflareDnsExpectations,
+    credentials: input.secrets.cloudflare,
+    handoffDns: input.secrets.domainHandoffDns,
+    server: input.context.server,
+  });
+  if (dnsTransition) {
+    input.cloudflareDnsTransitions?.push(dnsTransition);
+    const tunnelHostnames = new Set(
+      deploymentTunnelHostnames(input.context.app),
+    );
+    for (const hostname of Object.keys(input.cloudflareDnsExpectations ?? {}))
+      if (!tunnelHostnames.has(hostname))
+        delete input.cloudflareDnsExpectations?.[hostname];
+  }
   if (!verifyPublic) return;
   if (input.context.app.ingress?.type === "cloudflare-tunnel") {
     if (!input.secrets.cloudflareTunnel)
@@ -1385,6 +1430,9 @@ async function configureAndVerifyRouting(
         ...input.secrets.cloudflareTunnel,
         app: input.context.app,
         appId: deploymentRuntimeId(input.context),
+        onDnsChange: input.onDnsChange,
+        handoffs: input.context.domainHandoffs,
+        expectedRecords: input.cloudflareDnsExpectations,
         localDirectory: input.localDirectory,
         session: input.session,
       });
@@ -1572,4 +1620,15 @@ async function preflight(
     [String(requiresCloudflareModule), role],
     { signal, timeoutMs: 30_000 },
   );
+}
+
+async function cleanupPreviousDeploymentDns(input: DeploymentPhaseInput) {
+  if (input.secrets.previousCloudflareDnsCleanupBlocked)
+    throw new Error("Previous DNS credentials are unavailable");
+  await cleanupCloudflareDnsTransition({
+    appId: deploymentRuntimeId(input.context),
+    previous: input.secrets.previousCloudflareDns ?? null,
+    protectedHostnames: deploymentPublicHostnames(input.context.app),
+    managedHostnames: deploymentCloudflareDnsDomains(input.context.app),
+  });
 }

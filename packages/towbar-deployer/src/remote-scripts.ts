@@ -1,3 +1,4 @@
+import { domainRoutingPython } from "./domain-routing.js";
 import { containerRuntimeArgumentsScript } from "./container-runtime.js";
 /* eslint-disable max-lines -- Remote scripts are kept with their shared shell-safety primitives so quoting rules cannot drift. */
 import {
@@ -818,6 +819,10 @@ if ! test -f "$remote_dir/cloudflare.previous.state"; then
     printf 'absent' >"$remote_dir/cloudflare.previous.state"
   fi
 fi
+mkdir -p "$remote_dir/domain-handoffs"
+sudo python3 - "$remote_dir" apply "${"$"}{3:-[]}" <<'PYTHON'
+${domainRoutingPython}
+PYTHON
 sudo install -m 644 "$remote_dir/app.caddy" "/etc/caddy/towbar/$app_id.caddy"
 if ! sudo grep -Fq 'import /etc/caddy/towbar/*.caddy' /etc/caddy/Caddyfile; then
   printf '\nimport /etc/caddy/towbar/*.caddy\n' | sudo tee -a /etc/caddy/Caddyfile >/dev/null
@@ -872,6 +877,9 @@ if test "$remove_image" = true; then docker image rm "$image_tag" >/dev/null 2>&
 if test -n "$previous_container" && docker container inspect "$previous_container" >/dev/null 2>&1; then
   docker start "$previous_container" >/dev/null
 fi
+sudo python3 - "$remote_dir" rollback <<'PYTHON'
+${domainRoutingPython}
+PYTHON
 if test -f "$remote_dir/caddy.previous.state"; then
   if test "$(cat "$remote_dir/caddy.previous.state")" = present; then
     sudo install -m 644 "$remote_dir/caddy.previous" "/etc/caddy/towbar/$caddy_id.caddy"
@@ -898,12 +906,11 @@ if test -f "$remote_dir/caddy.previous.state"; then
   if sudo test -s /etc/caddy/towbar/cloudflare.env; then
     validate_args+=(--envfile /etc/caddy/towbar/cloudflare.env)
   fi
-  if sudo caddy validate "${"$"}{validate_args[@]}"; then
-    if sudo test -s /etc/caddy/towbar/cloudflare.env; then
-      sudo systemctl restart caddy
-    else
-      sudo systemctl reload caddy
-    fi
+  sudo caddy validate "${"$"}{validate_args[@]}"
+  if sudo test -s /etc/caddy/towbar/cloudflare.env; then
+    sudo systemctl restart caddy
+  else
+    sudo systemctl reload caddy
   fi
 fi
 rm -rf "$remote_dir"

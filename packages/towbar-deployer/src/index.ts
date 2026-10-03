@@ -21,3 +21,5 @@ export * from "./ssh.js";
 export * from "./types.js";
 export * from "./monitoring-agent.js";
 export { CommandError } from "./process.js";
+
+export { DomainHandoffRecoveryRequiredError } from "./domain-routing.js";

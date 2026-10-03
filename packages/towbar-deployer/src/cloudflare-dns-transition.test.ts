@@ -262,3 +262,139 @@ void test("cleanup deletes only obsolete owned address records and protects curr
   assert.deepEqual([...fixture.records.values()], [live, foreign, tunnel]);
   assert.deepEqual(fixture.mutations, [{ method: "DELETE", name: owned.name }]);
 });
+
+void test("authorized same-environment DNS handoffs retain a guarded rollback", async () => {
+  const fixture = dnsFixture([owned]);
+  const handoffs = [
+    {
+      hostname: owned.name,
+      previousAppId: "stack",
+      previousAppName: "Stack",
+      previousServerId: "previous-server",
+      previousServerIp: owned.content,
+      previousDeploymentId: "previous-deployment",
+      previousManagedDns: true,
+    },
+  ];
+  const transition = await reconcileCloudflareDns({
+    ...input,
+    appId: "ui",
+    handoffs,
+    expectedRecords: { [owned.name]: owned },
+    fetcher: fixture.fetcher,
+  });
+  assert.equal(fixture.records.get(owned.id)?.comment, "Managed by Towbar: ui");
+  await transition.rollback();
+  assert.deepEqual(fixture.records.get(owned.id), owned);
+  await assert.rejects(
+    reconcileCloudflareDns({
+      ...input,
+      appId: "ui",
+      handoffs: [{ ...handoffs[0]!, previousAppId: "foreign" }],
+      fetcher: fixture.fetcher,
+    }),
+    /owned by another/,
+  );
+  await assert.rejects(
+    reconcileCloudflareDns({
+      ...input,
+      appId: "ui",
+      handoffs: [{ ...handoffs[0]!, previousServerIp: "192.0.2.99" }],
+      fetcher: fixture.fetcher,
+    }),
+    /owned by another/,
+  );
+  fixture.records.get(owned.id)!.content = "192.0.2.99";
+  await assert.rejects(
+    reconcileCloudflareDns({
+      ...input,
+      appId: "ui",
+      handoffs,
+      expectedRecords: { [owned.name]: owned },
+      fetcher: fixture.fetcher,
+    }),
+    /changed after preflight/,
+  );
+});
+
+void test("a managed hostname handed to direct TLS relinquishes its comment after preparation", async () => {
+  const fixture = dnsFixture([owned]);
+  const receipts: unknown[] = [];
+  const transition = await reconcileCloudflareDns({
+    ...input,
+    appId: "ui",
+    releaseOwnershipDomains: [owned.name],
+    handoffs: [
+      {
+        hostname: owned.name,
+        previousAppId: "stack",
+        previousAppName: "Stack",
+        previousServerId: "old-server",
+        previousServerIp: owned.content,
+        previousDeploymentId: "old-deployment",
+        previousManagedDns: true,
+      },
+    ],
+    fetcher: fixture.fetcher,
+    onDnsChange: (change) => {
+      receipts.push({
+        receipt: structuredClone(change),
+        live: structuredClone(fixture.records.get(owned.id)),
+      });
+      return Promise.resolve();
+    },
+  });
+  assert.equal(fixture.records.get(owned.id)?.comment, "");
+  assert.equal(fixture.records.get(owned.id)?.content, input.serverIp);
+  assert.deepEqual(
+    (receipts[0] as { live: unknown }).live,
+    owned,
+    "the recovery receipt must be persisted before mutation",
+  );
+  await transition.rollback();
+  assert.deepEqual(fixture.records.get(owned.id), owned);
+});
+
+void test("handoffs resolve and restore each hostname with its own zone credential", async () => {
+  const second = { ...owned, id: "second", name: "second.example.com" };
+  const fixture = dnsFixture([owned, second]);
+  const fetcher: typeof fetch = (url, init) => {
+    const endpoint = new URL(String(url));
+    const firstZone = endpoint.pathname.includes("/zones/first-zone/");
+    assert.match(endpoint.pathname, /\/zones\/(first|second)-zone\//);
+    assert.equal(
+      new Headers(init?.headers).get("authorization"),
+      firstZone ? "Bearer first-token" : "Bearer second-token",
+    );
+    const headers = new Headers(init?.headers);
+    headers.set("authorization", "Bearer test-token");
+    return fixture.fetcher(url, { ...init, headers });
+  };
+  const handoffs = [owned, second].map((record) => ({
+    hostname: record.name,
+    previousAppId: "stack",
+    previousAppName: "Stack",
+    previousServerId: "old",
+    previousServerIp: record.content,
+    previousDeploymentId: "old-deployment",
+    previousManagedDns: true,
+  }));
+  const transition = await reconcileCloudflareDns({
+    ...input,
+    apiToken: "",
+    domains: [owned.name, second.name],
+    appId: "ui",
+    handoffs,
+    handoffDns: {
+      [owned.name]: { apiToken: "first-token", zoneId: "first-zone" },
+      [second.name]: { apiToken: "second-token", zoneId: "second-zone" },
+    },
+    fetcher,
+  });
+  assert.equal(
+    fixture.records.get(second.id)?.comment,
+    "Managed by Towbar: ui",
+  );
+  await transition.rollback();
+  assert.deepEqual([...fixture.records.values()], [owned, second]);
+});

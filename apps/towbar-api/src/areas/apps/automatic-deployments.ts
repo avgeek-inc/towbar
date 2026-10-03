@@ -4,7 +4,7 @@ import {
   currentActor,
   withActor,
 } from "../auth/actor-context.js";
-import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, ne, notInArray } from "drizzle-orm";
 import {
   collectsHostDockerLogs,
   evaluateAutoDeployPause,
@@ -13,6 +13,8 @@ import {
 
 import {
   apps,
+  deployments,
+  domainClaims,
   releases,
   servers,
   sourceEnvironments,
@@ -108,11 +110,58 @@ export async function scheduleSourceAutomaticDeployments(
   return result;
 }
 
-export function continueAutomaticDeployments(deploymentId: string) {
-  // Existing deployment Workflow histories contain this activity. Keep its
-  // signed API target available as a no-op until those histories have drained.
-  void deploymentId;
-  return { deploymentIds: [] };
+export function completedDomainHandoff(
+  deployment:
+    | {
+        state: string;
+        domainHandoffSnapshot: unknown[];
+      }
+    | undefined,
+) {
+  return Boolean(
+    deployment?.domainHandoffSnapshot.length &&
+    ["succeeded", "succeeded_with_warnings"].includes(deployment.state),
+  );
+}
+
+export async function continueAutomaticDeployments(deploymentId: string) {
+  const [deployment] = await getTowbarDatabase()
+    .select({
+      state: deployments.state,
+      appId: deployments.appId,
+      deploymentDigest: deployments.deploymentDigest,
+      domainHandoffSnapshot: deployments.domainHandoffSnapshot,
+      sourceId: deployments.sourceId,
+      workspaceId: deployments.workspaceId,
+      targetEnvironment: deployments.targetEnvironment,
+    })
+    .from(deployments)
+    .where(eq(deployments.id, deploymentId));
+  if (
+    !deployment ||
+    !["succeeded", "succeeded_with_warnings"].includes(deployment.state)
+  )
+    return { deploymentIds: [] };
+  if (!completedDomainHandoff(deployment)) {
+    const [waiting] = await getTowbarDatabase()
+      .select({ config: apps.config })
+      .from(domainClaims)
+      .innerJoin(apps, eq(apps.id, domainClaims.desiredAppId))
+      .where(
+        and(
+          eq(domainClaims.pendingDeploymentId, deploymentId),
+          eq(apps.id, deployment.appId),
+          ne(apps.deploymentDigest, deployment.deploymentDigest ?? ""),
+        ),
+      )
+      .limit(1);
+    if (!waiting?.config.autoDeploy) return { deploymentIds: [] };
+  }
+  return await scheduleLatestAutomaticDeploymentsForSource({
+    sourceId: deployment.sourceId,
+    sourceEnvironmentId: deployment.targetEnvironment.id,
+    workspaceId: deployment.workspaceId,
+  });
 }
 
 export async function scheduleLatestAutomaticDeploymentsForSource(input: {
@@ -413,6 +462,19 @@ async function scheduleEligibleAutomaticDeployments(input: {
             }),
         );
       } catch (error) {
+        if (
+          error instanceof HttpError &&
+          ["DOMAIN_HANDOFF_PENDING", "DOMAIN_DEPLOYMENT_IN_PROGRESS"].includes(
+            error.code,
+          )
+        ) {
+          skippedDeployments.push({
+            appId: candidate.appId,
+            code: error.code,
+            message: error.publicMessage,
+          });
+          return null;
+        }
         if (
           collectsHostDockerLogs(candidate.config) &&
           error instanceof HttpError &&

@@ -2,15 +2,35 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  continueAutomaticDeployments,
+  completedDomainHandoff,
   isSourceSyncEligibleForAutomaticDeployments,
   sourceSyncDeploymentIdempotencyKey,
 } from "./automatic-deployments.js";
 
-void test("does not chain automatic deployments after a deployment completes", () => {
-  assert.deepEqual(continueAutomaticDeployments("deployment-id"), {
-    deploymentIds: [],
-  });
+void test("only successful domain handoffs resume blocked automatic deployments", () => {
+  assert.equal(completedDomainHandoff(undefined), false);
+  assert.equal(
+    completedDomainHandoff({ state: "succeeded", domainHandoffSnapshot: [] }),
+    false,
+  );
+  assert.equal(
+    completedDomainHandoff({ state: "failed", domainHandoffSnapshot: [{}] }),
+    false,
+  );
+  assert.equal(
+    completedDomainHandoff({
+      state: "switching_traffic",
+      domainHandoffSnapshot: [{}],
+    }),
+    false,
+  );
+  assert.equal(
+    completedDomainHandoff({
+      state: "succeeded_with_warnings",
+      domainHandoffSnapshot: [{}],
+    }),
+    true,
+  );
 });
 
 void test("admits automatic deployments after webhook and operator syncs", () => {

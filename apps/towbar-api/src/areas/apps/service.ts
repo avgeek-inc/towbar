@@ -1,3 +1,7 @@
+import {
+  lockDomainClaims,
+  reserveDeploymentDomains,
+} from "../deployments/domain-claims.js";
 /* eslint-disable max-lines -- App lifecycle queries and mutations share one transactional service boundary. */
 import { captureQueuedActor } from "../auth/actor-context.js";
 import {
@@ -158,6 +162,7 @@ export async function requestAppDeployment(input: {
   let admission;
   try {
     admission = await database.transaction(async (transaction) => {
+      await lockDomainClaims(transaction, request.workspaceId);
       await lockDeploymentEnvironment(target.environment, transaction);
       const [currentApp] = await transaction
         .select({
@@ -272,6 +277,7 @@ export async function requestAppDeployment(input: {
         .values(deploymentValues)
         .returning();
       if (!created) throw new Error("Unable to admit deployment");
+      await reserveDeploymentDomains(transaction, created);
       return {
         buildServer,
         deploymentId: created.id,
@@ -389,6 +395,7 @@ export async function requestAppRollback(input: {
   let deployment;
   try {
     deployment = await getTowbarDatabase().transaction(async (transaction) => {
+      await lockDomainClaims(transaction, input.workspaceId);
       await lockDeploymentEnvironment(app.environment, transaction);
       const current = await lockRollbackInstance(
         transaction,
@@ -474,6 +481,8 @@ export async function requestAppRollback(input: {
           workspaceId: request.workspaceId,
         })
         .returning();
+      if (!admitted) throw new Error("Unable to admit rollback");
+      await reserveDeploymentDomains(transaction, admitted);
       return admitted;
     });
   } catch (error) {

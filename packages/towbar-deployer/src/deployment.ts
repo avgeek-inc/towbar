@@ -1,3 +1,17 @@
+import {
+  domainDnsRecorder,
+  readDomainDnsReceipt,
+  restoreDomainDnsReceipt,
+} from "./domain-dns-recovery.js";
+import {
+  assertDomainRollbackSafe,
+  cleanupTransferredDomainRoutes,
+  throwIfDomainRecoveryFailed,
+} from "./domain-routing.js";
+import {
+  type CloudflareDnsTransition,
+  inspectCloudflareDeploymentDns,
+} from "./cloudflare.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -156,7 +170,27 @@ export async function executeDeployment(input: {
       cloudflareTunnelTransition: undefined as
         CloudflareTunnelTransition | undefined,
       signal,
+      onDnsChange: domainDnsRecorder({
+        context,
+        session,
+        localDirectory,
+        remoteDirectory,
+      }),
+      cloudflareDnsTransitions: [] as CloudflareDnsTransition[],
+      cloudflareDnsExpectations: undefined as
+        Awaited<ReturnType<typeof inspectCloudflareDeploymentDns>> | undefined,
     };
+    phaseInput.cloudflareDnsExpectations = await inspectCloudflareDeploymentDns(
+      {
+        app: context.app,
+        appId: deploymentRuntimeId(context),
+        serverIp: context.server.ip,
+        handoffs: context.domainHandoffs,
+        dns: secrets.cloudflare,
+        handoffDns: secrets.domainHandoffDns,
+        tunnel: secrets.cloudflareTunnel,
+      },
+    );
     await prepareDeploymentImage(phaseInput);
     const imageProvenance = await inspectImageProvenance({
       imageTag: selectedImageTag,
@@ -195,6 +229,11 @@ export async function executeDeployment(input: {
       retainedImageTags = (await hooks.commitRelease(result)).retainedImageTags;
     }
     committed = true;
+    await cleanupTransferredDomainRoutes(context, secrets).catch(() => {
+      warnings.push(
+        "The release is live, but previous domain routes need cleanup",
+      );
+    });
     await finishPromotedDeployment({
       ...phaseInput,
       containerNames: candidateContainerNames,
@@ -204,14 +243,31 @@ export async function executeDeployment(input: {
     });
     return result;
   } catch (error) {
+    const recoveryErrors: unknown[] = [];
     const failureBoundary = resolveDeploymentFailureBoundary({
       commitAttempted,
       commitConfirmed: committed,
     });
+    assertDomainRollbackSafe(error, failureBoundary);
     if (session && failureBoundary === "rollback") {
+      for (const transition of [
+        ...(phaseInput?.cloudflareDnsTransitions ?? []),
+      ].reverse())
+        await transition.rollback().catch(async (rollbackError) => {
+          recoveryErrors.push(rollbackError);
+          await safeLog(
+            hooks,
+            "DNS rollback needs reconciliation.\n",
+            "stderr",
+            sensitiveValues,
+          );
+        });
       await phaseInput?.cloudflareTunnelTransition
         ?.rollback()
-        .catch(() => undefined);
+        .catch((rollbackError: unknown) => {
+          recoveryErrors.push(rollbackError);
+        });
+      throwIfDomainRecoveryFailed(context, recoveryErrors, error);
       for (const candidate of candidateContainerNames.slice(1)) {
         await session
           .run('docker rm -f "$1" >/dev/null 2>&1 || true', [candidate], {
@@ -234,6 +290,7 @@ export async function executeDeployment(input: {
           { timeoutMs: 120_000 },
         )
         .catch(async (rollbackError) => {
+          recoveryErrors.push(rollbackError);
           await safeLog(
             hooks,
             `Candidate rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n`,
@@ -260,6 +317,7 @@ export async function executeDeployment(input: {
     if (failureBoundary === "commit-uncertain") {
       throw new DeploymentCommitUncertainError(error);
     }
+    throwIfDomainRecoveryFailed(context, recoveryErrors, error);
     throw error;
   } finally {
     if (buildSession) {
@@ -304,6 +362,7 @@ function usedAdmissionBuildFallback(context: DeploymentExecutionContext) {
 export async function rollbackInterruptedDeployment(input: {
   context: DeploymentExecutionContext;
   login: SshLoginSecret;
+  secrets?: DeploymentSecrets;
 }): Promise<"removed" | "not-found"> {
   if (isNormalizedCompose(input.context.app))
     return await rollbackInterruptedComposeDeployment(input);
@@ -322,6 +381,10 @@ export async function rollbackInterruptedDeployment(input: {
     trustedHostKeys: input.context.trustedHostKeys,
   });
   try {
+    const dnsChanges = input.context.domainHandoffs?.length
+      ? await readDomainDnsReceipt(session, remoteDirectory)
+      : [];
+    await restoreDomainDnsReceipt(input.context, input.secrets, dnsChanges);
     for (const candidate of candidateContainerNames.slice(1)) {
       await session.run(
         'docker rm -f "$1" >/dev/null 2>&1 || true',
@@ -367,6 +430,7 @@ export async function rollbackInterruptedDeployment(input: {
 export async function finalizeInterruptedDeployment(input: {
   context: DeploymentExecutionContext;
   login: SshLoginSecret;
+  secrets?: DeploymentSecrets;
   retainedImageTags: string[];
 }) {
   if (isNormalizedCompose(input.context.app)) {
@@ -384,6 +448,11 @@ export async function finalizeInterruptedDeployment(input: {
     trustedHostKeys: input.context.trustedHostKeys,
   });
   try {
+    if (input.context.domainHandoffServers?.length) {
+      if (!input.secrets)
+        throw new Error("Previous domain credentials are required for cleanup");
+      await cleanupTransferredDomainRoutes(input.context, input.secrets);
+    }
     await session.run(
       finalizeRemoteScript,
       [

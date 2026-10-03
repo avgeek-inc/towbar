@@ -1,3 +1,16 @@
+import { domainHandoffRoutingMessage } from "./domain-routing.js";
+import {
+  domainDnsRecorder,
+  readDomainDnsReceipt,
+  restoreDomainDnsReceipt,
+} from "./domain-dns-recovery.js";
+import {
+  assertDomainRollbackSafe,
+  cleanupTransferredDomainRoutes,
+  domainRoutingPython,
+  localDomainHandoffs,
+  throwIfDomainRecoveryFailed,
+} from "./domain-routing.js";
 /* eslint-disable max-lines -- Compose validation, deployment, health checks, and rollback implement one atomic deployment protocol. */
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -18,6 +31,7 @@ import {
   cleanupCloudflareDnsTransition,
   cleanupCloudflareTunnelTransition,
   deploymentPublicHostnames,
+  inspectCloudflareDeploymentDns,
   reconcileCloudflareForDeployment,
   reconcileCloudflareTunnelRoutes,
 } from "./cloudflare.js";
@@ -401,6 +415,9 @@ PYTHON
   remaining_containers="$(docker ps -aq --filter "label=com.docker.compose.project=$project")"
   test -z "$remaining_containers"
 fi
+sudo python3 - "$stable" rollback <<'PYTHON'
+${domainRoutingPython}
+PYTHON
 if test -f "$stable/caddy.previous.state"; then
   if test "$(cat "$stable/caddy.previous.state")" = present; then
     sudo install -m 644 "$stable/caddy.previous" "/etc/caddy/towbar/$runtime.caddy"
@@ -466,8 +483,8 @@ const composeFinalizeScript = String.raw`
 set -euo pipefail
 previous="$1"
 stable="$2"
-rm -rf -- "$previous"
-rm -f -- "$stable/cloudflare.env" "$stable/cloudflare.previous" "$stable/cloudflare.previous.state" "$stable/caddy.previous" "$stable/caddy.previous.state"
+rm -rf -- "$previous" "$stable/domain-handoffs"
+rm -f -- "$stable/domain-dns.json" "$stable/cloudflare.env" "$stable/cloudflare.previous" "$stable/cloudflare.previous.state" "$stable/caddy.previous" "$stable/caddy.previous.state"
 `;
 
 export const composeDeploymentScripts = {
@@ -481,6 +498,7 @@ export const composeDeploymentScripts = {
 export async function rollbackInterruptedComposeDeployment(input: {
   context: DeploymentExecutionContext;
   login: SshLoginSecret;
+  secrets?: DeploymentSecrets;
 }): Promise<"removed" | "not-found"> {
   const { context } = input;
   if (!isNormalizedCompose(context.app))
@@ -509,6 +527,10 @@ export async function rollbackInterruptedComposeDeployment(input: {
     if (stdout.trim() === "none") return "not-found";
     if (stdout.trim() !== "candidate")
       throw new Error("Compose recovery returned an unknown candidate state");
+    const dnsChanges = context.domainHandoffs?.length
+      ? await readDomainDnsReceipt(session, base)
+      : [];
+    await restoreDomainDnsReceipt(context, input.secrets, dnsChanges);
     await session.run(
       composeRollbackScript,
       [
@@ -531,6 +553,7 @@ export async function rollbackInterruptedComposeDeployment(input: {
 export async function finalizeInterruptedComposeDeployment(input: {
   context: DeploymentExecutionContext;
   login: SshLoginSecret;
+  secrets?: DeploymentSecrets;
 }) {
   const { context } = input;
   if (!isNormalizedCompose(context.app))
@@ -544,6 +567,11 @@ export async function finalizeInterruptedComposeDeployment(input: {
     trustedHostKeys: context.trustedHostKeys,
   });
   try {
+    if (context.domainHandoffServers?.length) {
+      if (!input.secrets)
+        throw new Error("Previous domain credentials are required for cleanup");
+      await cleanupTransferredDomainRoutes(context, input.secrets);
+    }
     await session.run(composeFinalizeScript, [previous, base], {
       timeoutMs: 30_000,
     });
@@ -629,6 +657,9 @@ export async function executeComposeDeployment(input: {
     trustedHostKeys: context.trustedHostKeys,
   });
   const runtime = deploymentRuntimeId(context);
+  let cloudflareDnsExpectations: Awaited<
+    ReturnType<typeof inspectCloudflareDeploymentDns>
+  > = {};
   const base = `/var/lib/towbar/compose/${runtime}`;
   const remoteArchive = `/tmp/towbar-compose-${context.deploymentId}.tar.gz`;
   const project = `towbar-${runtime}`.slice(0, 63);
@@ -638,12 +669,27 @@ export async function executeComposeDeployment(input: {
     generatedOverrideFile,
   ];
   const previous = `${base}.previous-${context.deploymentId}`;
+  const onDnsChange = domainDnsRecorder({
+    context,
+    session,
+    localDirectory: input.localDirectory,
+    remoteDirectory: base,
+  });
   let commitAttempted = false;
   let committed = false;
   let candidateStarted = false;
   let cloudflareTunnelTransition: CloudflareTunnelTransition | undefined;
   let cloudflareDnsTransition: CloudflareDnsTransition | undefined;
   try {
+    cloudflareDnsExpectations = await inspectCloudflareDeploymentDns({
+      app: context.app,
+      appId: runtime,
+      serverIp: context.server.ip,
+      handoffs: context.domainHandoffs,
+      dns: secrets.cloudflare,
+      handoffDns: secrets.domainHandoffDns,
+      tunnel: secrets.cloudflareTunnel,
+    });
     await session.run(prepareComposeStorageScript, [], {
       signal,
       timeoutMs: 30_000,
@@ -759,14 +805,9 @@ export async function executeComposeDeployment(input: {
     await transition(
       hooks,
       "configuring_routing",
-      "Reconciling DNS and validating Compose routing",
+      domainHandoffRoutingMessage(context) ??
+        "Reconciling DNS and validating Compose routing",
     );
-    cloudflareDnsTransition = await reconcileCloudflareForDeployment({
-      app: context.app,
-      appId: runtime,
-      credentials: secrets.cloudflare,
-      server: context.server,
-    });
     const caddy = renderComposeCaddy(routing);
     const caddyFile = path.join(input.localDirectory, "compose.caddy");
     await writeFile(caddyFile, caddy, { mode: 0o600 });
@@ -784,9 +825,23 @@ export async function executeComposeDeployment(input: {
       "provisioning_tls",
       "Provisioning Compose TLS through Caddy",
     );
-    await session.run(configureCaddyScript, [base, runtime], {
-      signal,
-      timeoutMs: 180_000,
+    await session.run(
+      configureCaddyScript,
+      [base, runtime, JSON.stringify(localDomainHandoffs(context))],
+      {
+        signal,
+        timeoutMs: 180_000,
+      },
+    );
+    cloudflareDnsTransition = await reconcileCloudflareForDeployment({
+      app: context.app,
+      appId: runtime,
+      onDnsChange,
+      handoffs: context.domainHandoffs,
+      expectedRecords: cloudflareDnsExpectations,
+      credentials: secrets.cloudflare,
+      handoffDns: secrets.domainHandoffDns,
+      server: context.server,
     });
     const tunnelRoutes = routing.filter(
       (route) => route.ingress.type === "cloudflare-tunnel",
@@ -797,6 +852,9 @@ export async function executeComposeDeployment(input: {
       cloudflareTunnelTransition = await reconcileCloudflareTunnelRoutes({
         ...secrets.cloudflareTunnel,
         appId: runtime,
+        onDnsChange,
+        handoffs: context.domainHandoffs,
+        expectedRecords: cloudflareDnsExpectations,
         hostnames: tunnelRoutes.flatMap((route) => route.domains),
         localDirectory: input.localDirectory,
         session,
@@ -826,6 +884,11 @@ export async function executeComposeDeployment(input: {
       await hooks.commitRelease(result);
     }
     committed = true;
+    await cleanupTransferredDomainRoutes(context, secrets).catch(() => {
+      result.warnings.push(
+        "The release is live, but previous domain routes need cleanup",
+      );
+    });
     await cleanupPreviousComposeDns({ context, secrets }).catch(async () => {
       const warning =
         "The release is live, but previous Cloudflare DNS records need cleanup";
@@ -885,24 +948,31 @@ export async function executeComposeDeployment(input: {
     );
     return result;
   } catch (error) {
+    const recoveryErrors: unknown[] = [];
     const boundary = resolveDeploymentFailureBoundary({
       commitAttempted,
       commitConfirmed: committed,
     });
+    assertDomainRollbackSafe(error, boundary);
     if (boundary === "rollback") {
-      await cloudflareDnsTransition?.rollback().catch(async () => {
+      await cloudflareDnsTransition?.rollback().catch(async (rollbackError) => {
+        recoveryErrors.push(rollbackError);
         await hooks.log?.(
           "Cloudflare DNS rollback needs operator attention.\n",
           "stderr",
         );
       });
-      await cloudflareTunnelTransition?.rollback().catch(async () => {
-        await hooks.log?.(
-          "Cloudflare Tunnel rollback needs operator attention.\n",
-          "stderr",
-        );
-      });
+      await cloudflareTunnelTransition
+        ?.rollback()
+        .catch(async (rollbackError) => {
+          recoveryErrors.push(rollbackError);
+          await hooks.log?.(
+            "Cloudflare Tunnel rollback needs operator attention.\n",
+            "stderr",
+          );
+        });
     }
+    throwIfDomainRecoveryFailed(context, recoveryErrors, error);
     if (candidateStarted && boundary === "rollback") {
       await session
         .run(
@@ -918,6 +988,7 @@ export async function executeComposeDeployment(input: {
           { signal: undefined, timeoutMs: 10 * 60_000 },
         )
         .catch(async (rollbackError) => {
+          recoveryErrors.push(rollbackError);
           await hooks.log?.(
             `Compose rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n`,
             "stderr",
@@ -927,6 +998,7 @@ export async function executeComposeDeployment(input: {
     if (boundary === "committed") throw new DeploymentCommittedError(error);
     if (boundary === "commit-uncertain")
       throw new DeploymentCommitUncertainError(error);
+    throwIfDomainRecoveryFailed(context, recoveryErrors, error);
     throw error;
   } finally {
     await session.close().catch(() => undefined);

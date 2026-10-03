@@ -120,6 +120,13 @@
       "when": 1790722800000,
       "tag": "0017_admin_key_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791016219332,
+      "tag": "0018_domain_claims",
+      "breakpoints": true
     }
   ]
 }

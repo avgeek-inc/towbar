@@ -1,5 +1,6 @@
 import type {
   DeploymentState,
+  DomainHandoff,
   NormalizedDeployable,
   NormalizedServer,
   OrphanItem,
@@ -16,6 +17,8 @@ export type SshLoginSecret = {
 };
 
 export type DeploymentSecrets = {
+  domainHandoffDns?: Record<string, { apiToken: string; zoneId?: string }>;
+  domainHandoffLogins?: Record<string, SshLoginSecret>;
   buildLogin?: SshLoginSecret;
   build: Record<string, string>;
   cloudflare: { apiToken: string } | null;
@@ -53,6 +56,12 @@ export type DeploymentSecrets = {
 };
 
 export type DeploymentExecutionContext = {
+  domainHandoffs?: DomainHandoff[];
+  domainHandoffServers?: Array<{
+    id: string;
+    server: NormalizedServer;
+    trustedHostKeys: TrustedHostKey[];
+  }>;
   app: NormalizedDeployable;
   buildServer?: {
     config: NormalizedServer;

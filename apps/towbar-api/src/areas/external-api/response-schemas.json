@@ -16647,8 +16647,8 @@
           "anyOf": [
             { "type": "string", "const": "unknown" },
             { "type": "string", "const": "pending" },
-            { "type": "string", "const": "mounted" },
             { "type": "string", "const": "retained" },
+            { "type": "string", "const": "mounted" },
             { "type": "string", "const": "not_mounted" }
           ]
         }
@@ -20433,9 +20433,9 @@
         "releaseUrl": { "anyOf": [{ "type": "null" }, { "type": "string" }] },
         "status": {
           "anyOf": [
+            { "type": "string", "const": "current" },
             { "type": "string", "const": "unavailable" },
             { "type": "string", "const": "available" },
-            { "type": "string", "const": "current" },
             { "type": "string", "const": "ahead" }
           ]
         }

@@ -60,9 +60,9 @@ internalDeploymentRoutes.post(
 );
 internalDeploymentRoutes.post(
   "/:deploymentId/auto-deploy/continue",
-  (context) =>
+  async (context) =>
     context.json(
-      continueAutomaticDeployments(
+      await continueAutomaticDeployments(
         deploymentId(context.req.param("deploymentId")),
       ),
     ),
