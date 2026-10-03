@@ -1,3 +1,6 @@
+import { DomainHandoffRecoveryRequiredError } from "./domain-routing.js";
+import { deploymentTunnelHostnames } from "@workspace/towbar-core";
+import type { DomainHandoff } from "@workspace/towbar-core";
 import { isIP } from "node:net";
 /* eslint-disable max-lines -- Cloudflare DNS and Tunnel lifecycle logic shares one fail-closed API contract and rollback model. */
 import { rm, writeFile } from "node:fs/promises";
@@ -14,6 +17,10 @@ const cloudflareApiBaseUrl = "https://api.cloudflare.com/client/v4";
 const managedCommentPrefix = "Managed by Towbar:";
 
 type CloudflareFetch = typeof fetch;
+type DomainDnsCredentials = Record<
+  string,
+  { apiToken: string; zoneId?: string }
+>;
 
 export type CloudflareTunnelTransition = {
   finalize: () => Promise<unknown>;
@@ -32,8 +39,9 @@ type CloudflareRecord = {
   ttl?: number;
 };
 
+export type CloudflareDnsExpectations = Record<string, CloudflareRecord | null>;
 export type CloudflareDnsTransition = { rollback: () => Promise<void> };
-type CloudflareDnsChange = {
+export type CloudflareDnsChange = {
   zoneId: string;
   before?: CloudflareRecord;
   after: CloudflareRecord;
@@ -57,20 +65,11 @@ class CloudflareRequestRejectedError extends Error {}
 
 const managedTunnelMetadata = "managed_by";
 
-export function deploymentPublicHostnames(app: NormalizedDeployable) {
-  if (app.kind === "compose")
-    return Object.values(app.services).flatMap(
-      (service) => service.domains ?? [],
-    );
-  return app.domains
-    ? [
-        app.domains.primary,
-        ...app.domains.redirects.map((redirect) => redirect.host),
-      ]
-    : [];
-}
-
+export { deploymentPublicHostnames } from "@workspace/towbar-core";
 export async function reconcileCloudflareTunnelForDeployment(input: {
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  expectedRecords?: CloudflareDnsExpectations;
   access: boolean;
   accountId: string;
   apiToken: string;
@@ -96,6 +95,9 @@ export async function reconcileCloudflareTunnelForDeployment(input: {
 }
 
 export async function reconcileCloudflareTunnelRoutes(input: {
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  expectedRecords?: CloudflareDnsExpectations;
   access: boolean;
   accountId: string;
   apiToken: string;
@@ -131,6 +133,8 @@ export async function reconcileCloudflareTunnelRoutes(input: {
   });
   let previousConfiguration: { config?: unknown } | undefined;
   let configurationAttempted = false;
+  let localTransition:
+    Awaited<ReturnType<typeof installCloudflared>> | undefined;
   const dnsRollbacks: Array<() => Promise<void>> = [];
   try {
     previousConfiguration = await cloudflareRequest<{ config?: unknown }>(
@@ -157,11 +161,27 @@ export async function reconcileCloudflareTunnelRoutes(input: {
       fetcher,
       { body: configuration, method: "PUT" },
     );
+    const token = await cloudflareRequest<string>(
+      `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/token`,
+      input.apiToken,
+      fetcher,
+    );
+    const connection = await installCloudflared({
+      appId: input.appId,
+      image: input.image,
+      localDirectory: input.localDirectory,
+      session: input.session,
+      token,
+    });
+    localTransition = connection;
     for (const hostname of hostnames) {
       dnsRollbacks.push(
         await reconcileCloudflareTunnelDns({
           apiToken: input.apiToken,
           appId: input.appId,
+          onDnsChange: input.onDnsChange,
+          handoffs: input.handoffs,
+          expectedRecords: input.expectedRecords,
           fetcher,
           hostname,
           tunnelId: tunnel.id,
@@ -169,26 +189,15 @@ export async function reconcileCloudflareTunnelRoutes(input: {
         }),
       );
     }
-    const token = await cloudflareRequest<string>(
-      `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/token`,
-      input.apiToken,
-      fetcher,
-    );
-    const localTransition = await installCloudflared({
-      appId: input.appId,
-      image: input.image,
-      localDirectory: input.localDirectory,
-      session: input.session,
-      token,
-    });
     return {
       tunnelId: tunnel.id,
       tunnelName: tunnel.name,
-      finalize: localTransition.finalize,
+      finalize: connection.finalize,
       rollback: async () => {
         const failures: unknown[] = [];
-        for (const rollback of dnsRollbacks.reverse())
+        for (const rollback of [...dnsRollbacks].reverse())
           await rollback().catch((error) => failures.push(error));
+        preserveUnrecoveredTunnel(failures[0], failures, input.handoffs);
         if (!tunnelCreated && previousConfiguration)
           await cloudflareRequest(
             `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/configurations`,
@@ -203,7 +212,7 @@ export async function reconcileCloudflareTunnelRoutes(input: {
             fetcher,
             { method: "DELETE" },
           ).catch((error) => failures.push(error));
-        await localTransition.rollback().catch((error) => failures.push(error));
+        await connection.rollback().catch((error) => failures.push(error));
         if (failures.length)
           throw new Error("Cloudflare Tunnel rollback did not fully complete", {
             cause: failures[0],
@@ -212,8 +221,10 @@ export async function reconcileCloudflareTunnelRoutes(input: {
     };
   } catch (error) {
     const rollbackFailures: unknown[] = [];
-    for (const rollback of dnsRollbacks.reverse())
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
+    for (const rollback of [...dnsRollbacks].reverse())
       await rollback().catch((failure) => rollbackFailures.push(failure));
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
     if (!tunnelCreated && configurationAttempted && previousConfiguration)
       await cloudflareRequest(
         `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/configurations`,
@@ -228,6 +239,10 @@ export async function reconcileCloudflareTunnelRoutes(input: {
         fetcher,
         { method: "DELETE" },
       ).catch((failure) => rollbackFailures.push(failure));
+    await localTransition
+      ?.rollback()
+      .catch((failure) => rollbackFailures.push(failure));
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
     if (rollbackFailures.length)
       throw new Error(
         "Cloudflare Tunnel reconciliation failed and rollback did not fully complete",
@@ -235,6 +250,16 @@ export async function reconcileCloudflareTunnelRoutes(input: {
       );
     throw error;
   }
+}
+
+function preserveUnrecoveredTunnel(
+  error: unknown,
+  failures: unknown[],
+  handoffs?: DomainHandoff[],
+) {
+  if (error instanceof DomainHandoffRecoveryRequiredError) throw error;
+  if (failures.length && handoffs?.length)
+    throw new DomainHandoffRecoveryRequiredError(error);
 }
 
 async function findOrCreateManagedTunnel(input: {
@@ -326,6 +351,9 @@ async function requireCloudflareAccessApplication(input: {
 }
 
 async function reconcileCloudflareTunnelDns(input: {
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  expectedRecords?: CloudflareDnsExpectations;
   apiToken: string;
   appId: string;
   fetcher: CloudflareFetch;
@@ -355,7 +383,12 @@ async function reconcileCloudflareTunnelDns(input: {
     );
   const previous = addressRecords[0];
   const expectedComment = `${managedCommentPrefix} ${input.appId}`;
-  if (previous && previous.comment !== expectedComment)
+  assertExpectedRecord(input.hostname, previous, input.expectedRecords);
+  if (
+    previous &&
+    previous.comment !== expectedComment &&
+    !permittedDomainHandoff(input.hostname, previous, input.handoffs)
+  )
     throw new Error(
       `Cloudflare record '${input.hostname}' is not owned by this Towbar workload`,
     );
@@ -367,41 +400,44 @@ async function reconcileCloudflareTunnelDns(input: {
     ttl: 1,
     type: "CNAME",
   };
-  const result = await cloudflareRequest<CloudflareRecord>(
-    previous
-      ? `/zones/${zoneId}/dns_records/${previous.id}`
-      : `/zones/${zoneId}/dns_records`,
-    input.apiToken,
-    input.fetcher,
-    { body, method: previous ? "PUT" : "POST" },
-  );
-  return async () => {
-    if (!previous) {
-      await cloudflareRequest(
-        `/zones/${zoneId}/dns_records/${result.id}`,
-        input.apiToken,
-        input.fetcher,
-        { method: "DELETE" },
-      );
-      return;
-    }
-    await cloudflareRequest(
-      `/zones/${zoneId}/dns_records/${previous.id}`,
+  const change: CloudflareDnsChange = {
+    zoneId,
+    before: previous,
+    after: { ...body, id: previous?.id ?? "" },
+  };
+  await input.onDnsChange?.(change);
+  try {
+    const result = await cloudflareRequest<CloudflareRecord>(
+      previous
+        ? `/zones/${zoneId}/dns_records/${previous.id}`
+        : `/zones/${zoneId}/dns_records`,
       input.apiToken,
       input.fetcher,
-      {
-        body: {
-          comment: previous.comment,
-          content: previous.content,
-          name: previous.name,
-          proxied: previous.proxied,
-          ttl: 1,
-          type: previous.type,
-        },
-        method: "PUT",
-      },
+      { body, method: previous ? "PUT" : "POST" },
     );
-  };
+    change.after.id = result.id;
+    await input.onDnsChange?.(change);
+    return async () =>
+      rollbackCloudflareDns(
+        { apiToken: input.apiToken, fetcher: input.fetcher },
+        [change],
+      );
+  } catch (error) {
+    try {
+      await rollbackCloudflareDns(
+        { apiToken: input.apiToken, fetcher: input.fetcher },
+        [change],
+      );
+    } catch (rollbackError) {
+      if (input.handoffs?.length)
+        throw new DomainHandoffRecoveryRequiredError(error);
+      throw new AggregateError(
+        [error, rollbackError],
+        "Cloudflare Tunnel DNS rollback needs reconciliation",
+      );
+    }
+    throw error;
+  }
 }
 
 const cloudflaredInstallScript = String.raw`set -euo pipefail
@@ -545,30 +581,53 @@ async function installCloudflared(input: {
 export async function reconcileCloudflareForDeployment(input: {
   app: NormalizedDeployable;
   appId?: string;
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  expectedRecords?: CloudflareDnsExpectations;
   credentials: { apiToken: string } | null;
+  handoffDns?: DomainDnsCredentials;
   server: NormalizedServer;
 }) {
-  const domains = deploymentCloudflareDnsDomains(input.app);
+  const dnsDomains = deploymentCloudflareDnsDomains(input.app);
+  const domains = [
+    ...new Set([
+      ...dnsDomains,
+      ...handoffDnsDomains(input.app, input.handoffs),
+    ]),
+  ];
   if (!domains.length) return;
-  if (!input.credentials) {
-    throw new Error("Cloudflare DNS credentials were not resolved");
+  if (dnsDomains.length) {
+    if (!input.credentials)
+      throw new Error("Cloudflare DNS credentials were not resolved");
+    await verifyCloudflareTlsMode({
+      apiToken: input.credentials.apiToken,
+      domains: dnsDomains,
+    });
   }
-  await verifyCloudflareTlsMode({
-    apiToken: input.credentials.apiToken,
-    domains,
-  });
   return await reconcileCloudflareDns({
-    apiToken: input.credentials.apiToken,
+    apiToken: input.credentials?.apiToken ?? "",
+    handoffDns: input.handoffDns,
     allowUnmanagedAdoption: true,
     appId: input.appId ?? input.app.id,
+    onDnsChange: input.onDnsChange,
+    handoffs: input.handoffs,
+    expectedRecords: input.expectedRecords,
     domains,
+    releaseOwnershipDomains: domains.filter(
+      (hostname) => !dnsDomains.includes(hostname),
+    ),
     serverIp: input.server.ip,
   });
 }
 
 export async function reconcileCloudflareDns(input: {
   apiToken: string;
+  handoffDns?: DomainDnsCredentials;
+  releaseOwnershipDomains?: string[];
   allowUnmanagedAdoption?: boolean;
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  expectedRecords?: CloudflareDnsExpectations;
   appId: string;
   domains: string[];
   fetcher?: CloudflareFetch;
@@ -582,6 +641,8 @@ export async function reconcileCloudflareDns(input: {
     try {
       await rollback();
     } catch (rollbackError) {
+      if (input.handoffs?.length)
+        throw new DomainHandoffRecoveryRequiredError(error);
       throw new AggregateError(
         [error, rollbackError],
         "Cloudflare DNS reconciliation failed; rollback needs operator attention",
@@ -592,10 +653,47 @@ export async function reconcileCloudflareDns(input: {
   return { rollback } satisfies CloudflareDnsTransition;
 }
 
+async function domainDnsCredential(
+  input: { apiToken: string; handoffDns?: DomainDnsCredentials },
+  hostname: string,
+  fetcher: CloudflareFetch,
+  zoneCache: Map<string, string>,
+) {
+  const credential = input.handoffDns?.[hostname];
+  const apiToken = credential?.apiToken ?? input.apiToken;
+  if (!apiToken)
+    throw new Error("Cloudflare DNS credentials were not resolved");
+  return {
+    apiToken,
+    zoneId:
+      credential?.zoneId ??
+      (await findZoneId(hostname, apiToken, fetcher, zoneCache)),
+  };
+}
+
+async function recordPendingDnsCreate(
+  change: CloudflareDnsChange,
+  changes: CloudflareDnsChange[],
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>,
+) {
+  changes.push(change);
+  try {
+    await onDnsChange?.(change);
+  } catch (error) {
+    changes.pop();
+    throw error;
+  }
+}
+
 async function reconcileCloudflareDnsRecords(
   input: {
     apiToken: string;
+    handoffDns?: DomainDnsCredentials;
+    releaseOwnershipDomains?: string[];
     allowUnmanagedAdoption?: boolean;
+    onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+    handoffs?: DomainHandoff[];
+    expectedRecords?: CloudflareDnsExpectations;
     appId: string;
     domains: string[];
     fetcher?: CloudflareFetch;
@@ -607,15 +705,15 @@ async function reconcileCloudflareDnsRecords(
   const recordType = isIP(input.serverIp) === 6 ? "AAAA" : "A";
   const zoneCache = new Map<string, string>();
   for (const hostname of new Set(input.domains.map(normalizeHostname))) {
-    const zoneId = await findZoneId(
+    const { apiToken, zoneId } = await domainDnsCredential(
+      input,
       hostname,
-      input.apiToken,
       fetcher,
       zoneCache,
     );
     const records = await cloudflareRequest<CloudflareRecord[]>(
       `/zones/${zoneId}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`,
-      input.apiToken,
+      apiToken,
       fetcher,
     );
     const conflicting = records.filter(
@@ -631,9 +729,13 @@ async function reconcileCloudflareDnsRecords(
     }
 
     const existing = conflicting[0];
+    assertExpectedRecord(hostname, existing, input.expectedRecords);
+    const transfer = permittedDomainHandoff(hostname, existing, input.handoffs);
     const expectedComment = `${managedCommentPrefix} ${input.appId}`;
     const body = {
-      comment: expectedComment,
+      comment: input.releaseOwnershipDomains?.includes(hostname)
+        ? ""
+        : expectedComment,
       content: input.serverIp,
       name: hostname,
       proxied: true,
@@ -642,11 +744,11 @@ async function reconcileCloudflareDnsRecords(
     };
     if (!existing) {
       const change = { zoneId, after: { ...body, id: "" } };
-      changes.push(change);
+      await recordPendingDnsCreate(change, changes, input.onDnsChange);
       try {
         const created = await cloudflareRequest<CloudflareRecord>(
           `/zones/${zoneId}/dns_records`,
-          input.apiToken,
+          apiToken,
           fetcher,
           { body, method: "POST" },
         );
@@ -655,6 +757,7 @@ async function reconcileCloudflareDnsRecords(
             "Cloudflare did not return the created DNS record identity",
           );
         change.after.id = created.id;
+        await input.onDnsChange?.(change);
       } catch (error) {
         if (error instanceof CloudflareRequestRejectedError) changes.pop();
         throw error;
@@ -663,7 +766,8 @@ async function reconcileCloudflareDnsRecords(
     }
     if (
       existing.comment?.startsWith(managedCommentPrefix) &&
-      existing.comment !== expectedComment
+      existing.comment !== expectedComment &&
+      !transfer
     ) {
       throw new Error(
         `Cloudflare record '${hostname}' is owned by another Towbar app`,
@@ -671,11 +775,8 @@ async function reconcileCloudflareDnsRecords(
     }
     if (
       existing.comment !== expectedComment &&
-      !(
-        input.allowUnmanagedAdoption === true &&
-        existing.type === recordType &&
-        existing.content === input.serverIp
-      )
+      !transfer &&
+      !canAdoptDnsRecord(input, existing, recordType)
     ) {
       throw new Error(
         `Cloudflare record '${hostname}' is not managed by Towbar for this app`,
@@ -692,9 +793,10 @@ async function reconcileCloudflareDnsRecords(
         before: existing,
         after: { ...body, id: existing.id },
       });
+      await input.onDnsChange?.(changes[changes.length - 1]!);
       await cloudflareRequest(
         `/zones/${zoneId}/dns_records/${existing.id}`,
-        input.apiToken,
+        apiToken,
         fetcher,
         { body, method: "PATCH" },
       );
@@ -702,19 +804,28 @@ async function reconcileCloudflareDnsRecords(
   }
 }
 
-async function rollbackCloudflareDns(
-  input: { apiToken: string; fetcher?: CloudflareFetch },
+export async function rollbackCloudflareDns(
+  input: {
+    apiToken: string;
+    handoffDns?: DomainDnsCredentials;
+    fetcher?: CloudflareFetch;
+  },
   changes: CloudflareDnsChange[],
 ) {
   const fetcher = input.fetcher ?? fetch;
   const errors: unknown[] = [];
   for (const change of [...changes].reverse()) {
     try {
+      const apiToken =
+        input.handoffDns?.[normalizeHostname(change.after.name)]?.apiToken ??
+        input.apiToken;
+      if (!apiToken)
+        throw new Error("DNS credentials are unavailable for domain recovery");
       if (!change.after.id)
         throw new Error("The DNS write outcome is uncertain");
       const records = await cloudflareRequest<CloudflareRecord[]>(
         `/zones/${change.zoneId}/dns_records?name=${encodeURIComponent(change.after.name)}&per_page=100`,
-        input.apiToken,
+        apiToken,
         fetcher,
       );
       const current = records.find(({ id }) => id === change.after.id);
@@ -732,7 +843,7 @@ async function rollbackCloudflareDns(
         );
       await cloudflareRequest(
         `/zones/${change.zoneId}/dns_records/${current.id}`,
-        input.apiToken,
+        apiToken,
         fetcher,
         change.before
           ? {
@@ -1140,4 +1251,126 @@ function cloudflareResponseError(
 
 function normalizeHostname(value: string) {
   return value.trim().replace(/\.$/u, "").toLowerCase();
+}
+
+function permittedDomainHandoff(
+  hostname: string,
+  record: CloudflareRecord | undefined,
+  handoffs: DomainHandoff[] = [],
+) {
+  if (!record) return false;
+  return handoffs.some(
+    (handoff) =>
+      normalizeHostname(handoff.hostname) === normalizeHostname(hostname) &&
+      record.comment === `${managedCommentPrefix} ${handoff.previousAppId}` &&
+      ((["A", "AAAA"].includes(record.type) &&
+        record.content === handoff.previousServerIp) ||
+        (record.type === "CNAME" &&
+          /^[a-f0-9-]{36}\.cfargotunnel\.com$/i.test(record.content))),
+  );
+}
+
+function assertExpectedRecord(
+  hostname: string,
+  record: CloudflareRecord | undefined,
+  expected?: CloudflareDnsExpectations,
+) {
+  const key = normalizeHostname(hostname);
+  if (!expected || !Object.hasOwn(expected, key)) return;
+  const before = expected[key];
+  if (
+    before
+      ? !record || before.id !== record.id || !sameDnsRecord(before, record)
+      : record
+  )
+    throw new Error(
+      `Cloudflare record '${hostname}' changed after preflight. Retry the deployment.`,
+    );
+}
+
+export async function inspectCloudflareDeploymentDns(input: {
+  app: NormalizedDeployable;
+  appId: string;
+  serverIp: string;
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>;
+  handoffs?: DomainHandoff[];
+  dns: { apiToken: string } | null;
+  handoffDns?: DomainDnsCredentials;
+  tunnel: { apiToken: string; zoneId?: string } | null;
+  fetcher?: CloudflareFetch;
+}): Promise<CloudflareDnsExpectations> {
+  const expected: CloudflareDnsExpectations = {};
+  const dnsDomains = [
+    ...new Set([
+      ...deploymentCloudflareDnsDomains(input.app),
+      ...handoffDnsDomains(input.app, input.handoffs),
+    ]),
+  ];
+  const tunnelDomains = deploymentTunnelHostnames(input.app);
+  const fetcher = input.fetcher ?? fetch;
+  for (const hostname of [...dnsDomains, ...tunnelDomains]) {
+    const tunnel = tunnelDomains.includes(hostname);
+    const credential = tunnel
+      ? input.tunnel
+      : (input.handoffDns?.[hostname] ?? input.dns);
+    if (!credential)
+      throw new Error("Cloudflare credentials were not resolved");
+    const zoneId =
+      credential && "zoneId" in credential && credential.zoneId
+        ? credential.zoneId
+        : await findZoneId(hostname, credential.apiToken, fetcher, new Map());
+    const records = await cloudflareRequest<CloudflareRecord[]>(
+      `/zones/${zoneId}/dns_records?name=${encodeURIComponent(hostname)}&per_page=100`,
+      credential.apiToken,
+      fetcher,
+    );
+    const address = records.filter((record) =>
+      ["A", "AAAA", "CNAME"].includes(record.type),
+    );
+    if (address.length > 1)
+      throw new Error(
+        `Cloudflare has multiple address records for '${hostname}'; resolve the conflict before deploying`,
+      );
+    const record = address[0];
+    if (
+      record &&
+      record.comment !== `${managedCommentPrefix} ${input.appId}` &&
+      !permittedDomainHandoff(hostname, record, input.handoffs) &&
+      !(
+        !tunnel &&
+        !record.comment?.startsWith(managedCommentPrefix) &&
+        record.content === input.serverIp &&
+        record.type === (input.serverIp.includes(":") ? "AAAA" : "A")
+      )
+    )
+      throw new Error(
+        `Domain '${hostname}' has a conflicting Cloudflare owner. Remove its previous Towbar assignment and sync before retrying; externally managed records require explicit reconciliation.`,
+      );
+    expected[normalizeHostname(hostname)] = record ?? null;
+  }
+  return expected;
+}
+
+function handoffDnsDomains(
+  app: NormalizedDeployable,
+  handoffs: DomainHandoff[] = [],
+) {
+  const tunnel = new Set(deploymentTunnelHostnames(app));
+  return handoffs
+    .filter(
+      (handoff) => handoff.previousManagedDns && !tunnel.has(handoff.hostname),
+    )
+    .map((handoff) => handoff.hostname);
+}
+
+function canAdoptDnsRecord(
+  input: { allowUnmanagedAdoption?: boolean; serverIp: string },
+  existing: CloudflareRecord,
+  recordType: string,
+) {
+  return (
+    input.allowUnmanagedAdoption === true &&
+    existing.type === recordType &&
+    existing.content === input.serverIp
+  );
 }

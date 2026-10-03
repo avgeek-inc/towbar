@@ -34,3 +34,5 @@ export * from "./analytics.js";
 export * from "./upgrades.js";
 
 export * from "./container-configuration.js";
+
+export * from "./domain-ownership.js";

@@ -27,6 +27,7 @@ import { deploymentEnvironments } from "@workspace/towbar-core/preview";
 
 import type {
   DeferredAutomaticDeployment,
+  DomainHandoff,
   NotificationCategory,
   NotificationEventPayload,
   NotificationEventType,
@@ -1836,6 +1837,10 @@ export const deployments = pgTable(
     requiredSecrets: jsonb("required_secrets")
       .$type<RequiredSecrets>()
       .notNull(),
+    domainHandoffSnapshot: jsonb("domain_handoff_snapshot")
+      .$type<DomainHandoff[]>()
+      .default([])
+      .notNull(),
     appSnapshot: jsonb("app_snapshot").$type<NormalizedDeployable>().notNull(),
     serverSnapshot: jsonb("server_snapshot")
       .$type<NormalizedServer>()
@@ -2812,3 +2817,46 @@ export const upgradeLeases = pgTable("towbar_upgrade_leases", {
     .defaultNow()
     .notNull(),
 });
+
+export const domainClaims = pgTable(
+  "towbar_domain_claims",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    hostname: varchar("hostname", { length: 253 }).notNull(),
+    sourceEnvironmentId: uuid("source_environment_id")
+      .notNull()
+      .references(() => sourceEnvironments.id, { onDelete: "cascade" }),
+    desiredAppId: uuid("desired_app_id").references(() => apps.id, {
+      onDelete: "set null",
+    }),
+    activeAppId: uuid("active_app_id").references(() => apps.id, {
+      onDelete: "set null",
+    }),
+    activeDeploymentId: uuid("active_deployment_id").references(
+      () => deployments.id,
+      { onDelete: "set null" },
+    ),
+    releasedAppId: uuid("released_app_id").references(() => apps.id, {
+      onDelete: "set null",
+    }),
+    pendingDeploymentId: uuid("pending_deployment_id").references(
+      () => deployments.id,
+      { onDelete: "set null" },
+    ),
+    generation: uuid("generation").defaultRandom().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.hostname] }),
+    uniqueIndex("uq_towbar_domain_claims_owner")
+      .on(table.hostname)
+      .where(
+        sql`${table.desiredAppId} IS NOT NULL OR ${table.activeAppId} IS NOT NULL`,
+      ),
+    index("idx_towbar_domain_claims_environment").on(table.sourceEnvironmentId),
+  ],
+);

@@ -1,6 +1,8 @@
+import { deploymentDomainHandoffs } from "./domain-claims.js";
 import { and, eq } from "drizzle-orm";
 import {
   deploymentCloudflareDnsDomains,
+  deploymentTunnelHostnames,
   isNormalizedCompose,
   isNormalizedResource,
   requiredKeysForStage,
@@ -61,6 +63,40 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
     async (database) => {
       const deployment = await getSecretDeployment(deploymentId, database);
       const app = deployment.appSnapshot;
+      const handoffs = await deploymentDomainHandoffs(database, deployment);
+      const domainHandoffDns: Record<
+        string,
+        { apiToken: string; zoneId?: string }
+      > = {};
+      for (const handoff of handoffs.filter(
+        (handoff) =>
+          handoff.previousManagedDns &&
+          !deploymentTunnelHostnames(app).includes(handoff.hostname) &&
+          !deploymentCloudflareDnsDomains(app).includes(handoff.hostname),
+      )) {
+        const previous = await getSecretDeployment(
+          handoff.previousDeploymentId,
+          database,
+        );
+        const credential = deploymentTunnelHostnames(
+          previous.appSnapshot,
+        ).includes(handoff.hostname)
+          ? await resolveDeploymentCloudflareTunnelSecret(previous.id)
+          : cloudflareDnsCredential(previous.appSnapshot);
+        if (credential) domainHandoffDns[handoff.hostname] = credential;
+      }
+      const domainHandoffLogins: Record<string, { privateKey: string }> = {};
+      for (const serverId of [
+        ...new Set(handoffs.map((handoff) => handoff.previousServerId)),
+      ].filter((id) => id !== deployment.serverId)) {
+        const credentials = await resolveServerCredentials(
+          { serverId, workspaceId: deployment.workspaceId },
+          database,
+        );
+        domainHandoffLogins[serverId] = sshLoginSecretSchema.parse({
+          privateKey: credentials.values.privateKey,
+        });
+      }
       const resource = isNormalizedResource(app);
       const credentials = await resolveServerCredentials(deployment, database);
       const buildCredentials = deployment.buildServerId
@@ -301,6 +337,8 @@ export async function resolveDeploymentSecrets(deploymentId: string) {
         .set({ secretRevisions: revisions })
         .where(eq(deployments.id, deploymentId));
       return {
+        domainHandoffLogins,
+        domainHandoffDns,
         build,
         runtime,
         hooks,

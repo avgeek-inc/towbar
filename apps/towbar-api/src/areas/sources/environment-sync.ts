@@ -1,8 +1,9 @@
 import { actorAllows } from "@workspace/towbar-access";
 import { authorizeQueuedEffect } from "../auth/actor-context.js";
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import {
   ManifestValidationError,
+  deploymentPublicHostnames,
   reconcileManifest,
   resolveRepositoryEnvironment,
 } from "@workspace/towbar-core";
@@ -16,6 +17,10 @@ import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import type { fetchGitHubEnvironmentSnapshot } from "../github/environment-snapshot.js";
 import { fetchGitHubRepositoryTree } from "../github/client.js";
+import {
+  lockDomainClaims,
+  synchronizeDomainClaims,
+} from "../deployments/domain-claims.js";
 import { materializeEnvironment } from "./environment-materialization.js";
 import { sourceRepository } from "./environments.js";
 import { fetchRepositoryEnvironmentSnapshot } from "./repository-provider.js";
@@ -111,9 +116,7 @@ export async function executeEnvironmentSync(
       );
     return await database.transaction(async (transaction) => {
       // Domain claims and entity identities must be checked against concurrent environment syncs.
-      await transaction.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${`source-sync:${workspaceId}`}, 0))`,
-      );
+      await lockDomainClaims(transaction, workspaceId);
       const [currentEnvironment] = await transaction
         .select()
         .from(sourceEnvironments)
@@ -187,14 +190,7 @@ export async function executeEnvironmentSync(
         workspaceServers.map((server) => [server.canonicalIp, server]),
       );
       const claimedDomains = new Set(
-        desired.flatMap((entity) =>
-          entity.domains
-            ? [
-                entity.domains.primary,
-                ...entity.domains.redirects.map((redirect) => redirect.host),
-              ]
-            : [],
-        ),
+        desired.flatMap((entity) => deploymentPublicHostnames(entity)),
       );
       const otherInstances = await transaction
         .select({ config: apps.config })
@@ -207,14 +203,7 @@ export async function executeEnvironmentSync(
           ),
         );
       for (const other of otherInstances) {
-        for (const domain of other.config.domains
-          ? [
-              other.config.domains.primary,
-              ...other.config.domains.redirects.map(
-                (redirect) => redirect.host,
-              ),
-            ]
-          : []) {
+        for (const domain of deploymentPublicHostnames(other.config)) {
           if (claimedDomains.has(domain))
             throw conflict(
               `Domain '${domain}' is already assigned to another environment`,
@@ -252,6 +241,7 @@ export async function executeEnvironmentSync(
         serverByIp,
         requiredSecrets: resolved.manifest.requiredSecrets,
       });
+      await synchronizeDomainClaims(transaction, workspaceId);
       const [completed] = await transaction
         .update(sourceSyncs)
         .set({

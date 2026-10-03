@@ -87,6 +87,39 @@ Enabling Tunnel does not expose SSH, the Docker API, Towbar's control plane, or 
   </p>
 </div>
 
+## Move a domain to another workload
+
+Remove the hostname from the old workload and add it to the new workload in the
+same environment's manifest revision. Sync the repository, then deploy the new
+owner. For example, move `example.com` from API to UI and deploy UI first.
+Automatic deployment waits to update API until UI's handoff has completed.
+
+Towbar keeps the deployed owner separate from the manifest assignment. It prepares
+the target and checks its workload health before changing the route and managed
+DNS ownership. On the same server, the Caddy reload removes only the transferred
+hostname from the old workload's fragment; its other hostnames remain available.
+Across servers, the old route stays in place until the new release commits, then
+Towbar cleans up the old fragment. DNS caches can continue using the previous
+address during a cross-server change.
+
+Cloudflare ownership comments move with a verified handoff, including transitions
+between address records and Tunnel CNAMEs. A target using direct TLS relinquishes
+the managed comment after cutover. Stale comments from a released workload can be
+reconciled using retained release provenance. You do not need to clear comments
+manually for these moves.
+
+Hostname reservations prevent concurrent deployments from taking the same domain.
+An old queued deployment or rollback cannot reclaim a hostname assigned elsewhere.
+If a DNS record changes after preflight, Towbar stops the deployment. Failed
+preparation retains the old owner; recovery receipts restore pre-commit DNS and
+routing changes without overwriting external edits. An uncertain commit or
+incomplete rollback requires reconciliation before a new handoff.
+
+Moves across environments or workspaces remain explicit conflicts while the old
+route is active. Unknown external records are not adopted just because their
+hostname matches. Domain handoffs are HTTP routing operations; they do not move
+workload data or persistent volumes.
+
 ## Diagnose a failed route
 
 Check these in order: domain spelling, DNS resolution, network access to the host, Caddy preparation, TLS mode and credentials, then the workload's health endpoint. A successful Repository sync or image build does not prove that the HTTPS route works.

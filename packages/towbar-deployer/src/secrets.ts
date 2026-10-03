@@ -27,7 +27,13 @@ export function validateDeploymentSecrets(secrets: DeploymentSecrets) {
 export function collectSensitiveValues(secrets: DeploymentSecrets) {
   return [
     secrets.login.privateKey,
+    ...Object.values(secrets.domainHandoffLogins ?? {}).map(
+      (login) => login.privateKey,
+    ),
     secrets.cloudflare?.apiToken,
+    ...Object.values(secrets.domainHandoffDns ?? {}).map(
+      (credential) => credential.apiToken,
+    ),
     secrets.previousCloudflareDns?.apiToken,
     secrets.cloudflareTunnel?.apiToken,
     secrets.previousCloudflareTunnel?.apiToken,

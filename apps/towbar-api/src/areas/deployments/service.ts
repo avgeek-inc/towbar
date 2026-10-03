@@ -1,3 +1,8 @@
+import {
+  lockDomainClaims,
+  publishDeploymentDomains,
+  resolveDeploymentDomainContext,
+} from "./domain-claims.js";
 /* eslint-disable max-lines -- Deployment admission, snapshotting, and lifecycle transitions share one transactional service contract. */
 import { assertAppStorageServer } from "../apps/storage.js";
 import {
@@ -276,6 +281,8 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
         preview: context.environment === "preview",
       });
   }
+  const { domainHandoffs, domainHandoffServers } =
+    await resolveDeploymentDomainContext(deploymentId);
   const trustedHostKeys = await getTowbarDatabase()
     .select({
       algorithm: sshHostKeys.algorithm,
@@ -367,6 +374,8 @@ export async function getDeploymentExecutionContext(deploymentId: string) {
             })();
   return {
     ...publicContext,
+    domainHandoffs,
+    domainHandoffServers,
     currentRelease: currentRelease
       ? {
           ...currentRelease,
@@ -513,9 +522,17 @@ export async function commitDeploymentRelease(
   deploymentId: string,
   input: ReleaseCommitPayload,
 ) {
+  const [owner] = await getTowbarDatabase()
+    .select({ workspaceId: deployments.workspaceId })
+    .from(deployments)
+    .where(eq(deployments.id, deploymentId));
+  if (!owner) throw notFound("Deployment");
   const result = await getTowbarDatabase().transaction(async (transaction) => {
+    await lockDomainClaims(transaction, owner.workspaceId);
     const [deployment] = await transaction
       .select({
+        id: deployments.id,
+        workspaceId: deployments.workspaceId,
         appId: deployments.appId,
         appSnapshot: deployments.appSnapshot,
         commitSha: deployments.commitSha,
@@ -576,6 +593,7 @@ export async function commitDeploymentRelease(
     // Activities are at-least-once. A replay after the first commit must not
     // demote the release that this same deployment already promoted.
     if (!release) {
+      await publishDeploymentDomains(transaction, deployment);
       await transaction
         .update(releases)
         .set({ status: "superseded", supersededAt: new Date() })
