@@ -159,11 +159,11 @@ export function NotificationCenter() {
                     No notifications yet
                   </p>
                 ) : (
-                  <ul className="divide-y divide-separator">
+                  <ul className="w-full divide-y divide-separator [&>li:first-child>a]:rounded-t-xl [&>li:last-child>a]:rounded-b-xl">
                     {visibleNotifications.map((notification) => (
                       <li key={notification.id}>
                         <Link
-                          className="flex gap-3 rounded-xl px-4 py-3 outline-none transition-colors hover:bg-default/60 focus-visible:bg-default/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                          className="flex w-full min-w-0 gap-3 rounded-none px-4 py-3 outline-none transition-colors hover:bg-default/60 focus-visible:bg-default/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
                           href={notificationHref(notification)}
                           onClick={() => setIsOpen(false)}
                         >
