@@ -133,6 +133,8 @@ export async function reconcileCloudflareTunnelRoutes(input: {
   });
   let previousConfiguration: { config?: unknown } | undefined;
   let configurationAttempted = false;
+  let localTransition:
+    Awaited<ReturnType<typeof installCloudflared>> | undefined;
   const dnsRollbacks: Array<() => Promise<void>> = [];
   try {
     previousConfiguration = await cloudflareRequest<{ config?: unknown }>(
@@ -159,6 +161,19 @@ export async function reconcileCloudflareTunnelRoutes(input: {
       fetcher,
       { body: configuration, method: "PUT" },
     );
+    const token = await cloudflareRequest<string>(
+      `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/token`,
+      input.apiToken,
+      fetcher,
+    );
+    const connection = await installCloudflared({
+      appId: input.appId,
+      image: input.image,
+      localDirectory: input.localDirectory,
+      session: input.session,
+      token,
+    });
+    localTransition = connection;
     for (const hostname of hostnames) {
       dnsRollbacks.push(
         await reconcileCloudflareTunnelDns({
@@ -174,26 +189,15 @@ export async function reconcileCloudflareTunnelRoutes(input: {
         }),
       );
     }
-    const token = await cloudflareRequest<string>(
-      `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/token`,
-      input.apiToken,
-      fetcher,
-    );
-    const localTransition = await installCloudflared({
-      appId: input.appId,
-      image: input.image,
-      localDirectory: input.localDirectory,
-      session: input.session,
-      token,
-    });
     return {
       tunnelId: tunnel.id,
       tunnelName: tunnel.name,
-      finalize: localTransition.finalize,
+      finalize: connection.finalize,
       rollback: async () => {
         const failures: unknown[] = [];
-        for (const rollback of dnsRollbacks.reverse())
+        for (const rollback of [...dnsRollbacks].reverse())
           await rollback().catch((error) => failures.push(error));
+        preserveUnrecoveredTunnel(failures[0], failures, input.handoffs);
         if (!tunnelCreated && previousConfiguration)
           await cloudflareRequest(
             `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/configurations`,
@@ -208,7 +212,7 @@ export async function reconcileCloudflareTunnelRoutes(input: {
             fetcher,
             { method: "DELETE" },
           ).catch((error) => failures.push(error));
-        await localTransition.rollback().catch((error) => failures.push(error));
+        await connection.rollback().catch((error) => failures.push(error));
         if (failures.length)
           throw new Error("Cloudflare Tunnel rollback did not fully complete", {
             cause: failures[0],
@@ -217,8 +221,10 @@ export async function reconcileCloudflareTunnelRoutes(input: {
     };
   } catch (error) {
     const rollbackFailures: unknown[] = [];
-    for (const rollback of dnsRollbacks.reverse())
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
+    for (const rollback of [...dnsRollbacks].reverse())
       await rollback().catch((failure) => rollbackFailures.push(failure));
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
     if (!tunnelCreated && configurationAttempted && previousConfiguration)
       await cloudflareRequest(
         `/accounts/${encodeURIComponent(input.accountId)}/cfd_tunnel/${encodeURIComponent(tunnel.id)}/configurations`,
@@ -233,8 +239,10 @@ export async function reconcileCloudflareTunnelRoutes(input: {
         fetcher,
         { method: "DELETE" },
       ).catch((failure) => rollbackFailures.push(failure));
-    if (rollbackFailures.length && input.handoffs?.length)
-      throw new DomainHandoffRecoveryRequiredError(error);
+    await localTransition
+      ?.rollback()
+      .catch((failure) => rollbackFailures.push(failure));
+    preserveUnrecoveredTunnel(error, rollbackFailures, input.handoffs);
     if (rollbackFailures.length)
       throw new Error(
         "Cloudflare Tunnel reconciliation failed and rollback did not fully complete",
@@ -242,6 +250,16 @@ export async function reconcileCloudflareTunnelRoutes(input: {
       );
     throw error;
   }
+}
+
+function preserveUnrecoveredTunnel(
+  error: unknown,
+  failures: unknown[],
+  handoffs?: DomainHandoff[],
+) {
+  if (error instanceof DomainHandoffRecoveryRequiredError) throw error;
+  if (failures.length && handoffs?.length)
+    throw new DomainHandoffRecoveryRequiredError(error);
 }
 
 async function findOrCreateManagedTunnel(input: {
@@ -653,6 +671,20 @@ async function domainDnsCredential(
   };
 }
 
+async function recordPendingDnsCreate(
+  change: CloudflareDnsChange,
+  changes: CloudflareDnsChange[],
+  onDnsChange?: (change: CloudflareDnsChange) => Promise<void>,
+) {
+  changes.push(change);
+  try {
+    await onDnsChange?.(change);
+  } catch (error) {
+    changes.pop();
+    throw error;
+  }
+}
+
 async function reconcileCloudflareDnsRecords(
   input: {
     apiToken: string;
@@ -712,8 +744,7 @@ async function reconcileCloudflareDnsRecords(
     };
     if (!existing) {
       const change = { zoneId, after: { ...body, id: "" } };
-      changes.push(change);
-      await input.onDnsChange?.(change);
+      await recordPendingDnsCreate(change, changes, input.onDnsChange);
       try {
         const created = await cloudflareRequest<CloudflareRecord>(
           `/zones/${zoneId}/dns_records`,

@@ -4,7 +4,7 @@ import {
   currentActor,
   withActor,
 } from "../auth/actor-context.js";
-import { and, eq, isNotNull, isNull, ne, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, ne, notInArray, or } from "drizzle-orm";
 import {
   collectsHostDockerLogs,
   evaluateAutoDeployPause,
@@ -144,24 +144,38 @@ export async function continueAutomaticDeployments(deploymentId: string) {
     return { deploymentIds: [] };
   if (!completedDomainHandoff(deployment)) {
     const [waiting] = await getTowbarDatabase()
-      .select({ config: apps.config })
+      .select({ hostname: domainClaims.hostname })
       .from(domainClaims)
-      .innerJoin(apps, eq(apps.id, domainClaims.desiredAppId))
+      .leftJoin(apps, eq(apps.id, deployment.appId))
       .where(
         and(
-          eq(domainClaims.pendingDeploymentId, deploymentId),
-          eq(apps.id, deployment.appId),
-          ne(apps.deploymentDigest, deployment.deploymentDigest ?? ""),
+          or(
+            eq(domainClaims.pendingDeploymentId, deploymentId),
+            eq(domainClaims.activeDeploymentId, deploymentId),
+          ),
+          or(
+            isNull(domainClaims.desiredAppId),
+            ne(domainClaims.desiredAppId, deployment.appId),
+            ne(apps.deploymentDigest, deployment.deploymentDigest ?? ""),
+          ),
         ),
       )
       .limit(1);
-    if (!waiting?.config.autoDeploy) return { deploymentIds: [] };
+    if (!waiting) return { deploymentIds: [] };
   }
-  return await scheduleLatestAutomaticDeploymentsForSource({
-    sourceId: deployment.sourceId,
-    sourceEnvironmentId: deployment.targetEnvironment.id,
-    workspaceId: deployment.workspaceId,
-  });
+  const [environment] = await getTowbarDatabase()
+    .select({ syncId: sourceEnvironments.latestSuccessfulSyncId })
+    .from(sourceEnvironments)
+    .where(
+      and(
+        eq(sourceEnvironments.id, deployment.targetEnvironment.id),
+        eq(sourceEnvironments.sourceId, deployment.sourceId),
+        isNull(sourceEnvironments.disconnectedAt),
+      ),
+    );
+  return environment?.syncId
+    ? await scheduleSourceAutomaticDeployments(environment.syncId)
+    : { deploymentIds: [] };
 }
 
 export async function scheduleLatestAutomaticDeploymentsForSource(input: {
@@ -264,6 +278,7 @@ async function scheduleEligibleAutomaticDeployments(input: {
       latestCommitSha: sourceEnvironments.latestCommitSha,
       autoDeployPaused: sourceEnvironments.autoDeployPaused,
       mappingRevision: sourceEnvironments.mappingRevision,
+      syncId: sourceEnvironments.latestSuccessfulSyncId,
       syncedMappingRevision: sourceSyncs.mappingRevision,
       requestedByActor: sourceSyncs.requestedByActor,
     })
@@ -284,7 +299,8 @@ async function scheduleEligibleAutomaticDeployments(input: {
     !source ||
     !environment ||
     environment.latestCommitSha !== input.commitSha ||
-    environment.mappingRevision !== environment.syncedMappingRevision
+    environment.mappingRevision !== environment.syncedMappingRevision ||
+    (input.syncId !== undefined && environment.syncId !== input.syncId)
   ) {
     return { deploymentIds: [] };
   }

@@ -12,6 +12,7 @@ import {
   sourceSyncs,
   sources,
   users,
+  workspaceMembers,
   workspaces,
 } from "@workspace/towbar-database/schema";
 import {
@@ -76,7 +77,8 @@ void test(
     });
     const hostname = "move.example.com";
     let owner = "api",
-      sequence = 1;
+      sequence = 1,
+      uiAutoDeploy = false;
     const dependencies = {
       snapshot: () =>
         Promise.resolve({
@@ -92,7 +94,7 @@ void test(
             content: JSON.stringify({
               id,
               name: id.toUpperCase(),
-              autoDeploy: id === "api",
+              autoDeploy: id === "api" || uiAutoDeploy,
               container: { port: 3000 + sequence },
               deployment: {
                 type: "dockerfile",
@@ -134,7 +136,7 @@ void test(
       assert(environment);
       const environmentId = environment.id,
         mappingRevision = environment.mappingRevision;
-      async function sync() {
+      async function sync(deployAfterSync = true) {
         sequence += 1;
         const [job] = await withActor(actor, () =>
           db
@@ -143,7 +145,7 @@ void test(
               sourceId,
               sourceEnvironmentId: environmentId,
               mappingRevision,
-              deployAfterSync: false,
+              deployAfterSync,
               ...captureQueuedActor(workspaceId, ["repository.sync"]),
             })
             .returning(),
@@ -187,7 +189,7 @@ void test(
         .update(deployments)
         .set({ state: "building" })
         .where(eq(deployments.id, initial.deployment.id));
-      await sync();
+      await sync(false);
       const blockedLatest = await scheduleLatestAutomaticDeploymentsForSource({
         sourceId,
         sourceEnvironmentId: environmentId,
@@ -199,6 +201,52 @@ void test(
         "DOMAIN_DEPLOYMENT_IN_PROGRESS",
       );
       await publish(initial.deployment.id);
+      assert.deepEqual(
+        await continueAutomaticDeployments(initial.deployment.id),
+        { deploymentIds: [] },
+        "a non-deploying sync must not be deployed by continuation",
+      );
+      const authorizedSync = await sync();
+      assert(authorizedSync);
+      await db
+        .update(workspaceMembers)
+        .set({ role: "viewer" })
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, workspaceId),
+            eq(workspaceMembers.userId, userId),
+          ),
+        );
+      await assert.rejects(
+        continueAutomaticDeployments(initial.deployment.id),
+        /Access changed/,
+      );
+      await db
+        .update(workspaceMembers)
+        .set({ role: "admin" })
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, workspaceId),
+            eq(workspaceMembers.userId, userId),
+          ),
+        );
+      await db
+        .update(sourceSyncs)
+        .set({
+          requestedByActor: {
+            ...authorizedSync.requestedByActor!,
+            grants: ["repository.sync"],
+          },
+        })
+        .where(eq(sourceSyncs.id, authorizedSync.id));
+      await assert.rejects(
+        continueAutomaticDeployments(initial.deployment.id),
+        /Access changed/,
+      );
+      await db
+        .update(sourceSyncs)
+        .set({ requestedByActor: authorizedSync.requestedByActor })
+        .where(eq(sourceSyncs.id, authorizedSync.id));
       const latest = await continueAutomaticDeployments(initial.deployment.id);
       assert.equal(
         latest.deploymentIds.length,
@@ -213,6 +261,7 @@ void test(
       await publish(latestDeployment.id);
       const staleUi = await request(ui.id);
       owner = "ui";
+      uiAutoDeploy = true;
       await sync();
       // An older target snapshot without this hostname must not release the source's live claim.
       await db.transaction(async (transaction) => {
@@ -237,7 +286,13 @@ void test(
       assert.equal(planned!.activeAppId, api.id);
       assert.equal(planned!.desiredAppId, ui.id);
       await assert.rejects(request(api.id), /Deploy that workload first/);
-      const target = await request(ui.id);
+      const moved = await continueAutomaticDeployments(latestDeployment.id);
+      assert.equal(
+        moved.deploymentIds.length,
+        1,
+        "a moved claim resumes its new owner even though the completed deployment was not itself a handoff",
+      );
+      const target = { deployment: { id: moved.deploymentIds[0]! } };
       const [queued] = await db
         .select()
         .from(deployments)
@@ -323,10 +378,22 @@ void test(
         .where(eq(deployments.id, continued.deploymentIds[0]!));
       assert.equal(retired!.appId, api.id);
       await publish(retired!.id);
+      const stableUi = await request(ui.id);
+      await publish(stableUi.deployment.id);
       owner = "none";
       await sync();
-      const released = await request(ui.id);
-      await publish(released.deployment.id);
+      const removed = await continueAutomaticDeployments(
+        stableUi.deployment.id,
+      );
+      const removalDeployments = await db
+        .select()
+        .from(deployments)
+        .where(inArray(deployments.id, removed.deploymentIds));
+      assert(
+        removalDeployments.some((row) => row.appId === ui.id),
+        "hostname removal resumes from the previous deployed owner's claim",
+      );
+      for (const row of removalDeployments) await publish(row.id);
       await db
         .delete(domainClaims)
         .where(eq(domainClaims.workspaceId, workspaceId));

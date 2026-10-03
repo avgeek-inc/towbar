@@ -398,3 +398,36 @@ void test("handoffs resolve and restore each hostname with its own zone credenti
   await transition.rollback();
   assert.deepEqual([...fixture.records.values()], [owned, second]);
 });
+
+void test("a failed pre-write receipt does not make an unwritten DNS create uncertain", async () => {
+  for (const initial of [[], [owned]]) {
+    const fixture = dnsFixture(initial);
+    const error = new Error("receipt upload failed");
+    const hostname = "new.example.com";
+    const handoffs = [owned.name, hostname].map((name) => ({
+      hostname: name,
+      previousAppId: "stack",
+      previousAppName: "Stack",
+      previousServerId: "old",
+      previousServerIp: owned.content,
+      previousDeploymentId: "old-deployment",
+      previousManagedDns: true,
+    }));
+    await assert.rejects(
+      reconcileCloudflareDns({
+        ...input,
+        appId: "ui",
+        domains: [...initial.map(({ name }) => name), hostname],
+        handoffs,
+        fetcher: fixture.fetcher,
+        onDnsChange: (change) =>
+          change.after.name === hostname
+            ? Promise.reject(error)
+            : Promise.resolve(),
+      }),
+      (failure) => failure === error,
+    );
+    assert.deepEqual([...fixture.records.values()], initial);
+    assert(!fixture.mutations.some(({ method }) => method === "POST"));
+  }
+});
