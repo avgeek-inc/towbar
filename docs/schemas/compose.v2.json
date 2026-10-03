@@ -111,7 +111,25 @@
     },
     "name": { "type": "string", "minLength": 1, "maxLength": 120 },
     "description": { "type": "string", "maxLength": 500 },
-    "autoDeploy": { "default": false, "type": "boolean" },
+    "autoDeploy": {
+      "default": false,
+      "anyOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "properties": {
+            "inputs": {
+              "minItems": 1,
+              "maxItems": 200,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          },
+          "required": ["inputs"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "server": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "string"
@@ -374,7 +392,29 @@
             "additionalProperties": false
           },
           "description": { "type": "string", "maxLength": 500 },
-          "autoDeploy": { "default": false, "type": "boolean" },
+          "autoDeploy": {
+            "default": false,
+            "anyOf": [
+              { "type": "boolean" },
+              {
+                "type": "object",
+                "properties": {
+                  "inputs": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1024
+                    }
+                  }
+                },
+                "required": ["inputs"],
+                "additionalProperties": false
+              }
+            ]
+          },
           "server": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "string"

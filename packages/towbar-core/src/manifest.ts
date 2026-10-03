@@ -17,6 +17,12 @@ import path from "node:path";
 
 import { Cron } from "croner";
 import { z } from "zod";
+import { escape } from "minimatch";
+
+import {
+  autoDeploySchema as appAutoDeploySchema,
+  deploymentInputGroupsSchema,
+} from "./deployment-input-schema.js";
 
 import {
   canonicalIp,
@@ -62,7 +68,6 @@ export {
 } from "./manifest-values.js";
 
 const appIdPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const deploymentInputGroupPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const dockerNetworkPattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
 const dockerMemoryPattern = /^\d+(?:\.\d+)?[bkmg]$/i;
 const dockerVolumePattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
@@ -103,57 +108,6 @@ const repositoryPathSchema = z
       });
     }
   });
-
-const deploymentInputPatternSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(1_024)
-  .superRefine((value, context) => {
-    if (value.startsWith("$")) {
-      if (!deploymentInputGroupPattern.test(value.slice(1))) {
-        context.addIssue({
-          code: "custom",
-          message:
-            "Expected a deployment input group reference such as $shared-web",
-        });
-      }
-      return;
-    }
-    if (
-      value.startsWith("!") ||
-      value.includes("\\") ||
-      value.includes("\0") ||
-      path.posix.isAbsolute(value)
-    ) {
-      context.addIssue({
-        code: "custom",
-        message:
-          "Deployment input patterns must be relative, additive repository globs",
-      });
-      return;
-    }
-    if (value.split("/").includes("..")) {
-      context.addIssue({
-        code: "custom",
-        message: "Deployment input patterns cannot contain parent segments",
-      });
-    }
-  });
-
-const deploymentInputGlobSchema = deploymentInputPatternSchema.refine(
-  (value) => !value.startsWith("$"),
-  "Root deployment input groups must contain repository globs, not group references",
-);
-
-const appAutoDeploySchema = z.union([
-  z.boolean(),
-  z
-    .object({
-      inputs: z.array(deploymentInputPatternSchema).min(1).max(200),
-    })
-    .strict(),
-]);
 
 const domainSchema = z
   .string()
@@ -998,12 +952,7 @@ export const resolvedDeploymentManifestSchema = z
       })
       .strict()
       .optional(),
-    deploymentInputs: z
-      .record(
-        z.string().regex(deploymentInputGroupPattern),
-        z.array(deploymentInputGlobSchema).min(1).max(200),
-      )
-      .optional(),
+    deploymentInputs: deploymentInputGroupsSchema.optional(),
     source: z
       .object({
         branch: branchSchema.optional(),
@@ -1106,13 +1055,25 @@ export const resolvedDeploymentManifestSchema = z
       },
     );
 
-    (manifest.apps ?? []).forEach((app, appIndex) => {
+    const automaticDeployables = [
+      ...(manifest.apps ?? []).map((app, index) => ({
+        app,
+        index,
+        collection: "apps",
+      })),
+      ...(manifest.compose ?? []).map((app, index) => ({
+        app,
+        index,
+        collection: "compose",
+      })),
+    ];
+    automaticDeployables.forEach(({ app, index, collection }) => {
       if (typeof app.autoDeploy !== "object") return;
       findDuplicates(app.autoDeploy.inputs).forEach((input) =>
         context.addIssue({
           code: "custom",
           message: `Deployment input '${input}' is declared more than once`,
-          path: ["apps", appIndex, "autoDeploy", "inputs"],
+          path: [collection, index, "autoDeploy", "inputs"],
         }),
       );
       app.autoDeploy.inputs.forEach((input, inputIndex) => {
@@ -1123,7 +1084,7 @@ export const resolvedDeploymentManifestSchema = z
           context.addIssue({
             code: "custom",
             message: `Deployment input group '${input}' is not declared`,
-            path: ["apps", appIndex, "autoDeploy", "inputs", inputIndex],
+            path: [collection, index, "autoDeploy", "inputs", inputIndex],
           });
         }
       });
@@ -1281,7 +1242,8 @@ export type NormalizedResource = {
   tls?: { mode: "direct" | "cloudflare-dns" };
 };
 
-export type NormalizedComposeWorkload = ComposeWorkload & {
+export type NormalizedComposeWorkload = Omit<ComposeWorkload, "autoDeploy"> & {
+  autoDeploy: boolean;
   container: {
     network?: string;
     networkAlias?: string;
@@ -1292,6 +1254,7 @@ export type NormalizedComposeWorkload = ComposeWorkload & {
   context: string;
   deployment?: never;
   deploymentInputs: string[];
+  deploymentInputScope?: string[];
   domains?: NormalizedApp["domains"];
   health: NormalizedApp["health"];
   hooks: NormalizedApp["hooks"];
@@ -1465,36 +1428,57 @@ export function normalizeDeploymentManifest(
     ...(parsed.compose?.length
       ? {
           compose: [...parsed.compose]
-            .map((workload) => ({
-              ...workload,
-              services: Object.fromEntries(
-                Object.entries(workload.services).map(([name, policy]) => [
-                  name,
-                  {
-                    ...policy,
-                    ...(policy.domains
-                      ? { domains: policy.domains.map(normalizeDomain) }
-                      : {}),
-                  },
-                ]),
-              ),
-              ...(workload.notifications
-                ? {
-                    notifications: normalizeManifestNotifications(
-                      workload.notifications,
-                    ),
-                  }
-                : {}),
-              container: { port: 0 as const, volumes: [] as [] },
-              context: ".",
-              deploymentInputs: [workload.file, ...workload.overrides],
-              health: { path: "/", timeoutSeconds: 300 },
-              hooks: {},
-              kind: "compose" as const,
-              sourceBranch,
-              vulnerabilityScanning: false,
-              server: canonicalIp(workload.server),
-            }))
+            .map((workload) => {
+              const automaticDeployment = normalizeAutomaticDeployment(
+                workload.autoDeploy,
+                parsed.deploymentInputs,
+              );
+              return {
+                ...workload,
+                autoDeploy: automaticDeployment.enabled,
+                services: Object.fromEntries(
+                  Object.entries(workload.services).map(([name, policy]) => [
+                    name,
+                    {
+                      ...policy,
+                      ...(policy.domains
+                        ? { domains: policy.domains.map(normalizeDomain) }
+                        : {}),
+                    },
+                  ]),
+                ),
+                ...(workload.notifications
+                  ? {
+                      notifications: normalizeManifestNotifications(
+                        workload.notifications,
+                      ),
+                    }
+                  : {}),
+                container: { port: 0 as const, volumes: [] as [] },
+                context: ".",
+                ...(automaticDeployment.inputs.length
+                  ? { deploymentInputScope: automaticDeployment.inputs }
+                  : {}),
+                deploymentInputs: automaticDeployment.inputs.length
+                  ? [
+                      ...new Set([
+                        ...automaticDeployment.inputs,
+                        ...[workload.file, ...workload.overrides].map((file) =>
+                          escape(normalizeRepositoryPath(file), {
+                            magicalBraces: true,
+                          }),
+                        ),
+                      ]),
+                    ].sort()
+                  : ["**"],
+                health: { path: "/", timeoutSeconds: 300 },
+                hooks: {},
+                kind: "compose" as const,
+                sourceBranch,
+                vulnerabilityScanning: false,
+                server: canonicalIp(workload.server),
+              };
+            })
             .sort((left, right) => left.id.localeCompare(right.id)),
         }
       : {}),

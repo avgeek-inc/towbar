@@ -15499,52 +15499,7 @@
         "sourceBranch"
       ]
     },
-    "Response_186": {
-      "type": "object",
-      "properties": { "type": { "type": "string", "const": "proxy" } },
-      "required": ["type"]
-    },
-    "Response_187": {
-      "type": "object",
-      "properties": {
-        "type": { "type": "string", "const": "cloudflare-tunnel" },
-        "integration": { "type": "string" },
-        "access": { "type": "boolean" },
-        "tunnel": { "type": "string" }
-      },
-      "required": ["type", "integration", "access"]
-    },
-    "Response_188": {
-      "type": "object",
-      "properties": {
-        "mode": {
-          "anyOf": [
-            { "type": "string", "const": "direct" },
-            { "type": "string", "const": "cloudflare-dns" }
-          ]
-        }
-      },
-      "required": ["mode"]
-    },
     "Response_185": {
-      "type": "object",
-      "properties": {
-        "domains": { "type": "array", "items": { "type": "string" } },
-        "port": { "type": "number" },
-        "ingress": {
-          "anyOf": [
-            { "$ref": "#/components/schemas/Response_186" },
-            { "$ref": "#/components/schemas/Response_187" }
-          ]
-        },
-        "tls": { "$ref": "#/components/schemas/Response_188" }
-      }
-    },
-    "Record_184": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/components/schemas/Response_185" }
-    },
-    "Response_190": {
       "type": "object",
       "properties": {
         "deployments": { "type": "boolean" },
@@ -15560,7 +15515,7 @@
         "address"
       ]
     },
-    "Response_191": {
+    "Response_186": {
       "type": "object",
       "properties": {
         "deployments": { "type": "boolean" },
@@ -15576,7 +15531,7 @@
         "channelId"
       ]
     },
-    "Response_192": {
+    "Response_187": {
       "type": "object",
       "properties": {
         "deployments": { "type": "boolean" },
@@ -15592,7 +15547,7 @@
         "webhookId"
       ]
     },
-    "Response_193": {
+    "Response_188": {
       "type": "object",
       "properties": {
         "deployments": { "type": "boolean" },
@@ -15609,26 +15564,71 @@
         "chatId"
       ]
     },
-    "Response_189": {
+    "Response_184": {
       "type": "object",
       "properties": {
         "email": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_190" }
+          "items": { "$ref": "#/components/schemas/Response_185" }
         },
         "slack": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_191" }
+          "items": { "$ref": "#/components/schemas/Response_186" }
         },
         "discord": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_192" }
+          "items": { "$ref": "#/components/schemas/Response_187" }
         },
         "telegram": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_193" }
+          "items": { "$ref": "#/components/schemas/Response_188" }
         }
       }
+    },
+    "Response_191": {
+      "type": "object",
+      "properties": { "type": { "type": "string", "const": "proxy" } },
+      "required": ["type"]
+    },
+    "Response_192": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "const": "cloudflare-tunnel" },
+        "integration": { "type": "string" },
+        "access": { "type": "boolean" },
+        "tunnel": { "type": "string" }
+      },
+      "required": ["type", "integration", "access"]
+    },
+    "Response_193": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "anyOf": [
+            { "type": "string", "const": "direct" },
+            { "type": "string", "const": "cloudflare-dns" }
+          ]
+        }
+      },
+      "required": ["mode"]
+    },
+    "Response_190": {
+      "type": "object",
+      "properties": {
+        "domains": { "type": "array", "items": { "type": "string" } },
+        "port": { "type": "number" },
+        "ingress": {
+          "anyOf": [
+            { "$ref": "#/components/schemas/Response_191" },
+            { "$ref": "#/components/schemas/Response_192" }
+          ]
+        },
+        "tls": { "$ref": "#/components/schemas/Response_193" }
+      }
+    },
+    "Record_189": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/components/schemas/Response_190" }
     },
     "Response_194": {
       "type": "object",
@@ -15671,32 +15671,36 @@
     "NormalizedComposeWorkload_183": {
       "type": "object",
       "properties": {
+        "file": { "type": "string" },
+        "server": { "type": "string" },
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "autoDeploy": { "type": "boolean" },
-        "server": { "type": "string" },
-        "file": { "type": "string" },
+        "description": { "type": "string" },
+        "notifications": { "$ref": "#/components/schemas/Response_184" },
         "overrides": { "type": "array", "items": { "type": "string" } },
         "profiles": { "type": "array", "items": { "type": "string" } },
-        "services": { "$ref": "#/components/schemas/Record_184" },
-        "strategy": {
-          "anyOf": [
-            { "type": "string", "const": "recreate" },
-            { "type": "string", "const": "maintenance" }
-          ]
-        },
-        "notifications": { "$ref": "#/components/schemas/Response_189" },
-        "description": { "type": "string" },
+        "services": { "$ref": "#/components/schemas/Record_189" },
         "externalSecrets": {
           "anyOf": [
             { "$ref": "#/components/schemas/Response_194" },
             { "$ref": "#/components/schemas/Response_195" }
           ]
         },
+        "strategy": {
+          "anyOf": [
+            { "type": "string", "const": "recreate" },
+            { "type": "string", "const": "maintenance" }
+          ]
+        },
+        "autoDeploy": { "type": "boolean" },
         "container": { "$ref": "#/components/schemas/Response_196" },
         "context": { "type": "string" },
         "deployment": {},
         "deploymentInputs": { "type": "array", "items": { "type": "string" } },
+        "deploymentInputScope": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "domains": { "$ref": "#/components/schemas/Response_168" },
         "health": {
           "anyOf": [
@@ -15718,15 +15722,15 @@
         "vulnerabilityScanning": { "type": "boolean" }
       },
       "required": [
+        "file",
+        "server",
         "id",
         "name",
-        "autoDeploy",
-        "server",
-        "file",
         "overrides",
         "profiles",
         "services",
         "strategy",
+        "autoDeploy",
         "container",
         "context",
         "deploymentInputs",

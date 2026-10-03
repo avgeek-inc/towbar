@@ -4,6 +4,8 @@ import {
   getSourceInputDigest,
   isNormalizedCompose,
   isNormalizedResource,
+  normalizeRepositoryPath,
+  selectDeploymentInputEntries,
   validateConfigurationSources,
 } from "@workspace/towbar-core";
 
@@ -25,6 +27,7 @@ export function calculateReleaseDeploymentDigest(input: {
   repositoryTree?: RepositoryTree;
   server: NormalizedServer;
 }): MaterializedDeploymentDigest {
+  validateComposeSource(input);
   const files = isNormalizedCompose(input.deployable)
     ? []
     : (input.deployable.container.configFiles ?? []);
@@ -61,6 +64,7 @@ export function calculateDesiredDeploymentDigest(input: {
   repositoryTree?: RepositoryTree;
   server: NormalizedServer;
 }) {
+  validateComposeSource(input);
   if (
     !isNormalizedCompose(input.deployable) &&
     input.deployable.container.configFiles?.length
@@ -81,9 +85,7 @@ export function calculateDesiredDeploymentDigest(input: {
       }),
     };
   }
-  const deploymentInputs = isNormalizedCompose(input.deployable)
-    ? [input.deployable.file, ...input.deployable.overrides]
-    : input.deployable.deploymentInputs;
+  const deploymentInputs = input.deployable.deploymentInputs;
   const source = getSourceInputDigest({
     commitSha: input.commitSha,
     deploymentInputs,
@@ -114,4 +116,51 @@ export function calculateDesiredDeploymentDigest(input: {
     id: input.deployable.id,
     sourceInputDigest: source.digest,
   };
+}
+
+function validateComposeSource(input: {
+  deployable: NormalizedDeployable;
+  repositoryTree?: RepositoryTree;
+}) {
+  if (!isNormalizedCompose(input.deployable)) return;
+  if (!input.repositoryTree?.complete)
+    throw new ManifestValidationError([
+      {
+        message: "Compose change detection requires a complete repository tree",
+        path: ["compose", input.deployable.id, "file"],
+      },
+    ]);
+  if (input.deployable.deploymentInputScope?.length) {
+    const scoped = selectDeploymentInputEntries(
+      input.deployable.deploymentInputScope,
+      input.repositoryTree,
+    );
+    if (!scoped.length)
+      throw new ManifestValidationError([
+        {
+          message: `Compose workload '${input.deployable.id}' scoped deployment inputs do not match any repository files`,
+          path: ["compose", input.deployable.id, "autoDeploy", "inputs"],
+        },
+      ]);
+  }
+  for (const file of [input.deployable.file, ...input.deployable.overrides]) {
+    const entry = input.repositoryTree.entries.find(
+      (entry) => entry.path === normalizeRepositoryPath(file),
+    );
+    if (
+      !entry ||
+      entry.type !== "blob" ||
+      !["100644", "100755"].includes(entry.mode)
+    )
+      throw new ManifestValidationError([
+        {
+          message: `Compose file '${file}' must be a regular file in the selected revision`,
+          path: [
+            "compose",
+            input.deployable.id,
+            file === input.deployable.file ? "file" : "overrides",
+          ],
+        },
+      ]);
+  }
 }

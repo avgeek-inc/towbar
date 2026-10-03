@@ -45,9 +45,12 @@ export const sourceEnvironmentMappingSchema = z
   })
   .strict();
 
+import { deploymentInputGroupsSchema } from "./deployment-input-schema.js";
+
 export const repositoryManifestSchema = z
   .object({
     version: z.literal(2),
+    deploymentInputs: deploymentInputGroupsSchema.optional(),
     buildServer: buildServerSelectionSchema.nullable().optional(),
     environments: z
       .record(
@@ -318,6 +321,7 @@ export function resolveRepositoryEnvironment(input: {
   const normalized = normalizeDeploymentManifest({
     version: 2,
     source: { branch: input.branch },
+    deploymentInputs: root.deploymentInputs,
     apps,
     compose,
     resources,
