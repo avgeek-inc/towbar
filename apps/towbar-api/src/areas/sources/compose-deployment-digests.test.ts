@@ -193,3 +193,63 @@ void test("Compose release digests honor captured inputs rather than later scope
   assert.equal(release.deploymentDigest, desired.deploymentDigest);
   assert.equal(release.sourceInputDigest, desired.sourceInputDigest);
 });
+
+void test("mandatory files do not conceal a scope that matches no files", () => {
+  assert.throws(
+    () => calculate(compose(["stakc/src/**"])),
+    issue("scoped deployment inputs"),
+  );
+  assert.throws(
+    () =>
+      calculateReleaseDeploymentDigest({
+        commitSha: "a".repeat(40),
+        deployable: compose(["missing/**"]),
+        deploymentInputs: compose(["missing/**"]).deploymentInputs,
+        repositoryTree: tree,
+        server,
+      }),
+    issue("scoped deployment inputs"),
+  );
+  assert.doesNotThrow(() => calculate(compose(["stack/compose.yml"])));
+});
+
+void test("changes to a literal brace filename invalidate the Compose digest", () => {
+  const file = "stack/{prod,base}.yml";
+  const deployable = normalizeDeploymentManifest({
+    version: 2,
+    compose: [
+      {
+        id: "stack",
+        name: "Stack",
+        server: server.ip,
+        file,
+        autoDeploy: { inputs: ["shared/**"] },
+      },
+    ],
+  }).compose![0]!;
+  const repositoryTree = {
+    complete: true,
+    entries: [entry(file), entry("shared/config.yml"), entry("stack/prod.yml")],
+  };
+  const before = calculate(deployable, repositoryTree);
+  assert.notEqual(
+    before.deploymentDigest,
+    calculate(deployable, {
+      ...repositoryTree,
+      entries: repositoryTree.entries.map((item) =>
+        item.path === file ? { ...item, sha: "b".repeat(40) } : item,
+      ),
+    }).deploymentDigest,
+  );
+  assert.equal(
+    before.deploymentDigest,
+    calculate(deployable, {
+      ...repositoryTree,
+      entries: repositoryTree.entries.map((item) =>
+        item.path === "stack/prod.yml"
+          ? { ...item, sha: "b".repeat(40) }
+          : item,
+      ),
+    }).deploymentDigest,
+  );
+});

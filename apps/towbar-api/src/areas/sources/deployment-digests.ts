@@ -5,6 +5,7 @@ import {
   isNormalizedCompose,
   isNormalizedResource,
   normalizeRepositoryPath,
+  selectDeploymentInputEntries,
   validateConfigurationSources,
 } from "@workspace/towbar-core";
 
@@ -129,6 +130,19 @@ function validateComposeSource(input: {
         path: ["compose", input.deployable.id, "file"],
       },
     ]);
+  if (input.deployable.deploymentInputScope?.length) {
+    const scoped = selectDeploymentInputEntries(
+      input.deployable.deploymentInputScope,
+      input.repositoryTree,
+    );
+    if (!scoped.length)
+      throw new ManifestValidationError([
+        {
+          message: `Compose workload '${input.deployable.id}' scoped deployment inputs do not match any repository files`,
+          path: ["compose", input.deployable.id, "autoDeploy", "inputs"],
+        },
+      ]);
+  }
   for (const file of [input.deployable.file, ...input.deployable.overrides]) {
     const entry = input.repositoryTree.entries.find(
       (entry) => entry.path === normalizeRepositoryPath(file),

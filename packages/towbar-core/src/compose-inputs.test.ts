@@ -115,3 +115,61 @@ void test("v2 Compose inputs support environment overrides", () => {
   assert.equal(resolve("staging").autoDeploy, false);
   assert.deepEqual(resolve("staging").deploymentInputs, ["**"]);
 });
+
+void test("mandatory Compose paths containing braces remain literal", () => {
+  const file = "stack/{prod,base}.yml";
+  const compose = normalizeDeploymentManifest({
+    version: 2,
+    compose: [
+      {
+        ...workload,
+        file,
+        overrides: [],
+        autoDeploy: { inputs: ["shared/**"] },
+      },
+    ],
+  }).compose![0]!;
+  const selected = selectDeploymentInputEntries(compose.deploymentInputs, {
+    complete: true,
+    entries: [file, "stack/prod.yml", "stack/base.yml"].map((path) => ({
+      path,
+      sha: "a".repeat(40),
+      mode: "100644",
+      type: "blob",
+    })),
+  });
+  assert.deepEqual(
+    selected.map((entry) => entry.path),
+    [file],
+  );
+});
+
+void test("repository manifests supply input groups to Compose and service entities", () => {
+  const result = resolveRepositoryEnvironment({
+    root: stringify({
+      version: 2,
+      deploymentInputs: { shared: ["shared/**"] },
+      environments: { production: {} },
+    }),
+    environment: "production",
+    branch: "main",
+    files: [
+      {
+        path: ".towbar/services/stack.compose.yml",
+        content: stringify({
+          ...workload,
+          autoDeploy: { inputs: ["$shared"] },
+          environments: { production: {} },
+        }),
+      },
+    ],
+  });
+  assert.deepEqual(result.manifest.compose![0]!.deploymentInputScope, [
+    "shared/**",
+  ]);
+  assert.deepEqual(result.manifest.compose![0]!.deploymentInputs, [
+    "shared/**",
+    "stack/compose.yml",
+    "stack/production.yml",
+  ]);
+});

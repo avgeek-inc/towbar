@@ -47,6 +47,11 @@ export const deploymentInputGlobSchema = deploymentInputPatternSchema.refine(
   "Root deployment input groups must contain repository globs, not group references",
 );
 
+export const deploymentInputGroupsSchema = z.record(
+  z.string().regex(deploymentInputGroupPattern),
+  z.array(deploymentInputGlobSchema).min(1).max(200),
+);
+
 export const autoDeploySchema = z.union([
   z.boolean(),
   z

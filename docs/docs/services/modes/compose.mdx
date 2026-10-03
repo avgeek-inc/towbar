@@ -72,7 +72,8 @@ The primary Compose file and explicit overrides always participate, even outside
 the declared scope. Cover every other referenced file, build context, include,
 and shared dependency in `inputs`; Towbar does not discover those dependencies
 automatically. Paths are relative to the repository root. Exclusion patterns,
-absolute paths, and parent traversal are rejected. Use the environment override
+absolute paths, and parent traversal are rejected. A scope that matches no tracked
+files is rejected even when the mandatory Compose files exist. Use the environment override
 or Repository automation controls to pause automatic deployment.
 
 Sync requires a complete repository tree and regular primary/override files at
@@ -81,6 +82,23 @@ later syncs cannot change that release's inputs. After upgrading from the older
 Compose-file-only tracking, the next sync can queue one additional deployment for
 an opted-in workload while establishing the broader digest baseline. Rollback
 keeps the retained release's original snapshot.
+
+Shared input groups can be declared in `towbar.yml` and referenced by either
+Services or Compose workloads:
+
+```yaml title="towbar.yml"
+version: 2
+deploymentInputs:
+  shared-platform:
+    - shared/config/**
+    - shared/docker/**
+environments:
+  production: {}
+```
+
+Use `inputs: [observability/**, $shared-platform]` in the workload's `autoDeploy`
+configuration. Groups contain additive repository globs; nested group references
+are rejected.
 
 ## Route TLS per service
 

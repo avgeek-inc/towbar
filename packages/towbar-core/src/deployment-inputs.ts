@@ -129,6 +129,7 @@ function getDeploymentRuntimeConfig(deployable: NormalizedDeployable) {
   delete value.dependsOn;
   delete value.description;
   delete value.deploymentInputs;
+  delete value.deploymentInputScope;
   delete value.name;
   delete value.notifications;
   delete value.preview;

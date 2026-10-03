@@ -3,6 +3,19 @@
   "type": "object",
   "properties": {
     "version": { "type": "number", "const": 2 },
+    "deploymentInputs": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+      },
+      "additionalProperties": {
+        "minItems": 1,
+        "maxItems": 200,
+        "type": "array",
+        "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
     "buildServer": {
       "anyOf": [
         {

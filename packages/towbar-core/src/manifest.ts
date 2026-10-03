@@ -21,8 +21,7 @@ import { escape } from "minimatch";
 
 import {
   autoDeploySchema as appAutoDeploySchema,
-  deploymentInputGlobSchema,
-  deploymentInputGroupPattern,
+  deploymentInputGroupsSchema,
 } from "./deployment-input-schema.js";
 
 import {
@@ -953,12 +952,7 @@ export const resolvedDeploymentManifestSchema = z
       })
       .strict()
       .optional(),
-    deploymentInputs: z
-      .record(
-        z.string().regex(deploymentInputGroupPattern),
-        z.array(deploymentInputGlobSchema).min(1).max(200),
-      )
-      .optional(),
+    deploymentInputs: deploymentInputGroupsSchema.optional(),
     source: z
       .object({
         branch: branchSchema.optional(),
@@ -1260,6 +1254,7 @@ export type NormalizedComposeWorkload = Omit<ComposeWorkload, "autoDeploy"> & {
   context: string;
   deployment?: never;
   deploymentInputs: string[];
+  deploymentInputScope?: string[];
   domains?: NormalizedApp["domains"];
   health: NormalizedApp["health"];
   hooks: NormalizedApp["hooks"];
@@ -1461,12 +1456,17 @@ export function normalizeDeploymentManifest(
                   : {}),
                 container: { port: 0 as const, volumes: [] as [] },
                 context: ".",
+                ...(automaticDeployment.inputs.length
+                  ? { deploymentInputScope: automaticDeployment.inputs }
+                  : {}),
                 deploymentInputs: automaticDeployment.inputs.length
                   ? [
                       ...new Set([
                         ...automaticDeployment.inputs,
                         ...[workload.file, ...workload.overrides].map((file) =>
-                          escape(normalizeRepositoryPath(file)),
+                          escape(normalizeRepositoryPath(file), {
+                            magicalBraces: true,
+                          }),
                         ),
                       ]),
                     ].sort()
