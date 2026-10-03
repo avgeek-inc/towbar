@@ -37,7 +37,7 @@
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.11",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "catalog:"
   }
 }
