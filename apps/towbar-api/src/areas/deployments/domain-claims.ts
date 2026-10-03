@@ -1,3 +1,5 @@
+import { reconciliationHostnames } from "./domain-claim-scope.js";
+import type { DomainClaimScope } from "./domain-claim-scope.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { randomUUID } from "node:crypto";
 import {
@@ -45,14 +47,43 @@ export async function lockDomainClaims(
 export async function synchronizeDomainClaims(
   database: SecretDatabase,
   workspaceId: string,
+  scope?: DomainClaimScope,
 ) {
   const instances = await database
     .select()
     .from(apps)
     .where(eq(apps.workspaceId, workspaceId));
+  const retained = await database
+    .select({
+      appId: releases.appId,
+      deploymentId: releases.deploymentId,
+      status: releases.status,
+      app: deployments.appSnapshot,
+    })
+    .from(releases)
+    .innerJoin(deployments, eq(deployments.id, releases.deploymentId))
+    .where(
+      and(
+        eq(deployments.workspaceId, workspaceId),
+        eq(releases.environment, "production"),
+      ),
+    )
+    .orderBy(desc(releases.promotedAt));
+  const previous = await database
+    .select()
+    .from(domainClaims)
+    .where(eq(domainClaims.workspaceId, workspaceId));
+  const byHostname = new Map(previous.map((claim) => [claim.hostname, claim]));
+  const hostnames = reconciliationHostnames({
+    instances,
+    previous,
+    retained,
+    scope,
+  });
   const desired = new Map<string, typeof apps.$inferSelect>();
   for (const app of instances.filter((app) => !app.archivedAt))
     for (const hostname of deploymentPublicHostnames(app.config)) {
+      if (!hostnames.has(hostname)) continue;
       const owner = desired.get(hostname);
       if (owner && owner.id !== app.id)
         throw conflict(
@@ -81,32 +112,6 @@ export async function synchronizeDomainClaims(
         "DOMAIN_CONFLICT",
       );
   }
-  const retained = await database
-    .select({
-      appId: releases.appId,
-      deploymentId: releases.deploymentId,
-      status: releases.status,
-      app: deployments.appSnapshot,
-    })
-    .from(releases)
-    .innerJoin(deployments, eq(deployments.id, releases.deploymentId))
-    .where(
-      and(
-        eq(deployments.workspaceId, workspaceId),
-        eq(releases.environment, "production"),
-      ),
-    )
-    .orderBy(desc(releases.promotedAt));
-  const previous = await database
-    .select()
-    .from(domainClaims)
-    .where(eq(domainClaims.workspaceId, workspaceId));
-  const byHostname = new Map(previous.map((claim) => [claim.hostname, claim]));
-  const hostnames = new Set([
-    ...desired.keys(),
-    ...previous.map((claim) => claim.hostname),
-    ...retained.flatMap((release) => deploymentPublicHostnames(release.app)),
-  ]);
   for (const hostname of [...hostnames].sort())
     await reconcileDomainClaim(database, {
       workspaceId,
@@ -253,7 +258,10 @@ export async function reserveDeploymentDomains(
   deployment: typeof deployments.$inferSelect,
 ) {
   if (deployment.environment !== "production") return;
-  await synchronizeDomainClaims(database, deployment.workspaceId);
+  await synchronizeDomainClaims(database, deployment.workspaceId, {
+    appId: deployment.appId,
+    hostnames: deploymentPublicHostnames(deployment.appSnapshot),
+  });
   const hostnames = deploymentPublicHostnames(deployment.appSnapshot);
   const claims = await database
     .select()
