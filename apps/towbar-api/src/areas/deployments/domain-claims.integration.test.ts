@@ -1,3 +1,4 @@
+import { assertUnrelatedLegacyDomains } from "./domain-scope-test-helper.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -185,6 +186,16 @@ void test(
           .where(eq(deployments.id, id));
       }
       const initial = await request(api.id);
+      await t.test(
+        "unrelated legacy conflicts do not block sync or admission",
+        () =>
+          assertUnrelatedLegacyDomains({
+            database: db,
+            instances: [api, ui],
+            deploymentId: initial.deployment.id,
+            sync: () => sync(false),
+          }),
+      );
       await db
         .update(deployments)
         .set({ state: "building" })

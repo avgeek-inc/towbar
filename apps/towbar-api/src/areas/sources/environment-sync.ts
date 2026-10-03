@@ -241,7 +241,9 @@ export async function executeEnvironmentSync(
         serverByIp,
         requiredSecrets: resolved.manifest.requiredSecrets,
       });
-      await synchronizeDomainClaims(transaction, workspaceId);
+      await synchronizeDomainClaims(transaction, workspaceId, {
+        sourceEnvironmentId: environment.id,
+      });
       const [completed] = await transaction
         .update(sourceSyncs)
         .set({
