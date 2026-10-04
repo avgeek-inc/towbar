@@ -71,7 +71,7 @@ function Content({
   return (
     <div
       className={cn(
-        "mx-auto min-h-full w-full min-w-0 px-4 py-3 sm:px-6 sm:py-6",
+        "mx-auto min-h-full w-full min-w-0 px-4 py-3 sm:py-6",
         widths[variant ?? contentWidth],
         className,
       )}
@@ -144,14 +144,14 @@ export function ApplicationNavbar({
   };
 
   return (
-    <header className="sticky top-[var(--app-shell-top-offset,0px)] z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 px-4 backdrop-blur">
+    <header className="sticky top-[var(--app-shell-top-offset,0px)] z-30 flex min-h-16 items-center justify-between gap-5 border-b border-separator bg-background/90 pl-2 pr-4 backdrop-blur">
       <div className="flex min-w-0 items-center gap-2">
         {hasSidebar ? (
           <Button
             aria-label="Toggle navigation"
             aria-expanded={sidebarOpen}
             aria-controls={sidebarOpen ? "application-navigation" : undefined}
-            className="relative size-8 min-h-8 min-w-8 shrink-0 before:absolute before:-inset-1.5 before:content-['']"
+            className="navigation-toggle relative size-8 min-h-8 min-w-8 shrink-0 before:absolute before:-inset-1.5 before:content-['']"
             isIconOnly
             onPress={onSidebarToggle}
             variant="ghost"

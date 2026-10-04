@@ -7,8 +7,9 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Changed
 
-- Page content uses 24px horizontal padding from the tablet breakpoint onward
-  and 80px bottom padding at every viewport size.
+- Page content uses 16px horizontal padding and 80px bottom padding at every
+  viewport size. Page headings use 20px padding above and below, and header
+  padding aligns the navigation icon with the page content.
 - Service and datastore action menus follow the Deploy button. Notification
   badges sit slightly higher and farther right on the bell button.
 - Widget headings omit decorative icons across overview, configuration,
@@ -17,6 +18,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Fixed
 
+- Navigation toggle hover backgrounds follow the pointer instead of a retained
+  hover state after sidebar transitions, while keeping pressed and focus feedback.
 - Modal and incident drawer titles align with their close buttons. Header rows
   reserve space for the close control when titles wrap on narrow screens. Overlay
   bodies and footers use consistent 16px gaps and dialogs use 20px outer padding.
