@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  Archive01Icon,
   Delete02Icon,
-  RefreshIcon,
   Shield01Icon,
   StopCircleIcon,
   Undo02Icon,
@@ -226,11 +224,7 @@ export function ResourceRestoreConfiguration({
         </Alert>
       ) : null}
 
-      <Attributes
-        icon={<HugeiconsIcon icon={Undo02Icon} />}
-        title="Restore source"
-        variant="card"
-      >
+      <Attributes title="Restore source" variant="card">
         <Attributes.Item label="Authoritative provider">
           <span className="inline-flex items-center gap-2">
             <CloudProviderLogo
@@ -323,9 +317,9 @@ function RestoreConfirmation({
     >
       <Modal.Container scroll="inside" size="lg">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Restore {resource.name}</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             <form className="content-grid" onSubmit={submit}>
@@ -341,11 +335,7 @@ function RestoreConfirmation({
                 </p>
               </div>
               {backup ? (
-                <Attributes
-                  icon={<HugeiconsIcon icon={Archive01Icon} />}
-                  columns={2}
-                  title="Selected backup"
-                >
+                <Attributes columns={2} title="Selected backup">
                   <Attributes.Item label="Created">
                     {formatDate(backup.finishedAt ?? backup.createdAt)}
                   </Attributes.Item>
@@ -563,9 +553,7 @@ function RestoreProgress({
   return (
     <Widget>
       <Widget.Header endContent={<StatusBadge status={operation.state} />}>
-        <Widget.Title icon={<HugeiconsIcon icon={RefreshIcon} />}>
-          Restore progress
-        </Widget.Title>
+        <Widget.Title>Restore progress</Widget.Title>
       </Widget.Header>
       <Widget.Content>
         <p className="mb-3 text-sm text-muted">
@@ -710,9 +698,9 @@ function RestoreCleanupConfirmation({
     >
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Clean up rollback volume?</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body className="content-grid">
             <div className="grid gap-2">

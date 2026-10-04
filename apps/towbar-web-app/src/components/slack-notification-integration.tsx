@@ -354,9 +354,9 @@ export function SlackNotificationIntegration() {
       >
         <Modal.Container size="sm">
           <Modal.Dialog>
-            <Modal.CloseTrigger isDisabled={saving} />
             <Modal.Header>
               <Modal.Heading>Add Slack channel</Modal.Heading>
+              <Modal.CloseTrigger isDisabled={saving} />
             </Modal.Header>
             <Modal.Body>
               <form

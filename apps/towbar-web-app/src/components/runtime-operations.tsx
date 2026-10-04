@@ -412,11 +412,7 @@ export function RuntimeLogs({
           </EmptyState>
         )
       ) : (
-        <Attributes
-          icon={<HugeiconsIcon icon={SourceCodeIcon} />}
-          title="Latest log capture"
-          variant="card"
-        >
+        <Attributes title="Latest log capture" variant="card">
           <Attributes.Item label="Status">
             <StatusBadge status={latest.state} />
           </Attributes.Item>

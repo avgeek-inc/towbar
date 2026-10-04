@@ -53,7 +53,7 @@ import {
 } from "@workspace/web-design-system/overlays/tooltip";
 import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
-import { ScoutIcon } from "./scout-icons";
+
 import { ScoutSelect } from "./scout-controls";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -631,9 +631,7 @@ export function AnalyticsView({
               </TooltipText>
             }
           >
-            <Widget.Title
-              icon={pageviews ? undefined : <ScoutIcon name="request" />}
-            >
+            <Widget.Title>
               {pageviews ? "Trends" : "Request trend"}
             </Widget.Title>
           </Widget.Header>

@@ -13,7 +13,6 @@ import {
   CubeIcon,
   File02Icon,
   Delete02Icon,
-  Link01Icon,
   ServerOffIcon,
   ServerStack01Icon,
   Settings01Icon,
@@ -412,12 +411,7 @@ export function ServerDetail() {
                   <ServerPreparationOverview {...preparationProps} />
                   <ServerHostCapacity capacity={capacity.data.capacity} />
                   <div className="content-grid lg:grid-cols-2">
-                    <Attributes
-                      icon={<HugeiconsIcon icon={Link01Icon} />}
-                      columns={2}
-                      title="Connection"
-                      variant="card"
-                    >
+                    <Attributes columns={2} title="Connection" variant="card">
                       <Attributes.Item label="IP address">
                         {item.canonicalIp}
                       </Attributes.Item>
@@ -445,12 +439,7 @@ export function ServerDetail() {
                         {formatDate(item.updatedAt)}
                       </Attributes.Item>
                     </Attributes>
-                    <Attributes
-                      icon={<HugeiconsIcon icon={Activity01Icon} />}
-                      columns={2}
-                      title="Operations"
-                      variant="card"
-                    >
+                    <Attributes columns={2} title="Operations" variant="card">
                       <Attributes.Item label="Server setup">
                         <StatusBadge status={setupStatus} />
                       </Attributes.Item>

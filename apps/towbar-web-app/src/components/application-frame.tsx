@@ -348,7 +348,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
           >
             <SecondarySidebarLayout>
               <AppShell.Content
-                className="pt-0 pb-20 sm:pt-0 sm:pb-24"
+                className="pt-0 pb-20 sm:pt-0 sm:pb-20"
                 variant="broad"
               >
                 <RelativeTimeProvider>

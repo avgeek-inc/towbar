@@ -23,7 +23,7 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { scheduleChartUpdate } from "./monitoring-chart-slot";
 import { ScoutSelect, ScoutNumber } from "./scout-controls";
-import { MonitoringMetricIcon } from "./monitoring-metric-icon";
+
 import { formatMetric } from "./monitoring-metric-chart";
 import { formatDate } from "./dashboard-overview";
 
@@ -302,11 +302,7 @@ const ComparisonChartSlot = memo(function ComparisonChartSlot(props: {
       ) : (
         <Widget>
           <Widget.Header>
-            <Widget.Title
-              icon={<MonitoringMetricIcon metric={props.metric.metric} />}
-            >
-              {props.metric.label}
-            </Widget.Title>
+            <Widget.Title>{props.metric.label}</Widget.Title>
           </Widget.Header>
           <Widget.Content>
             <div className="h-[322px]" aria-label="Loading comparison chart" />
@@ -369,9 +365,7 @@ function ComparisonChart({
           </Chip>
         }
       >
-        <Widget.Title icon={<MonitoringMetricIcon metric={metric.metric} />}>
-          {metric.label}
-        </Widget.Title>
+        <Widget.Title>{metric.label}</Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid min-w-0 gap-4">
         <div className="grid grid-cols-3 gap-3 text-sm">

@@ -297,9 +297,9 @@ export function EventDetails({
     <Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>
       <Modal.Container size="lg">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>{title}</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             <dl className="grid min-w-0 gap-4 sm:grid-cols-2">{children}</dl>

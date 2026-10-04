@@ -162,20 +162,6 @@ export function AppDetail() {
         !item.archivedAt &&
         can("deployment.create") ? (
           <div className="flex flex-wrap justify-end gap-2">
-            <DeployableActionsMenu
-              active={item.serverReady}
-              deployableId={appId}
-              previousReleaseId={previous?.id}
-              runtimeState={item.runtimeState}
-              services={
-                item.config.kind === "compose"
-                  ? (releases.data.releases.find(
-                      (release) => release.status === "current",
-                    )?.composeServices ?? Object.keys(item.config.services))
-                  : undefined
-              }
-              type="app"
-            />
             {Object.keys(item.config.externalSecrets ?? {}).length > 0 ? (
               <ActionButton
                 confirm={{
@@ -235,6 +221,20 @@ export function AppDetail() {
               />
               Deploy
             </ActionButton>
+            <DeployableActionsMenu
+              active={item.serverReady}
+              deployableId={appId}
+              previousReleaseId={previous?.id}
+              runtimeState={item.runtimeState}
+              services={
+                item.config.kind === "compose"
+                  ? (releases.data.releases.find(
+                      (release) => release.status === "current",
+                    )?.composeServices ?? Object.keys(item.config.services))
+                  : undefined
+              }
+              type="app"
+            />
           </div>
         ) : undefined
       }
@@ -274,12 +274,7 @@ export function AppDetail() {
                     type="app"
                   />
                 ) : null}
-                <Attributes
-                  icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
-                  columns={2}
-                  title="Current state"
-                  variant="card"
-                >
+                <Attributes columns={2} title="Current state" variant="card">
                   <Attributes.Item label="Lifecycle">
                     <StatusBadge
                       status={lifecycleStatus}
@@ -356,7 +351,6 @@ export function AppDetail() {
                 </Attributes>
                 {latestDeployment ? (
                   <Attributes
-                    icon={<HugeiconsIcon icon={Rocket01Icon} />}
                     columns={2}
                     title="Last deployment attempt"
                     variant="card"
@@ -608,12 +602,7 @@ function AppConfiguration({ item }: { item: AppRecord }) {
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <div className="grid min-w-0 content-start gap-4">
-        <Attributes
-          icon={<HugeiconsIcon icon={PackageIcon} />}
-          columns={2}
-          title="Build configuration"
-          variant="card"
-        >
+        <Attributes columns={2} title="Build configuration" variant="card">
           {item.config.kind === "compose" ? (
             <>
               <Attributes.Item label="Compose file">
@@ -642,12 +631,7 @@ function AppConfiguration({ item }: { item: AppRecord }) {
             </TypographyCode>
           </Attributes.Item>
         </Attributes>
-        <Attributes
-          icon={<HugeiconsIcon icon={PackageIcon} />}
-          columns={2}
-          title="Container configuration"
-          variant="card"
-        >
+        <Attributes columns={2} title="Container configuration" variant="card">
           <Attributes.Item label="Container port">
             {item.config.container.port}
           </Attributes.Item>
@@ -691,12 +675,7 @@ function AppConfiguration({ item }: { item: AppRecord }) {
         </Attributes>
       </div>
       <div className="grid min-w-0 content-start gap-4">
-        <Attributes
-          icon={<HugeiconsIcon icon={Rocket01Icon} />}
-          columns={2}
-          title="Deployment configuration"
-          variant="card"
-        >
+        <Attributes columns={2} title="Deployment configuration" variant="card">
           <Attributes.Item label="Auto-deploy" className="col-span-2">
             {item.config.autoDeploy ? "Enabled" : "Disabled"}
           </Attributes.Item>
@@ -715,12 +694,7 @@ function AppConfiguration({ item }: { item: AppRecord }) {
           </Attributes.Item>
         </Attributes>
         {item.config.preview?.enabled ? (
-          <Attributes
-            icon={<HugeiconsIcon icon={GitBranchIcon} />}
-            columns={2}
-            title="Preview configuration"
-            variant="card"
-          >
+          <Attributes columns={2} title="Preview configuration" variant="card">
             <Attributes.Item label="Base domain">
               <DomainLink domain={item.config.preview.domain}>
                 {item.config.preview.domain}

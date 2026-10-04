@@ -78,9 +78,9 @@ export function MonitoringRangePicker({
     >
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Custom time range</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             {error ? (

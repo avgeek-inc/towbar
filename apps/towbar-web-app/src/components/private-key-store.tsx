@@ -231,9 +231,9 @@ function PrivateKeyModal({
     >
       <Modal.Container size="lg" scroll="inside">
         <Modal.Dialog>
-          <Modal.CloseTrigger isDisabled={busy} />
           <Modal.Header>
             <Modal.Heading>{title}</Modal.Heading>
+            <Modal.CloseTrigger isDisabled={busy} />
           </Modal.Header>
           <Modal.Body>
             <form className="content-grid" onSubmit={submit}>

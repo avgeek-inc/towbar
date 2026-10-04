@@ -40,7 +40,6 @@ export function SourceEnvironmentConnect({
       <Modal.Backdrop isOpen={open} onOpenChange={(next) => !next && close()}>
         <Modal.Container size="md">
           <Modal.Dialog>
-            <Modal.CloseTrigger isDisabled={busy} />
             <Modal.Header>
               <Modal.Heading>
                 <span className="flex items-center gap-2">
@@ -52,6 +51,7 @@ export function SourceEnvironmentConnect({
                   Add environment
                 </span>
               </Modal.Heading>
+              <Modal.CloseTrigger isDisabled={busy} />
             </Modal.Header>
             <Modal.Body>
               <form

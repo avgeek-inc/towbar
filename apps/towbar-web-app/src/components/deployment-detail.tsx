@@ -10,7 +10,6 @@ import {
   CubeIcon,
   FileViewIcon,
   GitBranchIcon,
-  GitPullRequestIcon,
   GitMergeIcon,
   InformationSquareIcon,
   ReloadIcon,
@@ -343,12 +342,7 @@ export function DeploymentDetail() {
             content: (
               <div className="content-grid">
                 <div className="content-grid lg:grid-cols-2">
-                  <Attributes
-                    icon={<HugeiconsIcon icon={Rocket01Icon} />}
-                    columns={2}
-                    title="Deployment"
-                    variant="card"
-                  >
+                  <Attributes columns={2} title="Deployment" variant="card">
                     <Attributes.Item label="Action">
                       {item.kind === "rollback" ? "Rollback" : "Deploy"}
                     </Attributes.Item>
@@ -373,12 +367,7 @@ export function DeploymentDetail() {
                         : "Not finished"}
                     </Attributes.Item>
                   </Attributes>
-                  <Attributes
-                    icon={<HugeiconsIcon icon={ServerStack01Icon} />}
-                    columns={2}
-                    title="Target"
-                    variant="card"
-                  >
+                  <Attributes columns={2} title="Target" variant="card">
                     <Attributes.Item
                       icon={
                         <HugeiconsIcon
@@ -484,12 +473,7 @@ export function DeploymentDetail() {
                   </Attributes>
                 </div>
                 {revision.data?.pullRequest ? (
-                  <Attributes
-                    icon={<HugeiconsIcon icon={GitPullRequestIcon} />}
-                    columns={3}
-                    title="Pull request"
-                    variant="card"
-                  >
+                  <Attributes columns={3} title="Pull request" variant="card">
                     <Attributes.Item label="Pull request">
                       <InlineExternalLink
                         aria-label={`Open pull request ${revision.data.pullRequest.number} on GitHub (opens in a new tab)`}
@@ -573,10 +557,7 @@ export function DeploymentDetail() {
                 {terminal.has(item.state) && progressSteps.length < 2 ? (
                   <Widget>
                     <Widget.Header>
-                      <Widget.Title
-                        icon={<HugeiconsIcon icon={InformationSquareIcon} />}
-                        help={false}
-                      >
+                      <Widget.Title help={false}>
                         Limited Progress History
                       </Widget.Title>
                     </Widget.Header>

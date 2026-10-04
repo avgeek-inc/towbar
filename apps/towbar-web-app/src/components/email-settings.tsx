@@ -2,8 +2,7 @@
 import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Mail01Icon } from "@hugeicons/core-free-icons";
+
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Input } from "@workspace/web-design-system/forms/input";
@@ -41,7 +40,6 @@ export function EmailSettings() {
     <>
       <FormCard
         title="Email address"
-        icon={<HugeiconsIcon icon={Mail01Icon} />}
         headerEnd={
           user.emailVerified ? (
             <StatusBadge
@@ -131,9 +129,9 @@ export function EmailSettings() {
       >
         <Modal.Container size="sm">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>Verify your email</Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body className="content-grid">
               <p>

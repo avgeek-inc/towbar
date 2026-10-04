@@ -56,6 +56,66 @@ a {
 }
 
 @layer components {
+  .button.navigation-toggle {
+    --button-bg-hover: transparent;
+
+    @media (hover: hover) {
+      &:hover {
+        --button-bg-hover: var(--default);
+      }
+    }
+  }
+
+  .modal__dialog,
+  .drawer__dialog,
+  .alert-dialog__dialog {
+    @apply p-5;
+  }
+
+  .modal__header + .modal__body,
+  .drawer__header + .drawer__body,
+  .alert-dialog__header + .alert-dialog__body,
+  .modal__header + .modal__footer,
+  .modal__body + .modal__footer,
+  .drawer__header + .drawer__footer,
+  .drawer__body + .drawer__footer,
+  .alert-dialog__header + .alert-dialog__footer,
+  .alert-dialog__body + .alert-dialog__footer {
+    @apply mt-4;
+  }
+
+  /* Keep titles and close controls in the same row, with other header content spanning both columns. */
+  :is(.modal__header, .drawer__header, .alert-dialog__header):has(
+    > :is(
+      .modal__close-trigger,
+      .drawer__close-trigger,
+      .alert-dialog__close-trigger
+    )
+  ) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: calc(var(--spacing) * 3);
+
+    > * {
+      min-width: 0;
+      grid-column: 1 / -1;
+    }
+
+    > :is(.modal__heading, .drawer__heading, .alert-dialog__heading) {
+      grid-column: 1;
+    }
+
+    > :is(
+      .modal__close-trigger,
+      .drawer__close-trigger,
+      .alert-dialog__close-trigger
+    ) {
+      position: static;
+      grid-column: 2;
+    }
+  }
+
   .tooltip [data-slot="tooltip-arrow-edge"] {
     stroke: color-mix(in oklab, var(--overlay) 82%, var(--foreground) 18%);
   }

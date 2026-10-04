@@ -2,7 +2,7 @@
 
 import { RelativeTime as SharedRelativeTime } from "./last-synced-time";
 
-import { Archive01Icon, DatabaseIcon } from "@hugeicons/core-free-icons";
+import { DatabaseIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -199,9 +199,7 @@ function ResourceBackupContent({
                 </Chip>
               }
             >
-              <Widget.Title icon={<HugeiconsIcon icon={Archive01Icon} />}>
-                {backupHealth.title}
-              </Widget.Title>
+              <Widget.Title>{backupHealth.title}</Widget.Title>
             </Widget.Header>
             <Widget.Content className="grid min-w-0 gap-3">
               <ol className="grid overflow-hidden rounded-lg border border-separator divide-y divide-separator md:grid-cols-3 md:divide-x md:divide-y-0">

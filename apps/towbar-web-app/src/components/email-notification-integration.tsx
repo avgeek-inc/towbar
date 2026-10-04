@@ -345,9 +345,9 @@ export function EmailNotificationIntegration() {
       >
         <Modal.Container size="sm">
           <Modal.Dialog>
-            <Modal.CloseTrigger isDisabled={saving} />
             <Modal.Header>
               <Modal.Heading>Add email destination</Modal.Heading>
+              <Modal.CloseTrigger isDisabled={saving} />
             </Modal.Header>
             <Modal.Body>
               <form

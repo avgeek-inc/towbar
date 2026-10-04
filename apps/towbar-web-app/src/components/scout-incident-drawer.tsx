@@ -54,13 +54,13 @@ export function ScoutIncidentDrawer({
     >
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-3xl">
-          <Drawer.CloseTrigger aria-label="Close incident" />
           <Drawer.Header>
             <p className="flex items-center gap-2 text-sm text-muted">
               <ScoutIcon name="active" />
               Incident details
             </p>
             <Drawer.Heading>{incident.ruleName}</Drawer.Heading>
+            <Drawer.CloseTrigger aria-label="Close incident" />
           </Drawer.Header>
           <Drawer.Body>
             <IncidentBody
@@ -171,9 +171,7 @@ function IncidentBody({
           ) : null}
           <Widget className="min-w-0">
             <Widget.Header>
-              <Widget.Title icon={<ScoutIcon name="alerts" />}>
-                Incident details
-              </Widget.Title>
+              <Widget.Title>Incident details</Widget.Title>
             </Widget.Header>
             <Widget.Content>
               <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -204,7 +202,7 @@ function IncidentBody({
           >
             <Widget className="min-w-0">
               <Widget.Header>
-                <Widget.Title icon={<ScoutIcon name="performance" />}>
+                <Widget.Title>
                   {metricDefinition(incident.condition.metric).label}
                 </Widget.Title>
               </Widget.Header>

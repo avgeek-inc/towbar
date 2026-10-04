@@ -134,11 +134,11 @@ export function ScoutRuleEditor({
     >
       <Modal.Container size="lg" scroll="inside">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>
               {initial ? "Edit alert rule" : "Create alert rule"}
             </Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             <form onSubmit={save} className="grid gap-6">

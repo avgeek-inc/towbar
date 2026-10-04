@@ -41,11 +41,7 @@ function TitledPage({
     <Page
       {...props}
       lead={
-        <PageSection
-          className="py-5 sm:pt-6 sm:pb-3"
-          xPadding="none"
-          yPadding="none"
-        >
+        <PageSection className="py-5" xPadding="none" yPadding="none">
           <header className="flex flex-wrap items-center justify-between gap-5">
             <div className="flex min-w-0 flex-wrap items-center gap-3 pl-1 sm:pl-0">
               <TypographyHeading

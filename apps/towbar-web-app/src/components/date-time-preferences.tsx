@@ -2,8 +2,7 @@
 
 import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { useEffect, useState, type FormEvent } from "react";
-import { Clock01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+
 import type {
   DateTimePreferences,
   LocalizedTimestamp,
@@ -34,10 +33,7 @@ export function DateTimePreferencesSettings() {
   if (!query.data) return <QueryLoading />;
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard
-        title="Date and time"
-        icon={<HugeiconsIcon icon={Clock01Icon} />}
-      >
+      <FormCard title="Date and time">
         <PreferencesForm
           key={JSON.stringify(query.data.preferences)}
           data={query.data}

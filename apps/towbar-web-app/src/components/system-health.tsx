@@ -3,11 +3,9 @@ import { useState } from "react";
 import { HostUpgrade } from "./host-upgrade";
 import { upgradeIsActive, upgradeNeedsRecovery } from "./host-upgrade-state";
 import {
-  Activity01Icon,
   AlertCircleIcon,
   ArrowRight01Icon,
   CheckmarkCircle02Icon,
-  DatabaseIcon,
   HealthIcon,
   InformationCircleIcon,
   ReloadIcon,
@@ -119,7 +117,6 @@ export function SystemHealthPage() {
       <HealthChecks
         checks={health.checks}
         title="Control plane"
-        icon={Activity01Icon}
         version={health.version}
         updates={updateQuery.data}
         updateError={Boolean(updateQuery.error)}
@@ -156,9 +153,7 @@ function DatabaseStorage({
           ) : null
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={DatabaseIcon} />}>
-          Database storage
-        </Widget.Title>
+        <Widget.Title>Database storage</Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid min-w-0 gap-3">
         {dateLabelError ? <QueryError message={dateLabelError} /> : null}
@@ -247,23 +242,19 @@ function HealthChecks({
   checks,
   version,
   title,
-  icon,
   updates,
   updateError,
 }: {
   checks: SystemHealthCheck[];
   version?: string;
   title: string;
-  icon: typeof Activity01Icon;
   updates?: TowbarUpdateInfo;
   updateError: boolean;
 }) {
   return (
     <Widget>
       <Widget.Header>
-        <Widget.Title icon={<HugeiconsIcon icon={icon} />}>
-          {title}
-        </Widget.Title>
+        <Widget.Title>{title}</Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid p-0">
         {checks.map((check) => {

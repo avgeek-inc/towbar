@@ -182,7 +182,6 @@ export function AppJobs({ appId }: { appId: string }) {
       <Modal.Backdrop isOpen={open} onOpenChange={setOpen}>
         <Modal.Container size="lg" scroll="inside">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>
                 <span className="flex items-center gap-2">
@@ -190,6 +189,7 @@ export function AppJobs({ appId }: { appId: string }) {
                   {displayed?.request.job.name}
                 </span>
               </Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body>
               {displayed ? (
