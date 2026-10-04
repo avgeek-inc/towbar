@@ -1,8 +1,7 @@
 "use client";
 import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Key01Icon } from "@hugeicons/core-free-icons";
+
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { Modal } from "@workspace/web-design-system/overlays/modal";
 import { Chip } from "@workspace/web-design-system/data-display/chip";
@@ -33,7 +32,6 @@ export function PasskeySettings() {
     <>
       <FormCard
         title="Passkeys"
-        icon={<HugeiconsIcon icon={Key01Icon} />}
         headerEnd={
           keys.data && !keys.error ? (
             <Chip variant={keys.data.passkeys.length ? "success" : "secondary"}>

@@ -14,7 +14,6 @@ import {
 } from "./scout-panel";
 
 import {
-  Activity01Icon,
   SquareActivityIcon,
   Alert02Icon,
   AlertCircleIcon,
@@ -23,8 +22,6 @@ import {
   FileViewIcon,
   GitBranchIcon,
   GitCompareIcon,
-  Link01Icon,
-  PackageIcon,
   ReloadIcon,
   Rocket01Icon,
   ServerStack01Icon,
@@ -199,12 +196,7 @@ export function ResourceDetail() {
               type="resource"
             />
           ) : null}
-          <Attributes
-            icon={<HugeiconsIcon icon={CubeIcon} />}
-            columns={2}
-            title="Current state"
-            variant="card"
-          >
+          <Attributes columns={2} title="Current state" variant="card">
             <Attributes.Item label="Lifecycle">
               <StatusBadge
                 status={lifecycleStatus}
@@ -275,7 +267,6 @@ export function ResourceDetail() {
           </Attributes>
           {latestDeployment ? (
             <Attributes
-              icon={<HugeiconsIcon icon={Rocket01Icon} />}
               columns={2}
               title="Last deployment attempt"
               variant="card"
@@ -449,13 +440,6 @@ export function ResourceDetail() {
         !item.archivedAt &&
         can("deployment.create") ? (
           <div className="flex flex-wrap justify-end gap-2">
-            <DeployableActionsMenu
-              active={item.serverReady}
-              deployableId={resourceId}
-              previousReleaseId={previous?.id}
-              runtimeState={item.runtimeState}
-              type="resource"
-            />
             {Object.keys(item.config.externalSecrets ?? {}).length > 0 ? (
               <ActionButton
                 confirm={{
@@ -515,6 +499,13 @@ export function ResourceDetail() {
               />
               Deploy
             </ActionButton>
+            <DeployableActionsMenu
+              active={item.serverReady}
+              deployableId={resourceId}
+              previousReleaseId={previous?.id}
+              runtimeState={item.runtimeState}
+              type="resource"
+            />
           </div>
         ) : undefined
       }
@@ -607,12 +598,7 @@ function ResourceSettings({
 function ResourceConfiguration({ item }: { item: ResourceRecord }) {
   return (
     <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <Attributes
-        icon={<HugeiconsIcon icon={PackageIcon} />}
-        columns={2}
-        title="Image configuration"
-        variant="card"
-      >
+      <Attributes columns={2} title="Image configuration" variant="card">
         <Attributes.Item label="Image" className="col-span-2">
           <TypographyCode className="break-all">
             {item.config.image}
@@ -630,12 +616,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
           </TypographyCode>
         </Attributes.Item>
       </Attributes>
-      <Attributes
-        icon={<HugeiconsIcon icon={PackageIcon} />}
-        columns={2}
-        title="Container configuration"
-        variant="card"
-      >
+      <Attributes columns={2} title="Container configuration" variant="card">
         <Attributes.Item label="Container port">
           {item.config.container.port ?? "Not exposed"}
         </Attributes.Item>
@@ -658,12 +639,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
         </Attributes.Item>
       </Attributes>
       <ResourceHealthCheck health={item.config.health} />
-      <Attributes
-        icon={<HugeiconsIcon icon={Rocket01Icon} />}
-        columns={2}
-        title="Deployment configuration"
-        variant="card"
-      >
+      <Attributes columns={2} title="Deployment configuration" variant="card">
         <Attributes.Item label="Auto-deploy">
           {item.config.autoDeploy ? "Enabled" : "Disabled"}
         </Attributes.Item>
@@ -707,12 +683,7 @@ function ResourceConfiguration({ item }: { item: ResourceRecord }) {
 
 function ResourceConnectionDetails({ item }: { item: ResourceRecord }) {
   return (
-    <Attributes
-      icon={<HugeiconsIcon icon={Link01Icon} />}
-      columns={2}
-      title="Connection details"
-      variant="card"
-    >
+    <Attributes columns={2} title="Connection details" variant="card">
       <Attributes.Item label="Private host">
         {item.config.container.networkAlias ? (
           <TypographyCode>{item.config.container.networkAlias}</TypographyCode>
@@ -755,12 +726,7 @@ function ResourceHealthCheck({
   health: Resource["config"]["health"];
 }) {
   return (
-    <Attributes
-      icon={<HugeiconsIcon icon={Activity01Icon} />}
-      columns={2}
-      title="Health check"
-      variant="card"
-    >
+    <Attributes columns={2} title="Health check" variant="card">
       <Attributes.Item label="Check type">
         {health.type === "http"
           ? "HTTP"

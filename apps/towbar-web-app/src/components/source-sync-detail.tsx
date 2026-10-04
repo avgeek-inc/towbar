@@ -5,10 +5,8 @@ import { ElapsedTime } from "./elapsed-time";
 import {
   DashboardCircleIcon,
   CubeIcon,
-  GitBranchIcon,
   GitCompareIcon,
   InformationSquareIcon,
-  PackageIcon,
   RefreshIcon,
   ServerStack01Icon,
   ValidationIcon,
@@ -117,12 +115,7 @@ export function SourceSyncDetail() {
                   </Alert>
                 ) : null}
                 <div className="content-grid lg:grid-cols-2">
-                  <Attributes
-                    icon={<HugeiconsIcon icon={RefreshIcon} />}
-                    columns={2}
-                    title="Sync"
-                    variant="card"
-                  >
+                  <Attributes columns={2} title="Sync" variant="card">
                     <Attributes.Item label="Environment">
                       {sync.environment ? (
                         <EnvironmentChip name={sync.environment.name} />
@@ -162,12 +155,7 @@ export function SourceSyncDetail() {
                       <ElapsedTime {...sync} />
                     </Attributes.Item>
                   </Attributes>
-                  <Attributes
-                    icon={<HugeiconsIcon icon={GitBranchIcon} />}
-                    columns={2}
-                    title="Revision"
-                    variant="card"
-                  >
+                  <Attributes columns={2} title="Revision" variant="card">
                     <Attributes.Item label="Branch">
                       {sync.environment ? (
                         <TypographyCode>
@@ -283,12 +271,7 @@ function SyncChanges({
   const legacyCounts = readLegacyReconciliationCounts(value);
   if (legacyCounts) {
     return (
-      <Attributes
-        icon={<HugeiconsIcon icon={PackageIcon} />}
-        columns={3}
-        title="Imported inventory"
-        variant="card"
-      >
+      <Attributes columns={3} title="Imported inventory" variant="card">
         <Attributes.Item
           icon={<HugeiconsIcon icon={DashboardCircleIcon} />}
           label="Services"

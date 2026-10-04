@@ -3,8 +3,7 @@ import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
+
 import { Button } from "@workspace/web-design-system/buttons/button";
 import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -31,7 +30,6 @@ export function SecuritySettings() {
     <div className="content-grid lg:grid-cols-2 lg:items-start">
       <FormCard
         title="Authenticator app"
-        icon={<HugeiconsIcon icon={SecurityCheckIcon} />}
         headerEnd={
           <StatusBadge
             status={user.twoFactorEnabled ? "healthy" : "disabled"}

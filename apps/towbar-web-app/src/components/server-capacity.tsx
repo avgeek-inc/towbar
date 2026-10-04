@@ -5,8 +5,6 @@ import {
   allocatedCpuPercent,
   allocatedMemoryPercent,
 } from "@/lib/allocated-capacity";
-import { ServerStack01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 
 import type {
   App,
@@ -56,9 +54,7 @@ export function ServerHostCapacity({
         className="flex-wrap"
         endContent={<CapacityStatusBadge status={capacity.status} />}
       >
-        <Widget.Title icon={<HugeiconsIcon icon={ServerStack01Icon} />}>
-          Host capacity
-        </Widget.Title>
+        <Widget.Title>Host capacity</Widget.Title>
       </Widget.Header>
       <Widget.Content>
         {capacity.cpu && capacity.memory && capacity.disk ? (

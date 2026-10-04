@@ -9,7 +9,7 @@ import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
 import { deploymentSubtitle } from "@/lib/overview";
 import Image from "next/image";
-import { Alert02Icon, AlertCircleIcon } from "@hugeicons/core-free-icons";
+import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
   App,
@@ -45,9 +45,7 @@ export function OverviewIncidents() {
   return (
     <Widget className="min-w-0">
       <Widget.Header>
-        <Widget.Title icon={<HugeiconsIcon icon={AlertCircleIcon} />}>
-          Active incidents
-        </Widget.Title>
+        <Widget.Title>Active incidents</Widget.Title>
       </Widget.Header>
       <Widget.Content
         className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3 pr-[38%]`}

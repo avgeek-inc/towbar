@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, startTransition, useEffect, useRef, useState } from "react";
-import { MonitoringMetricIcon } from "./monitoring-metric-icon";
+
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { MetricChart, type MetricChartProps } from "./monitoring-metric-chart";
 
@@ -57,9 +57,7 @@ export const MonitoringChartSlot = memo(function MonitoringChartSlot(
       ) : (
         <Widget>
           <Widget.Header>
-            <Widget.Title
-              icon={<MonitoringMetricIcon metric={props.metrics[0]!.key} />}
-            >
+            <Widget.Title>
               {props.metrics.length === 1
                 ? props.metrics[0]!.label
                 : props.metrics[0]!.key.startsWith("network")

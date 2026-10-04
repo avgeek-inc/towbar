@@ -9,15 +9,11 @@ import { useLocalizedTimestamps } from "@/hooks/use-localized-timestamps";
 
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 import {
-  Activity01Icon,
   ArrowRight01Icon,
-  DashboardCircleIcon,
   DiscoverSquareIcon,
-  CubeIcon,
-  ServerStack01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { ComponentProps } from "react";
+
 import Image from "next/image";
 import type {
   App,
@@ -123,7 +119,6 @@ export function DashboardOverview() {
   ];
   const metrics = [
     {
-      icon: DashboardCircleIcon,
       href: "/services",
       label: "Services",
       image: "/scout/overview-apps-charcoal.png",
@@ -135,7 +130,6 @@ export function DashboardOverview() {
       value: groupDeployableInstances(activeApps).length,
     },
     {
-      icon: CubeIcon,
       href: "/datastores",
       label: "Datastores",
       image: "/scout/overview-resources-charcoal.png",
@@ -147,7 +141,6 @@ export function DashboardOverview() {
       value: groupDeployableInstances(activeResources).length,
     },
     {
-      icon: ServerStack01Icon,
       href: "/servers",
       label: "Servers",
       image: "/scout/overview-servers-charcoal.png",
@@ -179,9 +172,7 @@ export function DashboardOverview() {
           {metrics.map((metric) => (
             <Widget className="min-w-0" key={metric.label}>
               <Widget.Header>
-                <Widget.Title icon={<OverviewMetricIcon icon={metric.icon} />}>
-                  {metric.label}
-                </Widget.Title>
+                <Widget.Title>{metric.label}</Widget.Title>
               </Widget.Header>
               <Widget.Content
                 className={`${illustrationStyles.card} relative flex items-center overflow-hidden py-3 pr-[38%]`}
@@ -247,9 +238,7 @@ function OverviewActivity() {
           ) : null
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={Activity01Icon} />}>
-          Deployments trend
-        </Widget.Title>
+        <Widget.Title>Deployments trend</Widget.Title>
       </Widget.Header>
       <Widget.Content className="grid min-w-0 content-center gap-3">
         {query.error || dateLabelError ? (
@@ -347,16 +336,6 @@ function summarizeDeploymentActivity(deployments: Deployment[]) {
       .length,
     successRate: Math.round((succeeded / completed.length) * 100),
   };
-}
-
-function OverviewMetricIcon({
-  icon,
-}: {
-  icon: ComponentProps<typeof HugeiconsIcon>["icon"];
-}) {
-  return (
-    <HugeiconsIcon aria-hidden="true" className="size-4 shrink-0" icon={icon} />
-  );
 }
 
 function formatActivityDate(value: string) {

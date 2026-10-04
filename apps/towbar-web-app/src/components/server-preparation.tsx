@@ -2,12 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ComputerActivityIcon,
-  Download01Icon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons";
+
 import type { Server, ServerPreparation } from "@workspace/towbar-web-client";
 import { Accordion } from "@workspace/web-design-system/data-display/accordion";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
@@ -109,9 +104,7 @@ export function ServerPreparationOverview(props: ServerPreparationProps) {
           />
         }
       >
-        <Widget.Title icon={<HugeiconsIcon icon={Settings01Icon} />}>
-          Server setup
-        </Widget.Title>
+        <Widget.Title>Server setup</Widget.Title>
       </Widget.Header>
       <Widget.Content className="p-2">
         <Accordion
@@ -198,19 +191,7 @@ export function ServerPreparationChecklist(
                 )
               }
             >
-              <Widget.Title
-                icon={
-                  <HugeiconsIcon
-                    icon={
-                      group.id === "inspection"
-                        ? ComputerActivityIcon
-                        : Download01Icon
-                    }
-                  />
-                }
-              >
-                {group.title}
-              </Widget.Title>
+              <Widget.Title>{group.title}</Widget.Title>
             </Widget.Header>
             <Widget.Content className="p-2">
               <Accordion

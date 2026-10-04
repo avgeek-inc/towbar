@@ -116,7 +116,7 @@ export function NotificationCenter() {
       >
         <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
         {unreadCount > 0 ? (
-          <span className="absolute end-0.5 top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-mono font-medium leading-4 text-danger-foreground">
+          <span className="absolute -end-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-mono font-medium leading-4 text-danger-foreground">
             {Math.min(unreadCount, 9)}
           </span>
         ) : null}
@@ -140,12 +140,7 @@ export function NotificationCenter() {
               }
             >
               <Popover.Heading className="flex min-w-0">
-                <Widget.Title
-                  icon={<HugeiconsIcon icon={Notification02Icon} />}
-                  help={false}
-                >
-                  Notifications
-                </Widget.Title>
+                <Widget.Title help={false}>Notifications</Widget.Title>
               </Popover.Heading>
             </Widget.Header>
             <Widget.Content className="p-0">

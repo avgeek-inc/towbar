@@ -171,9 +171,7 @@ function IncidentBody({
           ) : null}
           <Widget className="min-w-0">
             <Widget.Header>
-              <Widget.Title icon={<ScoutIcon name="alerts" />}>
-                Incident details
-              </Widget.Title>
+              <Widget.Title>Incident details</Widget.Title>
             </Widget.Header>
             <Widget.Content>
               <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -204,7 +202,7 @@ function IncidentBody({
           >
             <Widget className="min-w-0">
               <Widget.Header>
-                <Widget.Title icon={<ScoutIcon name="performance" />}>
+                <Widget.Title>
                   {metricDefinition(incident.condition.metric).label}
                 </Widget.Title>
               </Widget.Header>

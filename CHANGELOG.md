@@ -5,6 +5,14 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Service and datastore action menus follow the Deploy button. Notification
+  badges sit slightly higher and farther right on the bell button.
+- Widget headings omit decorative icons across overview, configuration,
+  monitoring, backup, and settings pages, retaining provider identities and
+  deployment-alert indicators.
+
 ## [2.0.29] - 2026-10-03
 
 ### Fixed

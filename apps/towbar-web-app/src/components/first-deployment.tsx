@@ -4,7 +4,6 @@ import {
   AlertCircleIcon,
   CheckmarkCircle01Icon,
   Key01Icon,
-  Rocket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
@@ -40,9 +39,7 @@ export function FirstDeployment({
   return (
     <Widget className="min-w-0">
       <Widget.Header>
-        <Widget.Title icon={<HugeiconsIcon icon={Rocket01Icon} />}>
-          Deployment Status
-        </Widget.Title>
+        <Widget.Title>Deployment Status</Widget.Title>
       </Widget.Header>
       <Widget.Content className="flex items-center">
         {!readiness.data ? (

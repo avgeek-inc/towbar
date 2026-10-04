@@ -1,10 +1,6 @@
 "use client";
 import { FieldDescription } from "@workspace/web-design-system/forms/field";
-import {
-  Key01Icon,
-  Logout01Icon,
-  UserAccountIcon,
-} from "@hugeicons/core-free-icons";
+import { Logout01Icon } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -33,10 +29,7 @@ export function ProfileSettings() {
 
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard
-        icon={<HugeiconsIcon icon={UserAccountIcon} />}
-        title="Appearance"
-      >
+      <FormCard title="Appearance">
         <div className="grid gap-5">
           <div className="grid gap-3">
             <div className="grid gap-0.5">
@@ -89,10 +82,7 @@ export function EmailPasswordSettings() {
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <EmailSettings />
-      <FormCard
-        icon={<HugeiconsIcon icon={Key01Icon} />}
-        title="Change password"
-      >
+      <FormCard title="Change password">
         <SimpleForm
           fields={[
             {
