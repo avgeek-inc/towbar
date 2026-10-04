@@ -7,6 +7,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Changed
 
+- Page content uses 24px horizontal padding from the tablet breakpoint onward
+  and 80px bottom padding at every viewport size.
 - Service and datastore action menus follow the Deploy button. Notification
   badges sit slightly higher and farther right on the bell button.
 - Widget headings omit decorative icons across overview, configuration,
