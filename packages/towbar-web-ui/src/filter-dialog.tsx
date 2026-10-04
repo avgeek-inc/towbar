@@ -97,7 +97,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
       >
         <Modal.Container size="lg" scroll="inside">
           <Modal.Dialog className="sm:max-w-[48rem]">
-            <Modal.Header className="flex-row items-center justify-between gap-3">
+            <Modal.Header>
               <Modal.Heading className="flex items-center gap-2">
                 <HugeiconsIcon
                   icon={FilterIcon}
@@ -106,7 +106,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                 />
                 Filters
               </Modal.Heading>
-              <Modal.CloseTrigger className="static shrink-0" />
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body className="pt-1">
               <form

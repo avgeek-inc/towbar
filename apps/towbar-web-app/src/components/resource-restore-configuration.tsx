@@ -317,9 +317,9 @@ function RestoreConfirmation({
     >
       <Modal.Container scroll="inside" size="lg">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Restore {resource.name}</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             <form className="content-grid" onSubmit={submit}>
@@ -698,9 +698,9 @@ function RestoreCleanupConfirmation({
     >
       <Modal.Container size="md">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Clean up rollback volume?</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body className="content-grid">
             <div className="grid gap-2">

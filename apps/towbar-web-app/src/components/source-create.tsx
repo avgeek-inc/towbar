@@ -72,7 +72,6 @@ export function SourceCreateModal({ onClose }: { onClose: () => void }) {
     >
       <Modal.Container size="lg" scroll="inside">
         <Modal.Dialog>
-          <Modal.CloseTrigger isDisabled={busy} />
           <Modal.Header>
             <Modal.Heading>
               <span className="flex items-center gap-2">
@@ -84,6 +83,7 @@ export function SourceCreateModal({ onClose }: { onClose: () => void }) {
                 Add repository
               </span>
             </Modal.Heading>
+            <Modal.CloseTrigger isDisabled={busy} />
           </Modal.Header>
           <Modal.Body>
             <SourceCreate busy={busy} setBusy={setBusy} onClose={onClose} />

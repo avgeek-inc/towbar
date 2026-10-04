@@ -105,11 +105,11 @@ export function PasskeySettings() {
       <Modal.Backdrop isOpen={open} onOpenChange={setOpen}>
         <Modal.Container size="sm">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>
                 {editing ? "Rename passkey" : "Add passkey"}
               </Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body>
               <AuthForm

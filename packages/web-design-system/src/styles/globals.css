@@ -56,6 +56,38 @@ a {
 }
 
 @layer components {
+  /* Keep titles and close controls in the same row, with other header content spanning both columns. */
+  :is(.modal__header, .drawer__header, .alert-dialog__header):has(
+    > :is(
+      .modal__close-trigger,
+      .drawer__close-trigger,
+      .alert-dialog__close-trigger
+    )
+  ) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: calc(var(--spacing) * 3);
+
+    > * {
+      min-width: 0;
+      grid-column: 1 / -1;
+    }
+
+    > :is(.modal__heading, .drawer__heading, .alert-dialog__heading) {
+      grid-column: 1;
+    }
+
+    > :is(
+      .modal__close-trigger,
+      .drawer__close-trigger,
+      .alert-dialog__close-trigger
+    ) {
+      position: static;
+      grid-column: 2;
+    }
+  }
+
   .tooltip [data-slot="tooltip-arrow-edge"] {
     stroke: color-mix(in oklab, var(--overlay) 82%, var(--foreground) 18%);
   }

@@ -54,13 +54,13 @@ export function ScoutIncidentDrawer({
     >
       <Drawer.Content placement="right">
         <Drawer.Dialog className="w-full max-w-3xl">
-          <Drawer.CloseTrigger aria-label="Close incident" />
           <Drawer.Header>
             <p className="flex items-center gap-2 text-sm text-muted">
               <ScoutIcon name="active" />
               Incident details
             </p>
             <Drawer.Heading>{incident.ruleName}</Drawer.Heading>
+            <Drawer.CloseTrigger aria-label="Close incident" />
           </Drawer.Header>
           <Drawer.Body>
             <IncidentBody

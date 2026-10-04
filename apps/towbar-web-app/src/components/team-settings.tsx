@@ -561,9 +561,9 @@ function MemberDialog({
     <Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>
       <Modal.Container size="sm" scroll="inside">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>{title}</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             {inviteUrl ? (

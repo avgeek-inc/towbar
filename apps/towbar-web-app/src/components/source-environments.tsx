@@ -236,9 +236,9 @@ export function SourceEnvironments({
       >
         <Modal.Container size="md">
           <Modal.Dialog>
-            <Modal.CloseTrigger isDisabled={busy} />
             <Modal.Header>
               <Modal.Heading>Edit {editing?.name} branch</Modal.Heading>
+              <Modal.CloseTrigger isDisabled={busy} />
             </Modal.Header>
             <Modal.Body>
               <form

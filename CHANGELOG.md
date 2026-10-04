@@ -13,6 +13,11 @@ All notable changes to Towbar are documented in this file. This project follows
   monitoring, backup, and settings pages, retaining provider identities and
   deployment-alert indicators.
 
+### Fixed
+
+- Modal and incident drawer titles align with their close buttons. Header rows
+  reserve space for the close control when titles wrap on narrow screens.
+
 ## [2.0.29] - 2026-10-03
 
 ### Fixed

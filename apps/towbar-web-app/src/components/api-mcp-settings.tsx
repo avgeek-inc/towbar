@@ -365,9 +365,9 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
       <Modal.Backdrop isOpen={creating} onOpenChange={setCreating}>
         <Modal.Container size="sm" scroll="inside">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>Create API key</Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body>
               <CreateKey
@@ -388,11 +388,11 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
       <Modal.Backdrop isOpen={revealOpen} onOpenChange={setRevealOpen}>
         <Modal.Container size="md">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>
                 {revealed ? "Copy your API key" : "Key already created"}
               </Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body className="content-grid">
               <p>

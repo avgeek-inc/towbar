@@ -46,9 +46,9 @@ export function ReauthenticationDialog() {
     >
       <Modal.Container size="sm">
         <Modal.Dialog>
-          <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading>Confirm it’s you</Modal.Heading>
+            <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
             <FieldDescription className="mb-4">

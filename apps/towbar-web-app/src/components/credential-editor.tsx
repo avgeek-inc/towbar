@@ -368,9 +368,6 @@ function CredentialVerificationModal({
     <Modal.Backdrop isOpen={isOpen} onOpenChange={(next) => !next && onClose()}>
       <Modal.Container size="lg">
         <Modal.Dialog>
-          <Modal.CloseTrigger
-            isDisabled={active || Boolean(trustingFingerprint)}
-          />
           <Modal.Header>
             <Modal.Heading>
               <span className="inline-flex items-center gap-2">
@@ -388,6 +385,9 @@ function CredentialVerificationModal({
                     : "Verify SSH private key"}
               </span>
             </Modal.Heading>
+            <Modal.CloseTrigger
+              isDisabled={active || Boolean(trustingFingerprint)}
+            />
           </Modal.Header>
           <Modal.Body>
             <div className="content-grid">

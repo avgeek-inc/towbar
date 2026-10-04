@@ -129,9 +129,9 @@ export function EmailSettings() {
       >
         <Modal.Container size="sm">
           <Modal.Dialog>
-            <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading>Verify your email</Modal.Heading>
+              <Modal.CloseTrigger />
             </Modal.Header>
             <Modal.Body className="content-grid">
               <p>
