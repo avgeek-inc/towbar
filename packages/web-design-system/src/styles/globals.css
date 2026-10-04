@@ -56,6 +56,12 @@ a {
 }
 
 @layer components {
+  .modal__dialog,
+  .drawer__dialog,
+  .alert-dialog__dialog {
+    @apply p-5;
+  }
+
   .modal__header + .modal__body,
   .drawer__header + .drawer__body,
   .alert-dialog__header + .alert-dialog__body,
