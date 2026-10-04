@@ -56,6 +56,18 @@ a {
 }
 
 @layer components {
+  .modal__header + .modal__body,
+  .drawer__header + .drawer__body,
+  .alert-dialog__header + .alert-dialog__body,
+  .modal__header + .modal__footer,
+  .modal__body + .modal__footer,
+  .drawer__header + .drawer__footer,
+  .drawer__body + .drawer__footer,
+  .alert-dialog__header + .alert-dialog__footer,
+  .alert-dialog__body + .alert-dialog__footer {
+    @apply mt-4;
+  }
+
   /* Keep titles and close controls in the same row, with other header content spanning both columns. */
   :is(.modal__header, .drawer__header, .alert-dialog__header):has(
     > :is(

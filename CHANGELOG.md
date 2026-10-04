@@ -16,7 +16,8 @@ All notable changes to Towbar are documented in this file. This project follows
 ### Fixed
 
 - Modal and incident drawer titles align with their close buttons. Header rows
-  reserve space for the close control when titles wrap on narrow screens.
+  reserve space for the close control when titles wrap on narrow screens. Overlay
+  bodies and footers use consistent 16px gaps.
 
 ## [2.0.29] - 2026-10-03
 
