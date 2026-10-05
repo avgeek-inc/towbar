@@ -16,6 +16,7 @@ import {
   SecurityCheckIcon,
   ServerStack01Icon,
   UserAccountIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
@@ -209,7 +210,7 @@ const sidebar = {
           id: "team-settings",
           label: "Team Settings",
           href: "/team-settings",
-          icon: UserAccountIcon,
+          icon: UserGroupIcon,
         },
       ],
     },
