@@ -221,6 +221,14 @@ a {
     flex-shrink: 0;
   }
 
+  .select__popover .search-field {
+    @apply p-2;
+  }
+
+  .select__popover .search-field__group {
+    @apply ring-inset;
+  }
+
   .select__popover [data-slot="list-box"] {
     min-height: 0;
     max-height: 20rem;
