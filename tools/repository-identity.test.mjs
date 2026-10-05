@@ -44,7 +44,7 @@ async function fixture(t) {
   await writeFile(join(root, "repository.json"), JSON.stringify(identity));
   await writeFile(
     join(root, "README.md"),
-    "https://github.com/old-org/old-name\n",
+    "https://github.com/old-org/old-name.git\n",
   );
   await writeFile(
     join(root, "release.yml"),

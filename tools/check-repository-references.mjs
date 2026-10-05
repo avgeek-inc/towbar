@@ -80,7 +80,7 @@ for (const path of files.filter(
   for (const match of source.matchAll(
     /(?:github\.com|raw\.githubusercontent\.com|api\.github\.com\/repos)\/([a-z0-9-]+\/[a-z0-9_.-]+)(?=[/."'`#?\s]|$)/gi,
   ))
-    if (previous.includes(match[1].toLowerCase()))
+    if (previous.includes(match[1].toLowerCase().replace(/\.git$/, "")))
       failures.push(
         `${path} refers to obsolete repository ${match[1]}; update the reference explicitly`,
       );
