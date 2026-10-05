@@ -27,7 +27,7 @@
     const url = new URL(link.href);
     if (
       url.hostname !== "github.com" ||
-      !/^\/avgeek-inc\/towbar\/?$/i.test(url.pathname)
+      !/^\/avgeek-oss\/towbar\/?$/i.test(url.pathname)
     ) {
       return;
     }

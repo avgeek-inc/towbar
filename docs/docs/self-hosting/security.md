@@ -9,7 +9,7 @@ Security reports are treated as sensitive.
 ## Report a vulnerability
 
 Do not open a public issue. Use
-[GitHub private vulnerability reporting](https://github.com/avgeek-inc/towbar/security/advisories/new)
+[GitHub private vulnerability reporting](https://github.com/avgeek-oss/towbar/security/advisories/new)
 for the Towbar repository. If that feature is unavailable, contact the
 maintainers through the private address in the repository's GitHub security
 settings.
@@ -46,5 +46,5 @@ is authorized to modify a deployed environment branch or Preview branch. Review,
 protection, secret separation, and the decision to enable Preview are part of
 the trust model.
 
-The repository's canonical [security policy](https://github.com/avgeek-inc/towbar/blob/main/SECURITY.md)
+The repository's canonical [security policy](https://github.com/avgeek-oss/towbar/blob/main/SECURITY.md)
 contains the complete and current policy.

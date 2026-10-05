@@ -60,7 +60,7 @@ are part of local feature validation.
 ## Implementation and verification
 
 Branch: `feat/scout-alerts-comparisons`, based on merged provider work on main.
-PR: [#83](https://github.com/avgeek-inc/towbar/pull/83). GitHub reports CI for each revision.
+PR: [#83](https://github.com/avgeek-oss/towbar/pull/83). GitHub reports CI for each revision.
 
 Implemented shared schemas, persistent rules/incidents/HTTP claims, additive
 migrations, owner-scoped REST mutations, curated MCP tools, workspace notification

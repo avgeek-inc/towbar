@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-images-${{ inputs.release_tag }}
+  group: towbar-release-publication
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
       created: ${{ steps.release.outputs.created }}
       tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
+      registry: ${{ steps.release.outputs.registry }}
+      distribution_url: ${{ steps.release.outputs.distribution_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -46,6 +48,8 @@ jobs:
             echo "created=$created"
             echo "tag=$RELEASE_TAG"
             echo "version=$version"
+            echo "registry=$(jq -r .imageRegistry repository.json)"
+            echo "distribution_url=$(jq -r .distributionUrl repository.json)"
           } >>"$GITHUB_OUTPUT"
 
   build:
@@ -94,12 +98,12 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ needs.prepare.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ needs.prepare.outputs.commit }}
+            ${{ needs.prepare.outputs.registry }}/${{ matrix.image }}:${{ needs.prepare.outputs.version }}
+            ${{ needs.prepare.outputs.registry }}/${{ matrix.image }}:${{ needs.prepare.outputs.commit }}
       - name: Record immutable image
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          IMAGE: ${{ needs.prepare.outputs.registry }}/${{ matrix.image }}
           SERVICE: ${{ matrix.service }}
         run: |
           jq -cn \
@@ -118,6 +122,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm repository:check
       - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           pattern: release-image-*
@@ -166,13 +181,51 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$RELEASE_TAG" towbar-images.json --clobber
+      - name: Assemble and upload immutable release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          gh release view "$RELEASE_TAG" --json body --jq .body > release-notes.md
+          node tools/distribution/assemble.mjs release-artifacts "$RELEASE_TAG" "$RELEASE_COMMIT" towbar-images.json release-notes.md
+          node tools/distribution/publish.mjs upload release-artifacts
+          node tools/distribution/publish.mjs verify release-artifacts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-distribution-artifacts
+          path: release-artifacts/
+          retention-days: 14
 
   publish:
-    needs: [prepare, manifest]
+    needs: [prepare, manifest, local-installation-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: release-distribution-artifacts
+          path: release-artifacts
+      - name: Promote the validated release
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: node tools/distribution/publish.mjs promote release-artifacts
       - name: Publish assembled release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -181,15 +234,15 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --draft=false --latest
 
   local-installation-smoke:
-    needs: [prepare, publish]
+    needs: [prepare, manifest]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
     steps:
-      - name: Install the published release locally
+      - name: Install the candidate release locally
         env:
-          INSTALLER_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ needs.prepare.outputs.tag }}/install.sh
+          INSTALLER_URL: ${{ needs.prepare.outputs.distribution_url }}/releases/${{ needs.prepare.outputs.tag }}/install.sh
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           set -euo pipefail
@@ -209,7 +262,7 @@ jobs:
             sudo env \
               TOWBAR_INSTALL_URL=http://localhost:4021 \
               TOWBAR_NON_INTERACTIVE=1 \
-              TOWBAR_REPOSITORY="$GITHUB_REPOSITORY" \
+              TOWBAR_RELEASE_SMOKE=true \
               bash | tee "$evidence/install.log"
 
           curl \
@@ -250,7 +303,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release delete "$RELEASE_TAG" --cleanup-tag --yes
+        run: gh release delete "$RELEASE_TAG" --yes
 
       - name: Collect service evidence
         if: always()

@@ -32,6 +32,7 @@ class InstallTests(unittest.TestCase):
             source.mkdir(parents=True)
             (source / 'protocol').write_text('2\n')
             (source / 'runner.py').write_text(f'RELEASE = "{version}"\n')
+            (source / 'repository_identity.py').write_text(f'RELEASE = "{version}"\n')
             (source / 'upgrade_permissions.py').write_text(f'RELEASE = "{version}"\n')
             (source / 'towbar-upgrade.service').write_text(f'# {version}\n')
             (source / 'compose.yml').write_bytes(Path(__file__).with_name('compose.yml').read_bytes())

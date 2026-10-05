@@ -1,10 +1,13 @@
+import {
+  distributionUrl,
+  repositoryUrl,
+} from "@workspace/towbar-core/repository-identity";
 import type { TowbarUpdateInfo } from "@workspace/towbar-core";
 
 import { getReleaseVersion } from "../../release-version.js";
 
-const latestReleaseUrl =
-  "https://api.github.com/repos/avgeek-inc/towbar/releases/latest";
-const releasesUrl = "https://github.com/avgeek-inc/towbar/releases/tag/";
+const latestReleaseUrl = `${distributionUrl}/releases/latest.json`;
+const releasesUrl = `${repositoryUrl}/releases/tag/`;
 const stableVersion = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
 const successfulCacheMs = 15 * 60_000;
 const unavailableCacheMs = 5 * 60_000;
@@ -54,30 +57,27 @@ export async function checkTowbarUpdates(
   try {
     const response = await fetcher(latestReleaseUrl, {
       headers: {
-        accept: "application/vnd.github+json",
+        accept: "application/json",
         "user-agent": "towbar.dev",
-        "x-github-api-version": "2022-11-28",
       },
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return unavailable;
     const release = (await response.json()) as {
-      draft?: unknown;
-      prerelease?: unknown;
-      tag_name?: unknown;
+      validated?: unknown;
+      version?: unknown;
+      commit?: unknown;
     };
     if (
-      release.draft !== false ||
-      release.prerelease !== false ||
-      typeof release.tag_name !== "string"
+      release.validated !== true ||
+      typeof release.version !== "string" ||
+      typeof release.commit !== "string" ||
+      !/^[a-f0-9]{40}$/.test(release.commit)
     )
       return unavailable;
-    const comparison = compareStableVersions(
-      installedVersion,
-      release.tag_name,
-    );
+    const comparison = compareStableVersions(installedVersion, release.version);
     if (comparison === null) return unavailable;
-    const latestVersion = release.tag_name.replace(/^v/u, "");
+    const latestVersion = release.version.replace(/^v/u, "");
     return {
       checkedAt,
       installedVersion,

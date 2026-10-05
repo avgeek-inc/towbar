@@ -914,12 +914,12 @@
   },
   "navbar": {
     "links": [
-      { "type": "github", "href": "https://github.com/avgeek-inc/towbar" }
+      { "type": "github", "href": "https://github.com/avgeek-oss/towbar" }
     ],
     "primary": { "type": "button", "label": "Docs", "href": "/docs" }
   },
   "footer": {
-    "socials": { "github": "https://github.com/avgeek-inc/towbar" },
+    "socials": { "github": "https://github.com/avgeek-oss/towbar" },
     "links": [
       {
         "header": "Documentation",
@@ -935,10 +935,10 @@
       {
         "header": "Project",
         "items": [
-          { "label": "GitHub", "href": "https://github.com/avgeek-inc/towbar" },
+          { "label": "GitHub", "href": "https://github.com/avgeek-oss/towbar" },
           {
             "label": "Changelog",
-            "href": "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md"
+            "href": "https://github.com/avgeek-oss/towbar/blob/main/CHANGELOG.md"
           },
           { "label": "Security", "href": "/docs/self-hosting/security" }
         ]
@@ -970,7 +970,7 @@
       "name": "Towbar",
       "url": "https://www.towbar.dev",
       "logo": "https://www.towbar.dev/assets/towbar-logo.png",
-      "sameAs": ["https://github.com/avgeek-inc/towbar"]
+      "sameAs": ["https://github.com/avgeek-oss/towbar"]
     }
   },
   "redirects": [

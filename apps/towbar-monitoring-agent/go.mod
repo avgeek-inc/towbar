@@ -1,4 +1,4 @@
-module github.com/avgeek-inc/towbar/monitoring-agent
+module github.com/avgeek-oss/towbar/monitoring-agent
 
 go 1.24.0
 

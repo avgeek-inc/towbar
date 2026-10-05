@@ -23,6 +23,10 @@ async function fixture(t) {
     path.join(repository, "infra/install.sh.in"),
     path.join(root, "infra/install.sh.in"),
   );
+  await cp(
+    path.join(repository, "repository.json"),
+    path.join(root, "repository.json"),
+  );
   const builder = path.join(root, "tools/build-towbar-cli.mjs");
   await cp(path.join(repository, "tools/build-towbar-cli.mjs"), builder);
   const setVersion = (version) =>
@@ -53,7 +57,7 @@ test("a package version bump updates the standalone CLI and pinned installer", a
   assert.match(installer, /INSTALLER_VERSION="v2\.45\.7"/);
   assert.match(
     installer,
-    /\$TOWBAR_REPOSITORY\/\$INSTALLER_VERSION\/infra\/towbar/,
+    /\$TOWBAR_DISTRIBUTION_URL\/releases\/\$INSTALLER_VERSION\/towbar/,
   );
   assert(!installer.includes("@TOWBAR_VERSION@"));
   execFileSync("/bin/bash", ["-n", path.join(root, "install.sh"), cli]);

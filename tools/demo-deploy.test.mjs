@@ -12,8 +12,11 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-const image = `ghcr.io/avgeek-inc/towbar-demo@sha256:${"a".repeat(64)}`;
-const previous = `TOWBAR_DEMO_IMAGE=ghcr.io/avgeek-inc/towbar-demo@sha256:${"b".repeat(64)}\nDEMO_ORIGIN=https://try.towbar.dev\n`;
+const identity = JSON.parse(
+  await readFile(new URL("../repository.json", import.meta.url), "utf8"),
+);
+const image = `${identity.imageRegistry}/towbar-demo@sha256:${"a".repeat(64)}`;
+const previous = `TOWBAR_DEMO_IMAGE=${identity.imageRegistry}/towbar-demo@sha256:${"b".repeat(64)}\nDEMO_ORIGIN=https://try.towbar.dev\n`;
 async function fixture(t, existing) {
   const root = await mkdtemp(join(tmpdir(), "towbar-demo-deploy-"));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -23,12 +26,16 @@ async function fixture(t, existing) {
     new URL("./deploy-public-demo.sh", import.meta.url),
     join(root, "tools/deploy-public-demo.sh"),
   );
+  await copyFile(
+    new URL("../repository.json", import.meta.url),
+    join(root, "repository.json"),
+  );
   if (existing) await writeFile(join(root, "infra/demo/.env"), previous);
   const mocks = {
     uname: 'echo "${MOCK_UNAME:-aarch64}"',
     flock: "exit 0",
     curl: "exit 0",
-    node: 'if [[ "$*" == *demo-smoke.mjs* && "${FAIL_SMOKE:-}" == 1 ]]; then exit 1; fi',
+    node: 'if [[ "$1" == -p ]]; then exec "$REAL_NODE" "$@"; fi; if [[ "$*" == *demo-smoke.mjs* && "${FAIL_SMOKE:-}" == 1 ]]; then exit 1; fi',
     docker: 'printf "%s\\n" "$*" >> "$CALL_LOG"',
   };
   for (const [name, body] of Object.entries(mocks))
@@ -45,6 +52,7 @@ async function fixture(t, existing) {
         ...process.env,
         PATH: `${join(root, "bin")}:${process.env.PATH}`,
         CALL_LOG: join(root, "calls"),
+        REAL_NODE: process.execPath,
         ...env,
       },
     });
@@ -84,7 +92,10 @@ test("failed first activation removes the new stack and rejects mutable image ta
   await assert.rejects(readFile(join(root, "infra/demo/.env")));
   assert.match(await log(), /compose.yml down/);
   const before = await log();
-  assert.equal(run({}, "ghcr.io/avgeek-inc/towbar-demo:latest").status, 1);
+  assert.equal(
+    run({}, `${identity.imageRegistry}/towbar-demo:latest`).status,
+    1,
+  );
   assert.equal(await log(), before);
 });
 

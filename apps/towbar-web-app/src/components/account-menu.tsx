@@ -14,6 +14,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 
+import { repositoryUrl } from "@workspace/towbar-core/repository-identity";
+
 import type { TowbarUser } from "@workspace/towbar-web-client";
 import { Avatar } from "@workspace/web-design-system/data-display/avatar";
 import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
@@ -22,10 +24,8 @@ import {
   Header,
 } from "@workspace/web-design-system/overlays/dropdown";
 
-const changelogUrl =
-  "https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md";
+const changelogUrl = `${repositoryUrl}/blob/main/CHANGELOG.md`;
 const documentationUrl = "https://www.towbar.dev/docs";
-const repositoryUrl = "https://github.com/avgeek-inc/towbar";
 
 export function AccountMenu({
   user,

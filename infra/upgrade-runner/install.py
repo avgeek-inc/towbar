@@ -16,7 +16,7 @@ def install_release(release, library=LIBRARY, config=CONFIG, unit=UNIT):
     source = release / 'infra/upgrade-runner'
     if (source / 'protocol').read_text().strip() != '2':
         raise ValueError('This release needs a manual upgrade of the host service.')
-    scripts = {name: (source / name).read_bytes() for name in ('upgrade_permissions.py', 'runner.py')}
+    scripts = {name: (source / name).read_bytes() for name in ('upgrade_permissions.py', 'repository_identity.py', 'runner.py')}
     for name, content in scripts.items():
         compile(content, name, 'exec')
     service = (source / 'towbar-upgrade.service').read_bytes()

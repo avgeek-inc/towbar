@@ -18,6 +18,7 @@ import time
 import traceback
 import urllib.request
 import uuid
+from repository_identity import REPOSITORY, DISTRIBUTION_URL, REPOSITORY_URL
 from upgrade_permissions import prepare_runtime, runtime_group
 
 STATE = Path('/var/lib/towbar-upgrade')
@@ -93,7 +94,7 @@ def peer_is_root(connection):
 
 def metadata():
     values = dict(line.split('=', 1) for line in (CURRENT / '.towbar-release').read_text().splitlines())
-    if values.get('REPOSITORY') != 'avgeek-inc/towbar' or (CURRENT / 'infra/upgrade-runner/protocol').read_text().strip() != '2':
+    if values.get('REPOSITORY') != REPOSITORY or (CURRENT / 'infra/upgrade-runner/protocol').read_text().strip() != '2':
         raise ValueError('This installation does not support host upgrades.')
     version(values['VERSION'])
     return values
@@ -131,11 +132,11 @@ def unpause(job_id):
 
 def published_release(target):
     version(target)
-    url = 'https://api.github.com/repos/avgeek-inc/towbar/releases/tags/' + target
-    request = urllib.request.Request(url, headers={'User-Agent': 'towbar-upgrade', 'Accept': 'application/vnd.github+json'})
+    url = DISTRIBUTION_URL + '/releases/' + target + '/release.json'
+    request = urllib.request.Request(url, headers={'User-Agent': 'towbar-upgrade', 'Accept': 'application/json'})
     with urllib.request.urlopen(request, timeout=15) as response:
         release = json.load(response)
-    if release.get('tag_name') != target or release.get('draft') is not False or release.get('prerelease') is not False or not release.get('published_at'):
+    if release.get('version') != target or release.get('validated') is not True or not re.fullmatch('[0-9a-f]{40}', release.get('commit', '')):
         raise ValueError('The target is not a published stable release.')
     return release
 
@@ -176,11 +177,11 @@ class Runner:
                 raise ValueError('Select a newer stable version.')
             release = published_release(target)
             prepared = json.loads(run([CLI, 'upgrade-service', 'plan', target]))
-            if prepared['version'] != target or not re.fullmatch('[0-9a-f]{40}', prepared['commit']):
+            if prepared['version'] != target or prepared['commit'] != release['commit']:
                 raise ValueError('The release could not be pinned.')
             plan = {'id': str(uuid.uuid4()), 'currentVersion': installed['VERSION'],
                     'currentCommit': installed['COMMIT'], 'targetVersion': target,
-                    'commit': prepared['commit'], 'releaseUrl': 'https://github.com/avgeek-inc/towbar/releases/tag/' + target,
+                    'commit': prepared['commit'], 'releaseUrl': REPOSITORY_URL + '/releases/tag/' + target,
                     'releaseNotes': (release.get('body') or 'See the release page for details.')[:16000],
                     'blockers': blockers(), 'expiresAt': time.time() + 900}
             save(self.directory / 'plan.json', plan)
@@ -414,8 +415,11 @@ def main():
     if sys.argv[1:2] == ['--upgrade']:
         target = sys.argv[2]
         if target == 'latest':
-            with urllib.request.urlopen('https://api.github.com/repos/avgeek-inc/towbar/releases/latest', timeout=15) as response:
-                target = json.load(response)['tag_name']
+            with urllib.request.urlopen(DISTRIBUTION_URL + '/releases/latest.json', timeout=15) as response:
+                latest = json.load(response)
+                if latest.get('validated') is not True:
+                    raise ValueError('No validated release is available.')
+                target = latest['version']
         plan = local_request('/plan', {'targetVersion': target})
         if plan['blockers']:
             raise ValueError(', '.join(plan['blockers']))

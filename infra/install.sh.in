@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
+TOWBAR_REPOSITORY="@TOWBAR_REPOSITORY@"
+TOWBAR_DISTRIBUTION_URL="@TOWBAR_DISTRIBUTION_URL@"
 INSTALLER_VERSION="v@TOWBAR_VERSION@"
-TOWBAR_CLI_URL="${TOWBAR_CLI_URL:-https://raw.githubusercontent.com/$TOWBAR_REPOSITORY/$INSTALLER_VERSION/infra/towbar}"
+TOWBAR_CLI_URL="$TOWBAR_DISTRIBUTION_URL/releases/$INSTALLER_VERSION/towbar"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 
 fail() {
@@ -13,41 +14,29 @@ fail() {
 
 ((EUID == 0)) || fail "run this installer as root"
 [[ "$(uname -s)" == Linux ]] || fail "Towbar installation supports Linux hosts"
-[[ "$TOWBAR_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] ||
-  fail "TOWBAR_REPOSITORY must be a GitHub owner/repository pair"
 command -v curl >/dev/null || fail "curl is required"
+command -v sha256sum >/dev/null || fail "sha256sum is required"
 
-temporary_cli="$(mktemp)"
-cleanup() {
-  rm -f "$temporary_cli"
-}
+temporary_dir="$(mktemp -d)"
+cleanup() { rm -rf "$temporary_dir"; }
 trap cleanup EXIT
-
-curl \
-  --fail \
-  --silent \
-  --show-error \
-  --location \
-  --retry 4 \
-  --retry-all-errors \
-  --proto '=https' \
-  --tlsv1.2 \
-  "$TOWBAR_CLI_URL" \
-  --output "$temporary_cli"
-bash -n "$temporary_cli"
-install -o root -g root -m 0755 "$temporary_cli" "$TOWBAR_BIN"
+curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+  --proto '=https' --proto-redir '=https' --tlsv1.2 \
+  "$TOWBAR_DISTRIBUTION_URL/releases/$INSTALLER_VERSION/SHA256SUMS" --output "$temporary_dir/SHA256SUMS"
+expected="$(awk '$2 == "towbar" && $1 ~ /^[a-f0-9]+$/ && length($1) == 64 { print $1 }' "$temporary_dir/SHA256SUMS")"
+[[ "$expected" =~ ^[a-f0-9]{64}$ ]] || fail "release does not contain a CLI checksum"
+curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+  --proto '=https' --proto-redir '=https' --tlsv1.2 \
+  "$TOWBAR_CLI_URL" --output "$temporary_dir/towbar"
+printf '%s  %s\n' "$expected" "$temporary_dir/towbar" | sha256sum --check --status || fail "CLI checksum verification failed"
+bash -n "$temporary_dir/towbar"
+install -o root -g root -m 0755 "$temporary_dir/towbar" "$TOWBAR_BIN"
 trap - EXIT
 cleanup
 
 if [[ -t 1 && -r /dev/tty && -w /dev/tty ]]; then
-  exec env \
-    TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
-    TOWBAR_BIN="$TOWBAR_BIN" \
+  exec env TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" TOWBAR_BIN="$TOWBAR_BIN" \
     "$TOWBAR_BIN" install </dev/tty
 fi
-
-exec env \
-  TOWBAR_NON_INTERACTIVE=1 \
-  TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" \
-  TOWBAR_BIN="$TOWBAR_BIN" \
+exec env TOWBAR_NON_INTERACTIVE=1 TOWBAR_REPOSITORY="$TOWBAR_REPOSITORY" TOWBAR_BIN="$TOWBAR_BIN" \
   "$TOWBAR_BIN" install

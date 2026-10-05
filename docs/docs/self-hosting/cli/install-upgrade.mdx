@@ -14,7 +14,7 @@ Install the release bundled with the downloaded CLI. The command accepts no argu
     Review and run the public installer:
 
     ```bash title="Install Towbar"
-    curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
+    curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
     ```
 
     The script downloads the CLI from the repository and invokes `towbar install`.
@@ -44,9 +44,10 @@ It rejects other localhost ports, HTTPS localhost, non-HTTPS remote URLs, custom
     official APT repository.
   </Step>
   <Step title="Verify the release">
-    The CLI verifies that its bundled version is a published, stable release,
-    resolves the Git tag to an immutable commit, and validates the attached
-    multi-architecture image manifest.
+    The CLI verifies that its bundled version is a validated stable release,
+    reads its immutable commit from the release metadata, and checks the source
+    archive and multi-architecture image manifest against the published
+    checksums.
   </Step>
   <Step title="Create configuration">
     Towbar generates database, encryption, and signing secrets, writes
@@ -81,7 +82,7 @@ sudo towbar upgrade [VERSION]
     sudo towbar upgrade
     ```
 
-    The CLI follows the repository's latest GitHub Release redirect and validates the resulting tag.
+    The CLI reads the latest validated version from `https://oss.avgeek.ltd/towbar/releases/latest.json` and validates its stable tag.
 
   </Tab>
   <Tab title="Selected version">
@@ -102,9 +103,9 @@ sudo towbar upgrade [VERSION]
   </Tab>
 </Tabs>
 
-The selected tag must be published, non-draft, non-prerelease, and in the same major release line supported by the installed CLI. The release must include `towbar-images.json` with immutable digests for the API, worker, and dashboard images.
+The selected version must have passed installation validation and be in the same major release line supported by the installed CLI. The release must include `towbar-images.json` with immutable digests for the API, worker, and dashboard images.
 
-Before replacing services, the CLI downloads the exact tagged commit, verifies release metadata, and validates the YAML and target Compose configuration. It then pulls the prebuilt images, runs database migrations, waits for service health, verifies public HTTPS when applicable, and checks that the running API reports the expected commit.
+Before replacing services, the CLI downloads the source archive for the immutable commit, verifies its checksum and the image manifest checksum against versioned release metadata, and validates the YAML and target Compose configuration. It then pulls the prebuilt images, runs database migrations, waits for service health, verifies public HTTPS when applicable, and checks that the running API reports the expected commit.
 
 The updated CLI renames an existing `/etc/towbar/towbar.yml` to `/etc/towbar/config.yml` as part of the upgrade. It preserves the file's contents and permissions and stops if both paths already exist. If the upgrade was started by an older CLI, run `sudo towbar restart` after it installs the updated CLI to complete the rename.
 

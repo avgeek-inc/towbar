@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-image="${1:?Usage: tools/deploy-public-demo.sh ghcr.io/avgeek-inc/towbar-demo@sha256:DIGEST}"
-[[ "$image" =~ ^ghcr.io/avgeek-inc/towbar-demo@sha256:[a-f0-9]{64}$ ]] || {
+registry="$(node -p 'require("./repository.json").imageRegistry')"
+image="${1:?Usage: tools/deploy-public-demo.sh REGISTRY/towbar-demo@sha256:DIGEST}"
+digest="${image#"$registry/towbar-demo@sha256:"}"
+[[ "$digest" != "$image" && "$digest" =~ ^[a-f0-9]{64}$ ]] || {
   echo 'Use the immutable digest from the public demo publishing workflow.' >&2
   exit 1
 }

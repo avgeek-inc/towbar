@@ -3,7 +3,7 @@ title: "Your first deployment"
 description: "Take a Dockerfile service from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one service through Repository sync, server setup, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own service.
+This guide takes one service through Repository sync, server setup, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-oss/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own service.
 
 ## Before you begin
 

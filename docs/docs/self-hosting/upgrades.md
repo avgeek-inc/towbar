@@ -3,7 +3,7 @@ title: "Upgrades and recovery"
 description: "Plan a release upgrade, protect control-plane state, and recover Admin access."
 ---
 
-Upgrade the API, worker, and dashboard together from a reviewed release. Before changing versions, read the [changelog](https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md) for migration requirements.
+Upgrade the API, worker, and dashboard together from a reviewed release. Before changing versions, read the [changelog](https://github.com/avgeek-oss/towbar/blob/main/CHANGELOG.md) for migration requirements.
 
 ## Prepare an upgrade
 
@@ -27,9 +27,9 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts only published, non-prerelease semantic versions in its own major version. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/config.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. After a failed service replacement, the CLI attempts to restore the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+The CLI accepts only validated stable versions in its own major version. It reads the immutable commit and checksums from `https://oss.avgeek.ltd/towbar/releases/<version>/release.json`, downloads and verifies the source archive and image manifest before extraction into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/config.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. After a failed service replacement, the CLI attempts to restore the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
 
-The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
+The target release must have passed the release workflow's fresh installation smoke. Update discovery uses `https://oss.avgeek.ltd/towbar/releases/latest.json`. Failed or pending candidates never replace the validated latest pointer or running installation.
 
 The updated CLI renames an existing `/etc/towbar/towbar.yml` to `/etc/towbar/config.yml` during upgrade, preserving its contents and permissions. If both paths exist, the upgrade stops so an operator can resolve the conflict without losing either file. An upgrade started with an older CLI installs the updated CLI first; run `sudo towbar restart` afterward to complete the rename. The repository-root `towbar.yml` manifest is unrelated and stays unchanged.
 

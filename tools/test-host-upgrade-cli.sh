@@ -73,7 +73,7 @@ done
   TOWBAR_ROOT=/opt/towbar
   TOWBAR_CONFIG_DIR=/etc/towbar
   TOWBAR_BIN=/usr/local/bin/towbar
-  TOWBAR_REPOSITORY=avgeek-inc/towbar
+  TOWBAR_REPOSITORY=avgeek-oss/towbar
   systemctl() { [[ "$1" == list-units ]]; }
   host_upgrades_supported "$release_dir"
   TOWBAR_ROOT="$temporary_root/custom"
@@ -81,7 +81,7 @@ done
   TOWBAR_ROOT=/opt/towbar
   TOWBAR_REPOSITORY=example/fork
   if host_upgrades_supported "$release_dir"; then exit 1; fi
-  TOWBAR_REPOSITORY=avgeek-inc/towbar
+  TOWBAR_REPOSITORY=avgeek-oss/towbar
   printf '1\n' >"$release_dir/infra/upgrade-runner/protocol"
   if host_upgrades_supported "$release_dir"; then exit 1; fi
   printf '2\n' >"$release_dir/infra/upgrade-runner/protocol"

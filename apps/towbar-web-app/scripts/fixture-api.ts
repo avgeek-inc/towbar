@@ -1338,7 +1338,7 @@ const previews: PreviewEnvironment[] = [
     latestDeploymentId: previewDeployment.id,
     nextCleanupAttemptAt: null,
     pullRequestNumber: 42,
-    pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/42",
+    pullRequestUrl: "https://github.com/avgeek-oss/towbar/pull/42",
     sourceId: source.id,
     status: "healthy",
     updatedAt: fixtureNow,
@@ -1358,7 +1358,7 @@ const previews: PreviewEnvironment[] = [
     latestDeploymentId: null,
     nextCleanupAttemptAt: "2026-08-28T04:15:00.000Z",
     pullRequestNumber: 43,
-    pullRequestUrl: "https://github.com/avgeek-inc/towbar/pull/43",
+    pullRequestUrl: "https://github.com/avgeek-oss/towbar/pull/43",
     sourceId: source.id,
     status: "cleanup_failed",
     updatedAt: fixtureNow,
@@ -1650,7 +1650,7 @@ const towbarUpdates: TowbarUpdateInfo = {
   checkedAt: systemHealthFixtureNow,
   installedVersion: packageManifest.version,
   latestVersion: packageManifest.version,
-  releaseUrl: `https://github.com/avgeek-inc/towbar/releases/tag/v${packageManifest.version}`,
+  releaseUrl: `https://github.com/avgeek-oss/towbar/releases/tag/v${packageManifest.version}`,
   status: "current",
 };
 

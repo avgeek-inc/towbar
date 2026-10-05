@@ -60,7 +60,7 @@ jobs:
         env:
           SOURCE_COMMIT: ${{ steps.release.outputs.commit }}
         run: |
-          image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/towbar-demo"
+          image="$(node -p 'require("./repository.json").imageRegistry')/towbar-demo"
           docker tag towbar-demo:test "$image:$SOURCE_COMMIT"
           docker push "$image:$SOURCE_COMMIT"
           digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$image:$SOURCE_COMMIT")"

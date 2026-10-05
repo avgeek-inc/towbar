@@ -22,16 +22,16 @@ Towbar generates the database passwords, credential-encryption key, and internal
 Review and run the installer as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
+curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
 ```
 
-The installer places the current CLI at `/usr/local/bin/towbar`. The CLI verifies the selected published release, resolves it to an immutable commit, installs it under `/opt/towbar/releases`, and starts the Compose stack. It generates the PostgreSQL, runtime-database, credential-encryption, and internal-signing secrets once. Existing Docker installations are preserved; Docker upgrades remain managed by the host package manager.
+The installer places the current CLI at `/usr/local/bin/towbar`. The CLI verifies the selected validated release and its immutable commit, installs it under `/opt/towbar/releases`, and starts the Compose stack. It generates the PostgreSQL, runtime-database, credential-encryption, and internal-signing secrets once. Existing Docker installations are preserved; Docker upgrades remain managed by the host package manager.
 
 During installation, the CLI:
 
 1. Inspects the host and installs the required system packages.
 2. Installs Docker Engine and Compose v2 when they are absent.
-3. Verifies the installer's exact published release and resolves its tag to an immutable commit.
+3. Verifies the installer's exact validated release and reads its immutable commit from the release manifest.
 4. Downloads the release and creates the root-owned runtime configuration.
 5. Pulls the release's multi-architecture API, worker, and dashboard images from GitHub Container Registry by immutable digest. Published images include provenance and SBOM attestations.
 6. Applies the database and Temporal schemas.
@@ -41,19 +41,11 @@ During installation, the CLI:
 
 The browser setup asks for the team name, administrator display name, email address, password, and password confirmation. Provider credentials, SMTP, notification destinations, deployment servers, and repositories are configured after the first Admin signs in.
 
-To review every executable before installation, download the CLI directly:
+The stable installer at `https://oss.avgeek.ltd/towbar/install.sh` selects the latest validated release. Its embedded version pins the downloaded CLI. The installer verifies the CLI checksum before installing it; the CLI verifies the source archive and immutable image manifest against the versioned release metadata before extraction or activation.
 
-```bash
-curl -fsSLo towbar \
-  https://raw.githubusercontent.com/avgeek-inc/towbar/main/infra/towbar
-less towbar
-sudo install -o root -g root -m 0755 towbar /usr/local/bin/towbar
-sudo towbar install
-```
+To inspect a specific release, download its CLI and checksums from `https://oss.avgeek.ltd/towbar/releases/v2.X.Y/towbar` and `https://oss.avgeek.ltd/towbar/releases/v2.X.Y/SHA256SUMS`. Replace `v2.X.Y` with the published version. Review the CLI, then verify its checksum before running it.
 
-The installer is versioned with Towbar. It installs the exact release declared inside the downloaded installer rather than resolving a moving `latest` release. The installed CLI verifies that release on GitHub and resolves its tag to an immutable commit before downloading source.
-
-A published release becomes installable after its **Publish release images** workflow succeeds and attaches the immutable image manifest. If that workflow is still running, the installer stops without changing the running installation and asks you to retry later.
+The release workflow uploads immutable versioned artifacts, verifies downloads through the owned domain, and runs a fresh installation with health, doctor, host-upgrade support, and restart checks. Only a successful installation promotes the latest pointer used by the stable installer and update checks. Candidate artifacts do not change that pointer. GitHub continues to host source, issues, release notes, and container images.
 
 ## Configure the installation
 
