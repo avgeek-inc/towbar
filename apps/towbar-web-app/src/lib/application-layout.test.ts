@@ -38,6 +38,7 @@ test("manage navigation exposes each feature at its primary destination", () => 
       "shared-secrets",
       "notifications",
       "integrations",
+      "account-settings",
       "team-settings",
       "health",
     ],
@@ -49,7 +50,7 @@ test("manage navigation exposes each feature at its primary destination", () => 
   );
   assert.deepEqual(
     memberWorkspace?.items.map((item) => item.id),
-    ["shared-secrets"],
+    ["shared-secrets", "account-settings"],
   );
   const memberSharedSecrets = memberWorkspace?.items.find(
     (item) => item.id === "shared-secrets",
@@ -62,8 +63,10 @@ test("manage navigation exposes each feature at its primary destination", () => 
 
   const viewer = createApplicationSidebar({}, undefined, fixtureUser("viewer"));
   assert.deepEqual(
-    viewer.groups.find((group) => group.id === "workspace"),
-    undefined,
+    viewer.groups
+      .find((group) => group.id === "workspace")
+      ?.items.map((item) => item.id),
+    ["account-settings"],
   );
 });
 

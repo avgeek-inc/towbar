@@ -186,9 +186,16 @@ const sidebar = {
         },
         {
           kind: "link",
+          id: "account-settings",
+          label: "Account settings",
+          href: "/settings",
+          icon: sidebarIcons.profile,
+        },
+        {
+          kind: "link",
           id: "team-settings",
           label: "Team Settings",
-          href: "/team-settings/general",
+          href: "/team-settings",
           icon: UserAccountIcon,
         },
         {

@@ -96,7 +96,7 @@ const navigationPrefetchPaths: Record<string, string[]> = {
   "/manage/shared-secrets": ["/v1/core/settings/secrets"],
   "/manage/notifications": ["/v1/core/notifications/providers"],
   "/manage/integrations": ["/v1/core/integrations"],
-  "/team-settings/general": ["/v1/core/team"],
+  "/team-settings": ["/v1/core/team"],
   "/system-health": ["/v1/core/system-health"],
 };
 
