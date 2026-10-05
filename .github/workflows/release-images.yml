@@ -18,6 +18,9 @@ concurrency:
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       commit: ${{ steps.release.outputs.commit }}
       created: ${{ steps.release.outputs.created }}
@@ -51,6 +54,16 @@ jobs:
             echo "registry=$(jq -r .imageRegistry repository.json)"
             echo "distribution_url=$(jq -r .distributionUrl repository.json)"
           } >>"$GITHUB_OUTPUT"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/distribution/package-lock.json
+      - run: npm ci --prefix tools/distribution --ignore-scripts
+      - name: Verify publication credential isolation
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: node tools/distribution/check-scope.mjs "${{ steps.release.outputs.commit }}"
 
   build:
     needs: prepare

@@ -13,7 +13,13 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /apps/towbar-api
+      - /apps/towbar-worker
+      - /apps/towbar-web-app
+      - /examples
+      - /examples/persistent-files
+      - /examples/platform-modes/node-app
     schedule:
       interval: weekly
   - package-ecosystem: github-actions

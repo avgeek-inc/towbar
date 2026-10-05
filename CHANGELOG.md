@@ -5,8 +5,23 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+## [2.0.30] - 2026-10-05
+
+### Added
+
+- Connect multiple GitHub organizations or accounts and move repository sources
+  after verifying access through the destination installation.
+- Installers, CLI downloads and schemas are published at `oss.avgeek.ltd/towbar`.
+  Releases use short-lived, repository-scoped credentials and become available
+  only after a fresh installation passes health and restart checks.
+
 ### Changed
 
+- Browser contracts are independent of server code. Builds share one dependency
+  graph, and release publication uses a small, separate dependency set.
+- Removed optional Sentry telemetry and its configuration.
+- Settings navigation, invitation tables and integration details use simpler
+  headings, copy and action alignment.
 - Page content uses 16px horizontal padding and 80px bottom padding at every
   viewport size. Page headings use 20px padding above and below, and header
   padding aligns the navigation icon with the page content.
