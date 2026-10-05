@@ -148,9 +148,6 @@ function EnvironmentProvider({
     <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
       <FormCard title="Runtime configuration" help={false}>
         <div className="grid gap-3">
-          <p className="text-sm font-medium text-muted">
-            {metadata.description}
-          </p>
           {details.length ? (
             <Attributes columns={1} variant="embedded">
               {details.map(({ label, value }) => (
@@ -160,10 +157,8 @@ function EnvironmentProvider({
               ))}
             </Attributes>
           ) : (
-            <p className="text-sm text-muted">
-              {provider === "doppler"
-                ? "Doppler uses a runtime token; there are no account details to show."
-                : "No public configuration details are available."}
+            <p className="text-sm font-medium text-muted">
+              {metadata.description}
             </p>
           )}
           <ButtonLink

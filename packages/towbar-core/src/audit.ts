@@ -165,6 +165,11 @@ export const auditEventCatalog = {
     label: "Secrets revealed",
     metadata: ["environment", "stage", "revision", "key", "keyCount"],
   },
+  "source.connection.changed": {
+    icon: "repository",
+    label: "Repository connection changed",
+    metadata: ["from", "to", "previousConnectionId", "connectionId"],
+  },
   "source.connected": {
     icon: "repository",
     label: "Repository connected",

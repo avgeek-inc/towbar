@@ -85,7 +85,8 @@ environments:
     closed = false,
     nextId = 100;
   const reports = [],
-    unexpected = [];
+    unexpected = [],
+    githubDeployments = [];
   const entries = [
     ["towbar.yml", "1".repeat(40), root],
     [".towbar/services/website.service.yml", "2".repeat(40), app],
@@ -136,10 +137,23 @@ environments:
           encoding: "base64",
           size: Buffer.byteLength(blob[2]),
         });
-      if (
-        route === "/repos/test/test/deployments" ||
-        /^\/repos\/test\/test\/deployments\/\d+\/statuses$/.test(route)
-      ) {
+      if (route === "/repos/test/test/deployments") {
+        if (init?.method === "GET")
+          return Response.json(
+            githubDeployments.filter(
+              (deployment) =>
+                deployment.sha === url.searchParams.get("sha") &&
+                deployment.environment === url.searchParams.get("environment"),
+            ),
+          );
+        assert.equal(init?.method, "POST");
+        const body = JSON.parse(init.body);
+        const deployment = { ...body, id: nextId++, sha: body.ref };
+        githubDeployments.push(deployment);
+        reports.push(body);
+        return Response.json(deployment);
+      }
+      if (/^\/repos\/test\/test\/deployments\/\d+\/statuses$/.test(route)) {
         reports.push(JSON.parse(init.body));
         return Response.json({ id: nextId++ });
       }
@@ -233,6 +247,7 @@ environments:
     assert.deepEqual(after.config, config);
     assert.deepEqual(after.requiredSecrets, persistent.requiredSecrets);
     assert.deepEqual(unexpected, []);
+    assert.equal(githubDeployments.length, 2);
     assert(
       reports.some((item) => item.state === "success"),
       "Preview success must be reported to GitHub",

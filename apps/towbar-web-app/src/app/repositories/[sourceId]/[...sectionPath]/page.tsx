@@ -8,7 +8,13 @@ export default async function Page({
   const { sectionPath } = await params;
   const [section, child] = sectionPath;
   const children: Record<string, string[]> = {
-    settings: ["auto-deploy", "notifications", "secrets", "danger"],
+    settings: [
+      "connection",
+      "auto-deploy",
+      "notifications",
+      "secrets",
+      "danger",
+    ],
   };
   if (
     !section ||

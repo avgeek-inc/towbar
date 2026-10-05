@@ -8,7 +8,8 @@ import {
   completeInstallation,
   createInstallationUrl,
   disconnectGitHub,
-  getGitHubConnectionStatus,
+  getGitHubConnectionStatuses,
+  getGitHubConnections,
   getWorkspaceGitHubRepositories,
 } from "../../../areas/github/service.js";
 import { getGitHubAppConfigurationMetadata } from "../../../areas/github/configuration.js";
@@ -25,6 +26,10 @@ const completeSchema = z
   })
   .strict();
 
+const connectionQuery = z
+  .object({ connectionId: z.string().uuid().optional() })
+  .strict();
+
 export const githubRoutes = new Hono<TowbarHonoEnvironment>();
 
 githubRoutes.get(
@@ -34,20 +39,21 @@ githubRoutes.get(
     responseSchema: 'github.ts:get:"/"',
     summary: "Get GitHub integration",
     response:
-      "JSON object containing configuration, connection, and previewReporting.",
+      "JSON object containing configuration, connections, and previewReporting.",
     status: 200,
   }),
   async (context) => {
     const workspaceId = context.get("user").workspaceId;
-    const [configuration, connection, previewReporting] = await Promise.all([
+    const [configuration, connections, previewReporting] = await Promise.all([
       getGitHubAppConfigurationMetadata(workspaceId),
-      getGitHubConnectionStatus(workspaceId),
+      getGitHubConnectionStatuses(workspaceId),
       getPreviewReportingHealth(workspaceId),
     ]);
     return context.json({
       canManage: context.get("user").workspaceRole === "admin",
       configuration,
-      connection,
+      connections,
+      connection: connections.length === 1 ? connections[0] : null,
       previewReporting,
     });
   },
@@ -118,20 +124,24 @@ githubRoutes.get(
   operation({
     permissions: ["githubInstallation.read"],
     responseSchema: 'github.ts:get:"/repositories"',
+    query: connectionQuery,
     summary: "Get workspace GitHub repositories",
-    response: "JSON object containing repositories.",
+    response:
+      "Repositories with connection IDs, unavailable accounts, and identity warnings.",
     status: 200,
   }),
   async (context) => {
-    const repositories = await getWorkspaceGitHubRepositories(
+    const result = await getWorkspaceGitHubRepositories(
       context.get("user").workspaceId,
+      connectionQuery.parse(context.req.query()).connectionId,
     );
-    return context.json({ repositories });
+    return context.json(result);
   },
 );
 
 const branchesQuery = z
   .object({
+    connectionId: z.string().uuid().optional(),
     owner: z.string().trim().min(1).max(255),
     repository: z.string().trim().min(1).max(255),
   })
@@ -145,7 +155,7 @@ githubRoutes.get(
     summary: "List repository branches",
     query: branchesQuery,
     response:
-      "Repository branch names available to the workspace GitHub installation.",
+      "Repository branch names available to the selected GitHub account.",
     status: 200,
   }),
   async (context) => {
@@ -163,12 +173,16 @@ githubRoutes.delete(
   operation({
     permissions: ["integration.manage"],
     responseSchema: 'github.ts:delete:"/"',
-    summary: "Disconnect GitHub",
+    query: connectionQuery,
+    summary: "Disconnect GitHub account",
     response: "No response body.",
     status: 204,
   }),
   async (context) => {
-    await disconnectGitHub(context.get("user").workspaceId);
+    await disconnectGitHub(
+      context.get("user").workspaceId,
+      connectionQuery.parse(context.req.query()).connectionId,
+    );
     return context.body(null, 204);
   },
 );
@@ -179,21 +193,22 @@ githubRoutes.get(
     permissions: ["githubInstallation.read"],
     summary: "Get connected GitHub installation",
     responseSchema: 'github.ts:get:"/installation"',
-    response: "Connected installation metadata without provider credentials.",
+    response:
+      "Connected accounts and installation IDs without provider credentials.",
   }),
   async (context) => {
-    const connection = await getGitHubConnectionStatus(
+    const installations = await getGitHubConnections(
       context.get("user").workspaceId,
     );
+    const connections = installations.map((connection) => ({
+      id: connection.id,
+      accountLogin: connection.accountLogin,
+      accountType: connection.accountType,
+      suspendedAt: connection.suspendedAt,
+    }));
     return context.json({
-      connection: connection
-        ? {
-            id: connection.id,
-            accountLogin: connection.accountLogin,
-            accountType: connection.accountType,
-            suspendedAt: connection.suspendedAt,
-          }
-        : null,
+      connections,
+      connection: connections.length === 1 ? connections[0] : null,
     });
   },
 );

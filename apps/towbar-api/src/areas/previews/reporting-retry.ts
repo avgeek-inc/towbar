@@ -1,86 +1,90 @@
-import { and, eq } from "drizzle-orm";
-
-import {
-  deployments,
-  previewEnvironments,
-} from "@workspace/towbar-database/schema";
-
+import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { previewPullRequestReports } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
-import { publishPreviewDeploymentStatus } from "../deployments/preview-status.js";
+import { publishPreviewDeploymentReport } from "../deployments/preview-status.js";
 import { publishPreviewPullRequestComment } from "./pr-comment.js";
-import {
-  listFailedPreviewReports,
-  markPreviewReportDeliveryFailed,
-  markPreviewReportDeliverySucceeded,
-} from "./reporting-state.js";
-
-import type { DeploymentState } from "@workspace/towbar-core/temporal";
+import { previewReportingRecoveryDelayMs } from "./reporting-policy.js";
 
 export async function retryFailedPreviewReporting(workspaceId: string) {
-  const reports = await listFailedPreviewReports(workspaceId);
-  const results = [];
-  for (const report of reports) {
-    const errors: string[] = [];
-    if (report.deploymentDeliveryStatus === "failed") {
-      const latestDeployments = await getTowbarDatabase()
-        .select({
-          deploymentId: deployments.id,
-          environmentStatus: previewEnvironments.status,
-          state: deployments.state,
-        })
-        .from(previewEnvironments)
-        .innerJoin(
-          deployments,
-          eq(deployments.id, previewEnvironments.latestDeploymentId),
-        )
-        .where(
-          and(
-            eq(previewEnvironments.sourceId, report.sourceId),
-            eq(previewEnvironments.pullRequestNumber, report.pullRequestNumber),
+  return await recoverPreviewReporting({ workspaceId, force: true, limit: 50 });
+}
+
+export async function recoverPreviewReporting(
+  options: { workspaceId?: string; force?: boolean; limit?: number } = {},
+) {
+  const now = new Date();
+  const report = previewPullRequestReports;
+  const due = (
+    status:
+      | typeof report.commentDeliveryStatus
+      | typeof report.deploymentDeliveryStatus,
+    next:
+      | typeof report.commentNextAttemptAt
+      | typeof report.deploymentNextAttemptAt,
+  ) =>
+    and(
+      or(eq(status, "failed"), eq(status, "pending")),
+      options.force
+        ? or(
+            eq(status, "failed"),
+            lte(
+              report.updatedAt,
+              new Date(now.getTime() - previewReportingRecoveryDelayMs),
+            ),
+          )
+        : or(
+            lte(next, now),
+            and(
+              isNull(next),
+              or(
+                eq(status, "failed"),
+                lte(
+                  report.updatedAt,
+                  new Date(now.getTime() - previewReportingRecoveryDelayMs),
+                ),
+              ),
+            ),
           ),
-        );
-      for (const deployment of latestDeployments) {
-        try {
-          await publishPreviewDeploymentStatus(
-            deployment.deploymentId,
-            deployment.environmentStatus === "deleted"
-              ? "inactive"
-              : (deployment.state as DeploymentState),
-          );
-        } catch (error) {
-          errors.push(
-            error instanceof Error ? error.message : "GitHub request failed",
-          );
-        }
-      }
-      if (errors.length === 0) {
-        await markPreviewReportDeliverySucceeded(report, "deployment");
-      } else {
-        await markPreviewReportDeliveryFailed(
-          report,
-          "deployment",
-          new Error(errors.join("; ")),
-        );
-      }
-    }
-    if (report.commentDeliveryStatus === "failed") {
-      try {
-        await publishPreviewPullRequestComment(report);
-      } catch (error) {
-        errors.push(
-          error instanceof Error ? error.message : "GitHub request failed",
-        );
-      }
-    }
-    results.push({
-      pullRequestNumber: report.pullRequestNumber,
+    );
+  const reports = await getTowbarDatabase()
+    .select({
       sourceId: report.sourceId,
-      succeeded: errors.length === 0,
-    });
+      pullRequestNumber: report.pullRequestNumber,
+      commentDeliveryStatus: report.commentDeliveryStatus,
+      deploymentDeliveryStatus: report.deploymentDeliveryStatus,
+    })
+    .from(report)
+    .where(
+      and(
+        options.workspaceId
+          ? eq(report.workspaceId, options.workspaceId)
+          : undefined,
+        or(
+          due(report.commentDeliveryStatus, report.commentNextAttemptAt),
+          due(report.deploymentDeliveryStatus, report.deploymentNextAttemptAt),
+        ),
+      ),
+    )
+    .orderBy(asc(report.updatedAt))
+    .limit(options.limit ?? 5);
+  let failed = 0;
+  let attempted = 0;
+  const deadline = Date.now() + 60_000;
+  for (const item of reports) {
+    if (Date.now() >= deadline) break;
+    const deliveryOptions = { onlyIfDue: true, force: options.force };
+    const results = await Promise.allSettled([
+      publishPreviewDeploymentReport(item, deliveryOptions),
+      publishPreviewPullRequestComment(item, deliveryOptions),
+    ]);
+    if (
+      results.every(
+        (result) => result.status === "fulfilled" && result.value === null,
+      )
+    )
+      continue;
+    attempted += 1;
+    if (results.some((result) => result.status === "rejected")) failed += 1;
   }
-  return {
-    attempted: results.length,
-    failed: results.filter((result) => !result.succeeded).length,
-    succeeded: results.filter((result) => result.succeeded).length,
-  };
+  return { attempted, failed, succeeded: attempted - failed };
 }

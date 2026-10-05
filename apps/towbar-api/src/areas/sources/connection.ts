@@ -2,7 +2,7 @@ import { recordAuditEvent } from "../../infrastructure/audit.js";
 import { auditAttribution } from "../auth/actor-context.js";
 import { actorAllows } from "@workspace/towbar-access";
 import { requireActor } from "../auth/actor-context.js";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   resolveRepositoryEnvironment,
@@ -11,6 +11,7 @@ import {
 import { sourceEnvironments, sources } from "@workspace/towbar-database/schema";
 import { conflict } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import { getGitHubRepository } from "../github/client.js";
 import { getGitHubInstallationForSource } from "../github/service.js";
 import { resolveIntegration } from "../integrations/service.js";
 import { fetchRepositoryEnvironmentSnapshot } from "./repository-provider.js";
@@ -97,6 +98,10 @@ export async function connectRepositorySource(
 ) {
   const actor = requireActor(input.workspaceId, ["repository.connect"]);
   const connection = await repositoryConnection(input);
+  const githubRepository =
+    connection.provider === "github"
+      ? await getGitHubRepository(connection)
+      : null;
   const resolved: {
     environment: string;
     branch: string;
@@ -117,7 +122,13 @@ export async function connectRepositorySource(
     });
   }
   const result = await getTowbarDatabase().transaction(async (transaction) => {
-    const repositoryKey = `${input.workspaceId}:${connection.provider}:${input.repositoryOwner.toLowerCase()}/${input.repositoryName.toLowerCase()}`;
+    const owner = githubRepository?.owner ?? input.repositoryOwner;
+    const name = githubRepository?.name ?? input.repositoryName;
+    if (githubRepository)
+      await transaction.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`${input.workspaceId}:github:id:${githubRepository.id}`}, 0))`,
+      );
+    const repositoryKey = `${input.workspaceId}:${connection.provider}:${owner.toLowerCase()}/${name.toLowerCase()}`;
     await transaction.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${repositoryKey}, 0))`,
     );
@@ -128,8 +139,15 @@ export async function connectRepositorySource(
         and(
           eq(sources.workspaceId, input.workspaceId),
           eq(sources.provider, connection.provider),
-          sql`lower(${sources.repositoryOwner}) = ${input.repositoryOwner.toLowerCase()}`,
-          sql`lower(${sources.repositoryName}) = ${input.repositoryName.toLowerCase()}`,
+          or(
+            githubRepository
+              ? eq(sources.providerRepositoryId, githubRepository.id)
+              : undefined,
+            and(
+              sql`lower(${sources.repositoryOwner}) = ${owner.toLowerCase()}`,
+              sql`lower(${sources.repositoryName}) = ${name.toLowerCase()}`,
+            ),
+          ),
         ),
       );
     if (existing)
@@ -146,9 +164,11 @@ export async function connectRepositorySource(
         integrationAuthorizationId:
           connection.provider === "gitlab" ? connection.connectionId : null,
         providerRepositoryId:
-          connection.provider === "gitlab" ? connection.projectId : null,
-        repositoryName: input.repositoryName,
-        repositoryOwner: input.repositoryOwner,
+          connection.provider === "gitlab"
+            ? connection.projectId
+            : githubRepository!.id,
+        repositoryName: githubRepository?.name ?? input.repositoryName,
+        repositoryOwner: githubRepository?.owner ?? input.repositoryOwner,
       })
       .returning(publicSourceSelection);
     if (!source) throw new Error("Unable to connect Source");

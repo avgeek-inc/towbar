@@ -29,9 +29,12 @@ export async function listRepositoryBranches(
 
 export async function getWorkspaceRepositoryBranches(
   workspaceId: string,
-  input: { owner: string; repository: string },
+  input: { owner: string; repository: string; connectionId?: string },
 ) {
-  const installation = await getGitHubConnection(workspaceId);
+  const installation = await getGitHubConnection(
+    workspaceId,
+    input.connectionId,
+  );
   if (!installation) throw notFound("GitHub installation");
   if (installation.suspendedAt)
     throw conflict("Reconnect the GitHub App before listing branches");

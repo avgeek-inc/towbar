@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { integrationInstallations } from "@workspace/towbar-database/schema";
 
-import { notFound } from "../../http/errors.js";
+import { conflict, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import {
   getGitHubRuntimeConfiguration,
@@ -27,13 +27,26 @@ export function getGitHubAppConfiguration(_workspaceId: string) {
 
 export async function getGitHubAppConfigurationForInstallation(
   installationId: string,
+  requireActive = false,
 ) {
   const [installation] = await getTowbarDatabase()
-    .select({ id: integrationInstallations.id })
+    .select({
+      id: integrationInstallations.id,
+      suspendedAt: integrationInstallations.suspendedAt,
+    })
     .from(integrationInstallations)
-    .where(eq(integrationInstallations.externalId, installationId))
+    .where(
+      and(
+        eq(integrationInstallations.externalId, installationId),
+        eq(integrationInstallations.provider, "github"),
+      ),
+    )
     .limit(1);
   if (!installation) throw notFound("GitHub installation");
+  if (requireActive && installation.suspendedAt)
+    throw conflict(
+      "Reconnect this GitHub account before accessing repositories",
+    );
   const { appId, appSlug, privateKey, webhookSecret } =
     requireGitHubRuntimeConfiguration();
   return {
@@ -54,7 +67,12 @@ export async function getGitHubAppConfigurationByAppId(
   const [installation] = await getTowbarDatabase()
     .select({ id: integrationInstallations.id })
     .from(integrationInstallations)
-    .where(eq(integrationInstallations.externalId, installationId))
+    .where(
+      and(
+        eq(integrationInstallations.externalId, installationId),
+        eq(integrationInstallations.provider, "github"),
+      ),
+    )
     .limit(1);
   if (!installation) throw notFound("GitHub installation");
   const { appSlug, privateKey, webhookSecret } = configuration;

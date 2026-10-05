@@ -3,11 +3,13 @@ id: 10912be4-a6cc-5ba1-b555-82e9cedeba73
 description:
   "Required permissions: githubInstallation.read. Personal keys are capped by the current
   member role; team keys use explicit grants."
-url: "{{baseUrl}}/github/branches?owner=example-inc&repository=example-app"
+url: "{{baseUrl}}/github/branches?connectionId=&owner=example-inc&repository=example-app"
 method: GET
 headers:
   Accept: application/json
 queryParams:
+  - key: connectionId
+    value: ""
   - key: owner
     value: example-inc
   - key: repository

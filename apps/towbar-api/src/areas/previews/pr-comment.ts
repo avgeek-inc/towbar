@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import {
   apps,
@@ -13,12 +13,9 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { upsertGitHubPullRequestComment } from "../github/client.js";
 import { upsertGitLabMergeRequestComment } from "../gitlab/client.js";
 import { sourceProviderClient } from "../sources/repository-provider.js";
-import {
-  type PreviewSkippedApp,
-  markPreviewReportDeliveryAttempt,
-  markPreviewReportDeliveryFailed,
-  markPreviewReportDeliverySucceeded,
-} from "./reporting-state.js";
+import { type PreviewSkippedApp } from "./reporting-state.js";
+
+import { deliverPreviewReport } from "./reporting-delivery.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -70,7 +67,22 @@ export type PreviewPullRequestCommentEntry = {
   skippedReason?: string;
 };
 
-export async function publishPreviewPullRequestComment(input: {
+export async function publishPreviewPullRequestComment(
+  input: {
+    pullRequestNumber: number;
+    sourceId: string;
+  },
+  options: { onlyIfDue?: boolean; force?: boolean } = {},
+) {
+  return await deliverPreviewReport(
+    input,
+    "comment",
+    () => publishCurrentPreviewPullRequestComment(input),
+    options,
+  );
+}
+
+async function publishCurrentPreviewPullRequestComment(input: {
   pullRequestNumber: number;
   sourceId: string;
 }) {
@@ -126,46 +138,33 @@ export async function publishPreviewPullRequestComment(input: {
   );
   if (!source || entries.length === 0) return null;
   const marker = previewPullRequestCommentMarker(input);
-  await markPreviewReportDeliveryAttempt(input, "comment");
-  try {
-    const comment = await database.transaction(async (transaction) => {
-      // Provider comment creation has no idempotency key, so keep discovery
-      // and creation inside one cross-process critical section.
-      await transaction.execute(
-        sql`select pg_advisory_xact_lock(hashtextextended(${marker}, 0))`,
-      );
-      const provider = await sourceProviderClient(input.sourceId);
-      const body = renderPreviewPullRequestComment({
-        appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
-        entries,
-        marker,
-        sourceId: input.sourceId,
-      });
-      return provider.provider === "github"
-        ? await upsertGitHubPullRequestComment({
-            body,
-            installationId: provider.installationId,
-            marker,
-            pullRequestNumber: input.pullRequestNumber,
-            repositoryName: source.repositoryName,
-            repositoryOwner: source.repositoryOwner,
-          })
-        : await upsertGitLabMergeRequestComment({
-            body,
-            connection: provider.connection,
-            marker,
-            projectId: provider.projectId,
-            pullRequestNumber: input.pullRequestNumber,
-            repositoryName: source.repositoryName,
-            repositoryOwner: source.repositoryOwner,
-          });
-    });
-    await markPreviewReportDeliverySucceeded(input, "comment");
-    return comment;
-  } catch (error) {
-    await markPreviewReportDeliveryFailed(input, "comment", error);
-    throw error;
-  }
+  const provider = await sourceProviderClient(input.sourceId);
+  const body = renderPreviewPullRequestComment({
+    appBaseUrl: getEnv().TOWBAR_APP_BASE_URL,
+    entries,
+    marker,
+    sourceId: input.sourceId,
+  });
+  const comment =
+    provider.provider === "github"
+      ? await upsertGitHubPullRequestComment({
+          body,
+          installationId: provider.installationId,
+          marker,
+          pullRequestNumber: input.pullRequestNumber,
+          repositoryName: source.repositoryName,
+          repositoryOwner: source.repositoryOwner,
+        })
+      : await upsertGitLabMergeRequestComment({
+          body,
+          connection: provider.connection,
+          marker,
+          projectId: provider.projectId,
+          pullRequestNumber: input.pullRequestNumber,
+          repositoryName: source.repositoryName,
+          repositoryOwner: source.repositoryOwner,
+        });
+  return comment;
 }
 
 export function combinePreviewPullRequestCommentEntries(

@@ -17,6 +17,7 @@ import {
   workloadRoute,
 } from "./mcp-toolkit.js";
 import { scoutTools } from "./mcp-scout-tools.js";
+import { repositoryTools } from "./mcp-repository-tools.js";
 import { infrastructureTools } from "./mcp-infrastructure-tools.js";
 import {
   sourceConnectionSchema,
@@ -508,79 +509,7 @@ export const mcpTools: McpTool[] = [
     { destructive: false },
   ),
   ...infrastructureTools,
-  tool(
-    "repository_search",
-    "Find available GitHub or GitLab repositories",
-    "Find a repository connection and provider-specific identifier for towbar_source_connect. GitHub uses its installation connection; GitLab uses its workspace provider configuration and supports cloud or self-managed instances.",
-    z
-      .object({
-        provider: z.enum(["github", "gitlab"]).default("github"),
-        integration: z.string().trim().min(1).max(80).optional(),
-        search: z.string().max(255).default(""),
-        ...page,
-      })
-      .strict()
-      .refine(
-        (a) =>
-          a.provider === "gitlab" ? Boolean(a.integration) : !a.integration,
-        "integration is required for GitLab and must be omitted for GitHub.",
-      ),
-    async (a, c) => {
-      if (a.provider === "gitlab") {
-        const repositories = await c.call({
-          method: "GET",
-          route: "/gitlab/repositories",
-          query: {
-            integration: a.integration,
-            search: a.search,
-            page: Math.floor(a.offset / a.limit) + 1,
-            perPage: a.limit,
-          },
-        });
-        return {
-          provider: "gitlab",
-          integration: a.integration,
-          ...repositories,
-        };
-      }
-      const github = await c.call({
-        method: "GET",
-        route: "/github/installation",
-      });
-      const connection = github.connection as { id: string } | null;
-      const repositories = await c.call({
-        method: "GET",
-        route: "/github/repositories",
-      });
-      return {
-        githubInstallationId: connection?.id ?? null,
-        ...pageItems(
-          records(repositories.repositories).filter((item) =>
-            JSON.stringify(item).toLowerCase().includes(a.search.toLowerCase()),
-          ),
-          a.offset,
-          a.limit,
-        ),
-      };
-    },
-    { permissions: ["githubInstallation.read", "integration.manage"] },
-  ),
-  action(
-    "github_disconnect",
-    "Disconnect GitHub integration",
-    "Disconnect the workspace GitHub integration, affecting repository sync and deployments. Confirm this workspace-wide change with the user.",
-    "DELETE",
-    "/github",
-  ),
-  action(
-    "github_retry_reporting",
-    "Retry preview reporting",
-    "Retry failed GitHub preview status/comment reporting. This retries reporting, not deployment; inspect preview/deployment state separately.",
-    "POST",
-    "/github/actions/retry-preview-reporting",
-    {},
-    { destructive: false },
-  ),
+  ...repositoryTools,
   action(
     "workspace_check",
     "Refresh control-plane health",

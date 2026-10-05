@@ -539,6 +539,7 @@ export type DeploymentEvent = {
 };
 
 export type GitHubConnection = {
+  identityWarnings?: string[];
   accountLogin: string;
   accountType: string;
   id: string;
@@ -555,6 +556,11 @@ export type GitHubConnection = {
   suspendedAt: string | null;
   updatedAt: string;
 };
+
+export type GitHubConnectionMetadata = Pick<
+  GitHubConnection,
+  "id" | "accountLogin" | "accountType" | "suspendedAt"
+>;
 
 export type NamedIntegrationConnection = {
   configuration: Record<string, unknown>;
@@ -589,6 +595,7 @@ export type PreviewReportingHealth = {
 };
 
 export type GitHubRepository = {
+  connectionId?: string;
   defaultBranch: string;
   fullName: string;
   id: string;

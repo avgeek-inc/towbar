@@ -1,7 +1,7 @@
 import { withActor } from "../auth/actor-context.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { digestValue } from "@workspace/towbar-core";
@@ -28,6 +28,7 @@ const pushSchema = z.object({
   installation: z.object({ id: z.number().int().positive() }),
   ref: z.string(),
   repository: z.object({
+    id: z.number().int().positive().optional(),
     name: z.string(),
     owner: z.object({ login: z.string() }),
   }),
@@ -41,6 +42,7 @@ const pullRequestSchema = z.object({
   installation: z.object({ id: z.number().int().positive() }),
   number: z.number().int().positive().max(2_147_483_647),
   repository: z.object({
+    id: z.number().int().positive().optional(),
     name: z.string(),
     owner: z.object({ login: z.string() }),
   }),
@@ -130,6 +132,7 @@ export async function processGitHubPush(
   if (!branch) return null;
   const matchingSources = await findActiveSources({
     installationId: push.installation.id,
+    repositoryId: push.repository.id ? String(push.repository.id) : undefined,
     repositoryName: push.repository.name,
     repositoryOwner: push.repository.owner.login,
   });
@@ -179,6 +182,9 @@ async function processPullRequest(payload: unknown) {
   if (!shouldReconcilePreviewPullRequest(pullRequest.action)) return null;
   const matchingSources = await findActiveSources({
     installationId: pullRequest.installation.id,
+    repositoryId: pullRequest.repository.id
+      ? String(pullRequest.repository.id)
+      : undefined,
     repositoryName: pullRequest.repository.name,
     repositoryOwner: pullRequest.repository.owner.login,
   });
@@ -193,6 +199,7 @@ async function processPullRequest(payload: unknown) {
 
 async function findActiveSources(input: {
   installationId: number;
+  repositoryId?: string;
   repositoryName: string;
   repositoryOwner: string;
 }) {
@@ -209,8 +216,25 @@ async function findActiveSources(input: {
     .where(
       and(
         eq(integrationInstallations.externalId, String(input.installationId)),
-        eq(sources.repositoryOwner, input.repositoryOwner),
-        eq(sources.repositoryName, input.repositoryName),
+        eq(integrationInstallations.provider, "github"),
+        or(
+          input.repositoryId
+            ? eq(sources.providerRepositoryId, input.repositoryId)
+            : undefined,
+          and(
+            isNull(sources.providerRepositoryId),
+            sql`lower(${sources.repositoryOwner}) = ${input.repositoryOwner.toLowerCase()}`,
+            sql`lower(${sources.repositoryName}) = ${input.repositoryName.toLowerCase()}`,
+          ),
+          ...(!input.repositoryId
+            ? [
+                and(
+                  eq(sources.repositoryOwner, input.repositoryOwner),
+                  eq(sources.repositoryName, input.repositoryName),
+                ),
+              ]
+            : []),
+        ),
         eq(sources.status, "active"),
         isNull(integrationInstallations.suspendedAt),
       ),

@@ -619,7 +619,7 @@ async function getAppForDeployment(appId: string, workspaceId: string) {
     );
   if (environment.mappingRevision !== environment.syncedMappingRevision) {
     throw conflict(
-      "Sync this environment after changing its branch before deploying",
+      "Sync this environment after changing its branch or repository connection before deploying",
       "ENVIRONMENT_SYNC_REQUIRED",
     );
   }

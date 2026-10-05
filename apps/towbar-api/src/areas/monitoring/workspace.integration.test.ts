@@ -73,6 +73,8 @@ void test(
         .values(
           [0, 1, 2].map((i) => ({
             ...rule,
+            // These incidents are seeded; concurrent evaluator tests must not resolve them.
+            enabled: false,
             severity: i === 0 ? ("critical" as const) : ("warning" as const),
             id: randomUUID(),
             workspaceId: i === 2 ? foreignWorkspace : workspaceId,

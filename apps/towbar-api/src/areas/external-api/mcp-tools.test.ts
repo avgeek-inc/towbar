@@ -42,7 +42,7 @@ function harness(responses: Record<string, Record<string, unknown>> = {}) {
 void test("MCP catalogue is curated, namespaced, directly typed, and independent of REST IDs", () => {
   const integrations = [get("integration_list")];
   assert.equal(integrations.length, 1);
-  assert.equal(mcpTools.length, 53);
+  assert.equal(mcpTools.length, 54);
   for (const tool of integrations)
     assert.deepEqual(tool.permissions, ["integration.manage"]);
   assert(mcpTools.length < operations.length);
@@ -414,4 +414,79 @@ void test("Scout tools inspect before mutation and keep comparison output bounde
     get("alerts_configure").permissions.includes("alert.configure") &&
       !get("alerts_configure").readOnly,
   );
+});
+
+void test("GitHub MCP discovery returns per-repository connection IDs and scopes mutations", async () => {
+  const h = harness({
+    "GET /github/installation": {
+      connections: [
+        { id: uuid, accountLogin: "avgeek-labs" },
+        { id: otherUuid, accountLogin: "avgeek-oss" },
+      ],
+      connection: null,
+    },
+    "GET /github/repositories": {
+      repositories: [
+        {
+          id: "1234",
+          connectionId: otherUuid,
+          fullName: "avgeek-oss/towbar",
+          owner: "avgeek-oss",
+          name: "towbar",
+        },
+      ],
+      unavailableConnections: [{ id: uuid, message: "Unavailable" }],
+      identityWarnings: [],
+    },
+  });
+  const result = await get("repository_search").run(
+    { connectionId: otherUuid, search: "towbar" },
+    h.context,
+  );
+  assert.deepEqual(h.calls.at(-1)?.query, { connectionId: otherUuid });
+  assert.equal(result.githubInstallationId, null);
+  assert.equal(
+    (result.items as { githubInstallationId: string }[])[0]
+      ?.githubInstallationId,
+    otherUuid,
+  );
+  assert.equal((result.connections as unknown[]).length, 2);
+  assert.equal((result.unavailableConnections as unknown[]).length, 1);
+  await assert.rejects(
+    () =>
+      get("repository_search").run(
+        { provider: "gitlab", integration: "gitlab", connectionId: uuid },
+        h.context,
+      ),
+    z.ZodError,
+  );
+  await assert.rejects(
+    () => get("github_disconnect").run({}, h.context),
+    z.ZodError,
+  );
+  await get("github_disconnect").run({ connectionId: uuid }, h.context);
+  assert.deepEqual(h.calls.at(-1), {
+    method: "DELETE",
+    route: "/github",
+    query: { connectionId: uuid },
+  });
+  await get("source_change_github_connection").run(
+    {
+      sourceId: uuid,
+      githubInstallationId: otherUuid,
+      repositoryOwner: "avgeek-oss",
+      repositoryName: "towbar",
+    },
+    h.context,
+  );
+  assert.deepEqual(h.calls.at(-1), {
+    method: "POST",
+    route: "/sources/:sourceId/actions/change-github-connection",
+    path: { sourceId: uuid },
+    body: {
+      githubInstallationId: otherUuid,
+      repositoryOwner: "avgeek-oss",
+      repositoryName: "towbar",
+    },
+  });
 });

@@ -3,8 +3,11 @@ id: 34d12239-51dc-55a1-93bb-6320440caec9
 description:
   "Required permissions: githubInstallation.read. Personal keys are capped by the current
   member role; team keys use explicit grants."
-url: "{{baseUrl}}/github/repositories"
+url: "{{baseUrl}}/github/repositories?connectionId="
 method: GET
 headers:
   Accept: application/json
+queryParams:
+  - key: connectionId
+    value: ""
 order: 4000

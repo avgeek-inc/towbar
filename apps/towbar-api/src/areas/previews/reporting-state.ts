@@ -1,8 +1,12 @@
-import { and, count, desc, eq, or } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 
 import { previewPullRequestReports } from "@workspace/towbar-database/schema";
 
 import { getTowbarDatabase } from "../../infrastructure/database.js";
+import {
+  previewReportingRecoveryDelayMs,
+  previewReportingRetryAt,
+} from "./reporting-policy.js";
 
 export type PreviewReportDelivery = "comment" | "deployment";
 export type PreviewSkippedApp = {
@@ -26,6 +30,9 @@ export async function recordPreviewPullRequestPlan(input: {
     .values({
       branch: input.branch,
       closedAt: null,
+      commentDeliveryAttempts: 0,
+      commentLastAttemptedAt: null,
+      commentNextAttemptAt: null,
       commentDeliveryError: null,
       commentDeliveryStatus: "pending",
       deploymentDeliveryError: null,
@@ -46,7 +53,7 @@ export async function recordPreviewPullRequestPlan(input: {
       set: {
         branch: input.branch,
         closedAt: null,
-        commentDeliveryError: null,
+        commentLastAttemptedAt: null,
         commentDeliveryStatus: "pending",
         latestCommitSha: input.latestCommitSha,
         skippedApps: input.skippedApps,
@@ -73,7 +80,7 @@ export async function markPreviewReportDeliveryAttempt(
   delivery: PreviewReportDelivery,
 ) {
   const now = new Date();
-  await getTowbarDatabase()
+  const [attempt] = await getTowbarDatabase()
     .update(previewPullRequestReports)
     .set(
       delivery === "comment"
@@ -81,21 +88,37 @@ export async function markPreviewReportDeliveryAttempt(
             commentDeliveryError: null,
             commentDeliveryStatus: "pending",
             commentLastAttemptedAt: now,
+            commentDeliveryAttempts: sql`${previewPullRequestReports.commentDeliveryAttempts} + 1`,
+            commentNextAttemptAt: new Date(
+              now.getTime() + previewReportingRecoveryDelayMs,
+            ),
             updatedAt: now,
           }
         : {
             deploymentDeliveryError: null,
             deploymentDeliveryStatus: "pending",
             deploymentLastAttemptedAt: now,
+            deploymentDeliveryAttempts: sql`${previewPullRequestReports.deploymentDeliveryAttempts} + 1`,
+            deploymentNextAttemptAt: new Date(
+              now.getTime() + previewReportingRecoveryDelayMs,
+            ),
             updatedAt: now,
           },
     )
-    .where(reportIdentity(input));
+    .where(reportIdentity(input))
+    .returning({
+      attempts:
+        delivery === "comment"
+          ? previewPullRequestReports.commentDeliveryAttempts
+          : previewPullRequestReports.deploymentDeliveryAttempts,
+    });
+  return { at: now, attempts: attempt?.attempts ?? 1 };
 }
 
 export async function markPreviewReportDeliverySucceeded(
   input: { pullRequestNumber: number; sourceId: string },
   delivery: PreviewReportDelivery,
+  attemptedAt?: { at: Date; attempts: number },
 ) {
   const now = new Date();
   await getTowbarDatabase()
@@ -103,44 +126,106 @@ export async function markPreviewReportDeliverySucceeded(
     .set(
       delivery === "comment"
         ? {
+            commentDeliveryAttempts: 0,
+            commentNextAttemptAt: null,
             commentDeliveryError: null,
             commentDeliveryStatus: "published",
             commentPublishedAt: now,
             updatedAt: now,
           }
         : {
+            deploymentDeliveryAttempts: 0,
+            deploymentNextAttemptAt: null,
             deploymentDeliveryError: null,
             deploymentDeliveryStatus: "published",
             deploymentPublishedAt: now,
             updatedAt: now,
           },
     )
-    .where(reportIdentity(input));
+    .where(
+      and(
+        reportIdentity(input),
+        attemptedAt
+          ? eq(
+              delivery === "comment"
+                ? previewPullRequestReports.commentDeliveryAttempts
+                : previewPullRequestReports.deploymentDeliveryAttempts,
+              attemptedAt.attempts,
+            )
+          : undefined,
+        attemptedAt
+          ? eq(
+              delivery === "comment"
+                ? previewPullRequestReports.commentLastAttemptedAt
+                : previewPullRequestReports.deploymentLastAttemptedAt,
+              attemptedAt.at,
+            )
+          : undefined,
+      ),
+    );
 }
 
 export async function markPreviewReportDeliveryFailed(
   input: { pullRequestNumber: number; sourceId: string },
   delivery: PreviewReportDelivery,
   error: unknown,
+  attemptedAt?: { at: Date; attempts: number },
 ) {
   const now = new Date();
   const message = previewReportingErrorMessage(error);
+  const [report] = await getTowbarDatabase()
+    .select({
+      attempts:
+        delivery === "comment"
+          ? previewPullRequestReports.commentDeliveryAttempts
+          : previewPullRequestReports.deploymentDeliveryAttempts,
+    })
+    .from(previewPullRequestReports)
+    .where(reportIdentity(input))
+    .limit(1);
+  const nextAttemptAt = previewReportingRetryAt(
+    error,
+    report?.attempts ?? 1,
+    now,
+  );
   await getTowbarDatabase()
     .update(previewPullRequestReports)
     .set(
       delivery === "comment"
         ? {
+            commentNextAttemptAt: nextAttemptAt,
             commentDeliveryError: message,
             commentDeliveryStatus: "failed",
             updatedAt: now,
           }
         : {
+            deploymentNextAttemptAt: nextAttemptAt,
             deploymentDeliveryError: message,
             deploymentDeliveryStatus: "failed",
             updatedAt: now,
           },
     )
-    .where(reportIdentity(input));
+    .where(
+      and(
+        reportIdentity(input),
+        attemptedAt
+          ? eq(
+              delivery === "comment"
+                ? previewPullRequestReports.commentDeliveryAttempts
+                : previewPullRequestReports.deploymentDeliveryAttempts,
+              attemptedAt.attempts,
+            )
+          : undefined,
+        attemptedAt
+          ? eq(
+              delivery === "comment"
+                ? previewPullRequestReports.commentLastAttemptedAt
+                : previewPullRequestReports.deploymentLastAttemptedAt,
+              attemptedAt.at,
+            )
+          : undefined,
+      ),
+    );
   return message;
 }
 
@@ -181,32 +266,6 @@ export async function getPreviewReportingHealth(workspaceId: string) {
   };
 }
 
-export async function listFailedPreviewReports(
-  workspaceId: string,
-  limit = 50,
-) {
-  return await getTowbarDatabase()
-    .select({
-      commentDeliveryStatus: previewPullRequestReports.commentDeliveryStatus,
-      deploymentDeliveryStatus:
-        previewPullRequestReports.deploymentDeliveryStatus,
-      pullRequestNumber: previewPullRequestReports.pullRequestNumber,
-      sourceId: previewPullRequestReports.sourceId,
-    })
-    .from(previewPullRequestReports)
-    .where(
-      and(
-        eq(previewPullRequestReports.workspaceId, workspaceId),
-        or(
-          eq(previewPullRequestReports.commentDeliveryStatus, "failed"),
-          eq(previewPullRequestReports.deploymentDeliveryStatus, "failed"),
-        ),
-      ),
-    )
-    .orderBy(desc(previewPullRequestReports.updatedAt))
-    .limit(limit);
-}
-
 export function previewReportingErrorMessage(error: unknown) {
   const message =
     error instanceof Error ? error.message : "GitHub request failed";
@@ -216,7 +275,7 @@ export function previewReportingErrorMessage(error: unknown) {
     .slice(0, 1_000);
 }
 
-function reportIdentity(input: {
+export function reportIdentity(input: {
   pullRequestNumber: number;
   sourceId: string;
 }) {
