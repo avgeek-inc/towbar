@@ -1,4 +1,4 @@
-import type { ConfigurationFile } from "@workspace/towbar-core";
+import type { ConfigurationFile } from "@workspace/towbar-contracts";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 

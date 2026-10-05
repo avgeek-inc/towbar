@@ -30,6 +30,7 @@ if (
 )
   throw new Error("Package version differs from release tag");
 const release = {
+  schemaVersion: 1,
   version,
   commit,
   createdAt: git("show", "-s", "--format=%cI", commit).toString().trim(),

@@ -9,7 +9,6 @@
   "description": "Temporal worker and isolated executor for Towbar.",
   "scripts": {
     "dev": "tsx watch src/worker.ts",
-    "prebuild": "pnpm --filter @workspace/towbar-core build && pnpm --filter @workspace/towbar-deployer build && pnpm --filter @workspace/observability-node build",
     "build": "tsc --project tsconfig.build.json && pnpm bundle:workflows",
     "bundle:workflows": "node scripts/build-workflow-bundle.mjs",
     "lint": "eslint . --max-warnings 0",

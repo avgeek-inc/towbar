@@ -35,11 +35,11 @@
     "schemas:check": "tsx scripts/export-manifest-schemas.ts --check"
   },
   "dependencies": {
-    "@js-temporal/polyfill": "0.5.1",
-    "croner": "^10.0.1",
     "minimatch": "10.2.6",
     "yaml": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@workspace/towbar-contracts": "workspace:*",
+    "croner": "^10.0.1"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -138,9 +138,6 @@ packageExtensionsChecksum: sha256-WejKyr6zvoDpFmj1i33Xcbcv9+JkaWcD4QiWJn/qGf8=
 importers:
   .:
     devDependencies:
-      "@aws-sdk/client-s3":
-        specifier: "catalog:"
-        version: 3.1136.0
       "@types/node":
         specifier: "catalog:"
         version: 26.6.3
@@ -304,6 +301,9 @@ importers:
       "@workspace/towbar-access":
         specifier: workspace:*
         version: link:../../packages/towbar-access
+      "@workspace/towbar-contracts":
+        specifier: workspace:*
+        version: link:../../packages/towbar-contracts
       "@workspace/towbar-web-client":
         specifier: workspace:*
         version: link:../../packages/towbar-web-client
@@ -549,11 +549,45 @@ importers:
         specifier: "catalog:"
         version: 5.9.3
 
-  packages/towbar-core:
+  packages/towbar-contracts:
     dependencies:
       "@js-temporal/polyfill":
         specifier: 0.5.1
         version: 0.5.1
+      croner:
+        specifier: ^10.0.1
+        version: 10.0.1
+      zod:
+        specifier: "catalog:"
+        version: 4.5.4
+    devDependencies:
+      "@types/node":
+        specifier: "catalog:"
+        version: 26.6.3
+      "@workspace/eslint-config":
+        specifier: workspace:*
+        version: link:../eslint-config
+      "@workspace/typescript-config":
+        specifier: workspace:*
+        version: link:../typescript-config
+      eslint:
+        specifier: "catalog:"
+        version: 9.39.5(jiti@2.7.0)
+      prettier:
+        specifier: "catalog:"
+        version: 3.9.9
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
+      typescript:
+        specifier: "catalog:"
+        version: 5.9.3
+
+  packages/towbar-core:
+    dependencies:
+      "@workspace/towbar-contracts":
+        specifier: workspace:*
+        version: link:../towbar-contracts
       croner:
         specifier: ^10.0.1
         version: 10.0.1
@@ -687,9 +721,9 @@ importers:
       "@workspace/towbar-access":
         specifier: workspace:*
         version: link:../towbar-access
-      "@workspace/towbar-core":
+      "@workspace/towbar-contracts":
         specifier: workspace:*
-        version: link:../towbar-core
+        version: link:../towbar-contracts
     devDependencies:
       "@workspace/eslint-config":
         specifier: workspace:*

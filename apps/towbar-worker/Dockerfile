@@ -8,7 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ld
 FROM node:24-trixie-slim@sha256:6950b66b4c0cb0151ce89fa75074673850763d096b044f422c6729b588dd4956 AS base
 
 FROM base AS pruner
-ARG TURBO_VERSION=2.10.11
+ARG TURBO_VERSION=2.11.4
 WORKDIR /repo
 RUN npm install --global turbo@${TURBO_VERSION}
 COPY . .
@@ -23,7 +23,7 @@ RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
 
 FROM installer AS builder
 COPY --from=pruner /repo/out/full/ ./
-RUN pnpm --filter towbar-worker build
+RUN pnpm exec turbo run build --filter=towbar-worker
 RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
   pnpm --filter towbar-worker --prod --ignore-scripts \
     --config.blockExoticSubdeps=false deploy --legacy --offline \

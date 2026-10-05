@@ -1,3 +1,4 @@
+import { publicationCredentials } from "./credentials.mjs";
 import { readFile } from "node:fs/promises";
 import {
   GetObjectCommand,
@@ -23,18 +24,14 @@ const release = validateRelease(
 if (command === "verify") {
   await verifyPublicRelease(release);
 } else {
-  for (const name of [
-    "CLOUDFLARE_ACCOUNT_ID",
-    "R2_ACCESS_KEY_ID",
-    "R2_SECRET_ACCESS_KEY",
-  ])
-    if (!process.env[name]) throw new Error(`Missing ${name}`);
+  const credentials = await publicationCredentials(identity, release.commit);
   const client = new S3Client({
-    endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    endpoint: credentials.endpoint,
     region: "auto",
     credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      sessionToken: credentials.sessionToken,
     },
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",

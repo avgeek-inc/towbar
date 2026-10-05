@@ -14,7 +14,7 @@ pnpm --filter towbar-api dev
 pnpm --filter towbar-api test
 pnpm --filter towbar-api lint
 pnpm --filter towbar-api typecheck
-pnpm --filter towbar-api build
+pnpm exec turbo run build --filter=towbar-api
 ```
 
 Production uses separate runtime and migrator PostgreSQL credentials. Keep the internal HMAC secret and `TOWBAR_CREDENTIALS_KEY` outside PostgreSQL. Static integration and notification credentials come directly from the API process environment; the database stores only dynamic provider authorizations such as GitLab OAuth grants and GitHub installations.

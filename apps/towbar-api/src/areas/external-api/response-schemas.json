@@ -12570,9 +12570,9 @@
             { "type": "string", "const": "doppler" },
             { "type": "string", "const": "registry" },
             { "type": "string", "const": "s3" },
-            { "type": "string", "const": "r2" },
             { "type": "string", "const": "gcs" },
-            { "type": "string", "const": "aws" }
+            { "type": "string", "const": "aws" },
+            { "type": "string", "const": "r2" }
           ]
         }
       },
@@ -15002,7 +15002,7 @@
       "properties": { "dockerJsonFiles": { "type": "boolean" } },
       "required": ["dockerJsonFiles"]
     },
-    "Response_148": {
+    "AppVolume_148": {
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -15039,7 +15039,7 @@
         "port": { "type": "number" },
         "volumes": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_148" }
+          "items": { "$ref": "#/components/schemas/AppVolume_148" }
         },
         "resources": { "$ref": "#/components/schemas/Response_149" }
       },
@@ -16355,8 +16355,8 @@
         "provider": {
           "anyOf": [
             { "type": "string", "const": "s3" },
-            { "type": "string", "const": "r2" },
-            { "type": "string", "const": "gcs" }
+            { "type": "string", "const": "gcs" },
+            { "type": "string", "const": "r2" }
           ]
         },
         "region": { "type": "string" }
@@ -16393,14 +16393,14 @@
         "engineMajorVersion": { "type": "number" },
         "format": {
           "anyOf": [
-            { "type": "string", "const": "clickhouse-backup" },
-            { "type": "string", "const": "dragonfly-rdb" },
-            { "type": "string", "const": "keydb-rdb" },
+            { "type": "string", "const": "postgres-custom" },
+            { "type": "string", "const": "mysql-sql" },
             { "type": "string", "const": "mariadb-sql" },
             { "type": "string", "const": "mongodb-archive" },
-            { "type": "string", "const": "mysql-sql" },
-            { "type": "string", "const": "postgres-custom" },
-            { "type": "string", "const": "redis-rdb" }
+            { "type": "string", "const": "redis-rdb" },
+            { "type": "string", "const": "dragonfly-rdb" },
+            { "type": "string", "const": "keydb-rdb" },
+            { "type": "string", "const": "clickhouse-backup" }
           ]
         },
         "key": { "type": "string" },
@@ -16410,8 +16410,8 @@
         "restoreFrom": {
           "anyOf": [
             { "type": "string", "const": "s3" },
-            { "type": "string", "const": "r2" },
-            { "type": "string", "const": "gcs" }
+            { "type": "string", "const": "gcs" },
+            { "type": "string", "const": "r2" }
           ]
         },
         "sizeBytes": { "type": "number" },

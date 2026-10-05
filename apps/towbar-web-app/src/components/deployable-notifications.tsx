@@ -2,7 +2,7 @@
 
 import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import type { ManifestNotifications } from "@workspace/towbar-core";
+import type { ManifestNotifications } from "@workspace/towbar-contracts";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import {
   ResourceTable,

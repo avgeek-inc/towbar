@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/towbar-contracts",
+  "description": "Browser-safe Towbar contracts and shared validation.",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "zod": "catalog:",
+    "@js-temporal/polyfill": "0.5.1",
+    "croner": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "^4.23.13",
+    "typescript": "catalog:"
+  }
+}

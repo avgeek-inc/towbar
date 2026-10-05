@@ -4,5 +4,7 @@
   "imageRegistry": "ghcr.io/avgeek-oss",
   "distributionUrl": "https://oss.avgeek.ltd/towbar",
   "releaseBucket": "avgeek-oss-releases",
-  "releasePrefix": "towbar"
+  "releasePrefix": "towbar",
+  "previousRepositories": ["avgeek-inc/towbar", "avgeek-labs/towbar"],
+  "previousImageRegistries": ["ghcr.io/avgeek-inc", "ghcr.io/avgeek-labs"]
 }
