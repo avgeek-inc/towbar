@@ -72,8 +72,6 @@ type Invitation = {
   role: WorkspaceRole;
   status: string;
   expiresAt: string;
-  deliveryStatus: string | null;
-  errorCode: string | null;
 };
 type Dialog = {
   mode: "create" | "invite" | "role";
@@ -449,33 +447,6 @@ function TeamMembers() {
           label="Expires"
           display="relative"
         />
-      ),
-    },
-    {
-      key: "delivery",
-      header: "Delivery",
-      cell: (invitation) => (
-        <TableCellStack as="div">
-          <StatusBadge
-            status={
-              invitation.deliveryStatus === "sent"
-                ? "succeeded"
-                : (invitation.deliveryStatus ?? "pending")
-            }
-            label={
-              invitation.deliveryStatus === "sent"
-                ? "Sent to mail server"
-                : invitation.deliveryStatus === "failed"
-                  ? "Delivery failed"
-                  : "Pending"
-            }
-          />
-          {invitation.errorCode === "SMTP_NOT_CONFIGURED" ? (
-            <TableCellDescription>
-              Configure SMTP in Integrations.
-            </TableCellDescription>
-          ) : null}
-        </TableCellStack>
       ),
     },
     {
