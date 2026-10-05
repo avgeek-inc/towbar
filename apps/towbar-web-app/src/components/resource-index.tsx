@@ -52,7 +52,7 @@ export function SourceIndex() {
     "/v1/core/resources",
   );
   const github = useApiQuery<{
-    connection: { suspendedAt: string | null } | null;
+    connections: { suspendedAt: string | null }[];
   }>("/v1/core/github/installation", 30_000);
   const gitlab = useApiQuery<{ connections: unknown[] }>(
     "/v1/core/gitlab/connections",
@@ -62,7 +62,7 @@ export function SourceIndex() {
   const hasConfiguredProvider =
     configuredRepositoryProviders({
       githubConnected: Boolean(
-        github.data?.connection && !github.data.connection.suspendedAt,
+        github.data?.connections.some((item) => !item.suspendedAt),
       ),
       gitlabConnected: Boolean(gitlab.data?.connections.length),
     }).length > 0;

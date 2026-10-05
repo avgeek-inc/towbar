@@ -549,7 +549,8 @@
                   "api-reference/post_sources_connect",
                   "api-reference/get_sources_by_id_branches",
                   "api-reference/get_sources_by_id_syncs",
-                  "api-reference/get_sources_by_id_syncs_by_id"
+                  "api-reference/get_sources_by_id_syncs_by_id",
+                  "api-reference/post_sources_by_id_actions_change_github_connection"
                 ]
               },
               {

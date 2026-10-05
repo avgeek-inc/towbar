@@ -643,6 +643,7 @@ export const integrationInstallations = pgTable(
       .$type<IntegrationProvider>()
       .notNull(),
     externalId: varchar("external_id", { length: 128 }).notNull(),
+    principalId: varchar("principal_id", { length: 128 }),
     principalName: varchar("principal_name", { length: 255 }).notNull(),
     principalType: varchar("principal_type", { length: 40 }).notNull(),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
@@ -658,9 +659,13 @@ export const integrationInstallations = pgTable(
       table.provider,
       table.externalId,
     ),
-    uniqueIndex("uq_towbar_integration_installation_workspace").on(
+    uniqueIndex("uq_towbar_integration_installation_workspace")
+      .on(table.workspaceId, table.provider)
+      .where(sql`${table.provider} <> 'github'`),
+    uniqueIndex("uq_towbar_integration_installation_account").on(
       table.workspaceId,
       table.provider,
+      table.principalId,
     ),
   ],
 );

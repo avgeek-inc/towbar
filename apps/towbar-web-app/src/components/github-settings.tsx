@@ -3,7 +3,6 @@
 import {
   Add01Icon,
   ReloadIcon,
-  Shield01Icon,
   Unlink01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -14,11 +13,13 @@ import type {
   PreviewReportingHealth,
 } from "@workspace/towbar-web-client";
 import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
 import { Alert } from "@workspace/web-design-system/feedback/alert";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
+import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 
 import { ActionButton, FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
@@ -31,7 +32,7 @@ type GitHubState = {
     appSlug: string;
     source: "environment";
   } | null;
-  connection: GitHubConnection | null;
+  connections: GitHubConnection[];
   previewReporting: PreviewReportingHealth;
 };
 
@@ -74,52 +75,23 @@ export function GitHubSettings() {
 
   return (
     <GitHubConnectionCard
-      connection={query.data.connection}
+      configuration={query.data.configuration}
+      connections={query.data.connections}
       previewReporting={query.data.previewReporting}
     />
   );
 }
 
 function GitHubConnectionCard({
-  connection,
+  configuration,
+  connections,
   previewReporting,
 }: {
-  connection: GitHubConnection | null;
+  configuration: NonNullable<GitHubState["configuration"]>;
+  connections: GitHubConnection[];
   previewReporting: PreviewReportingHealth;
 }) {
-  const previewPermissionState = connection?.permissionReadiness.status;
-  const previewPermissionsReady =
-    connection !== null &&
-    previewPermissionState === "available" &&
-    connection.permissionReadiness.preview === "ready";
-  const action = connection ? (
-    connection.suspendedAt ? (
-      <ActionButton
-        action={createGitHubInstallation}
-        pendingLabel="Opening GitHub…"
-        redirectOnSuccess={(result) => result.url}
-        success="Opening GitHub"
-      >
-        <HugeiconsIcon icon={ReloadIcon} className="size-4" />
-        Reconnect GitHub
-      </ActionButton>
-    ) : (
-      <ActionButton
-        action={() => api.delete("/v1/core/github")}
-        confirm={{
-          actionLabel: "Disconnect GitHub",
-          description:
-            "Existing repositories will stop syncing and cannot deploy until the GitHub App is connected again.",
-          title: "Disconnect the GitHub App?",
-        }}
-        success="GitHub disconnected"
-        variant="danger"
-      >
-        <HugeiconsIcon icon={Unlink01Icon} className="size-4" />
-        Disconnect GitHub
-      </ActionButton>
-    )
-  ) : (
+  const connect = (
     <ActionButton
       action={createGitHubInstallation}
       pendingLabel="Opening GitHub…"
@@ -127,109 +99,175 @@ function GitHubConnectionCard({
       success="Opening GitHub"
     >
       <HugeiconsIcon icon={Add01Icon} className="size-4" />
-      Install GitHub App
+      Connect GitHub account
     </ActionButton>
   );
-
   return (
-    <div className="content-grid grid-cols-[repeat(auto-fill,minmax(min(28rem,100%),1fr))] items-start">
-      <div className="content-grid">
-        {connection && previewReporting.failedCount > 0 ? (
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>Preview reporting needs retry</Alert.Title>
-              <Alert.Description>
-                GitHub did not receive every preview status update.
-                {previewReporting.lastError
-                  ? ` Last error: ${previewReporting.lastError}`
-                  : ""}
-              </Alert.Description>
-              {previewReporting.lastFailedAt ? (
-                <div className="pt-2">
-                  <RelativeTime
-                    label="Last failed"
-                    value={previewReporting.lastFailedAt}
-                  />
-                </div>
-              ) : null}
-            </Alert.Content>
-          </Alert>
-        ) : null}
-        {connection && !connection.suspendedAt && !previewPermissionsReady ? (
-          <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>
-                {previewPermissionState === "unavailable"
-                  ? "GitHub permissions could not be verified"
-                  : "GitHub reporting needs additional permissions"}
-              </Alert.Title>
-              <Alert.Description>
-                Grant Pull requests and Deployments read and write access, plus
-                Contents read access.
-              </Alert.Description>
-            </Alert.Content>
-          </Alert>
-        ) : null}
-        <FormCard
-          headerEnd={
-            connection ? (
-              <StatusBadge
-                status={connection.suspendedAt ? "suspended" : "active"}
+    <div className="content-grid">
+      <FormCard help={false} title="GitHub App">
+        <Attributes columns={2} variant="embedded">
+          <Attributes.Item label="App">{configuration.appSlug}</Attributes.Item>
+          <Attributes.Item label="App ID">
+            <TypographyCode>{configuration.appId}</TypographyCode>
+          </Attributes.Item>
+        </Attributes>
+      </FormCard>
+      {previewReporting.failedCount > 0 ? (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Preview reporting needs retry</Alert.Title>
+            <Alert.Description>
+              GitHub did not receive every preview status update.
+              {previewReporting.lastError
+                ? ` Last error: ${previewReporting.lastError}`
+                : ""}
+            </Alert.Description>
+            {previewReporting.lastFailedAt ? (
+              <RelativeTime
+                label="Last failed"
+                value={previewReporting.lastFailedAt}
               />
-            ) : undefined
-          }
-          help={false}
-          title="GitHub connection"
-        >
-          {connection ? (
-            <div className="content-grid">
-              <Attributes columns={1} variant="embedded">
-                <Attributes.Item label="Account">
-                  {connection.accountLogin}
-                </Attributes.Item>
-                <Attributes.Item label="Account type">
+            ) : null}
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      {connections
+        .flatMap((connection) => connection.identityWarnings ?? [])
+        .map((message) => (
+          <Alert key={message} status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Description>{message}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg">Connected accounts</h2>
+        {connect}
+      </div>
+      <ResourceTable<GitHubConnection>
+        ariaLabel="Connected GitHub accounts"
+        getRowKey={(connection) => connection.id}
+        items={connections}
+        emptyTitle="No GitHub accounts connected"
+        emptyDescription="Connect the GitHub App to the accounts and repositories Towbar should manage."
+        columns={[
+          {
+            key: "account",
+            header: "Account",
+            cell: (connection) => (
+              <span>
+                {connection.accountLogin}
+                <span className="ml-2 text-sm text-muted">
                   {connection.accountType}
-                </Attributes.Item>
-                <Attributes.Item label="Installation ID">
-                  <TypographyCode>{connection.installationId}</TypographyCode>
-                </Attributes.Item>
-                <Attributes.Item label="Preview reporting">
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            header: "Status",
+            cell: (connection) => (
+              <StatusBadge
+                status={
+                  connection.suspendedAt
+                    ? "suspended"
+                    : connection.permissionReadiness.status === "unavailable"
+                      ? "attention"
+                      : "active"
+                }
+              />
+            ),
+          },
+          {
+            key: "previews",
+            header: "Preview reporting",
+            cell: (connection) => (
+              <Tooltip>
+                <Tooltip.Trigger
+                  aria-label={`Preview reporting for ${connection.accountLogin}`}
+                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                >
                   <StatusBadge
-                    status={previewPermissionsReady ? "ready" : "attention"}
+                    status={
+                      connection.permissionReadiness.status === "available" &&
+                      connection.permissionReadiness.preview === "ready" &&
+                      !connection.suspendedAt
+                        ? "ready"
+                        : "attention"
+                    }
                   />
-                </Attributes.Item>
-              </Attributes>
-              <div className="flex flex-wrap gap-3">
-                {!connection.suspendedAt && !previewPermissionsReady ? (
+                </Tooltip.Trigger>
+                <Tooltip.Content className="max-w-72" showArrow>
+                  <Tooltip.Arrow />
+                  {connection.suspendedAt
+                    ? "Reconnect this GitHub account to report previews."
+                    : connection.permissionReadiness.status === "unavailable"
+                      ? "GitHub access could not be verified. Review this account's installation access."
+                      : connection.permissionReadiness.preview === "ready"
+                        ? "This account can publish preview deployments and pull request comments."
+                        : "Preview reporting requires Contents: Read, Deployments: Write, and Pull requests: Write. Review access to grant the missing permissions."}
+                </Tooltip.Content>
+              </Tooltip>
+            ),
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            headerClassName: "text-right",
+            className: "text-right",
+            cell: (connection) => (
+              <div className="flex flex-wrap justify-end gap-2">
+                {connection.suspendedAt ? (
                   <ActionButton
                     action={createGitHubInstallation}
                     pendingLabel="Opening GitHub…"
                     redirectOnSuccess={(result) => result.url}
                     success="Opening GitHub"
                   >
-                    <HugeiconsIcon icon={Shield01Icon} className="size-4" />
-                    Review permissions
+                    <HugeiconsIcon icon={ReloadIcon} className="size-4" />
+                    Reconnect
+                  </ActionButton>
+                ) : (
+                  <ButtonLink
+                    variant="secondary"
+                    href={
+                      connection.accountType === "Organization"
+                        ? `https://github.com/organizations/${encodeURIComponent(connection.accountLogin)}/settings/installations/${connection.installationId}`
+                        : `https://github.com/settings/installations/${connection.installationId}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Review access
+                  </ButtonLink>
+                )}
+                {!connection.suspendedAt ? (
+                  <ActionButton
+                    action={() =>
+                      api.delete(
+                        `/v1/core/github?${new URLSearchParams({ connectionId: connection.id })}`,
+                      )
+                    }
+                    confirm={{
+                      actionLabel: "Disconnect account",
+                      title: `Disconnect ${connection.accountLogin}?`,
+                      description:
+                        "Repositories connected to this account will stop syncing and cannot deploy until it is reconnected. Running workloads and other connected accounts are unaffected.",
+                    }}
+                    success="GitHub account disconnected"
+                    variant="danger"
+                  >
+                    <HugeiconsIcon icon={Unlink01Icon} className="size-4" />
+                    Disconnect
                   </ActionButton>
                 ) : null}
-                {action}
               </div>
-            </div>
-          ) : (
-            <EmptyState>
-              <EmptyState.Header>
-                <EmptyState.Title>GitHub not connected</EmptyState.Title>
-                <EmptyState.Description className="max-w-md text-pretty">
-                  Install the environment-configured GitHub App and choose the
-                  repositories Towbar should manage.
-                </EmptyState.Description>
-              </EmptyState.Header>
-              <EmptyState.Content>{action}</EmptyState.Content>
-            </EmptyState>
-          )}
-        </FormCard>
-      </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

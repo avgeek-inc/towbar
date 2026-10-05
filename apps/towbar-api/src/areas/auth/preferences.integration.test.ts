@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
+import postgres from "postgres";
 import { z } from "zod";
 import { Hono } from "hono";
 import type { TowbarHonoEnvironment } from "../../http/types.js";
@@ -27,7 +28,12 @@ void test(
   { skip: !url },
   async () => {
     assert(url && new URL(url).pathname.endsWith("_test"));
-    process.env.DATABASE_TOWBAR_URL = url;
+    const admin = postgres(url, { max: 1, onnotice() {} });
+    const databaseName = `towbar_preferences_${randomUUID().replaceAll("-", "")}_test`;
+    await admin.unsafe(`CREATE DATABASE "${databaseName}"`);
+    const isolated = new URL(url);
+    isolated.pathname = `/${databaseName}`;
+    process.env.DATABASE_TOWBAR_URL = isolated.href;
     process.env.TOWBAR_PASSWORD_BREACH_CHECK = "false";
     process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
     process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
@@ -35,7 +41,7 @@ void test(
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
     await runTowbarMigrations({
-      databaseUrl: url,
+      databaseUrl: isolated.href,
       logger: { info() {}, error() {} },
     });
     const { getTowbarDatabase, closeDatabase } =
@@ -285,6 +291,8 @@ void test(
       }
     } finally {
       await closeDatabase();
+      await admin.unsafe(`DROP DATABASE "${databaseName}"`);
+      await admin.end();
     }
   },
 );

@@ -2068,6 +2068,8 @@ export function createFixtureApiServer({
   upgradeScenario,
   publicDemo = false,
   githubAppConnected = false,
+  githubConnections,
+  githubRepositoryOptions,
   notificationProvidersConfigured = false,
   smtpConfigured = notificationProvidersConfigured,
   slackConfigured = notificationProvidersConfigured,
@@ -2082,6 +2084,8 @@ export function createFixtureApiServer({
   upgradeScenario?: UpgradeScenario;
   publicDemo?: boolean;
   githubAppConnected?: boolean;
+  githubConnections?: GitHubConnection[];
+  githubRepositoryOptions?: GitHubRepository[];
   notificationProvidersConfigured?: boolean;
   smtpConfigured?: boolean;
   slackConfigured?: boolean;
@@ -2106,12 +2110,22 @@ export function createFixtureApiServer({
     smtpAvailable,
     emailVerified,
   });
-  let activeGitHubConnection: GitHubConnection | null = githubAppConnected
-    ? {
-        ...githubConnection,
-        permissionReadiness: { ...githubConnection.permissionReadiness },
-      }
-    : null;
+  let activeGitHubConnections: GitHubConnection[] =
+    githubConnections ??
+    (githubAppConnected
+      ? [
+          {
+            ...githubConnection,
+            permissionReadiness: { ...githubConnection.permissionReadiness },
+          },
+        ]
+      : []);
+  const availableGitHubRepositories = (
+    githubRepositoryOptions ?? githubRepositories
+  ).map((repository) => ({
+    ...repository,
+    connectionId: repository.connectionId ?? githubConnection.id,
+  }));
   const fixtureGitHubConfiguration = {
     appId: "123456",
     appSlug: "towbar-fixture",
@@ -2129,9 +2143,30 @@ export function createFixtureApiServer({
   const connections = createSourceConnectionFixture({
     existing: sources,
     installationId: githubConnection.id,
+    resolveRepository: (installationId, owner, name) =>
+      activeGitHubConnections.some(
+        (account) => account.id === installationId && !account.suspendedAt,
+      )
+        ? availableGitHubRepositories.find(
+            (repository) =>
+              repository.connectionId === installationId &&
+              repository.owner === owner &&
+              repository.name === name,
+          )
+        : undefined,
     app: apps[0]!,
     resource: resources[0]!,
   });
+  const sourceRepositoryIds = new Map(
+    sources.map((source) => [
+      source.id,
+      githubRepositories.find(
+        (repository) =>
+          repository.owner === source.repositoryOwner &&
+          repository.name === source.repositoryName,
+      )?.id,
+    ]),
+  );
   const declaredSecrets = createDeclaredSecretsFixture(connections);
   const scoutFixture = createScoutFixture(
     servers.map((s) => s.id),
@@ -2842,7 +2877,13 @@ export function createFixtureApiServer({
       return writeJson(response, 200, terminal.issue());
     }
     if (path === "/v1/core/github/installation" && request.method === "GET") {
-      writeJson(response, 200, { connection: activeGitHubConnection });
+      writeJson(response, 200, {
+        connections: activeGitHubConnections,
+        connection:
+          activeGitHubConnections.length === 1
+            ? activeGitHubConnections[0]
+            : null,
+      });
       return;
     }
     if (path === "/v1/core/github") {
@@ -2850,13 +2891,30 @@ export function createFixtureApiServer({
         writeJson(response, 200, {
           canManage: true,
           configuration: githubAppConfiguration,
-          connection: activeGitHubConnection,
+          connections: activeGitHubConnections,
+          connection:
+            activeGitHubConnections.length === 1
+              ? activeGitHubConnections[0]
+              : null,
           previewReporting,
         });
         return;
       }
       if (request.method === "DELETE") {
-        activeGitHubConnection = null;
+        const id = requestUrl.searchParams.get("connectionId");
+        if (!id && activeGitHubConnections.length > 1)
+          return writeJson(response, 409, {
+            error: { message: "Choose a GitHub account for this operation" },
+          });
+        const selected = activeGitHubConnections.find((connection) =>
+          id ? connection.id === id : true,
+        );
+        if (id && !selected) return writeNotFound(response);
+        activeGitHubConnections = activeGitHubConnections.map((connection) =>
+          connection.id === selected?.id
+            ? { ...connection, suspendedAt: new Date().toISOString() }
+            : connection,
+        );
         response.writeHead(204);
         response.end();
         return;
@@ -2901,11 +2959,17 @@ export function createFixtureApiServer({
             });
             return;
           }
-          activeGitHubConnection = {
+          const activeGitHubConnection = {
             ...githubConnection,
             permissionReadiness: { ...githubConnection.permissionReadiness },
             updatedAt: new Date().toISOString(),
           };
+          activeGitHubConnections = [
+            ...activeGitHubConnections.filter(
+              (connection) => connection.id !== activeGitHubConnection.id,
+            ),
+            activeGitHubConnection,
+          ];
           writeJson(response, 201, {
             installation: { id: activeGitHubConnection.id },
           });
@@ -2917,12 +2981,109 @@ export function createFixtureApiServer({
         );
       return;
     }
+    if (request.method === "GET" && path === "/v1/core/github/repositories") {
+      const id = requestUrl.searchParams.get("connectionId");
+      if (
+        id &&
+        !activeGitHubConnections.some((connection) => connection.id === id)
+      )
+        return writeNotFound(response);
+      const selected = activeGitHubConnections.filter(
+        (connection) =>
+          (!id || connection.id === id) && !connection.suspendedAt,
+      );
+      return writeJson(response, 200, {
+        repositories: availableGitHubRepositories.filter((repository) =>
+          selected.some(
+            (connection) => connection.id === repository.connectionId,
+          ),
+        ),
+        unavailableConnections: activeGitHubConnections
+          .filter(
+            (connection) =>
+              (!id || connection.id === id) && connection.suspendedAt,
+          )
+          .map((connection) => ({
+            id: connection.id,
+            accountLogin: connection.accountLogin,
+            message: "Reconnect this GitHub account",
+          })),
+        identityWarnings: [],
+      });
+    }
+    const changeConnection = path.match(
+      /^\/v1\/core\/sources\/([^/]+)\/actions\/change-github-connection$/,
+    );
+    if (request.method === "POST" && changeConnection) {
+      const source = [...sources, ...connections.sources].find(
+        (item) => item.id === changeConnection[1],
+      );
+      if (!source) return writeNotFound(response);
+      const original = availableGitHubRepositories.find(
+        (repository) =>
+          repository.owner === source.repositoryOwner &&
+          repository.name === source.repositoryName,
+      );
+      void readRequestJson(request)
+        .then((body) => {
+          const input = body as {
+            githubInstallationId: string;
+            repositoryOwner: string;
+            repositoryName: string;
+          };
+          const target = availableGitHubRepositories.find(
+            (repository) =>
+              repository.connectionId === input.githubInstallationId &&
+              repository.owner === input.repositoryOwner &&
+              repository.name === input.repositoryName,
+          );
+          if (
+            !target ||
+            !activeGitHubConnections.some(
+              (connection) =>
+                connection.id === input.githubInstallationId &&
+                !connection.suspendedAt,
+            )
+          )
+            return writeNotFound(response);
+          if (
+            target.id !== (sourceRepositoryIds.get(source.id) ?? original?.id)
+          )
+            return writeJson(response, 409, {
+              error: {
+                message:
+                  "Choose the same GitHub repository after its transfer or rename.",
+              },
+            });
+          sourceRepositoryIds.set(source.id, target.id);
+          source.repositoryOwner = target.owner;
+          source.repositoryName = target.name;
+          source.repositoryUrl = `https://github.com/${target.fullName}`;
+          return writeJson(response, 200, { source });
+        })
+        .catch(() =>
+          writeJson(response, 400, { error: { message: "Invalid request" } }),
+        );
+      return;
+    }
     if (request.method === "GET" && path === "/v1/core/github/branches") {
+      const connectionId = requestUrl.searchParams.get("connectionId");
+      if (!connectionId && activeGitHubConnections.length > 1)
+        return writeJson(response, 409, {
+          error: { message: "Choose a GitHub account" },
+        });
+      const account = activeGitHubConnections.find((item) =>
+        connectionId ? item.id === connectionId : true,
+      );
+      if (!account || account.suspendedAt) return writeNotFound(response);
       const owner = requestUrl.searchParams.get("owner");
       const repository = requestUrl.searchParams.get("repository");
       if (
-        !githubRepositories.some(
-          (repo) => repo.owner === owner && repo.name === repository,
+        !availableGitHubRepositories.some(
+          (repo) =>
+            repo.connectionId === account.id &&
+            repo.owner === owner &&
+            repo.name === repository,
         )
       ) {
         writeNotFound(response);
@@ -3225,12 +3386,19 @@ export function createFixtureApiServer({
           if (!body || typeof body !== "object" || Array.isArray(body))
             throw new Error("Invalid discovery request");
           const input = body as Record<string, unknown>;
-          if (input.githubInstallationId !== githubConnection.id)
+          if (
+            !activeGitHubConnections.some(
+              (account) =>
+                account.id === input.githubInstallationId &&
+                !account.suspendedAt,
+            )
+          )
             return writeJson(response, 404, {
               error: "GitHub installation was not found",
             });
-          const repository = githubRepositories.find(
+          const repository = availableGitHubRepositories.find(
             (item) =>
+              item.connectionId === input.githubInstallationId &&
               item.owner === input.repositoryOwner &&
               item.name === input.repositoryName,
           );
@@ -4519,11 +4687,22 @@ function getFixturePayload(
           appSlug: "towbar-fixture",
           source: "environment",
         },
+        connections: [githubConnection],
         connection: githubConnection,
         previewReporting,
       },
     ],
-    ["/v1/core/github/repositories", { repositories: githubRepositories }],
+    [
+      "/v1/core/github/repositories",
+      {
+        repositories: githubRepositories.map((repository) => ({
+          ...repository,
+          connectionId: githubConnection.id,
+        })),
+        unavailableConnections: [],
+        identityWarnings: [],
+      },
+    ],
     ["/v1/core/sources", { sources }],
     ["/v1/core/apps", { apps }],
     ["/v1/core/resources", { resources }],

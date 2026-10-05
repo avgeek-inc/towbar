@@ -87,6 +87,19 @@ export async function connectSourceEnvironment(input: {
   });
   const resolved = resolveRepositoryEnvironment({ ...snapshot, ...mapping });
   return getTowbarDatabase().transaction(async (transaction) => {
+    const [currentSource] = await transaction
+      .select()
+      .from(sources)
+      .where(eq(sources.id, source.id))
+      .for("update");
+    if (
+      !currentSource ||
+      currentSource.repositoryOwner !== source.repositoryOwner ||
+      currentSource.repositoryName !== source.repositoryName
+    )
+      throw conflict(
+        "The repository connection changed. Refresh before adding an environment.",
+      );
     const [existing] = await transaction
       .select()
       .from(sourceEnvironments)

@@ -375,7 +375,7 @@ void test(
               pullRequestNumber: i + 1,
               branch: `preview-${i}`,
               gitRef: `refs/pull/${i + 1}/head`,
-              hostname: `pr-${i}.example.com`,
+              hostname: `pr-${id}.example.test`,
               runtimeId: id,
               latestCommitSha: "abcdef0",
               expiresAt: new Date(now.getTime() + 86400_000),
@@ -409,7 +409,7 @@ void test(
                     environment: "preview" as const,
                     previewEnvironmentId: previews[i - 1]!,
                     gitRef: `refs/pull/${i}/head`,
-                    hostname: `pr-${i - 1}.example.com`,
+                    hostname: `pr-${previews[i - 1]}.example.test`,
                   }
                 : {}),
             });

@@ -1,4 +1,5 @@
 "use client";
+import { SourceGitHubConnection } from "./source-github-connection";
 import { useAccess } from "./access-context";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
@@ -392,6 +393,7 @@ export function SourceDetail() {
                 canManage={source.data.canManageSource}
                 onDelete={() => router.push("/repositories")}
                 sourceId={sourceId}
+                source={item}
               />
             ),
           },
@@ -405,7 +407,9 @@ function SourceSettings({
   canManage,
   onDelete,
   sourceId,
+  source,
 }: {
+  source: Source;
   canManage: boolean;
   onDelete: () => void;
   sourceId: string;
@@ -416,6 +420,15 @@ function SourceSettings({
       collapseOnMobile
       defaultSelectedKey="auto-deploy"
       tabs={[
+        ...(canManage && source.provider === "github"
+          ? [
+              {
+                value: "connection",
+                label: "GitHub connection",
+                content: <SourceGitHubConnection source={source} />,
+              },
+            ]
+          : []),
         {
           value: "auto-deploy",
           label: "Auto-deploy",

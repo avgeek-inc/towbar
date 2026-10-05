@@ -104,7 +104,12 @@ export function assertPublicOperationNames(
     new Set(operations.map((op) => op.name)).size,
     operations.length,
   );
-  assert.equal(operations.length, 141);
+  assert.equal(operations.length, 142);
+  assert(
+    operations.some(
+      (op) => op.name === "post_sources_by_id_actions_change_github_connection",
+    ),
+  );
   assert(operations.some((op) => op.name === "get_apps_by_id_analytics"));
   assert(
     operations.some(

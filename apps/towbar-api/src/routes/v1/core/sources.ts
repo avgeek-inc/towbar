@@ -1,3 +1,7 @@
+import {
+  changeGitHubConnectionSchema,
+  changeSourceGitHubConnection,
+} from "../../../areas/sources/github-connection.js";
 import { actorAllows } from "@workspace/towbar-access";
 import { sourceConnectionRoutes } from "./source-connection.js";
 import { sourceEnvironmentRoutes } from "./source-environments.js";
@@ -320,4 +324,27 @@ sourceRoutes.get(
         context.get("user").workspaceId,
       ),
     }),
+);
+
+sourceRoutes.post(
+  "/:sourceId/actions/change-github-connection",
+  operation({
+    permissions: ["repository.update"],
+    summary: "Change GitHub repository connection",
+    responseSchema:
+      'sources.ts:post:"/:sourceId/actions/change-github-connection"',
+    body: changeGitHubConnectionSchema,
+    response:
+      "The existing source with its verified GitHub repository connection updated.",
+    status: 200,
+  }),
+  async (context) =>
+    context.json(
+      await changeSourceGitHubConnection({
+        ...(await readJson(context, changeGitHubConnectionSchema)),
+        sourceId: context.req.param("sourceId"),
+        workspaceId: context.get("user").workspaceId,
+        actorUserId: context.get("user").id,
+      }),
+    ),
 );

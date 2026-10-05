@@ -698,7 +698,8 @@ test("GitHub uses environment configuration and a dynamic installation", async (
 
     assert.equal((await fetch(baseUrl, { method: "DELETE" })).status, 204);
     const disconnected = await (await fetch(baseUrl)).json();
-    assert.equal(disconnected.connection, null);
+    assert(disconnected.connection.suspendedAt);
+    assert.equal(disconnected.connections.length, 1);
     assert.equal(disconnected.configuration.source, "environment");
   } finally {
     server.close();
@@ -2232,5 +2233,190 @@ test("showcase inventory covers supported engines, build modes, provider hardwar
       `/v1/core/servers/${app.serverId}/capacity`,
     );
     assert(capacity.runtimes.some((item) => item.id === app.id));
+  }
+});
+
+test("GitHub account selection, source moves, and disconnect remain scoped", async () => {
+  const readiness = {
+    status: "available",
+    contents: "read",
+    deployments: "write",
+    pullRequests: "write",
+    preview: "ready",
+  };
+  const labs = {
+    id: "b1111111-1111-4111-8111-111111111111",
+    installationId: "12345678",
+    accountLogin: "avgeek-labs",
+    accountType: "Organization",
+    suspendedAt: null,
+    updatedAt: new Date().toISOString(),
+    permissionReadiness: readiness,
+  };
+  const oss = {
+    ...labs,
+    id: "b2222222-2222-4222-8222-222222222222",
+    installationId: "87654321",
+    accountLogin: "avgeek-oss",
+  };
+  const repository = (account, id, name) => ({
+    connectionId: account.id,
+    id,
+    owner: account.accountLogin,
+    name,
+    fullName: `${account.accountLogin}/${name}`,
+    defaultBranch: "main",
+    private: false,
+  });
+  const server = createFixtureApiServer({
+    githubConnections: [labs, oss],
+    githubRepositoryOptions: [
+      repository(labs, "10002", "example-service"),
+      repository(oss, "10001", "platform"),
+      repository(oss, "10003", "docs"),
+      {
+        ...repository(labs, "10001", "platform"),
+        owner: "example-inc",
+        fullName: "example-inc/platform",
+      },
+    ],
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}/v1/core`;
+  const get = async (path) => (await fetch(`${base}${path}`)).json();
+  const post = (path, body) =>
+    fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const sourcePath = `/sources/${fixtureIds.source}`;
+  const original = await get(sourcePath);
+  try {
+    const accounts = await get("/github/installation");
+    assert.equal(accounts.connections.length, 2);
+    assert.equal(accounts.connection, null);
+    assert.equal((await get("/github/repositories")).repositories.length, 4);
+    assert.deepEqual(
+      (
+        await get(`/github/repositories?connectionId=${oss.id}`)
+      ).repositories.map((item) => item.owner),
+      ["avgeek-oss", "avgeek-oss"],
+    );
+    assert.equal(
+      (
+        await fetch(
+          `${base}/github/branches?owner=avgeek-oss&repository=platform`,
+        )
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await fetch(
+          `${base}/github/branches?connectionId=${labs.id}&owner=avgeek-oss&repository=platform`,
+        )
+      ).status,
+      404,
+    );
+    assert(
+      (
+        await get(
+          `/github/branches?connectionId=${oss.id}&owner=avgeek-oss&repository=platform`,
+        )
+      ).branches.includes("main"),
+    );
+    const discovery = {
+      provider: "github",
+      githubInstallationId: oss.id,
+      repositoryOwner: "avgeek-oss",
+      repositoryName: "docs",
+      discoveryBranch: "main",
+    };
+    assert.equal(
+      (
+        await post("/sources/discover", {
+          ...discovery,
+          githubInstallationId: labs.id,
+        })
+      ).status,
+      404,
+    );
+    const discovered = await post("/sources/discover", discovery);
+    assert.equal(discovered.status, 200);
+    assert.equal((await discovered.json()).environments.length, 2);
+    const connected = await post("/sources/connect", {
+      provider: "github",
+      githubInstallationId: labs.id,
+      repositoryOwner: "avgeek-labs",
+      repositoryName: "example-service",
+      environments: [{ environment: "production", branch: "main" }],
+    });
+    assert.equal(connected.status, 201, await connected.clone().text());
+    assert.equal(
+      (await connected.json()).source.repositoryOwner,
+      "avgeek-labs",
+    );
+    const history = await get(`${sourcePath}/syncs`);
+    const input = {
+      githubInstallationId: oss.id,
+      repositoryOwner: "avgeek-oss",
+      repositoryName: "platform",
+    };
+    assert.equal(
+      (
+        await post(`${sourcePath}/actions/change-github-connection`, {
+          ...input,
+          repositoryName: "docs",
+        })
+      ).status,
+      409,
+    );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const moved = await post(
+        `${sourcePath}/actions/change-github-connection`,
+        input,
+      );
+      assert.equal(moved.status, 200, await moved.clone().text());
+      assert.equal((await moved.json()).source.id, fixtureIds.source);
+    }
+    assert.deepEqual(await get(`${sourcePath}/syncs`), history);
+    assert.equal(
+      (
+        await post(`${sourcePath}/actions/change-github-connection`, {
+          githubInstallationId: labs.id,
+          repositoryOwner: original.source.repositoryOwner,
+          repositoryName: original.source.repositoryName,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await fetch(`${base}/github`, { method: "DELETE" })).status,
+      409,
+    );
+    assert.equal(
+      (
+        await fetch(`${base}/github?connectionId=${labs.id}`, {
+          method: "DELETE",
+        })
+      ).status,
+      204,
+    );
+    assert.equal(
+      (await get(`/github/repositories?connectionId=${oss.id}`)).repositories
+        .length,
+      2,
+    );
+    const state = await get("/github/installation");
+    assert(state.connections.find((item) => item.id === labs.id).suspendedAt);
+    assert.equal(
+      state.connections.find((item) => item.id === oss.id).suspendedAt,
+      null,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
   }
 });

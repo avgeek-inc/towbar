@@ -127,6 +127,13 @@
       "when": 1791016219332,
       "tag": "0018_domain_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791199159151,
+      "tag": "0019_github_accounts",
+      "breakpoints": true
     }
   ]
 }

@@ -73,6 +73,11 @@ function makeMapping(sourceId: string, name: string, branch: string): Mapping {
 export function createSourceConnectionFixture(input: {
   existing: Source[];
   installationId: string;
+  resolveRepository?: (
+    installationId: string,
+    owner: string,
+    name: string,
+  ) => { owner: string; name: string } | undefined;
   app: ConnectedApp;
   resource: ConnectedResource;
 }) {
@@ -129,12 +134,23 @@ export function createSourceConnectionFixture(input: {
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new Error("Invalid connection request");
     const request = body as Record<string, unknown>;
-    if (
-      request.githubInstallationId !== input.installationId ||
-      request.repositoryOwner !== "example-inc" ||
-      request.repositoryName !== "example-service"
-    )
-      throw new Error("Repository installation was not found");
+    const repository =
+      typeof request.githubInstallationId === "string" &&
+      typeof request.repositoryOwner === "string" &&
+      typeof request.repositoryName === "string"
+        ? input.resolveRepository
+          ? input.resolveRepository(
+              request.githubInstallationId,
+              request.repositoryOwner,
+              request.repositoryName,
+            )
+          : request.githubInstallationId === input.installationId &&
+              request.repositoryOwner === "example-inc" &&
+              request.repositoryName === "example-service"
+            ? { owner: request.repositoryOwner, name: request.repositoryName }
+            : undefined
+        : undefined;
+    if (!repository) throw new Error("Repository installation was not found");
     if (
       [...input.existing, ...sources].some(
         (source) =>
@@ -166,8 +182,8 @@ export function createSourceConnectionFixture(input: {
     const source: Source = {
       id: randomUUID(),
       provider: "github",
-      repositoryOwner: "example-inc",
-      repositoryName: "example-service",
+      repositoryOwner: repository.owner,
+      repositoryName: repository.name,
       status: "active",
       createdAt: now,
       updatedAt: now,

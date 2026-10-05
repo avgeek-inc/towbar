@@ -12,7 +12,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type {
-  GitHubConnection,
+  GitHubConnectionMetadata,
   GitHubRepository,
   Source,
 } from "@workspace/towbar-web-client";
@@ -107,7 +107,8 @@ function SourceCreate({
   const { can } = useAccess();
   const [selectedProvider, setSelectedProvider] =
     useState<RepositoryProvider>("github");
-  const connection = useApiQuery<{ connection: GitHubConnection | null }>(
+  const [account, setAccount] = useState("all");
+  const connection = useApiQuery<{ connections: GitHubConnectionMetadata[] }>(
     "/v1/core/github/installation",
   );
   const gitlabConnections = useApiQuery<{
@@ -115,7 +116,7 @@ function SourceCreate({
   }>("/v1/core/gitlab/connections");
   const availableProviders = configuredRepositoryProviders({
     githubConnected: Boolean(
-      connection.data?.connection && !connection.data.connection.suspendedAt,
+      connection.data?.connections.some((item) => !item.suspendedAt),
     ),
     gitlabConnected: Boolean(gitlabConnections.data?.connections.length),
   });
@@ -125,23 +126,30 @@ function SourceCreate({
   const gitlabIntegration = gitlabConnections.data?.connections[0]?.slug ?? "";
   const repositoryPath =
     provider === "github"
-      ? connection.data?.connection
-        ? "/v1/core/github/repositories"
+      ? connection.data?.connections.length
+        ? `/v1/core/github/repositories${account === "all" ? "" : `?${new URLSearchParams({ connectionId: account })}`}`
         : null
       : gitlabIntegration
         ? `/v1/core/gitlab/repositories?${new URLSearchParams({ integration: gitlabIntegration })}`
         : null;
-  const repositories = useApiQuery<{ repositories: RepositoryOption[] }>(
-    repositoryPath,
-    undefined,
-    { keepPreviousData: false },
-  );
+  const repositories = useApiQuery<{
+    repositories: RepositoryOption[];
+    identityWarnings?: string[];
+    unavailableConnections?: {
+      id: string;
+      accountLogin: string;
+      message: string;
+    }[];
+  }>(repositoryPath, undefined, { keepPreviousData: false });
   const [fullName, setFullName] = useState("");
   const [owner, repository] = fullName.split("/");
+  const selectedRepository = repositories.data?.repositories.find(
+    (repo) => repo.fullName === fullName,
+  );
   const branches = useApiQuery<{ branches: string[] }>(
-    fullName
+    fullName && selectedRepository
       ? provider === "github"
-        ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "" })}`
+        ? `/v1/core/github/branches?${new URLSearchParams({ owner: owner ?? "", repository: repository ?? "", ...(selectedRepository.connectionId ? { connectionId: selectedRepository.connectionId } : {}) })}`
         : `/v1/core/gitlab/branches?${new URLSearchParams({ integration: gitlabIntegration, owner: owner ?? "", repository: repository ?? "" })}`
       : null,
     undefined,
@@ -225,7 +233,10 @@ function SourceCreate({
       </Select.Popover>
     </Select>
   );
-  if (provider === "github" && !connection.data.connection)
+  if (
+    provider === "github" &&
+    !connection.data.connections.some((item) => !item.suspendedAt)
+  )
     return (
       <div className="grid gap-6">
         {providerSelection}
@@ -277,21 +288,78 @@ function SourceCreate({
         </EmptyState>
       </div>
     );
+  const accountSelection =
+    provider === "github" ? (
+      <Select
+        fullWidth
+        variant="secondary"
+        selectedKey={account}
+        isDisabled={busy}
+        onSelectionChange={(key) => {
+          setAccount(String(key));
+          setFullName("");
+          setDiscovered(null);
+          setSelectedEnvironments([]);
+          setMappings({});
+        }}
+      >
+        <Label>GitHub account</Label>
+        <Select.Trigger>
+          <Select.Value />
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            <ListBox.Item id="all" textValue="All connected accounts">
+              All connected accounts
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+            {connection.data.connections
+              .filter((item) => !item.suspendedAt)
+              .map((item) => (
+                <ListBox.Item
+                  key={item.id}
+                  id={item.id}
+                  textValue={item.accountLogin}
+                >
+                  {item.accountLogin}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+    ) : null;
+  const unavailableAccounts = repositories.data?.unavailableConnections
+    ?.length ? (
+    <p role="status" className="text-sm text-danger">
+      {repositories.data.unavailableConnections
+        .map((item) => `${item.accountLogin}: ${item.message}`)
+        .join("; ")}
+    </p>
+  ) : null;
   if (repositories.error)
     return (
       <>
+        {providerSelection}
+        {accountSelection}
         <QueryError message={repositories.error} />
       </>
     );
   if (!repositories.data)
     return (
-      <>
+      <div className="grid gap-6">
+        {providerSelection}
+        {accountSelection}
         <QueryLoading />
-      </>
+      </div>
     );
   if (repositories.data.repositories.length === 0)
     return (
-      <>
+      <div className="grid gap-6">
+        {providerSelection}
+        {accountSelection}
+        {unavailableAccounts}
         <EmptyState>
           <EmptyState.Header>
             <EmptyState.Title>No repositories available</EmptyState.Title>
@@ -301,9 +369,9 @@ function SourceCreate({
             </EmptyState.Description>
           </EmptyState.Header>
         </EmptyState>
-      </>
+      </div>
     );
-  const githubInstallationId = connection.data.connection?.id;
+  const githubInstallationId = selectedRepository?.connectionId;
   const selected = repositories.data.repositories.find(
     (repo) => repo.fullName === fullName,
   );
@@ -371,6 +439,13 @@ function SourceCreate({
     >
       <div className="grid gap-6">
         {providerSelection}
+        {accountSelection}
+        {unavailableAccounts}
+        {repositories.data.identityWarnings?.map((message) => (
+          <p key={message} role="status" className="text-sm text-muted">
+            {message}
+          </p>
+        ))}
         <div className="grid min-w-0 gap-6">
           <Select
             aria-required={true}
@@ -398,7 +473,10 @@ function SourceCreate({
                   }[];
                 }>("/v1/core/sources/discover", {
                   ...(provider === "github"
-                    ? { provider, githubInstallationId: githubInstallationId! }
+                    ? {
+                        provider,
+                        githubInstallationId: repository.connectionId!,
+                      }
                     : {
                         provider,
                         integration: gitlabIntegration,

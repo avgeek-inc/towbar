@@ -6,7 +6,7 @@ icon: "/assets/integration-logos/github.svg"
 
 <img className="towbar-doc-brand-logo" src="/assets/integration-logos/github.svg" alt="GitHub logo" aria-hidden="true" />
 
-Towbar uses one GitHub App per installation. The App identity and private key live in `/etc/towbar/config.yml`. PostgreSQL stores the selected installation and account metadata, never the App private key or an optional webhook secret.
+Towbar configures one GitHub App per Towbar installation and can connect it to multiple GitHub accounts. The App identity and private key live in `/etc/towbar/config.yml`. PostgreSQL stores connected installations and account metadata, never the App private key or an optional webhook secret.
 
 ## Create and configure the App
 
@@ -36,7 +36,7 @@ Towbar uses one GitHub App per installation. The App identity and private key li
 
    ![Subscribe the GitHub App to Pull request and Push events.](/assets/guides/github-app/subscribe-events.png)
 
-6. Choose **Only on this account** unless you intend other accounts to install your App, then create it. On **General**, copy the App ID and slug for the Towbar configuration.
+6. Choose **Any account** to connect multiple organizations or personal accounts, or **Only on this account** if you only need the account that owns the App, then create it. On **General**, copy the App ID and slug for the Towbar configuration.
 
    ![Choose the GitHub App installation scope and create it.](/assets/guides/github-app/installation-scope.png)
 
@@ -58,7 +58,7 @@ Encode the PEM with `base64 < private-key.pem | tr -d '\n'`. If you set a webhoo
 
 ## Install and use it
 
-Open **Manage → Integrations → GitHub** and choose **Install GitHub App**. Select only the accounts and repositories Towbar should manage. The connection widget is shown only because the runtime configuration is valid; no credential form is exposed.
+Open **Manage → Integrations → GitHub** and choose **Connect GitHub account**. Select only the accounts and repositories Towbar should manage. The connection widget is shown only because the runtime configuration is valid; no credential form is exposed.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -89,8 +89,33 @@ After changing App permissions, approve the update in GitHub. Disconnecting remo
 
 ## Verify access
 
-The connection card shows the installed account, account type, installation ID, and Preview reporting readiness. A healthy installation must remain active in GitHub and include Contents read access. Preview reporting also needs Pull requests and Deployments read and write access. Towbar never displays the App private key or webhook secret.
+The connected accounts table shows each account, account type, connection status, and Preview reporting readiness. A healthy installation must remain active in GitHub and include Contents read access. Preview reporting also needs Pull requests and Deployments read and write access. Towbar never displays the App private key or webhook secret.
 
 ## Maintain the connection
 
-Use **Review permissions** after adding App permissions or repositories. Use **Reconnect GitHub** when GitHub suspends or removes the installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `installation.appUrl`. Rotate the private key or configured webhook secret in `config.yml`, then validate and restart Towbar.
+Use **Review access** after adding App permissions or repositories. Use **Reconnect** when GitHub suspends or removes an installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `installation.appUrl`. Rotate the private key or configured webhook secret in `config.yml`, then validate and restart Towbar.
+
+## Connect multiple GitHub accounts
+
+One configured GitHub App can connect multiple organizations or personal accounts to the same Towbar workspace. To use it across accounts, choose **Any account** in the App's installation settings. This changes who can install the App; each installation still grants its own repository access.
+
+In **Manage → Integrations → GitHub**, choose **Connect GitHub account** for each account. The connected accounts table shows each account's status, Preview reporting readiness, and access controls. **Review access** opens that account's installation settings in GitHub. Disconnecting an account stops sync and deployment access for its repositories; other accounts and running workloads remain unaffected. Reconnecting the same account preserves its existing source associations.
+
+The **Add repository** dialog lists repositories from all connected accounts. Use **GitHub account** to narrow the list, and search using the full `owner/repository` name. If one account is unavailable, Towbar reports that account's failure while showing repositories from the others.
+
+Organization names can change. Towbar refreshes the account's display name from GitHub and identifies it by its GitHub account ID, rather than treating the renamed organization as a new connection.
+
+## Update a transferred or renamed repository
+
+Before transferring repositories, open the GitHub integration page. Towbar verifies and records GitHub repository IDs for sources created before multiple-account support. Resolve any repository verification warnings while the original installation still has access.
+
+After transferring or renaming a repository in GitHub:
+
+1. Connect the destination account and grant its installation access to the repository.
+2. Open the existing Repository in Towbar, then **Settings → GitHub connection → Change repository connection**.
+3. Select the destination account and the repository's new location, then choose **Save connection**.
+4. Sync the repository before its next deployment.
+
+Towbar verifies that the destination has the same GitHub repository ID and can read every connected environment's branch. The change preserves the Source ID, environments, deployment history, domains, secrets, and settings, and does not start a deployment. Wait for active syncs and deployments to finish before saving. A different repository must be added separately.
+
+If an older source's repository ID could not be verified before the transfer, Towbar needs access through its original connection to establish that identity. It does not infer identity from a matching repository name.

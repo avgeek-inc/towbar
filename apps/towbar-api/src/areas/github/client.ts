@@ -15,6 +15,7 @@ type GitHubAppConfiguration = Awaited<
 
 const installationSchema = z.object({
   account: z.object({
+    id: z.number().int().positive(),
     login: z.string(),
     type: z.string(),
   }),
@@ -135,7 +136,7 @@ export async function deleteGitHubInstallation(installationId: string) {
 export async function listGitHubRepositories(installationId: string) {
   const token = await createInstallationToken(installationId);
   const repositories: z.infer<typeof repositoriesSchema>["repositories"] = [];
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; ; page += 1) {
     const value = repositoriesSchema.parse(
       await githubRequest(
         `/installation/repositories?per_page=100&page=${page}`,
@@ -158,6 +159,31 @@ export async function listGitHubRepositories(installationId: string) {
     owner: repository.owner.login,
     private: repository.private,
   }));
+}
+
+export async function getGitHubRepository(input: {
+  installationId: string;
+  repositoryOwner: string;
+  repositoryName: string;
+}) {
+  const token = await createInstallationToken(input.installationId);
+  const repository = z
+    .object({
+      id: z.number().int().positive(),
+      name: z.string().min(1),
+      owner: z.object({ login: z.string().min(1) }),
+    })
+    .parse(
+      await githubRequest(
+        `/repos/${encodeURIComponent(input.repositoryOwner)}/${encodeURIComponent(input.repositoryName)}`,
+        { token },
+      ),
+    );
+  return {
+    id: String(repository.id),
+    name: repository.name,
+    owner: repository.owner.login,
+  };
 }
 
 export async function fetchGitHubRepositoryTree(input: {
@@ -279,7 +305,10 @@ export async function createInstallationToken(
   installationId: string,
   configuration?: GitHubAppConfiguration,
 ) {
-  const jwt = await createGitHubAppJwt({ installationId }, configuration);
+  const github =
+    configuration ??
+    (await getGitHubAppConfigurationForInstallation(installationId, true));
+  const jwt = await createGitHubAppJwt({ installationId }, github);
   const value = installationTokenSchema.parse(
     await githubRequest(`/app/installations/${installationId}/access_tokens`, {
       method: "POST",
