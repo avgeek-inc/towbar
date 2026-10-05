@@ -307,11 +307,11 @@ export function ApplicationSidebar({ config }: { config: SidebarConfig }) {
                         title={item.badge.label}
                         className={cn(
                           "ms-auto min-w-4 shrink-0 text-xs font-mono tabular-nums lg:min-w-5",
-                          item.badge.tone
+                          item.badge.tone === "warning"
                             ? "rounded-full px-1.5 py-0.5 text-center font-medium"
-                            : "text-end text-muted",
-                          item.badge.tone === "danger" &&
-                            "bg-[var(--danger-soft)] text-danger-soft-foreground",
+                            : "text-end",
+                          !item.badge.tone && "text-muted",
+                          item.badge.tone === "danger" && "text-danger",
                           item.badge.tone === "warning" &&
                             "bg-[var(--warning-soft)] text-warning-soft-foreground",
                         )}

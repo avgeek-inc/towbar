@@ -23,7 +23,7 @@ function fixtureUser(role: WorkspaceRole): TowbarUser {
   };
 }
 
-test("manage navigation exposes each feature at its primary destination", () => {
+test("primary navigation groups settings and preserves role visibility", () => {
   const admin = createApplicationSidebar({}, undefined, fixtureUser("admin"));
   assert.equal(
     admin.groups.some((group) => group.id === "manage"),
@@ -33,15 +33,19 @@ test("manage navigation exposes each feature at its primary destination", () => 
   assert.equal(adminWorkspace?.label, "Manage");
   assert.deepEqual(
     adminWorkspace?.items.map((item) => item.id),
-    [
-      "ssh-keys",
-      "shared-secrets",
-      "notifications",
-      "integrations",
-      "account-settings",
-      "team-settings",
-      "health",
-    ],
+    ["ssh-keys", "shared-secrets", "notifications", "integrations"],
+  );
+  assert.deepEqual(
+    admin.groups
+      .find((group) => group.id === "settings")
+      ?.items.map((item) => item.id),
+    ["account-settings", "team-settings"],
+  );
+  assert.deepEqual(
+    admin.groups
+      .find((group) => group.id === "monitoring")
+      ?.items.map((item) => item.id),
+    ["incidents", "vulnerabilities", "health"],
   );
 
   const member = createApplicationSidebar({}, undefined, fixtureUser("member"));
@@ -50,7 +54,19 @@ test("manage navigation exposes each feature at its primary destination", () => 
   );
   assert.deepEqual(
     memberWorkspace?.items.map((item) => item.id),
-    ["shared-secrets", "account-settings"],
+    ["shared-secrets"],
+  );
+  assert.deepEqual(
+    member.groups
+      .find((group) => group.id === "settings")
+      ?.items.map((item) => item.id),
+    ["account-settings"],
+  );
+  assert.equal(
+    member.groups
+      .find((group) => group.id === "monitoring")
+      ?.items.some((item) => item.id === "health"),
+    false,
   );
   const memberSharedSecrets = memberWorkspace?.items.find(
     (item) => item.id === "shared-secrets",
@@ -64,9 +80,13 @@ test("manage navigation exposes each feature at its primary destination", () => 
   const viewer = createApplicationSidebar({}, undefined, fixtureUser("viewer"));
   assert.deepEqual(
     viewer.groups
-      .find((group) => group.id === "workspace")
+      .find((group) => group.id === "settings")
       ?.items.map((item) => item.id),
     ["account-settings"],
+  );
+  assert.equal(
+    viewer.groups.find((group) => group.id === "workspace"),
+    undefined,
   );
 });
 

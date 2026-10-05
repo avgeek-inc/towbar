@@ -149,6 +149,13 @@ const sidebar = {
           href: "/monitoring/vulnerabilities",
           icon: sidebarIcons.vulnerabilities,
         },
+        {
+          kind: "link",
+          id: "health",
+          label: "System health",
+          href: "/system-health",
+          icon: sidebarIcons.health,
+        },
       ],
     },
     {
@@ -184,6 +191,12 @@ const sidebar = {
           preserveSubroute: true,
           icon: PlugSocketIcon,
         },
+      ],
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      items: [
         {
           kind: "link",
           id: "account-settings",
@@ -197,13 +210,6 @@ const sidebar = {
           label: "Team Settings",
           href: "/team-settings",
           icon: UserAccountIcon,
-        },
-        {
-          kind: "link",
-          id: "health",
-          label: "System health",
-          href: "/system-health",
-          icon: sidebarIcons.health,
         },
       ],
     },
