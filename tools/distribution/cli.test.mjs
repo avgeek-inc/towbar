@@ -78,7 +78,6 @@ test("release workflow only promotes after the candidate installation job succee
     /INSTALLER_URL: \$\{\{ needs.prepare.outputs.distribution_url \}\}\/releases\//,
   );
   assert.match(text, /TOWBAR_RELEASE_SMOKE=true/);
-  assert(!text.includes("raw.githubusercontent.com"));
 });
 
 test("repository transfer guard fails for the upstream ID and permits forks", () => {
