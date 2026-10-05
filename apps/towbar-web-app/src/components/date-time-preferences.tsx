@@ -122,7 +122,9 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
           aria-busy={previewPending}
         >
           <span className="text-xs text-muted">Preview</span>
-          <span className="text-sm tabular-nums">{preview.display.dateTime}</span>
+          <span className="text-sm tabular-nums">
+            {preview.display.dateTime}
+          </span>
           <span className="text-xs text-muted">
             {preview.display.timeZone}
             {preview.display.timeZone === preview.display.zoneLabel
@@ -131,7 +133,8 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
           </span>
         </div>
         <FieldDescription>
-          Applies to dates and times throughout Towbar and your personal API keys.
+          Applies to dates and times throughout Towbar and your personal API
+          keys.
         </FieldDescription>
         {error ? (
           <p role="alert" className="text-sm text-danger">
