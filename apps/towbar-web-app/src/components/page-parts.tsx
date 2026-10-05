@@ -156,7 +156,7 @@ export function DashboardPage({
           </SecondaryEntityHeader>
         ) : null}
         <PageSection
-          className="content-grid pt-0"
+          className="content-grid pt-0 sm:pt-0"
           xPadding="none"
           yPadding="compact"
         >

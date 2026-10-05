@@ -223,7 +223,11 @@ function ResourceBackupContent({
                 ))}
               </ol>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-muted typography--body-xs">
+                <p
+                  className={
+                    latestBackup ? "text-xs text-muted" : "text-sm text-muted"
+                  }
+                >
                   {latestBackup ? (
                     <>
                       Last retained snapshot:{" "}

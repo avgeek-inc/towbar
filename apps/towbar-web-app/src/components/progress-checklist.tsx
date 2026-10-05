@@ -80,7 +80,7 @@ export function ProgressChecklistItem({
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
         <span className="grid min-w-0 flex-1 basis-48">
           <span className="text-sm font-medium text-foreground">{title}</span>
-          <span className="text-xs leading-relaxed font-normal text-muted">
+          <span className="text-sm leading-relaxed font-normal text-muted">
             {description}
           </span>
         </span>

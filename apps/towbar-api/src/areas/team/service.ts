@@ -366,7 +366,13 @@ export async function listInvitations(user: AuthenticatedUser) {
         eq(transactionalEmails.template, "invitation"),
       ),
     )
-    .where(eq(workspaceInvitations.workspaceId, user.workspaceId))
+    .where(
+      and(
+        eq(workspaceInvitations.workspaceId, user.workspaceId),
+        eq(workspaceInvitations.status, "pending"),
+        gt(workspaceInvitations.expiresAt, new Date()),
+      ),
+    )
     .orderBy(desc(workspaceInvitations.createdAt))
     .limit(100);
 }

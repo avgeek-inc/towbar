@@ -81,7 +81,7 @@ export const MonitoringEvents = memo(function MonitoringEvents({
         />
       ) : null}
       {limited ? (
-        <p className="text-xs text-muted">
+        <p className="text-sm text-muted">
           Showing the latest {events.length} events in this duration. Choose a
           shorter duration to see more detail.
         </p>

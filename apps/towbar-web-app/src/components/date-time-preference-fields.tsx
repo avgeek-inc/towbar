@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { DateTimePreferences } from "@workspace/towbar-web-client";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
@@ -7,6 +8,7 @@ import {
   Autocomplete,
   SearchField,
 } from "@workspace/web-design-system/pickers/autocomplete";
+import { timeZoneOffset } from "@/lib/time-zone-offset";
 
 export type DateTimePreferenceOptions = {
   dateFormats: Array<{
@@ -46,6 +48,17 @@ export function DateTimePreferenceFields({
   preferences: DateTimePreferences;
   variant?: "primary" | "secondary";
 }) {
+  const [offsetInstant, setOffsetInstant] = useState(() => new Date());
+  const offsets = useMemo(
+    () =>
+      new Map(
+        options.timeZones.map((zone) => [
+          zone,
+          timeZoneOffset(zone, offsetInstant),
+        ]),
+      ),
+    [options.timeZones, offsetInstant],
+  );
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -118,6 +131,9 @@ export function DateTimePreferenceFields({
         isRequired
         isDisabled={disabled}
         selectedKey={preferences.timeZone}
+        onOpenChange={(open) => {
+          if (open) setOffsetInstant(new Date());
+        }}
         onSelectionChange={(key) => {
           if (typeof key === "string" && options.timeZones.includes(key))
             onChange({ ...preferences, timeZone: key });
@@ -125,7 +141,14 @@ export function DateTimePreferenceFields({
       >
         <Label isRequired>Time zone</Label>
         <Select.Trigger>
-          <Select.Value>{preferences.timeZone}</Select.Value>
+          <Select.Value className="min-w-0 flex-1">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="truncate">{preferences.timeZone}</span>
+              <span className="ml-auto shrink-0 tabular-nums text-muted">
+                {offsets.get(preferences.timeZone)}
+              </span>
+            </span>
+          </Select.Value>
           <Select.Indicator />
         </Select.Trigger>
         <Select.Popover className="w-(--trigger-width) min-w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden">
@@ -160,7 +183,12 @@ export function DateTimePreferenceFields({
             <ListBox>
               {options.timeZones.map((zone) => (
                 <ListBox.Item id={zone} key={zone} textValue={zone}>
-                  {zone}
+                  <span className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="truncate">{zone}</span>
+                    <span className="ml-auto shrink-0 tabular-nums text-muted">
+                      {offsets.get(zone)}
+                    </span>
+                  </span>
                   <ListBox.ItemIndicator />
                 </ListBox.Item>
               ))}

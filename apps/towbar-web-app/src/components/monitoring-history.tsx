@@ -240,7 +240,7 @@ export function MonitoringHistory({
             ))}
           </div>
           {history.seriesLimited ? (
-            <p className="text-xs text-muted">
+            <p className="text-sm text-muted">
               Showing the 32 most recent instances. Choose a shorter range to
               inspect more detail.
             </p>

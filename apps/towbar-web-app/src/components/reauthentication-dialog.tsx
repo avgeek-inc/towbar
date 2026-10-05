@@ -1,11 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@workspace/web-design-system/buttons/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-} from "@workspace/web-design-system/forms/field";
+import { Field, FieldError } from "@workspace/web-design-system/forms/field";
 import { Input } from "@workspace/web-design-system/forms/input";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
@@ -51,9 +47,9 @@ export function ReauthenticationDialog() {
             <Modal.CloseTrigger />
           </Modal.Header>
           <Modal.Body>
-            <FieldDescription className="mb-4">
+            <p className="mb-4 text-sm text-muted">
               Confirm your password to continue with this sensitive action.
-            </FieldDescription>
+            </p>
             {open ? (
               <ReauthenticationFields
                 email={user?.email ?? ""}

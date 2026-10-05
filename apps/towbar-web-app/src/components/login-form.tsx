@@ -268,9 +268,9 @@ function InitialTeamSetup({ options }: { options: DateTimePreferenceOptions }) {
           <div className="content-grid">
             <div className="grid gap-1">
               <h2 className="text-sm font-medium">Date and time</h2>
-              <FieldDescription>
+              <p className="text-sm text-muted">
                 Choose how dates and times appear throughout Towbar.
-              </FieldDescription>
+              </p>
             </div>
             <DateTimePreferenceFields
               disabled={isSubmitting}

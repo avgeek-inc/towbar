@@ -143,7 +143,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
         )}
       </div>
       {history.notes.map((note) => (
-        <p key={note} className="text-xs text-muted">
+        <p key={note} className="text-sm text-muted">
           {note}
         </p>
       ))}

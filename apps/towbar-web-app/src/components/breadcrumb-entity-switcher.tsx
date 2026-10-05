@@ -317,9 +317,9 @@ export function BreadcrumbEntitySwitcher({
             </SearchField.Group>
           </SearchField>
           {query.error ? (
-            <p className="px-3 py-2 text-xs text-danger">{query.error}</p>
+            <p className="px-3 py-2 text-sm text-danger">{query.error}</p>
           ) : !query.data ? (
-            <p className="px-3 py-2 text-xs text-muted">
+            <p className="px-3 py-2 text-sm text-muted">
               Loading {entityLabel}…
             </p>
           ) : null}

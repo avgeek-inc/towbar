@@ -2,7 +2,7 @@
 
 ## LobeHub Icons
 
-The OpenAI, Cursor, and Claude Code SVG paths in `apps/towbar-web-app/src/components/mcp-client-logo.tsx` are from [LobeHub Icons](https://github.com/lobehub/lobe-icons). Brand names and logos belong to their respective owners.
+The OpenAI, Cursor, and Anthropic SVG paths in `apps/towbar-web-app/src/components/mcp-client-logo.tsx` are from [LobeHub Icons](https://github.com/lobehub/lobe-icons). Brand names and logos belong to their respective owners.
 
 The VS Code logo silhouette in the same component is adapted from [Microsoft's VS Code logo asset](https://github.com/MicrosoftDocs/visualstudio-docs/blob/main/docs/media/vs-code-logo.svg) for a monochrome client selector. The source is provided under [CC BY 4.0](https://github.com/MicrosoftDocs/visualstudio-docs/blob/main/LICENSE).
 

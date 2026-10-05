@@ -219,9 +219,9 @@ export function ConfirmEmailChange() {
             window.dispatchEvent(new Event("towbar:identity-changed"));
           }}
         >
-          <FieldDescription>
+          <p className="text-sm text-muted">
             You’ll be signed out of all browser sessions after confirming.
-          </FieldDescription>
+          </p>
         </AuthForm>
       ) : (
         <p role="alert">

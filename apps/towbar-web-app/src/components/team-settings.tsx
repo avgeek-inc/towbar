@@ -8,7 +8,13 @@ import {
 
 import { TeamAuditLogs } from "./team-audit-logs";
 import { canShowApiMcpSettings } from "@/lib/config";
-import { useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -30,6 +36,7 @@ import { CopyTextButton } from "./copy-text-button";
 import { ApiMcpSettings } from "./api-mcp-settings";
 import { Key01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
+import { Avatar } from "@workspace/web-design-system/data-display/avatar";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
@@ -45,6 +52,7 @@ import { SecondaryItems } from "./secondary-sidebar";
 import { PageSelectionTitle } from "./page-selection-title";
 import { AuthForm } from "./auth-form";
 import { RelativeTime } from "./last-synced-time";
+import { getPendingInvitations } from "@/lib/pending-invitations";
 import { useAccess } from "./access-context";
 import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -65,14 +73,45 @@ type Invitation = {
   role: WorkspaceRole;
   status: string;
   expiresAt: string;
-  deliveryStatus: string | null;
-  errorCode: string | null;
 };
 type Dialog = {
   mode: "create" | "invite" | "role";
   member?: Member;
   instance: number;
 };
+
+const noInvitations: Invitation[] = [];
+
+function usePendingInvitations(invitations: Invitation[]) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      const currentTime = Date.now();
+      setNow(currentTime);
+      const pending = getPendingInvitations(invitations, currentTime);
+      const nextExpiry = Math.min(
+        ...pending.map((item) => Date.parse(item.expiresAt)),
+      );
+      if (Number.isFinite(nextExpiry)) {
+        timer = setTimeout(
+          refresh,
+          Math.min(nextExpiry - currentTime, 2_147_483_647),
+        );
+      }
+    };
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [invitations]);
+  return getPendingInvitations(invitations, now);
+}
 function RoleSelect({
   value,
   onChange,
@@ -266,6 +305,9 @@ function TeamMembers() {
   const invitations = useApiQuery<{ invitations: Invitation[] }>(
     "/v1/core/team/invitations",
   );
+  const pending = usePendingInvitations(
+    invitations.data?.invitations ?? noInvitations,
+  );
   const [dialog, setDialog] = useState<Dialog>({ mode: "invite", instance: 0 });
   const [open, setOpen] = useState(false);
   const edit = (mode: Dialog["mode"], member?: Member) => {
@@ -313,12 +355,21 @@ function TeamMembers() {
       key: "member",
       header: "Member",
       cell: (member) => (
-        <TableCellStack as="div">
-          <span>{member.name}</span>
-          <TableCellDescription className="break-words">
-            {member.email}
-          </TableCellDescription>
-        </TableCellStack>
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar
+            aria-hidden="true"
+            className="shrink-0"
+            email={member.email}
+            name={member.name}
+            size="sm"
+          />
+          <TableCellStack as="div">
+            <span>{member.name}</span>
+            <TableCellDescription className="break-words">
+              {member.email}
+            </TableCellDescription>
+          </TableCellStack>
+        </div>
       ),
     },
     {
@@ -353,6 +404,7 @@ function TeamMembers() {
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (member) => (
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onPress={() => edit("role", member)}>
@@ -379,15 +431,20 @@ function TeamMembers() {
       ),
     },
   ];
-  const pending = (invitations.data?.invitations ?? []).filter(
-    (invitation) => invitation.status === "pending",
-  );
   const inviteColumns: ResourceTableColumn<Invitation>[] = [
     {
       key: "email",
       header: "Pending Invitations",
       cell: (invitation) => (
-        <span className="break-words">{invitation.email}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar
+            aria-hidden="true"
+            className="shrink-0"
+            email={invitation.email}
+            size="sm"
+          />
+          <span className="min-w-0 break-words">{invitation.email}</span>
+        </div>
       ),
     },
     {
@@ -404,39 +461,17 @@ function TeamMembers() {
       key: "expires",
       header: "Expires",
       cell: (invitation) => (
-        <RelativeTime value={invitation.expiresAt} label="Expires" />
-      ),
-    },
-    {
-      key: "delivery",
-      header: "Delivery",
-      cell: (invitation) => (
-        <TableCellStack as="div">
-          <StatusBadge
-            status={
-              invitation.deliveryStatus === "sent"
-                ? "succeeded"
-                : (invitation.deliveryStatus ?? "pending")
-            }
-            label={
-              invitation.deliveryStatus === "sent"
-                ? "Sent to mail server"
-                : invitation.deliveryStatus === "failed"
-                  ? "Delivery failed"
-                  : "Pending"
-            }
-          />
-          {invitation.errorCode === "SMTP_NOT_CONFIGURED" ? (
-            <TableCellDescription>
-              Configure SMTP in Integrations.
-            </TableCellDescription>
-          ) : null}
-        </TableCellStack>
+        <RelativeTime
+          value={invitation.expiresAt}
+          label="Expires"
+          display="relative"
+        />
       ),
     },
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (invitation) => (
         <div className="flex justify-end gap-2">
           <CopyTextButton

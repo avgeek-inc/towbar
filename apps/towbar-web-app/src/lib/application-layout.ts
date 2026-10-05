@@ -16,6 +16,7 @@ import {
   SecurityCheckIcon,
   ServerStack01Icon,
   UserAccountIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { createElement } from "react";
 
@@ -149,6 +150,13 @@ const sidebar = {
           href: "/monitoring/vulnerabilities",
           icon: sidebarIcons.vulnerabilities,
         },
+        {
+          kind: "link",
+          id: "health",
+          label: "System health",
+          href: "/system-health",
+          icon: sidebarIcons.health,
+        },
       ],
     },
     {
@@ -184,19 +192,25 @@ const sidebar = {
           preserveSubroute: true,
           icon: PlugSocketIcon,
         },
+      ],
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      items: [
+        {
+          kind: "link",
+          id: "account-settings",
+          label: "Account settings",
+          href: "/settings",
+          icon: sidebarIcons.profile,
+        },
         {
           kind: "link",
           id: "team-settings",
           label: "Team Settings",
-          href: "/team-settings/general",
-          icon: UserAccountIcon,
-        },
-        {
-          kind: "link",
-          id: "health",
-          label: "System health",
-          href: "/system-health",
-          icon: sidebarIcons.health,
+          href: "/team-settings",
+          icon: UserGroupIcon,
         },
       ],
     },

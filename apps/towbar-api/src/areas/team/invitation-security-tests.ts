@@ -50,6 +50,16 @@ export async function assertInvitationSecurity({
         adminHeaders,
       );
       assert.notEqual(next.id, first.id);
+      assert(
+        (await teams.listInvitations(admin)).some(
+          (item) => item.id === next.id,
+        ),
+      );
+      assert(
+        !(await teams.listInvitations(admin)).some(
+          (item) => item.id === first.id,
+        ),
+      );
       await assert.rejects(teams.getInvitationPreview(first.id));
       const [oldMail] = await database
         .select()
@@ -61,6 +71,11 @@ export async function assertInvitationSecurity({
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(schema.workspaceInvitations.id, next.id));
       await assert.rejects(teams.getInvitationPreview(next.id));
+      assert(
+        !(await teams.listInvitations(admin)).some(
+          (item) => item.id === next.id,
+        ),
+      );
       await assert.rejects(
         teams.completeInvitationSignup(next.id, {
           name: "Expired",
