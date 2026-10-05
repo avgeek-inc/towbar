@@ -524,10 +524,6 @@ export function createDemoServer({
         "DEMO_RESTRICTED",
         "This endpoint is unavailable in the demo.",
       );
-    if (path === "/runtime-config") {
-      json(response, 200, {});
-      return;
-    }
     const publicAsset =
       path.startsWith("/_next/static/") ||
       /^\/(brand|avatars|images|icons)\//.test(path) ||

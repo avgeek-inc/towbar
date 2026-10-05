@@ -235,8 +235,6 @@ services:
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     environment:
       TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
-      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
-      NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-production}
     restart: unless-stopped
     depends_on:
       api:

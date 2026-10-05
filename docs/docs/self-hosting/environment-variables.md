@@ -187,10 +187,6 @@ Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers
 
 Keep worker activity capacity above the largest server build-concurrency setting, leaving room for sync and maintenance. Restrict the Temporal UI to administrators.
 
-## Browser observability
-
-`observability.sentry.dsn` and `observability.sentry.environment` are optional dashboard runtime settings. Set the DSN to enable Sentry, use the environment label to distinguish installations, and review what your Sentry project collects. Apply either change with `sudo towbar restart`.
-
 ## Installation and upgrades
 
 Towbar installation and upgrades run on the control-plane host. See [Install Towbar](/docs/self-hosting/installation) for the installer and [Upgrades and recovery](/docs/self-hosting/upgrades) for the CLI upgrade process.

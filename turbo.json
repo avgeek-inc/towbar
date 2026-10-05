@@ -24,8 +24,7 @@
         "WORKER_HEALTH_PORT",
         "NEXT_PUBLIC_*",
         "SOURCE_COMMIT",
-        "PATH",
-        "NEXT_RUNTIME"
+        "PATH"
       ]
     },
     "dev": {
@@ -38,8 +37,7 @@
         "DEMO_*",
         "WORKER_HEALTH_PORT",
         "NEXT_PUBLIC_*",
-        "SOURCE_COMMIT",
-        "NEXT_RUNTIME"
+        "SOURCE_COMMIT"
       ]
     },
     "dev:worker": {
@@ -63,10 +61,7 @@
         "SOURCE_COMMIT",
         "NEXT_PUBLIC_TOWBAR_APP_BASE_URL",
         "NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO",
-        "NEXT_PUBLIC_SENTRY_DSN",
-        "NEXT_RUNTIME",
-        "TOWBAR_APP_BASE_URL",
-        "NEXT_PUBLIC_SENTRY_ENVIRONMENT"
+        "TOWBAR_APP_BASE_URL"
       ],
       "passThroughEnv": ["NEXT_TELEMETRY_DISABLED"]
     }

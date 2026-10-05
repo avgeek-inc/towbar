@@ -62,8 +62,6 @@ FIELDS = {
     "TOWBAR_TRIVY_IMAGE": field("worker.vulnerabilityScanning.trivyImage"),
     "TOWBAR_NOTIFICATIONS_ENABLED": field("notifications.enabled", "boolean"),
     "TOWBAR_NOTIFICATION_CONFIG_JSON": field("notifications", "json-object"),
-    "NEXT_PUBLIC_SENTRY_DSN": field("observability.sentry.dsn"),
-    "NEXT_PUBLIC_SENTRY_ENVIRONMENT": field("observability.sentry.environment"),
 }
 
 PROVIDER_FIELDS = {
