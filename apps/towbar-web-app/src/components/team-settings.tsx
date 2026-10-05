@@ -394,6 +394,7 @@ function TeamMembers() {
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (member) => (
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onPress={() => edit("role", member)}>
@@ -452,6 +453,7 @@ function TeamMembers() {
     {
       key: "actions",
       header: "Actions",
+      headerClassName: "text-end",
       cell: (invitation) => (
         <div className="flex justify-end gap-2">
           <CopyTextButton
