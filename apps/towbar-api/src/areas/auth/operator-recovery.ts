@@ -7,7 +7,7 @@ import {
   apiKeys,
   authAccounts,
   authPasskeys,
-  authTwoFactors,
+  authRecoveryCodes,
   authVerifications,
   emailChanges,
   sessions,
@@ -120,13 +120,15 @@ async function recoverAccount(input: {
       .update(users)
       .set({
         ...(input.password ? { mustChangePassword: true } : {}),
-        ...(input.resetMfa ? { twoFactorEnabled: false } : {}),
+        ...(input.removePasskeys ? { twoFactorEnabled: false } : {}),
         ...(emailChanged ? { email: newEmail, emailVerified: false } : {}),
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id));
     if (input.resetMfa)
-      await tx.delete(authTwoFactors).where(eq(authTwoFactors.userId, user.id));
+      await tx
+        .delete(authRecoveryCodes)
+        .where(eq(authRecoveryCodes.userId, user.id));
     if (input.removePasskeys)
       await tx.delete(authPasskeys).where(eq(authPasskeys.userId, user.id));
     await tx.delete(sessions).where(eq(sessions.userId, user.id));

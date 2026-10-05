@@ -1,8 +1,14 @@
+import { replaceRecoveryCodes } from "../../../areas/auth/recovery-codes.js";
 import { validatePasskeyRequest } from "../../../areas/auth/passkey-requests.js";
 import { preferenceOptions } from "../../../areas/auth/preferences.js";
 import { dateTimePreferencesSchema } from "@workspace/towbar-core/date-time";
-import { eq } from "drizzle-orm";
-import { users } from "@workspace/towbar-database/schema";
+import { and, eq, ne } from "drizzle-orm";
+import {
+  authPasskeys,
+  authRecoveryCodes,
+  sessions,
+  users,
+} from "@workspace/towbar-database/schema";
 import { confirmEmailChange } from "../../../areas/auth/email-change.js";
 import { getEnv } from "../../../env.js";
 import { requireRecentAuthentication } from "../../../areas/auth/recent-authentication.js";
@@ -169,8 +175,7 @@ const publicIdentityPaths = new Set([
   "GET /verify-email",
   "POST /request-password-reset",
   "POST /reset-password",
-  "POST /two-factor/verify-totp",
-  "POST /two-factor/verify-backup-code",
+  "POST /passkey/verify-recovery-code",
   "POST /sign-out",
   "GET /passkey/generate-authenticate-options",
   "POST /passkey/verify-authentication",
@@ -182,10 +187,6 @@ const personalIdentityPaths = new Set([
   "POST /passkey/delete-passkey",
   "POST /passkey/update-passkey",
   "GET /passkey/list-user-passkeys",
-  "POST /two-factor/enable",
-  "POST /two-factor/disable",
-  "POST /two-factor/generate-backup-codes",
-  "POST /two-factor/get-totp-uri",
 ]);
 publicAuthRoutes.all("/identity/*", async (context) => {
   const path = context.req.path.slice(identityBasePath.length);
@@ -224,15 +225,6 @@ publicAuthRoutes.all("/identity/*", async (context) => {
       )
     )
       await requireRecentAuthentication(identity.user.id, identity.sessionId);
-    if (path === "/two-factor/enable") {
-      const input = (await context.req.raw.clone().json()) as {
-        method?: unknown;
-      };
-      if (input.method && input.method !== "totp")
-        throw forbidden(
-          "Use an authenticator app for two-factor authentication",
-        );
-    }
   }
   if (path.startsWith("/passkey/")) {
     await validatePasskeyRequest(context.req.raw, path);
@@ -248,8 +240,32 @@ publicAuthRoutes.all("/identity/*", async (context) => {
           .where(eq(users.id, before.user.id))
           .for("update");
       const response = await auth.handler(context.req.raw);
-      if (response.ok && !before && path === "/passkey/verify-authentication")
+      if (
+        response.ok &&
+        !before &&
+        [
+          "/passkey/verify-authentication",
+          "/passkey/verify-recovery-code",
+        ].includes(path)
+      )
         await recordSuccessfulSignIn(tx, response);
+      if (response.ok && before && path === "/passkey/verify-authentication") {
+        const body = (await response.clone().json()) as {
+          session: { id: string };
+        };
+        await tx
+          .delete(sessions)
+          .where(
+            and(
+              eq(sessions.id, body.session.id),
+              ne(sessions.id, before.session.id),
+            ),
+          );
+        return Response.json(
+          { authenticated: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
       if (
         response.ok &&
         before &&
@@ -262,48 +278,52 @@ publicAuthRoutes.all("/identity/*", async (context) => {
           email: before.user.email,
           name: before.user.name,
           template: "mfa-changed",
-          actionUrl: `${new URL(getEnv().TOWBAR_APP_BASE_URL).origin}/settings/2fa`,
+          actionUrl: `${new URL(getEnv().TOWBAR_APP_BASE_URL).origin}/settings/passkeys`,
         });
       }
-      return response;
-    });
-  }
-  if (path.startsWith("/two-factor/")) {
-    return await getTowbarDatabase().transaction(async (tx) => {
-      const auth = createIdentityAuth(tx);
-      const before = await auth.api.getSession({
-        headers: context.req.raw.headers,
-      });
-      if (before)
-        await tx
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.id, before.user.id))
-          .for("update");
-      const response = await auth.handler(context.req.raw);
-      if (
-        response.ok &&
-        !before &&
-        ["/two-factor/verify-totp", "/two-factor/verify-backup-code"].includes(
-          path,
-        )
-      )
-        await recordSuccessfulSignIn(tx, response);
       if (
         response.ok &&
         before &&
-        (["/two-factor/disable", "/two-factor/generate-backup-codes"].includes(
+        ["/passkey/verify-registration", "/passkey/delete-passkey"].includes(
           path,
-        ) ||
-          (path === "/two-factor/verify-totp" && !before.user.twoFactorEnabled))
+        )
       ) {
-        await enqueueIdentityEmail(tx, {
-          userId: before.user.id,
-          email: before.user.email,
-          name: before.user.name,
-          template: "mfa-changed",
-          actionUrl: `${new URL(getEnv().TOWBAR_APP_BASE_URL).origin}/settings/2fa`,
-        });
+        const keys = await tx
+          .select({ id: authPasskeys.id })
+          .from(authPasskeys)
+          .where(eq(authPasskeys.userId, before.user.id));
+        await tx
+          .update(users)
+          .set({ twoFactorEnabled: keys.length > 0 })
+          .where(eq(users.id, before.user.id));
+        if (keys.length === 0)
+          await tx
+            .delete(authRecoveryCodes)
+            .where(eq(authRecoveryCodes.userId, before.user.id));
+        await tx
+          .delete(sessions)
+          .where(
+            and(
+              eq(sessions.userId, before.user.id),
+              ne(sessions.id, before.session.id),
+            ),
+          );
+        if (path === "/passkey/verify-registration") {
+          const [stored] = await tx
+            .select({ userId: authRecoveryCodes.userId })
+            .from(authRecoveryCodes)
+            .where(eq(authRecoveryCodes.userId, before.user.id));
+          if (!stored) {
+            const recoveryCodes = await replaceRecoveryCodes(
+              tx,
+              before.user.id,
+            );
+            return Response.json(
+              { ...((await response.json()) as object), recoveryCodes },
+              { headers: response.headers },
+            );
+          }
+        }
       }
       return response;
     });
@@ -314,7 +334,7 @@ async function loginResponse(response: Response, successStatus = 200) {
   if (!response.ok) return response;
   const body = (await response.json()) as {
     twoFactorRedirect?: boolean;
-    twoFactorMethods?: Array<"totp" | "passkey">;
+    twoFactorMethods?: Array<"passkey">;
     user?: { id: string };
   };
   const headers = new Headers(response.headers);

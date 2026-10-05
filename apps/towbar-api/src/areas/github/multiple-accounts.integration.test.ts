@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
-import { randomBytes, randomInt, randomUUID } from "node:crypto";
+import {
+  createHmac,
+  generateKeyPairSync,
+  randomBytes,
+  randomInt,
+  randomUUID,
+} from "node:crypto";
 import test from "node:test";
 import { and, eq } from "drizzle-orm";
 import {
   auditEvents,
   integrationInstallations,
+  integrationWebhookDeliveries,
   sourceEnvironments,
   sourceSyncs,
   sources,
@@ -21,7 +28,11 @@ import {
 } from "./service.js";
 import { HttpError } from "../../http/errors.js";
 import { changeSourceGitHubConnection } from "../sources/github-connection.js";
-import { processGitHubPush } from "./webhooks.js";
+import {
+  processGitHubPush,
+  processGitHubWebhook,
+  resolveWebhookInstallation,
+} from "./webhooks.js";
 import { createInstallationToken } from "./client.js";
 import { withActor } from "../auth/actor-context.js";
 
@@ -60,11 +71,90 @@ void test(
       },
       suspended_at: null,
     });
-    await database.insert(workspaces).values([
-      { id: workspaceId, slug: workspaceId, name: "GitHub accounts test" },
-      { id: otherWorkspaceId, slug: otherWorkspaceId, name: "Other workspace" },
-    ]);
+    await database.insert(workspaces).values({
+      id: workspaceId,
+      slug: workspaceId,
+      name: "GitHub accounts test",
+    });
     try {
+      const autoId = firstId + 10;
+      const autoInput = {
+        installationId: String(autoId),
+        eventName: "installation",
+        payload: { action: "created", installation: { id: autoId } },
+        signed: true,
+      };
+      const lookup = () =>
+        Promise.resolve(installation(autoId, accountId + 20, "auto-account"));
+      await assert.rejects(
+        resolveWebhookInstallation({ ...autoInput, signed: false }, lookup),
+        /webhook secret/,
+      );
+      const automatic = await resolveWebhookInstallation(autoInput, lookup);
+      assert(automatic);
+      assert.equal(
+        (await resolveWebhookInstallation(autoInput, lookup))?.id,
+        automatic.id,
+      );
+      process.env.TOWBAR_GITHUB_ENABLED = "true";
+      process.env.TOWBAR_GITHUB_APP_ID = "1234";
+      process.env.TOWBAR_GITHUB_APP_SLUG = "towbar";
+      process.env.TOWBAR_GITHUB_PRIVATE_KEY_BASE64 = Buffer.from(
+        generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({
+          type: "pkcs8",
+          format: "pem",
+        }),
+      ).toString("base64");
+      process.env.TOWBAR_GITHUB_WEBHOOK_SECRET = "test-webhook-secret";
+      const deletedBody = JSON.stringify({
+        action: "deleted",
+        installation: { id: autoId },
+      });
+      const webhook = {
+        body: deletedBody,
+        deliveryId: randomUUID(),
+        eventName: "installation",
+        targetId: "1234",
+        signature: `sha256=${createHmac("sha256", "test-webhook-secret").update(deletedBody).digest("hex")}`,
+      };
+      await assert.rejects(
+        processGitHubWebhook({ ...webhook, signature: "invalid" }),
+        /signature/,
+      );
+      await processGitHubWebhook(webhook);
+      assert(
+        (await getGitHubConnection(workspaceId, automatic.id))?.suspendedAt,
+      );
+      assert.equal((await processGitHubWebhook(webhook)).duplicate, true);
+      await resolveWebhookInstallation(
+        {
+          ...autoInput,
+          payload: { action: "unsuspend", installation: { id: autoId } },
+        },
+        lookup,
+      );
+      assert.equal(
+        (await getGitHubConnection(workspaceId, automatic.id))?.suspendedAt,
+        null,
+      );
+      await database.insert(workspaces).values({
+        id: otherWorkspaceId,
+        slug: otherWorkspaceId,
+        name: "Other workspace",
+      });
+      assert.equal(
+        await resolveWebhookInstallation(
+          { ...autoInput, installationId: String(autoId + 1) },
+          lookup,
+        ),
+        null,
+      );
+      await database
+        .delete(integrationWebhookDeliveries)
+        .where(eq(integrationWebhookDeliveries.installationId, automatic.id));
+      await database
+        .delete(integrationInstallations)
+        .where(eq(integrationInstallations.id, automatic.id));
       // Legacy records have no GitHub account/repository IDs until access is verified.
       const [legacy] = await database
         .insert(integrationInstallations)

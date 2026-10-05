@@ -1,5 +1,5 @@
-import { desc, eq } from "drizzle-orm";
-import { authPasskeys } from "@workspace/towbar-database/schema";
+import { desc, eq, sql } from "drizzle-orm";
+import { authPasskeys, users } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
 export function listPersonalPasskeys(userId: string) {
@@ -13,3 +13,5 @@ export function listPersonalPasskeys(userId: string) {
     .where(eq(authPasskeys.userId, userId))
     .orderBy(desc(authPasskeys.createdAt));
 }
+
+export const passkeyEnabled = sql<boolean>`exists (select 1 from ${authPasskeys} where ${authPasskeys.userId} = ${users.id})`;

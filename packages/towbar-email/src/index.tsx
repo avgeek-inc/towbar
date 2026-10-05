@@ -166,7 +166,7 @@ function message(
     "mfa-changed": {
       title: "Your account security changed",
       paragraphs: [
-        "Your passkey, authenticator, or recovery-code settings were changed. If you didn't make this change, contact your administrator immediately.",
+        "Your passkeys or recovery codes were changed. If you didn't make this change, contact your administrator immediately.",
       ],
       actionLabel: "Review account security",
     },

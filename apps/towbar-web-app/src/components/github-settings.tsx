@@ -40,7 +40,8 @@ export function GitHubSettings() {
   const params = useSearchParams();
   const completed = useRef(false);
   const [callbackError, setCallbackError] = useState<string>();
-  const query = useApiQuery<GitHubState>("/v1/core/github");
+  const query = useApiQuery<GitHubState>("/v1/core/github", 15_000);
+  const refresh = query.refresh;
   const installationId = params.get("installation_id");
   const state = params.get("state");
 
@@ -55,13 +56,14 @@ export function GitHubSettings() {
       .then(() => {
         router.replace("/manage/integrations/github");
         refreshApiQueries();
+        refresh();
       })
       .catch((error: unknown) =>
         setCallbackError(
           error instanceof Error ? error.message : "Could not connect GitHub",
         ),
       );
-  }, [installationId, router, state]);
+  }, [installationId, router, state, refresh]);
 
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;

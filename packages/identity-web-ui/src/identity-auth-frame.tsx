@@ -61,10 +61,16 @@ export function IdentityAuthHeading({
         <TypographyText textRole="label">{eyebrow}</TypographyText>
       ) : null}
       <div data-slot="identity-auth-heading-copy" className="grid gap-1">
-        <TypographyHeading elementType={titleElementType} level={2}>
+        <TypographyHeading
+          className="text-xl font-medium"
+          elementType={titleElementType}
+          level={2}
+        >
           {title}
         </TypographyHeading>
-        <TypographyParagraph color="muted">{children}</TypographyParagraph>
+        <TypographyParagraph color="muted" size="sm">
+          {children}
+        </TypographyParagraph>
       </div>
     </header>
   );

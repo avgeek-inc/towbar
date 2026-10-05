@@ -1,4 +1,4 @@
-import { AccountSettings } from "@/components/account-settings";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return <AccountSettings page="2fa" />;
+  redirect("/settings/passkeys");
 }

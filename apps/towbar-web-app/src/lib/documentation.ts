@@ -241,8 +241,8 @@ export const documentationTopics = {
     "Review active browser sessions and revoke sessions you no longer recognize or need.",
   ),
   security: guide(
-    "personal-settings#two-factor-auth",
-    "Set up an authenticator app, save recovery codes, and manage passkeys for your account.",
+    "personal-settings#passkeys",
+    "Manage passkeys and one-use recovery codes for your account.",
   ),
   apiKeys: guide(
     "api/authentication#keys-and-permissions",
@@ -312,7 +312,7 @@ export function documentationTopic(pathname: string): Topic | undefined {
     if (path.endsWith("/mcp")) return "mcp";
     if (path.endsWith("/email-password")) return "emailPassword";
     if (path.endsWith("/sessions")) return "sessions";
-    if (/\/(2fa|security)$/.test(path)) return "security";
+    if (/\/(passkeys|2fa|security)$/.test(path)) return "security";
     return "profile";
   }
   if (path === "/manage/ssh-keys" || path === "/manage/private-keys")
@@ -530,10 +530,7 @@ export const widgetDocumentation: Record<string, HeadingDocumentation> = {
     "personal-settings#change-your-password",
     "Use your current password to set a new one with at least 15 characters.",
   ),
-  "authenticator app": guide(
-    "personal-settings#two-factor-auth",
-    "Add a one-time authenticator code to password sign-in and keep recovery codes for a lost device.",
-  ),
+
   passkeys: guide(
     "personal-settings#passkeys",
     "Sign in using a device or password manager, with its PIN, fingerprint, or face verification.",

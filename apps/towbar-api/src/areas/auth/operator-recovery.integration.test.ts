@@ -53,11 +53,9 @@ void test(
         access: "read",
         scope: "team",
       });
-      await database.insert(schema.authTwoFactors).values({
+      await database.insert(schema.authRecoveryCodes).values({
         userId: admin.id,
-        secret: "fixture-encrypted-secret",
-        backupCodes: "fixture-encrypted-codes",
-        verified: true,
+        codeHashes: ["a".repeat(64)],
       });
       await database
         .update(schema.users)
@@ -158,8 +156,8 @@ void test(
         (
           await database
             .select()
-            .from(schema.authTwoFactors)
-            .where(eq(schema.authTwoFactors.userId, admin.id))
+            .from(schema.authRecoveryCodes)
+            .where(eq(schema.authRecoveryCodes.userId, admin.id))
         ).length,
         0,
       );
@@ -187,11 +185,9 @@ void test(
         }),
         /admin account/,
       );
-      await database.insert(schema.authTwoFactors).values({
+      await database.insert(schema.authRecoveryCodes).values({
         userId: member.userId,
-        secret: "fixture",
-        backupCodes: "fixture",
-        verified: true,
+        codeHashes: ["a".repeat(64)],
       });
       await database
         .update(schema.users)
@@ -202,8 +198,8 @@ void test(
         (
           await database
             .select()
-            .from(schema.authTwoFactors)
-            .where(eq(schema.authTwoFactors.userId, member.userId))
+            .from(schema.authRecoveryCodes)
+            .where(eq(schema.authRecoveryCodes.userId, member.userId))
         ).length,
         0,
       );

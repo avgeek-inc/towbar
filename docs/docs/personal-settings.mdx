@@ -59,7 +59,7 @@ The Towbar operator must configure [SMTP](/docs/integrations/notifications/email
 
 ### Change your password
 
-Enter your current password, then the new password twice. Use at least 15 characters. Password managers and paste are supported. Towbar checks new passwords against a list of known compromised passwords. If the check is unavailable, try again later.
+Confirm with your passkey, then enter the new password twice. Accounts without a passkey also enter their current password. Use at least 15 characters. Password managers and paste are supported. Towbar checks new passwords against a list of known compromised passwords. If the check is unavailable, try again later.
 
 An account created by an admin starts with a temporary password. The user must replace it during the first sign-in before opening the dashboard.
 
@@ -69,51 +69,17 @@ The Sessions table lists your active browser sessions, when each was last used, 
 
 Choose **Logout** from the account menu, or use the sign-out icon beside the theme switcher in the header, to end the current browser session. The confirmation links back to these settings for managing other sessions. Signing out does not revoke your personal API keys.
 
-## Two-factor Auth
-
-An authenticator app adds a one-time code after password sign-in. Open **Two-factor Auth → Authenticator app** to set it up.
-
-1. Start setup and scan the QR code with your authenticator app. You can copy the setup key instead if needed.
-2. Enter a current six-digit code to enable the authenticator.
-3. Save the recovery codes somewhere you can reach if you lose your device.
-
-Each recovery code works once. Replacing the codes makes the previous set unusable. Replacing codes or disabling the authenticator requires a current authenticator code.
-
-Towbar may ask you to authenticate again before a sensitive change if your last authentication was more than ten minutes ago. Starting setup does not enable MFA until Towbar accepts the verification code.
-
 ## Passkeys
 
-A passkey verifies your identity after you enter your email and password. Your browser asks for device verification, such as a fingerprint, face scan, or PIN. The biometric data stays with the device.
+Open **My Settings → Passkeys** to add, rename, or remove a passkey. Use **Sign in with Passkey** to sign in without a password. Password sign-in also requires a passkey when one is registered.
 
-Under **Two-factor Auth → Passkeys**, add a passkey and give it a name you will recognize. Its creation date appears below the name. You can rename it later or remove one you no longer use. Removing it from Towbar stops that credential from signing in to this installation; it does not delete the copy stored in your password manager.
+Towbar requires device verification, such as a fingerprint, face scan, or PIN. Biometric data stays on the device. Sensitive actions use your passkey; accounts without a passkey confirm their password.
 
-Sign in with your email and password first. When a passkey is registered and your browser supports it, Towbar requests it automatically, including when you also have an authenticator app. You can switch to an authenticator code or recovery code, or retry a cancelled passkey request. With only an authenticator, Towbar opens the code form. Keep your password and recovery options available.
+Adding your first passkey shows ten recovery codes. Copy or download them and store them securely. Each code works once, together with your password, if your passkeys are unavailable. **Replace recovery codes** in the page menu invalidates the previous set. Existing passkey users can generate codes there too.
 
-Passkeys belong to the Towbar site's domain, so moving the installation to a different domain requires new passkeys. Production installations need HTTPS; localhost is supported for development.
+Removing the last passkey returns the account to password sign-in and removes its recovery codes. Removing a passkey from Towbar does not delete its copy from your password manager.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/two-factor-auth-light.jpg"
-      alt="Manage authenticator verification and passkeys in your personal settings."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/two-factor-auth-dark.jpg"
-      alt="Manage authenticator verification and passkeys in your personal settings."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Manage authenticator verification and passkeys in your personal settings.
-  </p>
-</div>
+Passkeys require HTTPS in production and belong to the site's domain. Changing that domain requires new passkeys; localhost is supported for development.
 
 ## Personal API keys
 
@@ -127,4 +93,4 @@ The **MCP Guide** page shows the endpoint and client configuration for this Towb
 
 ## If you cannot sign in
 
-Use **Forgot password** when SMTP is available. If you lost your authenticator, use an unused recovery code. An installation operator can follow [admin account recovery](/docs/self-hosting/upgrades#admin-account-recovery) when the usual recovery methods are unavailable.
+Use **Forgot password** when SMTP is available. If you lost your passkeys, sign in with your password and an unused recovery code. An installation operator can follow [admin account recovery](/docs/self-hosting/upgrades#admin-account-recovery) when the usual recovery methods are unavailable.

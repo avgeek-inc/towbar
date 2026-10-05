@@ -3,10 +3,7 @@ import {
   pendingEmailChange,
   requestEmailChange,
 } from "../../../areas/auth/email-change.js";
-import {
-  manageAuthenticator,
-  setupAuthenticator,
-} from "../../../areas/auth/authenticator.js";
+import { regenerateRecoveryCodes } from "../../../areas/auth/recovery-codes.js";
 import { requireRecentAuthentication } from "../../../areas/auth/recent-authentication.js";
 import { sessionUser } from "../../../http/session-user.js";
 import { operation } from "../../../http/operation.js";
@@ -206,50 +203,22 @@ accountRoutes.delete(
   },
 );
 accountRoutes.post(
-  "/profile/two-factor/setup",
+  "/profile/passkeys/recovery-codes",
   operation({
     permissions: ["personal.manage"],
     browserOnly: true,
-    summary: "Set up authenticator",
-    responseSchema: 'account.ts:post:"/profile/two-factor/setup"',
-    response: "Authenticator URI and recovery codes.",
+    summary: "Replace passkey recovery codes",
+    responseSchema: 'account.ts:post:"/profile/passkeys/recovery-codes"',
+    response: "New one-use recovery codes. Previous codes stop working.",
+    body: z.object({}).strict(),
   }),
   async (c) => {
+    await readJson(c, z.object({}).strict());
     await requireRecentAuthentication(
       sessionUser(c).id,
       c.get("currentSessionId"),
     );
-    return c.json(await setupAuthenticator(sessionUser(c).id));
-  },
-);
-const authenticatorSchema = z
-  .object({
-    code: z.string().regex(/^\d{6}$/),
-    action: z.enum(["disable", "recovery"]),
-  })
-  .strict();
-accountRoutes.post(
-  "/profile/two-factor/manage",
-  operation({
-    permissions: ["personal.manage"],
-    browserOnly: true,
-    summary: "Update authenticator settings",
-    responseSchema: 'account.ts:post:"/profile/two-factor/manage"',
-    response: "Updated recovery codes.",
-    body: authenticatorSchema,
-  }),
-  async (c) => {
-    await requireRecentAuthentication(
-      sessionUser(c).id,
-      c.get("currentSessionId"),
-    );
-    return c.json(
-      await manageAuthenticator({
-        ...(await readJson(c, authenticatorSchema)),
-        userId: sessionUser(c).id,
-        sessionId: c.get("currentSessionId")!,
-        headers: c.req.raw.headers,
-      }),
-    );
+    c.header("Cache-Control", "no-store");
+    return c.json(await regenerateRecoveryCodes(sessionUser(c).id));
   },
 );

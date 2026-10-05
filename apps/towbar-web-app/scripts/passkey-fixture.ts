@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   generateRegistrationOptions,
   generateAuthenticationOptions,
@@ -24,6 +24,21 @@ export function createPasskeyFixture(
   seededKeys: FixturePasskey[] = [],
 ) {
   const keys = structuredClone(seededKeys);
+  const recovery = new Map<string, string[]>(
+    seededKeys.map((key) => [
+      key.userId,
+      ["fixture-recovery-one", "fixture-recovery-two"],
+    ]),
+  );
+  function replaceRecoveryCodes(userId: string) {
+    if (!keys.some((key) => key.userId === userId))
+      throw new Error("Add a passkey first");
+    const codes = Array.from({ length: 10 }, () =>
+      randomBytes(16).toString("hex"),
+    );
+    recovery.set(userId, codes);
+    return codes;
+  }
   let challenge: {
     value: string;
     userId: string | null;
@@ -34,6 +49,7 @@ export function createPasskeyFixture(
   const origin = process.env.TOWBAR_APP_BASE_URL ?? "http://localhost:4021";
   const rpID = new URL(origin).hostname;
   return {
+    replaceRecoveryCodes,
     hasPasskey: (userId: string) => keys.some((key) => key.userId === userId),
     async handle(
       action: string,
@@ -44,6 +60,7 @@ export function createPasskeyFixture(
       if (
         !action.endsWith("generate-authenticate-options") &&
         !action.endsWith("verify-authentication") &&
+        !action.endsWith("verify-recovery-code") &&
         !current
       )
         throw new Error("Sign in to manage passkeys");
@@ -75,21 +92,20 @@ export function createPasskeyFixture(
       }
       if (action === "passkey/generate-authenticate-options") {
         const pending = pendingSignIn();
-        if (!pending || pending.expiresAt < Date.now())
-          throw new Error("Sign in with your email and password first");
-        if (!keys.some((key) => key.userId === pending.userId))
-          throw new Error("No passkey is available for this account");
+        if (pending && pending.expiresAt < Date.now())
+          throw new Error("Sign-in expired");
+        const userId = current ?? pending?.userId ?? null;
         const result = await generateAuthenticationOptions({
           rpID,
           userVerification: "required",
           allowCredentials: keys
-            .filter((key) => key.userId === pending.userId)
+            .filter((key) => key.userId === userId)
             .map((key) => ({ id: key.credential.id })),
         });
         challenge = {
           value: result.challenge,
-          userId: pending.userId,
-          signInId: pending.id,
+          userId,
+          signInId: pending?.id,
           type: "authentication",
           expiresAt: Date.now() + 300000,
         };
@@ -122,7 +138,14 @@ export function createPasskeyFixture(
           credential: result.registrationInfo.credential,
         };
         keys.push(key);
-        return { id: key.id, name: key.name, createdAt: key.createdAt };
+        return {
+          id: key.id,
+          name: key.name,
+          createdAt: key.createdAt,
+          ...(!recovery.has(current!)
+            ? { recoveryCodes: replaceRecoveryCodes(current!) }
+            : {}),
+        };
       }
       if (action === "passkey/verify-authentication") {
         const password = pendingSignIn();
@@ -134,11 +157,12 @@ export function createPasskeyFixture(
           !pending ||
           pending.type !== "authentication" ||
           !key ||
-          !password ||
-          password.expiresAt < Date.now() ||
-          password.id !== pending.signInId ||
-          password.userId !== key.userId ||
-          pending.userId !== key.userId ||
+          (pending.signInId &&
+            (!password ||
+              password.expiresAt < Date.now() ||
+              password.id !== pending.signInId ||
+              password.userId !== key.userId)) ||
+          (pending.userId && pending.userId !== key.userId) ||
           pending.expiresAt < Date.now()
         )
           throw new Error("Passkey request expired");
@@ -155,12 +179,29 @@ export function createPasskeyFixture(
         signIn(key.userId);
         return { success: true };
       }
+      if (action === "passkey/verify-recovery-code") {
+        const pending = pendingSignIn();
+        if (!pending || pending.expiresAt < Date.now())
+          throw new Error("Sign in with your password first");
+        const codes = recovery.get(pending.userId) ?? [];
+        if (!codes.includes(String(input.code)))
+          throw new Error("Invalid recovery code");
+        recovery.set(
+          pending.userId,
+          codes.filter((code) => code !== input.code),
+        );
+        signIn(pending.userId);
+        return { success: true };
+      }
       const index = keys.findIndex(
         (key) => key.id === input.id && key.userId === current,
       );
       if (index < 0) throw new Error("Passkey not found");
-      if (action === "passkey/delete-passkey") keys.splice(index, 1);
-      else if (action === "passkey/update-passkey")
+      if (action === "passkey/delete-passkey") {
+        keys.splice(index, 1);
+        if (!keys.some((key) => key.userId === current))
+          recovery.delete(current!);
+      } else if (action === "passkey/update-passkey")
         keys[index]!.name = String(input.name);
       else throw new Error("Unknown passkey action");
       return { success: true };

@@ -36,7 +36,11 @@ import {
 import type { TowbarUser } from "@workspace/towbar-web-client";
 
 export type FixtureAuthState =
-  "authenticated" | "signed-out" | "new-instance" | "temporary-password";
+  | "authenticated"
+  | "passkey-user"
+  | "signed-out"
+  | "new-instance"
+  | "temporary-password";
 export type TeamFixtureOptions = {
   role?: WorkspaceRole;
   authState?: FixtureAuthState;
@@ -80,7 +84,6 @@ type Key = KeyPolicy & {
 const now = () => new Date().toISOString();
 const expiry = (days: number) =>
   new Date(Date.now() + days * 86400_000).toISOString();
-const backupCodes = ["fixture-recovery-one", "fixture-recovery-two"];
 function send(response: ServerResponse, payload: unknown, status = 200) {
   response.writeHead(status, {
     "content-type": "application/json",
@@ -128,19 +131,9 @@ export function createTeamAccessFixture(
     twoFactorEnabled: false,
   }));
   members.push({
-    id: "a1111111-1111-4111-8111-000000000004",
-    userId: "71111111-1111-4111-8111-000000000004",
-    name: "2FA test user",
-    email: "2fa@example.com",
-    role: "member",
-    mustChangePassword: false,
-    emailVerified: true,
-    twoFactorEnabled: true,
-  });
-  members.push({
     id: "a1111111-1111-4111-8111-000000000005",
     userId: dualFactorFixtureUserId,
-    name: "Authenticator and passkey test user",
+    name: "Passkey test user",
     email: "2fa-both@example.com",
     role: "member",
     mustChangePassword: false,
@@ -150,6 +143,10 @@ export function createTeamAccessFixture(
   let selected = members.find(
     (member) => member.role === (options.role ?? "admin"),
   )!;
+  if (options.authState === "passkey-user")
+    selected = members.find(
+      (member) => member.userId === dualFactorFixtureUserId,
+    )!;
   if (options.emailVerified !== undefined)
     selected.emailVerified = options.emailVerified;
   const verificationRequests = new Map<string, number[]>();
@@ -329,7 +326,6 @@ export function createTeamAccessFixture(
           return fail(response, "Invalid email or password", 401);
         selected = target;
         const twoFactorMethods = [
-          ...(target.twoFactorEnabled ? ["totp"] : []),
           ...(passkeys.hasPasskey(target.userId) ? ["passkey"] : []),
         ];
         signedIn = twoFactorMethods.length === 0;
@@ -441,13 +437,12 @@ export function createTeamAccessFixture(
         const action = path.slice("/v1/public/auth/identity/".length);
         if (action.startsWith("passkey/")) {
           try {
-            return send(
-              response,
-              await passkeys.handle(
-                action,
-                method === "POST" ? await body(request) : {},
-              ),
+            const result = await passkeys.handle(
+              action,
+              method === "POST" ? await body(request) : {},
             );
+            selected.twoFactorEnabled = passkeys.hasPasskey(selected.userId);
+            return send(response, result);
           } catch (error) {
             return fail(
               response,
@@ -505,49 +500,6 @@ export function createTeamAccessFixture(
           passwords.set(selected.userId, String(input.newPassword));
           signedIn = false;
           return send(response, { status: true });
-        }
-        if (action.startsWith("two-factor/")) {
-          const input = await body(request);
-          if (
-            action === "two-factor/verify-totp" ||
-            action === "two-factor/verify-backup-code"
-          ) {
-            if (
-              !signedIn &&
-              (!pendingSignIn ||
-                pendingSignIn.expiresAt < Date.now() ||
-                pendingSignIn.userId !== selected.userId ||
-                !selected.twoFactorEnabled)
-            )
-              return fail(
-                response,
-                "Sign in with your email and password first",
-                401,
-              );
-            if (
-              input.code !== "123456" &&
-              !backupCodes.includes(String(input.code))
-            )
-              return fail(response, "Invalid code", 400);
-            selected.twoFactorEnabled = true;
-            signedIn = true;
-            pendingSignIn = null;
-            return send(response, { status: true });
-          }
-          if (!signedIn || input.password !== passwords.get(selected.userId))
-            return fail(response, "Enter your current password", 401);
-          if (action === "two-factor/enable")
-            return send(response, {
-              totpURI:
-                "otpauth://totp/Towbar:fixture?secret=JBSWY3DPEHPK3PXP&issuer=Towbar",
-              backupCodes,
-            });
-          if (action === "two-factor/generate-backup-codes")
-            return send(response, { backupCodes });
-          if (action === "two-factor/disable") {
-            selected.twoFactorEnabled = false;
-            return send(response, { status: true });
-          }
         }
         return fail(response, "Not found", 404);
       }
@@ -664,18 +616,11 @@ export function createTeamAccessFixture(
           expiresAt: pending.expiresAt,
         });
       }
-      if (path === "/v1/core/profile/two-factor/setup")
+      if (path === "/v1/core/profile/passkeys/recovery-codes") {
+        if (!passkeys.hasPasskey(selected.userId))
+          return fail(response, "Add a passkey first");
         return send(response, {
-          totpURI:
-            "otpauth://totp/Towbar:fixture?secret=JBSWY3DPEHPK3PXP&issuer=Towbar",
-          backupCodes,
-        });
-      if (path === "/v1/core/profile/two-factor/manage") {
-        const input = await body(request);
-        if (input.code !== "123456") return fail(response, "Invalid code", 400);
-        if (input.action === "disable") selected.twoFactorEnabled = false;
-        return send(response, {
-          backupCodes: input.action === "disable" ? [] : backupCodes,
+          recoveryCodes: passkeys.replaceRecoveryCodes(selected.userId),
         });
       }
       if (path === "/v1/core/profile") {

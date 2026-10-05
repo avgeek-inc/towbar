@@ -1,28 +1,52 @@
 import { type BetterAuthPlugin } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
-import { deleteSessionCookie, expireCookie } from "better-auth/cookies";
+import {
+  APIError,
+  createAuthEndpoint,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
+import {
+  deleteSessionCookie,
+  expireCookie,
+  setSessionCookie,
+} from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
-import { eq } from "drizzle-orm";
-import { authPasskeys, users } from "@workspace/towbar-database/schema";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
+import {
+  authPasskeys,
+  authRecoveryCodes,
+  sessions,
+  users,
+} from "@workspace/towbar-database/schema";
 import type { AuthDatabase } from "../../infrastructure/database.js";
+import { recoveryCodeHash } from "./recovery-codes.js";
 
 type AuthContext = Parameters<typeof expireCookie>[0];
 const maxAge = 600;
 const bindingPrefix = "towbar-passkey-factor:";
 const factorCookie = (ctx: AuthContext) =>
   ctx.context.createAuthCookie("two_factor", { maxAge });
-
-async function pendingPassword(ctx: AuthContext, database: AuthDatabase) {
+async function pendingPassword(
+  ctx: AuthContext,
+  database: AuthDatabase,
+  required = true,
+) {
   const identifier = await ctx.getSignedCookie(
     factorCookie(ctx).name,
     ctx.context.secret,
   );
+  if (!identifier && !required) return null;
   const pending = identifier
     ? await ctx.context.internalAdapter.findVerificationValue(identifier)
     : null;
+  if ((!pending || pending.expiresAt <= new Date()) && !required) {
+    expireCookie(ctx, factorCookie(ctx));
+    return null;
+  }
   if (!pending || pending.expiresAt <= new Date())
     throw new APIError("UNAUTHORIZED", {
-      message: "Sign in with your email and password before using a passkey.",
+      message: "This sign-in has expired. Sign in again.",
     });
   const [user] = await database
     .select()
@@ -32,23 +56,67 @@ async function pendingPassword(ctx: AuthContext, database: AuthDatabase) {
     throw new APIError("UNAUTHORIZED", { message: "Sign in to continue." });
   return pending;
 }
-
-// Share Better Auth's one-use challenge with TOTP and recovery codes, so only
-// one second-factor method can complete a given password sign-in.
 export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
   return {
     id: "towbar-password-second-factor",
-    hooks: {
-      before: [
+    endpoints: {
+      verifyRecoveryCode: createAuthEndpoint(
+        "/passkey/verify-recovery-code",
         {
-          matcher: ({ path }) =>
-            path === "/passkey/generate-authenticate-options" ||
-            path === "/passkey/verify-authentication",
-          handler: createAuthMiddleware(async (ctx) => {
-            await pendingPassword(ctx, database);
-          }),
+          method: "POST",
+          body: z.object({ code: z.string().trim().min(1).max(100) }),
         },
-      ],
+        async (ctx) => {
+          const pending = (await pendingPassword(ctx, database))!;
+          const [user] = await database
+            .select()
+            .from(users)
+            .where(eq(users.id, pending.value))
+            .for("update");
+          if (!user || user.disabledAt)
+            throw new APIError("UNAUTHORIZED", {
+              message: "Sign in to continue.",
+            });
+          const [stored] = await database
+            .select()
+            .from(authRecoveryCodes)
+            .where(eq(authRecoveryCodes.userId, user.id));
+          const hash = recoveryCodeHash(ctx.body.code);
+          if (!stored?.codeHashes.includes(hash))
+            throw new APIError("UNAUTHORIZED", {
+              message: "Recovery code is invalid or has already been used.",
+            });
+          const consumed =
+            await ctx.context.internalAdapter.consumeVerificationValue(
+              pending.identifier,
+            );
+          if (!consumed || consumed.value !== user.id)
+            throw new APIError("UNAUTHORIZED", {
+              message: "This sign-in has expired. Sign in again.",
+            });
+          await database
+            .update(authRecoveryCodes)
+            .set({
+              codeHashes: stored.codeHashes.filter((value) => value !== hash),
+            })
+            .where(eq(authRecoveryCodes.userId, user.id));
+          expireCookie(ctx, factorCookie(ctx));
+          const session = await ctx.context.internalAdapter.createSession(
+            user.id,
+          );
+          const identity = await ctx.context.internalAdapter.findUserById(
+            user.id,
+          );
+          if (!session || !identity)
+            throw new APIError("UNAUTHORIZED", {
+              message: "Sign in to continue.",
+            });
+          await setSessionCookie(ctx, { session, user: identity });
+          return ctx.json({ session, user: identity });
+        },
+      ),
+    },
+    hooks: {
       after: [
         {
           matcher: ({ path }) => path === "/sign-in/email",
@@ -60,11 +128,7 @@ export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
               .from(authPasskeys)
               .where(eq(authPasskeys.userId, session.user.id))
               .limit(1);
-            const methods: Array<"totp" | "passkey"> = [];
-            if (session.user.twoFactorEnabled) methods.push("totp");
-            if (keys.length) methods.push("passkey");
-            if (!methods.length) return;
-
+            if (!keys.length) return;
             deleteSessionCookie(ctx, true);
             await ctx.context.internalAdapter.deleteSession(
               session.session.token,
@@ -79,17 +143,11 @@ export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
               await ctx.context.internalAdapter.deleteVerificationByIdentifier(
                 previous,
               );
-            const identifier = `2fa-${generateRandomString(32)}`;
-            const expiresAt = new Date(Date.now() + maxAge * 1000);
+            const identifier = `passkey-${generateRandomString(32)}`;
             await ctx.context.internalAdapter.createVerificationValue({
               identifier,
               value: session.user.id,
-              expiresAt,
-            });
-            await ctx.context.internalAdapter.createVerificationValue({
-              identifier: `2fa-attempts-${identifier}`,
-              value: "0",
-              expiresAt,
+              expiresAt: new Date(Date.now() + maxAge * 1000),
             });
             await ctx.setSignedCookie(
               cookie.name,
@@ -99,7 +157,7 @@ export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
             );
             return ctx.json({
               twoFactorRedirect: true,
-              twoFactorMethods: methods,
+              twoFactorMethods: ["passkey"],
             });
           }),
         },
@@ -115,27 +173,42 @@ export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
               typeof result.challenge !== "string"
             )
               return;
-            const pending = await pendingPassword(ctx, database);
-            const keys = await database
-              .select({ id: authPasskeys.credentialID })
-              .from(authPasskeys)
-              .where(eq(authPasskeys.userId, pending.value));
-            if (!keys.length)
+            const session = await getSessionFromCtx(ctx);
+            const pending = session
+              ? null
+              : await pendingPassword(ctx, database, false);
+            const userId = session?.user.id ?? pending?.value;
+            const keys = userId
+              ? await database
+                  .select({ id: authPasskeys.credentialID })
+                  .from(authPasskeys)
+                  .where(eq(authPasskeys.userId, userId))
+              : [];
+            if (userId && !keys.length)
               throw new APIError("BAD_REQUEST", {
                 message: "No passkey is available for this account.",
               });
             await ctx.context.internalAdapter.createVerificationValue({
               identifier: bindingPrefix + result.challenge,
-              value: pending.identifier,
-              expiresAt: pending.expiresAt,
+              value: JSON.stringify({
+                userId,
+                sessionId: session?.session.id,
+                pendingId: pending?.identifier,
+              }),
+              expiresAt:
+                pending?.expiresAt ?? new Date(Date.now() + maxAge * 1000),
             });
             return ctx.json({
               ...result,
               userVerification: "required",
-              allowCredentials: keys.map(({ id }) => ({
-                id,
-                type: "public-key",
-              })),
+              ...(userId
+                ? {
+                    allowCredentials: keys.map(({ id }) => ({
+                      id,
+                      type: "public-key",
+                    })),
+                  }
+                : {}),
             });
           }),
         },
@@ -143,43 +216,87 @@ export function passwordSecondFactor(database: AuthDatabase): BetterAuthPlugin {
     },
   };
 }
-
 export async function completePasskeySecondFactor(
   ctx: AuthContext,
   database: AuthDatabase,
   credential: { id: string; response: { clientDataJSON: string } },
 ) {
-  const pending = await pendingPassword(ctx, database);
   const [key] = await database
     .select({ userId: authPasskeys.userId })
     .from(authPasskeys)
     .where(eq(authPasskeys.credentialID, credential.id));
-  if (key?.userId !== pending.value)
-    throw new APIError("UNAUTHORIZED", {
-      message: "Use a passkey belonging to the account you signed in with.",
-    });
-  // The WebAuthn plugin has already verified the signature and client data.
+  if (!key)
+    throw new APIError("UNAUTHORIZED", { message: "Passkey is unavailable." });
   const clientData = JSON.parse(
     Buffer.from(credential.response.clientDataJSON, "base64url").toString(
       "utf8",
     ),
   ) as { challenge: string };
-  const binding = await ctx.context.internalAdapter.consumeVerificationValue(
+  const stored = await ctx.context.internalAdapter.consumeVerificationValue(
     bindingPrefix + clientData.challenge,
   );
-  if (!binding || binding.value !== pending.identifier)
+  if (!stored || stored.expiresAt <= new Date())
     throw new APIError("UNAUTHORIZED", {
       message: "This passkey request has expired. Try again.",
     });
-  const consumed = await ctx.context.internalAdapter.consumeVerificationValue(
-    pending.identifier,
-  );
-  if (!consumed || consumed.value !== key.userId)
+  const binding = JSON.parse(stored.value) as {
+    userId?: string;
+    sessionId?: string;
+    pendingId?: string;
+  };
+  if (binding.userId && binding.userId !== key.userId)
     throw new APIError("UNAUTHORIZED", {
-      message: "This sign-in has expired. Sign in again.",
+      message: "Use a passkey belonging to your account.",
     });
-  await ctx.context.internalAdapter.deleteVerificationByIdentifier(
-    `2fa-attempts-${pending.identifier}`,
-  );
-  expireCookie(ctx, factorCookie(ctx));
+  const [user] = await database
+    .select()
+    .from(users)
+    .where(eq(users.id, key.userId))
+    .for("update");
+  if (!user || user.disabledAt)
+    throw new APIError("UNAUTHORIZED", {
+      message: "Sign in to continue.",
+    });
+  if (user.mustChangePassword && !binding.pendingId)
+    throw new APIError("UNAUTHORIZED", {
+      message: "Sign in with your temporary password to finish account setup.",
+    });
+  const current = await getSessionFromCtx(ctx);
+  if (binding.sessionId) {
+    if (
+      !current ||
+      current.session.id !== binding.sessionId ||
+      current.user.id !== key.userId
+    )
+      throw new APIError("UNAUTHORIZED", {
+        message: "This session has changed. Try again.",
+      });
+    await database
+      .update(sessions)
+      .set({ authenticatedAt: new Date() })
+      .where(
+        and(
+          eq(sessions.id, binding.sessionId),
+          eq(sessions.userId, key.userId),
+        ),
+      );
+  } else if (binding.pendingId) {
+    const pending = (await pendingPassword(ctx, database))!;
+    if (pending.identifier !== binding.pendingId)
+      throw new APIError("UNAUTHORIZED", {
+        message: "This sign-in has changed. Try again.",
+      });
+    const consumed = await ctx.context.internalAdapter.consumeVerificationValue(
+      pending.identifier,
+    );
+    if (!consumed || consumed.value !== key.userId)
+      throw new APIError("UNAUTHORIZED", {
+        message: "This sign-in has expired. Sign in again.",
+      });
+    expireCookie(ctx, factorCookie(ctx));
+  } else if (current || (await pendingPassword(ctx, database, false))) {
+    throw new APIError("UNAUTHORIZED", {
+      message: "This sign-in has changed. Try again.",
+    });
+  }
 }

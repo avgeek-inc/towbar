@@ -106,6 +106,7 @@ export function AuthPage({
       <PageSection
         className="grid min-h-[calc(100dvh-8rem)] place-items-center"
         width="content"
+        yPadding="none"
       >
         {children}
       </PageSection>

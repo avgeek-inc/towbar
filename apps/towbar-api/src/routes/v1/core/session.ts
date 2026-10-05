@@ -48,10 +48,6 @@ sessionRoutes.post(
     body: z
       .object({
         password: z.string().min(1).max(1024),
-        code: z
-          .string()
-          .regex(/^\d{6}$/)
-          .optional(),
       })
       .strict(),
   }),
@@ -62,10 +58,6 @@ sessionRoutes.post(
       z
         .object({
           password: z.string().min(1).max(1024),
-          code: z
-            .string()
-            .regex(/^\d{6}$/)
-            .optional(),
         })
         .strict(),
     );

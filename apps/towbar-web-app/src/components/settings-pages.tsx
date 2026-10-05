@@ -1,4 +1,5 @@
 "use client";
+import { useAccess } from "./access-context";
 import { Logout01Icon } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -78,22 +79,27 @@ export function ProfileSettings() {
 }
 
 export function EmailPasswordSettings() {
+  const { user } = useAccess();
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <EmailSettings />
       <FormCard title="Change password">
         <SimpleForm
           fields={[
-            {
-              autoComplete: "current-password",
-              label: "Current password",
-              maxLength: 1_024,
-              minLength: 15,
-              name: "currentPassword",
-              required: true,
-              type: "password",
-              variant: "secondary",
-            },
+            ...(!user?.twoFactorEnabled
+              ? [
+                  {
+                    autoComplete: "current-password",
+                    label: "Current password",
+                    maxLength: 1_024,
+                    minLength: 15,
+                    name: "currentPassword",
+                    required: true,
+                    type: "password",
+                    variant: "secondary" as const,
+                  },
+                ]
+              : []),
             {
               autoComplete: "new-password",
               description: "Use at least 15 characters.",

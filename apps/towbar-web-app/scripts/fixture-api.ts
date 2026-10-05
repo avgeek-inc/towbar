@@ -5998,6 +5998,7 @@ if (
     authState:
       requestedState === "new-instance" ||
       requestedState === "signed-out" ||
+      requestedState === "passkey-user" ||
       requestedState === "temporary-password"
         ? requestedState
         : "authenticated",

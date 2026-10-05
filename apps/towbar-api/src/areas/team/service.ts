@@ -33,6 +33,7 @@ import { recordSuccessfulSignIn } from "../auth/service.js";
 import { getNotificationProviderConfiguration } from "../notifications/configuration.js";
 import { lockTeam, requireTeamAdmin } from "./authorization.js";
 import { enqueueTeamEmail } from "./email-outbox.js";
+export { listTeamMembers } from "./member-list.js";
 
 export async function getTeam(user: AuthenticatedUser) {
   await requireTeamAdmin(getTowbarDatabase(), user.workspaceId, user.id);
@@ -69,36 +70,6 @@ export async function updateTeam(
     await audit(tx, user, "team.updated", user.workspaceId);
     return team;
   });
-}
-export async function listTeamMembers(
-  user: AuthenticatedUser,
-  input: { offset: number; limit: number },
-) {
-  await requireTeamAdmin(getTowbarDatabase(), user.workspaceId, user.id);
-  const where = eq(workspaceMembers.workspaceId, user.workspaceId);
-  const [total] = await getTowbarDatabase()
-    .select({ value: count() })
-    .from(workspaceMembers)
-    .where(where);
-  const members = await getTowbarDatabase()
-    .select({
-      id: workspaceMembers.id,
-      userId: users.id,
-      name: users.displayName,
-      email: users.email,
-      role: workspaceMembers.role,
-      emailVerified: users.emailVerified,
-      mustChangePassword: users.mustChangePassword,
-      twoFactorEnabled: users.twoFactorEnabled,
-      createdAt: workspaceMembers.createdAt,
-    })
-    .from(workspaceMembers)
-    .innerJoin(users, eq(workspaceMembers.userId, users.id))
-    .where(where)
-    .orderBy(users.displayName, workspaceMembers.id)
-    .offset(input.offset)
-    .limit(input.limit);
-  return { members, total: total?.value ?? 0 };
 }
 export async function createTeamMember(
   user: AuthenticatedUser,

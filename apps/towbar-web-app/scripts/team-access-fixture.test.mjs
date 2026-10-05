@@ -124,45 +124,7 @@ for (const role of ["admin", "member", "viewer"]) {
       );
     }));
 }
-test("fixture MFA requires a password challenge and reports available methods", async () =>
-  fixture({ authState: "signed-out" }, async (request) => {
-    const verify = "public/auth/identity/two-factor/verify-totp";
-    assert.equal(
-      (await request(verify, "POST", { code: "123456" })).status,
-      401,
-    );
-    assert.equal(
-      (
-        await request(
-          "public/auth/identity/passkey/generate-authenticate-options",
-        )
-      ).ok,
-      false,
-    );
-    const login = await request("public/auth/login-email", "POST", {
-      email: "2fa@example.com",
-      password: "Towbar fixture passphrase 2026",
-    });
-    const result = await login.json();
-    assert.equal(result.user, null);
-    assert.equal(result.twoFactorRequired, true);
-    assert.deepEqual(result.twoFactorMethods, ["totp"]);
-    assert.equal((await request("core/session")).status, 401);
-    assert.equal(
-      (await request(verify, "POST", { code: "000000" })).status,
-      400,
-    );
-    assert.equal(
-      (await request(verify, "POST", { code: "123456" })).status,
-      200,
-    );
-    assert.equal((await request("core/session")).status, 200);
-    assert.equal(
-      (await (await request("core/session")).json()).user.email,
-      "2fa@example.com",
-    );
-  }));
-test("dual-factor fixture offers both methods and verifies either without bypassing WebAuthn", async () =>
+test("passkey fixture supports direct sign-in and mandatory verification after passwords", async () =>
   fixture({ authState: "signed-out" }, async (request) => {
     const endpoint = "public/auth/identity/passkey";
     const login = (password = "Towbar fixture passphrase 2026") =>
@@ -206,12 +168,12 @@ test("dual-factor fixture offers both methods and verifies either without bypass
     assert.equal((await login("incorrect password")).ok, false);
     assert.equal(
       (await request(`${endpoint}/generate-authenticate-options`)).ok,
-      false,
+      true,
     );
     const result = await (await login()).json();
     assert.equal(result.user, null);
     assert.equal(result.twoFactorRequired, true);
-    assert.deepEqual(result.twoFactorMethods, ["totp", "passkey"]);
+    assert.deepEqual(result.twoFactorMethods, ["passkey"]);
     assert.equal((await request("core/session")).status, 401);
     let options = await (
       await request(`${endpoint}/generate-authenticate-options`)
@@ -254,8 +216,8 @@ test("dual-factor fixture offers both methods and verifies either without bypass
     ).json();
     assert.equal(
       (
-        await request("public/auth/identity/two-factor/verify-totp", "POST", {
-          code: "123456",
+        await request(`${endpoint}/verify-recovery-code`, "POST", {
+          code: "fixture-recovery-one",
         })
       ).status,
       200,

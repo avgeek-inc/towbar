@@ -49,11 +49,11 @@ Queued operations retain their requesting identity and permissions. Upgrades can
 
 ## Account security
 
-Under **My Settings**, use Profile for your display name, Email & Password for sign-in details, Sessions for active sessions, and **Two-factor Auth** for authenticator apps, recovery codes, and passkeys. Store recovery codes separately; each code is single-use. Admins should enable MFA.
+Under **My Settings**, use Profile for your display name, Email & Password for sign-in details, Sessions for active sessions, and **Passkeys** for passkeys and recovery codes. Store recovery codes separately; each code is single-use. Admins should enable MFA.
 
 Passwords require 15–1,024 characters. Password managers and paste are supported. Password creation checks the Have I Been Pwned corpus using only a five-character SHA-1 prefix, padded responses and a five-second deadline; the full password and hash are not sent. Corpus outages fail the change with a retry message. The offline escape hatch `security.passwordBreachCheck: false` disables that check explicitly; keep it enabled for internet-connected deployments.
 
-Forgot password sends a short-lived, single-use link when SMTP is configured. Responses do not disclose whether an email exists. A successful reset revokes sessions and requires normal sign-in. Use the [local recovery command](/docs/self-hosting/account-recovery) if email or the authenticator is unavailable.
+Forgot password sends a short-lived, single-use link when SMTP is configured. Responses do not disclose whether an email exists. A successful reset revokes sessions and requires normal sign-in. Use the [local recovery command](/docs/self-hosting/account-recovery) if email or passkeys are unavailable.
 
 ## Transactional email
 
@@ -67,8 +67,8 @@ Mail requests are committed with team changes in an encrypted outbox. Temporal r
 
 Profile contains your display name. Email & Password has separate email and password forms. Request a confirmation link for the new email; the current sign-in address stays active until confirmation. Links expire after one hour, work once, and are invalidated by a replacement request or cancellation. Confirmation signs out all browser sessions and sends a security notice to the old address. Configure the SMTP runtime provider to deliver these messages.
 
-Authenticator setup opens the QR code directly after a recent sign-in. Activation requires a valid code. Replacing recovery codes or disabling the authenticator requires a current code and is rate-limited. Sensitive account changes require authentication within the last ten minutes; older sessions use the shared confirmation dialog.
+Sensitive account changes require authentication within the last ten minutes. Older sessions prompt for a passkey if registered, or a password otherwise.
 
-Passkeys use WebAuthn with device verification required, such as a PIN or biometric check. Register, rename, and remove them under **My Settings → Two-factor Auth**, and use them as a second factor after signing in with your email and password. If both an authenticator and a passkey are configured, users can choose either method. Set `installation.appUrl` to the stable HTTPS origin users visit: this determines the WebAuthn relying-party domain. Localhost is supported for development. Changing that domain requires registering new passkeys. A password reset does not bypass a configured second factor.
+Passkeys use WebAuthn with device verification required. Manage them under **My Settings → Passkeys**. They support passwordless sign-in and are mandatory after password sign-in when registered. Recovery codes provide a one-use alternative after a valid password. Set `installation.appUrl` to the stable HTTPS origin users visit; changing its domain requires registering new passkeys. Localhost works for development. Password resets do not remove passkeys.
 
 Team Settings opens General first, followed by Members and API Keys. Admins can edit member names and roles, add users with a temporary password, and confirm before resending or revoking an invitation. User email changes are verified through the user's Email & Password page.

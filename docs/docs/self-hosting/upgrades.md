@@ -101,9 +101,13 @@ Services require absolute application data paths such as `/data` or `/app/upload
 
 If the migration reports an incompatible mount, keep the upgrade paused. Back up the volume and adapt the application to a supported data path on the installed release first. Keep its named volume and verify the application can still read its existing data. The migration also checks saved deployment snapshots; an incompatible historical snapshot requires operator review before retrying. Do not remove a volume or its data just to pass the check.
 
+## Passkey authentication
+
+The passkey update removes authenticator codes and their secrets. Registered passkeys are preserved. Existing passkey and authenticator sessions are revoked once during migration; password-only sessions remain valid. Authenticator-only accounts can sign in with their password and add a passkey. Existing passkey users can generate recovery codes from **My Settings → Passkeys**.
+
 ## Admin account recovery
 
-Use **Forgot password** when SMTP and the account's mailbox are available. Host operators can reset an Admin password, change a lost Admin email address, or reset an authenticator for any active team member. Follow [Account recovery](/docs/self-hosting/account-recovery) for the maintenance window, commands, revoked access, and verification steps.
+Use **Forgot password** when SMTP and the account's mailbox are available. Host operators can reset an Admin password, change a lost Admin email address, or reset recovery codes or remove lost passkeys for any active team member. Follow [Account recovery](/docs/self-hosting/account-recovery) for the maintenance window, commands, revoked access, and verification steps.
 
 ## Command-line operations
 
