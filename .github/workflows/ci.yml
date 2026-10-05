@@ -116,7 +116,6 @@ jobs:
           TOWBAR_DOCKER_TESTS: "1"
       - run: pnpm build
         env:
-          SENTRY_ALLOW_MISSING: "true"
           NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
 
   compose:

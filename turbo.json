@@ -8,7 +8,8 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/turbo.json"]
     },
     "typecheck": {
       "dependsOn": ["^build"]
@@ -21,10 +22,10 @@
         "TEMPORAL_*",
         "DEMO_*",
         "WORKER_HEALTH_PORT",
-        "SENTRY_*",
         "NEXT_PUBLIC_*",
         "SOURCE_COMMIT",
-        "PATH"
+        "PATH",
+        "NEXT_RUNTIME"
       ]
     },
     "dev": {
@@ -36,9 +37,9 @@
         "TEMPORAL_*",
         "DEMO_*",
         "WORKER_HEALTH_PORT",
-        "SENTRY_*",
         "NEXT_PUBLIC_*",
-        "SOURCE_COMMIT"
+        "SOURCE_COMMIT",
+        "NEXT_RUNTIME"
       ]
     },
     "dev:worker": {
@@ -50,7 +51,6 @@
         "TEMPORAL_*",
         "DEMO_*",
         "WORKER_HEALTH_PORT",
-        "SENTRY_*",
         "NEXT_PUBLIC_*",
         "SOURCE_COMMIT"
       ]
@@ -64,14 +64,11 @@
         "NEXT_PUBLIC_TOWBAR_APP_BASE_URL",
         "NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO",
         "NEXT_PUBLIC_SENTRY_DSN",
-        "SENTRY_ORG",
-        "SENTRY_RELEASE",
-        "SENTRY_ALLOW_MISSING",
         "NEXT_RUNTIME",
         "TOWBAR_APP_BASE_URL",
         "NEXT_PUBLIC_SENTRY_ENVIRONMENT"
       ],
-      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "NEXT_TELEMETRY_DISABLED"]
+      "passThroughEnv": ["NEXT_TELEMETRY_DISABLED"]
     }
   },
   "globalEnv": ["NODE_ENV"]

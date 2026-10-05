@@ -20,7 +20,6 @@ test("verification removes inherited provider and database configuration", () =>
   assert.deepEqual(env, {
     PATH: "/usr/bin",
     CI: "1",
-    SENTRY_ALLOW_MISSING: "true",
     NODE_ENV: "test",
   });
 });

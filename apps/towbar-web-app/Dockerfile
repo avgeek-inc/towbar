@@ -15,13 +15,13 @@ RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
 FROM installer AS builder
 ARG SOURCE_COMMIT=development
 ENV NEXT_TELEMETRY_DISABLED=1 \
-  SENTRY_ALLOW_MISSING=true SOURCE_COMMIT=${SOURCE_COMMIT}
+  SOURCE_COMMIT=${SOURCE_COMMIT}
 COPY --from=pruner /repo/out/full/ ./
 RUN mkdir -p apps/towbar-web-app/public \
   && pnpm exec turbo run build --filter=towbar-web-app
 FROM installer AS demo-builder
 ARG SOURCE_COMMIT=development
-ENV NEXT_TELEMETRY_DISABLED=1 SENTRY_ALLOW_MISSING=true \
+ENV NEXT_TELEMETRY_DISABLED=1 \
   SOURCE_COMMIT=${SOURCE_COMMIT} NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO=true
 COPY --from=pruner /repo/out/full/ ./
 RUN pnpm exec turbo run build --filter=towbar-web-app \
