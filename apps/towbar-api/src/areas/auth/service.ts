@@ -90,7 +90,7 @@ export async function authenticatePassword(
   headers?: Headers,
 ) {
   const email = input.email.trim().toLowerCase();
-  return getTowbarDatabase().transaction(async (tx) => {
+  return await getTowbarDatabase().transaction(async (tx) => {
     await tx
       .select({ id: users.id })
       .from(users)

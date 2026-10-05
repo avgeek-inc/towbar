@@ -32,7 +32,7 @@ export async function replaceRecoveryCodes(
   return codes;
 }
 export async function regenerateRecoveryCodes(userId: string) {
-  return getTowbarDatabase().transaction(async (tx) => {
+  return await getTowbarDatabase().transaction(async (tx) => {
     const [user] = await tx
       .select()
       .from(users)
