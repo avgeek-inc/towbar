@@ -122,9 +122,7 @@ function ChangeConnectionModal({
               <p className="text-sm text-muted">
                 Choose {source.repositoryOwner}/{source.repositoryName} in its
                 new location. Towbar verifies that it is the same GitHub
-                repository and that its configured branches are accessible. Sync
-                the repository before its next deployment. This does not start a
-                deployment.
+                repository and that its configured branches are accessible.
               </p>
               {accounts.error ? (
                 <QueryError message={accounts.error} />
