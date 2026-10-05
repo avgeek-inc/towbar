@@ -13,7 +13,7 @@ npm ci --prefix tools/distribution --ignore-scripts
 pnpm distribution:test
 ```
 
-Deploy and configure the reviewed broker before merging the publisher migration. Validate an actual workflow session, including rejection of writes outside `towbar/`, before removing Towbar access to the parent organization secrets. Other products keep their current access until they migrate.
+Deploy and configure the reviewed broker before publication. The release preflight checks an actual workflow session: reads within `towbar/` must be authorized; outside reads, writes and bucket listing must be denied. Remove Towbar access to the parent organization secrets after this check passes. Other products keep their current access until they migrate.
 
 ## Publication
 
