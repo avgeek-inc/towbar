@@ -3,13 +3,13 @@ title: "Your first deployment"
 description: "Take a Dockerfile service from a GitHub repository to a verified deployment on your Ubuntu server."
 ---
 
-This guide takes one service through Repository sync, server setup, deployment, and route verification. Use the [example files in this repository](https://github.com/avgeek-inc/towbar/tree/main/examples) for a small HTTP app and health endpoint, or bring your own service.
+Deploy the [example HTTP service](https://github.com/avgeek-oss/towbar/tree/main/examples) from GitHub to your server.
 
 ## Before you begin
 
-You need a running Towbar installation with an Admin account, a connected GitHub App, and an Ubuntu target you can administer. If those are not ready, follow [Install Towbar](/docs/self-hosting/installation), [Connect GitHub](/docs/integrations/github), and [Register a server](/docs/servers) first.
+You need an [installed Towbar](/docs/self-hosting/installation), an Admin account, a [connected GitHub App](/docs/integrations/github) and an [Ubuntu server](/docs/servers).
 
-Use a domain you control for a public service. The examples use documentation-only IPs and hostnames; replace them with your own values.
+Replace example IPs and hostnames with your own values.
 
 ## 1. Create your service repository
 
@@ -63,13 +63,13 @@ environments:
 
 Use the server IP registered in Towbar. Match the Dockerfile path, port, and health endpoint to your service. Point the domain at the target server and allow the traffic required by [Caddy and TLS](/docs/domains-tls).
 
-Commit these files to the branch you will map to production in Towbar. Automatic deployment is deliberately omitted so you can verify the first release manually.
+Commit the files to your production branch. Deploy the first release manually before enabling automatic deployments.
 
 ## 2. Add and sync the Repository
 
-Open **Repositories → Add repository**, select the repository, then select production and map it to your branch. Wait for the initial sync, then open its result.
+In **Repositories → Add repository**, select the repository and map production to your branch. Wait for the initial sync.
 
-A successful sync imports **Hello Towbar** into the Repository's Services list. If it fails, correct the reported manifest field or missing server reference and sync again. A successful sync accepts configuration; it does not mean the service is running.
+Sync imports **Hello Towbar** into Services. Correct any reported manifest or server-reference errors and sync again. The service starts only after deployment.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -83,23 +83,23 @@ A successful sync imports **Hello Towbar** into the Repository's Services list. 
 
 ## 3. Verify the server
 
-Open the target under **Servers → Settings → Configuration** and select a stored [SSH key](/docs/ssh-keys). You can choose **Add private key** inside the dropdown to generate or import one. Install its public key on the server before verifying access. Choose **Save**, compare the discovered host fingerprint with the server console through an independent channel, and trust it only if it matches. Towbar attaches the selected key after SSH authentication succeeds.
+Under **Servers → Settings → Configuration**, select or add an [SSH key](/docs/ssh-keys). Install its public key on the server, then save. Compare the discovered host fingerprint with the server console and trust it only if they match.
 
-Choose **Prepare Server** and follow the steps until the host is **Ready**. If preparation fails, inspect the reported step instead of repeatedly requesting deployment.
+Choose **Prepare Server** and wait for **Ready**. Resolve any failed preparation step before deploying.
 
 ## 4. Save service secrets
 
-If your service needs secrets, declare their keys in the entity file’s top-level `secrets` field and sync the production environment. Open the production service instance’s **Settings → Secrets** page and fill the declared build, runtime, or hook values, then save. New required keys appear as unset; missing values block deployment, but do not block sync. To reuse a workspace value, set the service variable to `{{globals.KEY}}`. Shared values are not injected automatically.
+Declare required keys in the service file's top-level `secrets` field and sync. Save their values under **Settings → Secrets**. Missing values block deployment, not sync. Use `{{globals.KEY}}` to reference a workspace value; shared values are not injected automatically.
 
-The Hello Towbar example needs no secrets, so you can skip this step for your first deployment.
+Skip this step for Hello Towbar, which needs no secrets.
 
-Saved values are hidden until an Admin reveals them with the eye icon. Leaving a replacement field untouched preserves its value. Saving does not start a deployment. See [Secrets in Towbar](/docs/secrets/towbar) for references and rotation.
+Unchanged fields preserve saved values. Saving secrets does not deploy. See [Secrets in Towbar](/docs/secrets/towbar) for access and rotation.
 
 ## 5. Deploy
 
-Open the service and choose **Deploy**. Follow the operation as Towbar fetches the commit, builds on the server, starts a candidate, checks health, and promotes the release.
+Open the service and choose **Deploy**. Towbar fetches the commit, builds a candidate, checks health and promotes the release.
 
-If a stage fails, open its output and correct that failure before retrying. The [troubleshooting guide](/docs/troubleshooting) maps common symptoms to the next check.
+For failures, inspect the stage output and [troubleshooting guide](/docs/troubleshooting) before retrying.
 
 <div className="towbar-doc-screenshot">
   <div className="towbar-product-light">
@@ -124,8 +124,6 @@ For a service without a public domain, verify it through its intended private cl
 
 ## Next steps
 
-For your second deployment, edit the response in `server.mjs`, commit to the
-branch mapped to production, and deploy again. Reload the public page to verify that your new code is
-running.
+Change the response in `server.mjs`, commit and deploy again. Reload the public page to verify the update.
 
-Enable [automatic deployment](/docs/deployments#automatic-deployments), add [pull request previews](/docs/previews), or connect a [datastore](/docs/datastores). Configure [notifications](/docs/integrations/notifications) so failed operations reach the people who need to act.
+Then add [automatic deployments](/docs/deployments#automatic-deployments), [previews](/docs/previews), [datastores](/docs/datastores) or [notifications](/docs/integrations/notifications).

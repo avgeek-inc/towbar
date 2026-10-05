@@ -13,7 +13,7 @@
   <a href="https://www.towbar.dev">Website</a> ·
   <a href="https://www.towbar.dev/docs">Documentation</a> ·
   <a href="https://www.towbar.dev/blog/introducing-towbar">Introducing Towbar</a> ·
-  <a href="https://github.com/avgeek-inc/towbar/issues">Issues</a>
+  <a href="https://github.com/avgeek-oss/towbar/issues">Issues</a>
 </p>
 
 <p align="center">
@@ -65,7 +65,7 @@ point its DNS A record to the server first.
 Run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
+curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
 ```
 
 The installer prepares the server, downloads Towbar, creates the required
@@ -155,7 +155,7 @@ Moving an existing workload? Start with the candid migration guides for
 ## Contribute
 
 Bug reports, feature requests, documentation improvements, and code
-contributions are welcome. [Open an issue](https://github.com/avgeek-inc/towbar/issues)
+contributions are welcome. [Open an issue](https://github.com/avgeek-oss/towbar/issues)
 or read [CONTRIBUTING.md](CONTRIBUTING.md) for the local setup and required
 checks. Report vulnerabilities privately through [SECURITY.md](SECURITY.md).
 

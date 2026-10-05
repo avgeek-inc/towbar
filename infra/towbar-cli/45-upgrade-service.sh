@@ -1,6 +1,6 @@
 host_upgrades_supported() {
   local release_dir="$1"
-  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == avgeek-inc/towbar ]] || return 1
+  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == "$TOWBAR_UPSTREAM_REPOSITORY" ]] || return 1
   [[ -f "$release_dir/infra/upgrade-runner/protocol" && "$(cat "$release_dir/infra/upgrade-runner/protocol")" == 2 ]] || return 1
   command -v python3 >/dev/null && command -v systemctl >/dev/null || return 1
   systemctl list-units --no-legend >/dev/null 2>&1
@@ -26,7 +26,7 @@ upgrade_service_command() {
   require_root upgrade-service
   require_linux
   require_runtime_tools
-  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == avgeek-inc/towbar ]] ||
+  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == "$TOWBAR_UPSTREAM_REPOSITORY" ]] ||
     fail "host upgrades require the standard upstream CLI installation paths"
   local release_dir version commit
   release_dir="$(current_release_dir)"

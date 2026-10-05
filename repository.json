@@ -1,0 +1,8 @@
+{
+  "repository": "avgeek-oss/towbar",
+  "repositoryId": 1344024177,
+  "imageRegistry": "ghcr.io/avgeek-oss",
+  "distributionUrl": "https://oss.avgeek.ltd/towbar",
+  "releaseBucket": "avgeek-oss-releases",
+  "releasePrefix": "towbar"
+}

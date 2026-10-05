@@ -10,6 +10,8 @@ import {
   resourceRequiredSecretsSchema,
 } from "../src/manifest-v2.js";
 
+import { distributionUrl } from "../src/repository-identity.js";
+
 type Schema = Record<string, unknown>;
 const environmentNames = {
   ...z.toJSONSchema(environmentNameSchema, { io: "input" }),
@@ -79,7 +81,7 @@ for (const [name, schema] of Object.entries(schemas)) {
   const output = await format(
     JSON.stringify({
       ...schema,
-      $id: `https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/${name}.json`,
+      $id: `${distributionUrl}/schemas/${name}.json`,
     }),
     { ...(await resolveConfig(file)), parser: "json" },
   );

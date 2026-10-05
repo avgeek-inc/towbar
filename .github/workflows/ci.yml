@@ -88,6 +88,8 @@ jobs:
           python3 tools/test-runtime-config.py
           bash tools/test-towbar-cli-migration.sh
       - run: pnpm install --frozen-lockfile
+      - run: pnpm repository:check
+      - run: pnpm distribution:test
       - run: pnpm docs:check
       - run: pnpm format:check
       - run: pnpm lint

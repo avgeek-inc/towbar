@@ -1,63 +1,48 @@
 ---
 title: "Install Towbar"
-description: "Run the Towbar control plane with Docker Compose and create your first Admin account."
+description: "Install the control plane, create an Admin account and verify service health."
 ---
 
-Towbar runs on infrastructure you manage. The Compose stack includes the dashboard, API, worker, PostgreSQL, and Temporal. Deployment targets are registered separately after installation.
+Towbar runs its dashboard, API, worker, PostgreSQL and Temporal in Docker Compose. Register deployment servers after installation.
 
 ## Before you begin
 
-Use a dedicated Ubuntu or Debian host with persistent storage and outbound HTTPS access. The installer uses Docker's official APT repository when Docker is not already available. If the host already has Docker, it must include Compose v2. For a public installation, create an A record for the Towbar hostname, point it at this host, and allow inbound TCP traffic on ports 80 and 443 before running the installer.
+Use an Ubuntu or Debian host with persistent storage and outbound HTTPS access. Existing Docker installations need Compose v2; otherwise the installer installs Docker from its official APT repository.
 
-The examples use loopback addresses for initial setup. Keep that binding until you have created the first Admin account.
+For public access, point a DNS A record at the host and open inbound ports 80 and 443. Towbar cannot configure your DNS or firewall.
 
 ## Choose the installation URL
 
-The installer asks only for the URL where the control plane will be reached. Press Enter to keep the default `http://localhost:4021` on-host installation, or enter a public HTTPS origin whose A record points to the host. Other localhost ports, HTTPS localhost URLs, URL paths, custom ports, and non-HTTPS remote URLs are rejected. Review the result, then confirm the installation.
+The installer accepts either:
 
-Towbar generates the database passwords, credential-encryption key, and internal signing secret. It does not ask for provider credentials during installation. Optional integrations remain disabled until they are configured in the runtime YAML file.
+- `http://localhost:4021` for on-host access, the default.
+- A public HTTPS origin, such as `https://towbar.example.com`.
+
+Custom ports, paths, fragments, HTTPS localhost and non-HTTPS remote URLs are rejected. Loopback mode disables external REST, MCP and API-key management. Public automation and provider webhooks require HTTPS.
 
 ## Install the control plane
 
-Review and run the installer as root:
+Review and run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/avgeek-inc/towbar/main/install.sh | sudo bash
+curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
 ```
 
-The installer places the current CLI at `/usr/local/bin/towbar`. The CLI verifies the selected published release, resolves it to an immutable commit, installs it under `/opt/towbar/releases`, and starts the Compose stack. It generates the PostgreSQL, runtime-database, credential-encryption, and internal-signing secrets once. Existing Docker installations are preserved; Docker upgrades remain managed by the host package manager.
+The installer verifies the CLI checksum and places it at `/usr/local/bin/towbar`. The CLI verifies the validated release, source archive and image manifest, then:
 
-During installation, the CLI:
+1. Installs required host packages and Docker if absent.
+2. Downloads the release into `/opt/towbar/releases` and generates database, encryption and signing secrets.
+3. Pulls the API, worker and dashboard images from GHCR by immutable digest.
+4. Applies database and Temporal schemas, starts services and checks health.
+5. For public access, obtains a Let's Encrypt certificate and verifies HTTPS recovery after a gateway restart.
 
-1. Inspects the host and installs the required system packages.
-2. Installs Docker Engine and Compose v2 when they are absent.
-3. Verifies the installer's exact published release and resolves its tag to an immutable commit.
-4. Downloads the release and creates the root-owned runtime configuration.
-5. Pulls the release's multi-architecture API, worker, and dashboard images from GitHub Container Registry by immutable digest. Published images include provenance and SBOM attestations.
-6. Applies the database and Temporal schemas.
-7. For a public URL, verifies DNS and ports 80 and 443, then starts the bundled Caddy gateway.
-8. Obtains a Let's Encrypt certificate, verifies the public HTTPS endpoint, and rehearses a gateway restart using the persisted certificate.
-9. Verifies each long-running service and prints the dashboard URL.
+Existing Docker installations remain managed by the host package manager. Optional integrations stay disabled until configured. See the [CLI guide](/docs/self-hosting/cli/install-upgrade) for version selection and upgrades.
 
-The browser setup asks for the team name, administrator display name, email address, password, and password confirmation. Provider credentials, SMTP, notification destinations, deployment servers, and repositories are configured after the first Admin signs in.
-
-To review every executable before installation, download the CLI directly:
-
-```bash
-curl -fsSLo towbar \
-  https://raw.githubusercontent.com/avgeek-inc/towbar/main/infra/towbar
-less towbar
-sudo install -o root -g root -m 0755 towbar /usr/local/bin/towbar
-sudo towbar install
-```
-
-The installer is versioned with Towbar. It installs the exact release declared inside the downloaded installer rather than resolving a moving `latest` release. The installed CLI verifies that release on GitHub and resolves its tag to an immutable commit before downloading source.
-
-A published release becomes installable after its **Publish release images** workflow succeeds and attaches the immutable image manifest. If that workflow is still running, the installer stops without changing the running installation and asks you to retry later.
+Open the dashboard immediately and enter the team name, your name, email and password. The first successful submission creates the initial team and Admin account, then closes setup. Configure SMTP for invitations and password recovery. See [Team access](/docs/self-hosting/team-access) and [Account recovery](/docs/self-hosting/account-recovery).
 
 ## Configure the installation
 
-Towbar keeps operator configuration outside versioned release directories at `/etc/towbar/config.yml`. The file is owned by root with mode `600`, remains in place across upgrades, and can be edited with the host editor of your choice:
+Configuration lives at `/etc/towbar/config.yml`, owned by `root:root` with mode `600`. It persists across upgrades.
 
 ```bash
 sudo nano "$(towbar config path)"
@@ -65,57 +50,32 @@ sudo towbar config validate
 sudo towbar restart
 ```
 
-For an internet-reachable installation, Towbar uses `installation.appUrl` as the single HTTPS origin for the dashboard, REST API, MCP, webhooks, streaming responses, and terminal transport.
+Validation checks Compose, API, worker, integrations, notifications and Caddy. `restart` reuses installed images and replaces services only after preflight checks pass. If validation or service startup fails, run `sudo towbar doctor`.
 
-The bundled Caddy gateway binds ports 80 and 443, obtains a Let's Encrypt certificate, redirects HTTP to HTTPS, and renews the certificate automatically. Its certificate and ACME account data live in persistent Docker volumes and survive upgrades and container replacement. The installer validates Caddy's configuration, verifies the live certificate, restarts the gateway once, and confirms that HTTPS recovers with the persisted certificate.
+For public access, `installation.appUrl` sets the origin for the dashboard, API, MCP, webhooks and terminal transport. Caddy redirects HTTP to HTTPS and renews certificates automatically. Certificate and ACME data persist in Docker volumes. Local mode binds only `127.0.0.1:4021`.
 
-Towbar does not create or modify DNS records and cannot open a cloud firewall or security group. A public installation stops with an actionable error when the hostname has no A record, ports 80 or 443 are already occupied, certificate issuance fails, or the public HTTPS endpoint cannot be reached. Fix the reported prerequisite and rerun the installation.
+If public setup fails, fix the reported DNS, port or certificate issue and retry. The installer removes the incomplete stack and releases ports 80 and 443 without enabling an HTTP fallback. It preserves secrets, releases, database data and ACME state. A retry can use a different valid domain without replacing secrets.
 
-If certificate issuance fails after the containers start, the installer prints the recent Caddy output, removes the incomplete stack, and releases ports 80 and 443. It never exposes a public HTTP fallback. Generated secrets, the downloaded release, database data, and Caddy's ACME state remain available so `sudo towbar install` can resume safely. Entering a different valid domain on the retry updates the access settings without replacing the generated secrets.
+Use the [runtime configuration reference](/docs/self-hosting/environment-variables) for integrations and [Configuration and restart](/docs/self-hosting/cli/configuration) for command details.
 
-The gateway routes `/v1/*` to the API and all other paths to the dashboard, so those service boundaries do not leak into host configuration. The default local installation instead publishes only `127.0.0.1:4021`; it does not bind public HTTP or HTTPS ports.
-
-Use `towbar config path` with any editor that can save the root-owned YAML file. Towbar does not wrap the editor.
-
-The configuration commands are deliberately limited:
-
-| Command                       | Behavior                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `towbar config path`          | Prints the active YAML configuration path. It does not read or display the file.                       |
-| `sudo towbar config validate` | Checks Compose, API, worker, integrations, notifications, and Caddy without changing running services. |
-| `sudo towbar restart`         | Validates API, worker, integration, notification, and Caddy configuration before replacing services.   |
-
-`restart` reuses the installed release images and does not rebuild or pull them. It does not replace running containers unless every configuration preflight passes. If validation fails, the current services remain running and the CLI directs the operator to `sudo towbar doctor`. If a service fails after replacement begins despite those checks, the CLI stops and also directs the operator to `doctor` for the exact runtime failure.
-
-Useful host commands include:
+## Verify the installation
 
 ```bash
 sudo towbar status
-sudo towbar logs api worker
 sudo towbar doctor
 sudo towbar version
 ```
 
-`sudo towbar doctor` performs read-only host, configuration, Docker, service, release, database, access-mode, and Towbar disk-usage checks. Public installations also check DNS, HTTPS routing, certificate lifetime, persisted Caddy state, and outbound access needed for releases and certificate renewal. It prints no secret values and returns a nonzero exit code when a required check fails.
+In **Manage → System health**, confirm that the API, database, Temporal and worker are healthy. GitHub may remain unconfigured during setup.
 
-Use `sudo towbar upgrade` for later stable releases. See [Upgrades and recovery](/docs/self-hosting/upgrades) before upgrading an installation with production data.
+The `migrate`, `temporal-schema` and `temporal-namespace` jobs should exit successfully. API, worker, web app, PostgreSQL and Temporal should keep running. For startup errors:
 
-Open the dashboard and enter the team name, your name, email, password and confirmation. The first successful submission creates the only initial team and Admin account. Setup then closes immediately; concurrent or repeated submissions are rejected.
+```bash
+sudo towbar logs migrate temporal-schema temporal temporal-namespace api worker
+```
 
-Complete setup immediately after installation. Configure SMTP for invitations and password recovery, then add colleagues under Team Settings. See [Team access](/docs/self-hosting/team-access) for roles, MFA and invitations. If access is lost, use [Admin account recovery](/docs/self-hosting/account-recovery).
-
-The loopback defaults provide an on-host dashboard for evaluating and configuring Towbar. External REST, MCP, and API-key management remain unavailable in this mode. Configure a single HTTPS Towbar origin and restart the installation before connecting automation clients or receiving provider webhooks.
-
-## Verify the installation
-
-Open **Manage → System health** and run checks. Confirm the API and database, Temporal, and worker checks are healthy. GitHub can remain unconfigured until you connect a GitHub App.
-
-The `migrate`, `temporal-schema`, and `temporal-namespace` containers are one-time jobs and should exit successfully. The API, worker, web app, PostgreSQL, and Temporal should continue running. If startup fails, run `sudo towbar logs migrate temporal-schema temporal temporal-namespace api worker`.
-
-Temporal uses pinned upstream server and administration images. Startup applies versioned SQL schemas and creates the default namespace if absent. Repeating startup preserves existing workflow state. Do not delete PostgreSQL volumes to resolve a startup failure.
-
-Temporal's gRPC and HTTP APIs are accessible only inside the control-plane network. Its operator UI binds to `127.0.0.1` even if you change `installation.bindAddress` for the dashboard and API. Access the operator UI through an SSH tunnel; it is not protected by Towbar's dashboard login and must not be exposed publicly.
+Repeated startup preserves workflow state. Do not delete PostgreSQL volumes to repair startup. Temporal APIs remain on the private network; its operator UI binds to loopback and requires an SSH tunnel. It has no Towbar login protection and must not be exposed publicly.
 
 ## Continue setup
 
-Connect [GitHub](/docs/integrations/github), register and prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). For public ingress and optional providers, use the [runtime configuration reference](/docs/self-hosting/environment-variables).
+Connect [GitHub](/docs/integrations/github), prepare a [server](/docs/servers), then follow [Your first deployment](/docs/getting-started). Read [Upgrades and recovery](/docs/self-hosting/upgrades) before changing versions.

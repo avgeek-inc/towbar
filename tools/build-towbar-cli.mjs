@@ -13,12 +13,24 @@ if (
 ) {
   throw new Error("package.json must declare a stable release version");
 }
+const identity = JSON.parse(
+  await readFile(path.join(repository, "repository.json"), "utf8"),
+);
+if (
+  !/^[a-z0-9-]+\/[a-z0-9-]+$/.test(identity.repository) ||
+  !/^https:\/\/[a-z0-9.-]+\/[a-z0-9-]+$/.test(identity.distributionUrl) ||
+  !/^ghcr\.io\/[a-z0-9-]+$/.test(identity.imageRegistry)
+)
+  throw new Error("Invalid repository.json identity");
 const versionContent = `#!/usr/bin/env bash
-# Generated from package.json; run pnpm cli:build.
+# Generated from package.json and repository.json; run pnpm cli:build.
 set -Eeuo pipefail
 
 CLI_VERSION="${version}"
 CLI_RELEASE="v$CLI_VERSION"
+TOWBAR_UPSTREAM_REPOSITORY="${identity.repository}"
+TOWBAR_DISTRIBUTION_URL="${identity.distributionUrl}"
+TOWBAR_IMAGE_REGISTRY="${identity.imageRegistry}"
 `;
 const fragments = [
   "00-runtime.sh",
@@ -52,7 +64,9 @@ const installer = installerTemplate
     "#!/usr/bin/env bash\n",
     "#!/usr/bin/env bash\n# Generated from infra/install.sh.in and package.json; run pnpm cli:build.\n",
   )
-  .replace("@TOWBAR_VERSION@", version);
+  .replace("@TOWBAR_VERSION@", version)
+  .replaceAll("@TOWBAR_REPOSITORY@", identity.repository)
+  .replaceAll("@TOWBAR_DISTRIBUTION_URL@", identity.distributionUrl);
 const outputs = [
   ["infra/towbar-cli/00-version.sh", versionContent],
   ["infra/towbar", content],

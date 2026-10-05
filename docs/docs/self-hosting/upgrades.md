@@ -3,7 +3,7 @@ title: "Upgrades and recovery"
 description: "Plan a release upgrade, protect control-plane state, and recover Admin access."
 ---
 
-Upgrade the API, worker, and dashboard together from a reviewed release. Before changing versions, read the [changelog](https://github.com/avgeek-inc/towbar/blob/main/CHANGELOG.md) for migration requirements.
+Upgrade the API, worker, and dashboard together from a reviewed release. Before changing versions, read the [changelog](https://github.com/avgeek-oss/towbar/blob/main/CHANGELOG.md) for migration requirements.
 
 ## Prepare an upgrade
 
@@ -27,15 +27,15 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts only published, non-prerelease semantic versions in its own major version. It resolves the tag to an immutable Git commit, downloads that commit archive into `/opt/towbar/releases`, validates the release image manifest, pulls the API, worker, and dashboard images by immutable digest, validates `/etc/towbar/config.yml`, applies migrations, waits for service health, and verifies the commit reported by the API. After a failed service replacement, the CLI attempts to restore the previous release symlink and images. A previous image alone is not a recovery plan for a database migration; review migration compatibility before reverting a release.
+The CLI accepts validated stable releases in its supported major version. It verifies artifacts from `oss.avgeek.ltd`, pulls images by digest, validates configuration, applies migrations and checks health and the running commit. Update discovery uses `/towbar/releases/latest.json`; pending or failed candidates leave latest unchanged.
 
-The target release must have a successful **Publish release images** workflow. If its image manifest is not attached yet, the CLI stops before replacing the current release.
+If service replacement fails, the CLI attempts to restore the previous release and images. It cannot reverse database migrations. Review migration compatibility before reverting. See [Install and upgrade](/docs/self-hosting/cli/install-upgrade) for command details.
 
 The updated CLI renames an existing `/etc/towbar/towbar.yml` to `/etc/towbar/config.yml` during upgrade, preserving its contents and permissions. If both paths exist, the upgrade stops so an operator can resolve the conflict without losing either file. An upgrade started with an older CLI installs the updated CLI first; run `sudo towbar restart` afterward to complete the rename. The repository-root `towbar.yml` manifest is unrelated and stays unchanged.
 
-After a successful upgrade, Towbar retains the current and immediately previous source release and application images. Older Towbar release directories and unreferenced Towbar application images are removed. Database, Temporal, Caddy, and application volumes are never pruned, and images belonging to other Docker workloads are not touched.
+Successful upgrades retain the current and previous releases and images. Cleanup removes only older Towbar releases and unreferenced application images. Data volumes and unrelated Docker workloads remain untouched.
 
-The CLI keeps configuration outside release directories. Edit and apply it independently:
+Configuration persists outside release directories. To change it:
 
 ```bash
 sudo nano "$(towbar config path)"
@@ -107,7 +107,7 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 
 ## Command-line operations
 
-Towbar does not deploy itself from GitHub Actions. Installation and upgrades run on the control-plane host through the `towbar` CLI, so release access and `/etc/towbar/config.yml` remain host-owned. See the [Towbar CLI guide](/docs/self-hosting/cli) for every command, parameter, safety check, and troubleshooting workflow.
+Run installation and upgrade commands on the control-plane host. See the [CLI reference](/docs/self-hosting/cli) for commands and diagnostics.
 
 ## Upgrade from System Health
 
@@ -119,7 +119,7 @@ An Admin can upgrade from **System Health → Towbar version** after the install
 4. Keep the modal open to follow progress. It reconnects automatically if the dashboard loses contact during a restart.
 5. Check the final result in the same modal. A successful upgrade shows the installed version; a failed upgrade links to the recovery instructions below. You can reopen the modal with **View upgrade**.
 
-These screenshots show a local example of upgrading from v2.0.16 to v2.0.17. Availability on your installation depends on its installed version and the latest published release.
+The screenshots show a local v2.0.16-to-v2.0.17 example.
 
 <Tabs>
   <Tab title="Ready">
@@ -186,32 +186,26 @@ These screenshots show a local example of upgrading from v2.0.16 to v2.0.17. Ava
 
 ### Enable in-app upgrades
 
-Standard CLI installations enable in-app upgrades automatically after a successful install or upgrade. The host must use the upstream installation paths, Linux with systemd, and a release that supports the host upgrade service.
-
-If an older CLI installed or upgraded Towbar without enabling the service, run this once on the control-plane host:
+Standard CLI installs and upgrades enable the service automatically when supported. If an older CLI left it disabled:
 
 ```bash
 sudo towbar upgrade-service enable
 sudo systemctl status towbar-upgrade
 ```
 
-Setup restarts Towbar with a private runner socket mounted into the API. It requires a standard upstream CLI installation at `/opt/towbar`, configuration at `/etc/towbar`, the CLI at `/usr/local/bin/towbar`, Python 3, Linux with systemd, and Docker Compose v2. Custom paths, forks, container-only Compose installs, Kubernetes, and older releases without the admission protocol retain the manual CLI path. Both the installed and target releases must support protocol 2, which includes dedicated-group access and runner updates. Use a host maintenance window for a protocol or major-version migration; the current CLI accepts only its own major version.
+Requirements are Linux with systemd, Python 3, Docker Compose v2 and standard upstream paths (`/opt/towbar`, `/etc/towbar` and `/usr/local/bin/towbar`). Both releases must support admission protocol 2. Custom paths, forks, container-only and Kubernetes installations use manual upgrades. Major-version or protocol changes require a host maintenance window.
 
-Setup creates a dedicated system group and saves its identity in the root-only `/etc/towbar/upgrade-group.json`. If `towbar-upgrade` already names a host group, setup chooses a new name rather than adopting it. The generated Compose override grants only the API container the group's numeric ID through `group_add`; it does not add host users. Startup rejects a saved group that has host members, a primary user, another group sharing its ID, or a changed ID. The runtime directory, token, and socket belong to root and this group, never a fixed host group ID.
+Setup restarts the API with a private runner socket and dedicated group. The root-only `/etc/towbar/upgrade-group.json` records that group. Setup does not adopt an existing host group or add host users; startup rejects shared IDs or host membership. Only the API mounts the socket. It receives no Docker socket, root privileges or shell endpoint.
 
-To replace an older setup, first wait for the upgrade to finish and check its result. Stop the idle service with `sudo systemctl stop towbar-upgrade`, then run `sudo towbar upgrade-service enable` from the compatible installed release. Enabling refuses to stop an already-running service. Startup rotates the token and reapplies the dedicated group permissions; setup recreates the API with the generated supplemental group.
+To replace an older runner, wait for any upgrade to finish, stop the idle service with `sudo systemctl stop towbar-upgrade`, then run `sudo towbar upgrade-service enable`. Enabling refuses a running service and rotates its token at startup.
 
-Reviewing an upgrade requires an Admin with a recently authenticated browser session. Preparation downloads the immutable release archive and validates its image manifest; it can take a few minutes. Confirmation expires after 15 minutes. A changed installed release or target Git commit requires a new check.
+Upgrade review requires a recently authenticated Admin. Preparation downloads and verifies the release; confirmation expires after 15 minutes. A changed installed version or target commit requires another review. Keep a tested database backup and protected configuration copy. The runner does not create backups.
 
-Keep a recent, tested database backup and a protected copy of the configuration and encryption key before confirming. The upgrade runner does not create backups. It rejects queued or active deployments, source syncs, resource operations, checks, preparations, credential checks, image scans, preview cleanup, worker activities, and server terminals. Finish or resolve this work before retrying.
+Queued or active deployments, source syncs, resource/server operations, scans, preview cleanup, worker activities and terminals block upgrades. Confirmation pauses new admissions and checks readiness again. A blocked attempt reopens admission without replacing services. Delayed worker tasks cannot perform effects while paused. Webhooks rejected during the pause need redelivery or source sync afterward.
 
-On confirmation, a database barrier pauses new admissions before the runner checks readiness again. All deployment insert paths share this barrier, including manual, webhook, scheduled, rollback, and preview deployments. Each worker activity acquires a recorded lease before performing work. Delayed Temporal work cannot execute effects while admission is paused. Blocked attempts reopen admission without replacing services. Webhook requests rejected during the pause need redelivery or a source sync afterward; the upgrade runner does not buffer webhooks.
+The runner invokes the CLI with the confirmed version and commit. Closing the modal or restarting the API does not stop the job; **View upgrade** reopens its status. After installation, the runner updates its code and unit, reopens admission, saves the result and restarts. Another upgrade remains blocked until the restart succeeds. A failure requires the host recovery steps below; inspect the saved result to determine whether admission is still paused.
 
-The host service invokes the existing CLI with the confirmed version and commit. The CLI validates the published stable release and immutable image digests, migrates, replaces services, and checks health. The confirmation modal shows progress and the final result. Closing it, closing the browser, or replacing the API does not stop the job. Select **View upgrade** in System Health to reopen the latest status. During an API restart the page polls for reconnection; a disconnect alone is neither success nor failure. Repeating a request identifier returns the same attempt instead of starting another upgrade.
-
-After verifying the installed release, the runner installs that release's runner code and systemd unit without stopping the active job. It reopens admission, saves the successful result, and requests a service restart. New upgrade requests are blocked while that restart is pending. If installation fails, admission remains paused; if restart fails after admission reopens, the saved failure reports that deployments and operations can start and requires recovery before another upgrade. Recovery also installs the current release's runner and restarts it after saving the recovered result.
-
-When the service is enabled, `sudo towbar upgrade [VERSION]` also uses this admission and job path. The runner exposes only status, release preparation, and confirmed upgrade requests over an authenticated Unix socket. The API receives no Docker socket, root privileges, shell endpoint, or configurable command path. Only a root host connection can acknowledge recovery. The worker and dashboard do not mount the runner socket.
+With the service enabled, `sudo towbar upgrade [VERSION]` uses the same readiness and job path. Only root on the host can acknowledge recovery.
 
 ## Recover a host-managed attempt
 
@@ -225,11 +219,11 @@ sudo towbar doctor
 sudo towbar logs migrate api worker
 ```
 
-Use the `id` field in `/var/lib/towbar-upgrade/job.json` to locate `/var/lib/towbar-upgrade/ATTEMPT-ID.log` for the CLI output. The browser shows a safe failure reason or the last known upgrade stage and exit code; it does not show raw exception text or command output. These root-only logs can contain operational details. Keep them protected and apply your own retention policy.
+The job record's `id` identifies `/var/lib/towbar-upgrade/ATTEMPT-ID.log`. These root-only logs contain CLI output; the browser shows only the stage, exit code or safe failure reason. Keep logs protected and apply a retention policy.
 
-A failed CLI run may have attempted to restore the previous symlink and images. It does **not** reverse database migrations. Check which release is running and whether the schema remains compatible. Restore the database and configuration from a tested backup if migration recovery requires it. Do not infer a successful rollback from an available dashboard alone.
+Check the running release and database compatibility. Restoring previous images does not reverse migrations; use a tested database and configuration backup when required. A reachable dashboard alone does not prove recovery.
 
-A runner restart marks an unfinished attempt **interrupted** and never starts it again automatically. Failures before reopening admission leave new deployments and operations paused. If reopening succeeds but saving the result fails, deployments and operations can already start again; the runner reports this and blocks another upgrade until host recovery is acknowledged. An interrupted reopening may have taken effect even without a saved result, so inspect the admission state on the host. After checking services, the database, and pending work, explicitly resume:
+A runner restart marks unfinished attempts **interrupted** without retrying. Admission may remain paused or may have reopened before the result was saved. Inspect its state, services, database and pending work before resuming:
 
 ```bash
 sudo towbar upgrade-service resume --acknowledge-recovery
@@ -242,6 +236,6 @@ sudo towbar compose exec -T postgres psql -U towbar -d towbar -c \
   'SELECT id, kind, created_at FROM towbar_upgrade_leases ORDER BY created_at;'
 ```
 
-Before clearing a stale lease, stop the worker, close server terminals, and verify that the corresponding remote operation has ended. Resolve its deployment or operation record as well. A host database administrator can then delete that specific lease by ID; never truncate the lease table or clear leases based only on age. Run the recovery command and restart the worker after the remaining blockers are resolved. Normal queued work resumes after admission reopens.
+Before clearing a lease, stop the worker, close terminals and verify that the remote operation ended. Resolve its deployment or operation record. A database administrator may delete that specific lease by ID; never truncate the table or use age alone. After resolving blockers, resume admission and restart the worker.
 
 If the API cannot reconnect, continue recovery over SSH. Repair the database or services with the host CLI; do not run the upgrade inside a container. Leave the runner state and admission record intact until you have established the outcome.

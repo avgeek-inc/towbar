@@ -4,9 +4,9 @@ description: "Install, inspect, configure, upgrade, and troubleshoot a self-host
 sidebarTitle: "CLI overview"
 ---
 
-The `towbar` command manages the control plane installed on a Towbar host. It selects the active release, reads `/etc/towbar/config.yml`, and supplies the correct Compose project, images, and release metadata for each operation.
+The `towbar` CLI manages installation, configuration, upgrades and diagnostics on the control-plane host. It uses the active release and `/etc/towbar/config.yml`.
 
-The installer places the executable at `/usr/local/bin/towbar`. Run host-changing and Docker commands with `sudo`. Read-only commands that do not access Docker or protected files work without it.
+The installer places the CLI at `/usr/local/bin/towbar`. Host-changing and Docker commands require `sudo`.
 
 ```bash title="Show CLI help"
 towbar help
@@ -76,7 +76,7 @@ The CLI uses these installation-owned paths:
 | `/opt/towbar/VERSION`            | Installed release label                                      |
 | `/var/lock/towbar.lock`          | Prevents concurrent install, upgrade, and restart operations |
 
-The CLI reads release metadata before invoking Docker Compose. It does not depend on the shell's current directory, so the commands can be run from any directory on the control-plane host.
+Commands work from any directory on the control-plane host.
 
 <Info>
   The CLI manages the Towbar control plane. Service deployments, datastore
@@ -86,7 +86,7 @@ The CLI reads release metadata before invoking Docker Compose. It does not depen
 
 ## Exit status and automation
 
-A successful command exits with status `0`. Invalid arguments, failed validation, unhealthy services, installation problems, or a failed diagnostic check return a nonzero status. `towbar doctor` still exits successfully when it finds warnings but no failures.
+Success exits with status `0`; errors return nonzero. `doctor` warnings alone do not fail the command.
 
 Set `NO_COLOR=1` when capturing output in automation:
 

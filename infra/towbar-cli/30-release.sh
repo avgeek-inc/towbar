@@ -1,55 +1,30 @@
+fetch_release_manifest() {
+  local version="$1"
+  curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+    --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$TOWBAR_DISTRIBUTION_URL/releases/$version/release.json"
+}
+
 resolve_latest_version() {
-  local effective_url version
-  effective_url="$(
-    curl \
-      --fail \
-      --silent \
-      --show-error \
-      --location \
-      --proto '=https' \
-      --tlsv1.2 \
-      --output /dev/null \
-      --write-out '%{url_effective}' \
-      "https://github.com/$TOWBAR_REPOSITORY/releases/latest"
-  )"
-  version="${effective_url##*/}"
+  local version
+  version="$(curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$TOWBAR_DISTRIBUTION_URL/releases/latest.json" | jq -er 'select(.validated == true) | .version')"
   validate_version "$version"
   printf '%s\n' "$version"
 }
 
 verify_release() {
   local version="$1"
-  if ! curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" |
-    jq -e \
-      --arg version "$version" \
-      '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
-      >/dev/null; then
-    fail "$version is not a published stable release"
+  if ! fetch_release_manifest "$version" | jq -e --arg version "$version" \
+    --argjson candidate "${TOWBAR_RELEASE_SMOKE:-false}" \
+    '.version == $version and (.validated == true or $candidate == true) and (.commit | test("^[0-9a-f]{40}$"))' >/dev/null; then
+    fail "$version is not a validated stable release"
   fi
 }
 
 resolve_release_commit() {
-  local version="$1" refs commit
-  refs="$(
-    git ls-remote \
-      "https://github.com/$TOWBAR_REPOSITORY.git" \
-      "refs/tags/$version" \
-      "refs/tags/$version^{}"
-  )"
-  commit="$(
-    awk \
-      -v tag_ref="refs/tags/$version" \
-      -v peeled_ref="refs/tags/$version^{}" \
-      '$2 == tag_ref { tag = $1 } $2 == peeled_ref { peeled = $1 } END { print peeled != "" ? peeled : tag }' \
-      <<<"$refs"
-  )"
+  local version="$1" commit
+  commit="$(fetch_release_manifest "$version" | jq -er .commit)"
   [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "could not resolve $version to a commit"
   printf '%s\n' "$commit"
 }
@@ -62,7 +37,7 @@ metadata_value() {
 
 download_release() {
   local version="$1" commit="$2" release_dir staging archive source_dir package_version
-  local image_manifest owner image_prefix
+  local image_manifest image_prefix release_manifest artifact expected
   release_dir="$RELEASES_DIR/$version"
   if [[ -d "$release_dir" ]]; then
     [[ -f "$release_dir/.towbar-release" ]] ||
@@ -75,7 +50,8 @@ download_release() {
 
   install -d -m 0755 "$RELEASES_DIR"
   staging="$(mktemp -d "$RELEASES_DIR/.staging.XXXXXX")"
-  archive="$staging/release.tar.gz"
+  archive="$staging/source.tar.gz"
+  release_manifest="$staging/release.json"
   image_manifest="$staging/towbar-images.json"
   cleanup_download() {
     rm -rf "$staging"
@@ -83,30 +59,17 @@ download_release() {
   trap cleanup_download EXIT
 
   log "Downloading $version at immutable commit $commit" >&2
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --retry 4 \
-    --retry-all-errors \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://github.com/$TOWBAR_REPOSITORY/archive/$commit.tar.gz" \
-    --output "$archive"
-  if ! curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --retry 4 \
-    --retry-all-errors \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://github.com/$TOWBAR_REPOSITORY/releases/download/$version/towbar-images.json" \
-    --output "$image_manifest"; then
-    fail "Prebuilt images for Towbar $version are not published yet. Retry after the release image workflow completes."
-  fi
+  fetch_release_manifest "$version" >"$release_manifest"
+  jq -e --arg version "$version" --arg commit "$commit" \
+    '.version == $version and .commit == $commit' "$release_manifest" >/dev/null || fail "release identity changed during download"
+  for artifact in source.tar.gz towbar-images.json; do
+    expected="$(jq -er --arg artifact "$artifact" '.artifacts[$artifact]' "$release_manifest")"
+    [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || fail "release is missing the $artifact checksum"
+    curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+      --proto '=https' --proto-redir '=https' --tlsv1.2 \
+      "$TOWBAR_DISTRIBUTION_URL/releases/$version/$artifact" --output "$staging/$artifact"
+    printf '%s  %s\n' "$expected" "$staging/$artifact" | sha256sum --check --status || fail "$artifact checksum verification failed"
+  done
 
   if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
     fail "release archive contains an unsafe path"
@@ -120,8 +83,7 @@ download_release() {
   package_version="$(jq -r .version "$source_dir/package.json")"
   [[ "$package_version" == "${version#v}" ]] ||
     fail "$version contains package version $package_version"
-  owner="${TOWBAR_REPOSITORY%%/*}"
-  image_prefix="ghcr.io/${owner,,}"
+  image_prefix="$TOWBAR_IMAGE_REGISTRY"
   jq -e \
     --arg version "$version" \
     --arg commit "$commit" \

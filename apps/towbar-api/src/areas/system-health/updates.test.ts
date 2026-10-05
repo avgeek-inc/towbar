@@ -7,10 +7,13 @@ import {
   getTowbarUpdateInfo,
 } from "./updates.js";
 
-const release = (tag_name: string) =>
-  new Response(JSON.stringify({ tag_name, draft: false, prerelease: false }), {
-    status: 200,
-  });
+const release = (version: string) =>
+  new Response(
+    JSON.stringify({ version, validated: true, commit: "a".repeat(40) }),
+    {
+      status: 200,
+    },
+  );
 
 void test("version comparison uses numeric components", () => {
   assert.equal(compareStableVersions("2.9.0", "v2.10.0"), -1);
@@ -28,7 +31,7 @@ void test("the latest stable release is available when it is newer", async () =>
     checkedAt: updates.checkedAt,
     installedVersion: "2.0.14",
     latestVersion: "2.0.15",
-    releaseUrl: "https://github.com/avgeek-inc/towbar/releases/tag/v2.0.15",
+    releaseUrl: "https://github.com/avgeek-oss/towbar/releases/tag/v2.0.15",
     status: "available",
   });
 });
@@ -37,6 +40,26 @@ void test("an unreachable or invalid release does not report an update", async (
   for (const fetcher of [
     () => Promise.resolve(new Response(null, { status: 503 })),
     () => Promise.resolve(release("v2.0.15-rc.1")),
+    () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            version: "v2.0.15",
+            validated: false,
+            commit: "a".repeat(40),
+          }),
+        ),
+      ),
+    () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            version: "v2.0.15",
+            validated: true,
+            commit: "invalid",
+          }),
+        ),
+      ),
     () => Promise.reject(new Error("offline")),
   ]) {
     const updates = await checkTowbarUpdates("2.0.14", fetcher);

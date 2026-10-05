@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Generated from package.json; run pnpm cli:build.
+# Generated from package.json and repository.json; run pnpm cli:build.
 set -Eeuo pipefail
 
 CLI_VERSION="2.0.29"
 CLI_RELEASE="v$CLI_VERSION"
+TOWBAR_UPSTREAM_REPOSITORY="avgeek-oss/towbar"
+TOWBAR_DISTRIBUTION_URL="https://oss.avgeek.ltd/towbar"
+TOWBAR_IMAGE_REGISTRY="ghcr.io/avgeek-oss"
 
 TOWBAR_ROOT="${TOWBAR_ROOT:-/opt/towbar}"
 TOWBAR_CONFIG_DIR="${TOWBAR_CONFIG_DIR:-/etc/towbar}"
@@ -12,7 +15,7 @@ TOWBAR_YAML_FILE="${TOWBAR_YAML_FILE:-$TOWBAR_CONFIG_DIR/config.yml}"
 TOWBAR_LEGACY_YAML_FILE="$TOWBAR_CONFIG_DIR/towbar.yml"
 TOWBAR_COMMITTED_ENV_FILE="$TOWBAR_ENV_FILE"
 TOWBAR_PENDING_ENV_FILE=""
-TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-avgeek-inc/towbar}"
+TOWBAR_REPOSITORY="${TOWBAR_REPOSITORY:-$TOWBAR_UPSTREAM_REPOSITORY}"
 TOWBAR_BIN="${TOWBAR_BIN:-/usr/local/bin/towbar}"
 RELEASES_DIR="$TOWBAR_ROOT/releases"
 CURRENT_LINK="$TOWBAR_ROOT/current"
@@ -364,7 +367,7 @@ acquire_lock() {
 
 require_runtime_tools() {
   local command_name
-  for command_name in curl docker git jq openssl tar; do
+  for command_name in curl docker git jq openssl sha256sum tar; do
     command -v "$command_name" >/dev/null ||
       fail "missing required command: $command_name"
   done
@@ -428,58 +431,33 @@ EOF
   systemctl enable --now docker
 }
 
+fetch_release_manifest() {
+  local version="$1"
+  curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+    --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$TOWBAR_DISTRIBUTION_URL/releases/$version/release.json"
+}
+
 resolve_latest_version() {
-  local effective_url version
-  effective_url="$(
-    curl \
-      --fail \
-      --silent \
-      --show-error \
-      --location \
-      --proto '=https' \
-      --tlsv1.2 \
-      --output /dev/null \
-      --write-out '%{url_effective}' \
-      "https://github.com/$TOWBAR_REPOSITORY/releases/latest"
-  )"
-  version="${effective_url##*/}"
+  local version
+  version="$(curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$TOWBAR_DISTRIBUTION_URL/releases/latest.json" | jq -er 'select(.validated == true) | .version')"
   validate_version "$version"
   printf '%s\n' "$version"
 }
 
 verify_release() {
   local version="$1"
-  if ! curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://api.github.com/repos/$TOWBAR_REPOSITORY/releases/tags/$version" |
-    jq -e \
-      --arg version "$version" \
-      '.tag_name == $version and .draft == false and .prerelease == false and .published_at != null' \
-      >/dev/null; then
-    fail "$version is not a published stable release"
+  if ! fetch_release_manifest "$version" | jq -e --arg version "$version" \
+    --argjson candidate "${TOWBAR_RELEASE_SMOKE:-false}" \
+    '.version == $version and (.validated == true or $candidate == true) and (.commit | test("^[0-9a-f]{40}$"))' >/dev/null; then
+    fail "$version is not a validated stable release"
   fi
 }
 
 resolve_release_commit() {
-  local version="$1" refs commit
-  refs="$(
-    git ls-remote \
-      "https://github.com/$TOWBAR_REPOSITORY.git" \
-      "refs/tags/$version" \
-      "refs/tags/$version^{}"
-  )"
-  commit="$(
-    awk \
-      -v tag_ref="refs/tags/$version" \
-      -v peeled_ref="refs/tags/$version^{}" \
-      '$2 == tag_ref { tag = $1 } $2 == peeled_ref { peeled = $1 } END { print peeled != "" ? peeled : tag }' \
-      <<<"$refs"
-  )"
+  local version="$1" commit
+  commit="$(fetch_release_manifest "$version" | jq -er .commit)"
   [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "could not resolve $version to a commit"
   printf '%s\n' "$commit"
 }
@@ -492,7 +470,7 @@ metadata_value() {
 
 download_release() {
   local version="$1" commit="$2" release_dir staging archive source_dir package_version
-  local image_manifest owner image_prefix
+  local image_manifest image_prefix release_manifest artifact expected
   release_dir="$RELEASES_DIR/$version"
   if [[ -d "$release_dir" ]]; then
     [[ -f "$release_dir/.towbar-release" ]] ||
@@ -505,7 +483,8 @@ download_release() {
 
   install -d -m 0755 "$RELEASES_DIR"
   staging="$(mktemp -d "$RELEASES_DIR/.staging.XXXXXX")"
-  archive="$staging/release.tar.gz"
+  archive="$staging/source.tar.gz"
+  release_manifest="$staging/release.json"
   image_manifest="$staging/towbar-images.json"
   cleanup_download() {
     rm -rf "$staging"
@@ -513,30 +492,17 @@ download_release() {
   trap cleanup_download EXIT
 
   log "Downloading $version at immutable commit $commit" >&2
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --retry 4 \
-    --retry-all-errors \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://github.com/$TOWBAR_REPOSITORY/archive/$commit.tar.gz" \
-    --output "$archive"
-  if ! curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --retry 4 \
-    --retry-all-errors \
-    --proto '=https' \
-    --tlsv1.2 \
-    "https://github.com/$TOWBAR_REPOSITORY/releases/download/$version/towbar-images.json" \
-    --output "$image_manifest"; then
-    fail "Prebuilt images for Towbar $version are not published yet. Retry after the release image workflow completes."
-  fi
+  fetch_release_manifest "$version" >"$release_manifest"
+  jq -e --arg version "$version" --arg commit "$commit" \
+    '.version == $version and .commit == $commit' "$release_manifest" >/dev/null || fail "release identity changed during download"
+  for artifact in source.tar.gz towbar-images.json; do
+    expected="$(jq -er --arg artifact "$artifact" '.artifacts[$artifact]' "$release_manifest")"
+    [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || fail "release is missing the $artifact checksum"
+    curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+      --proto '=https' --proto-redir '=https' --tlsv1.2 \
+      "$TOWBAR_DISTRIBUTION_URL/releases/$version/$artifact" --output "$staging/$artifact"
+    printf '%s  %s\n' "$expected" "$staging/$artifact" | sha256sum --check --status || fail "$artifact checksum verification failed"
+  done
 
   if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
     fail "release archive contains an unsafe path"
@@ -550,8 +516,7 @@ download_release() {
   package_version="$(jq -r .version "$source_dir/package.json")"
   [[ "$package_version" == "${version#v}" ]] ||
     fail "$version contains package version $package_version"
-  owner="${TOWBAR_REPOSITORY%%/*}"
-  image_prefix="ghcr.io/${owner,,}"
+  image_prefix="$TOWBAR_IMAGE_REGISTRY"
   jq -e \
     --arg version "$version" \
     --arg commit "$commit" \
@@ -1149,7 +1114,7 @@ config_command() {
 
 host_upgrades_supported() {
   local release_dir="$1"
-  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == avgeek-inc/towbar ]] || return 1
+  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == "$TOWBAR_UPSTREAM_REPOSITORY" ]] || return 1
   [[ -f "$release_dir/infra/upgrade-runner/protocol" && "$(cat "$release_dir/infra/upgrade-runner/protocol")" == 2 ]] || return 1
   command -v python3 >/dev/null && command -v systemctl >/dev/null || return 1
   systemctl list-units --no-legend >/dev/null 2>&1
@@ -1175,7 +1140,7 @@ upgrade_service_command() {
   require_root upgrade-service
   require_linux
   require_runtime_tools
-  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == avgeek-inc/towbar ]] ||
+  [[ "$TOWBAR_ROOT" == /opt/towbar && "$TOWBAR_CONFIG_DIR" == /etc/towbar && "$TOWBAR_BIN" == /usr/local/bin/towbar && "$TOWBAR_REPOSITORY" == "$TOWBAR_UPSTREAM_REPOSITORY" ]] ||
     fail "host upgrades require the standard upstream CLI installation paths"
   local release_dir version commit
   release_dir="$(current_release_dir)"

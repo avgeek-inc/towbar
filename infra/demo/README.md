@@ -178,7 +178,7 @@ TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-rev
    with that released tag. It resolves a non-draft, non-prerelease main-branch
    commit, builds `--target demo`, runs the container smoke, and pushes the
    tested arm64 image. Copy the immutable `TOWBAR_DEMO_IMAGE=...@sha256:...`
-   output. Make `ghcr.io/avgeek-inc/towbar-demo` publicly readable (or configure
+   output. Make `ghcr.io/avgeek-oss/towbar-demo` publicly readable (or configure
    a read-only registry login on the host). No SSH/cloud secrets are required
    by this publishing workflow.
 3. Provision a **dedicated arm64 Ubuntu 24.04+ host**, initially 2 vCPU, 2 GiB
@@ -198,9 +198,9 @@ TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-rev
 6. Clone the reviewed release onto that host and activate using the digest:
 
    ```bash
-   git clone --branch v2.X.Y --depth 1 https://github.com/avgeek-inc/towbar.git /opt/towbar-demo
+   git clone --branch v2.X.Y --depth 1 https://github.com/avgeek-oss/towbar.git /opt/towbar-demo
    cd /opt/towbar-demo
-   bash tools/deploy-public-demo.sh ghcr.io/avgeek-inc/towbar-demo@sha256:REPLACE_WITH_64_HEX_DIGEST
+   bash tools/deploy-public-demo.sh ghcr.io/avgeek-oss/towbar-demo@sha256:REPLACE_WITH_64_HEX_DIGEST
    ```
 
    Replace `v2.X.Y` with the released tag containing this feature. Run as the

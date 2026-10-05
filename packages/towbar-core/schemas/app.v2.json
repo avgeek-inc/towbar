@@ -2392,5 +2392,5 @@
   "additionalProperties": false,
   "required": ["id", "name", "environments"],
   "description": "Entity defaults are merged with the selected environment before full validation during sync. Branch mappings and secret values are managed in Towbar.",
-  "$id": "https://raw.githubusercontent.com/avgeek-inc/towbar/main/packages/towbar-core/schemas/app.v2.json"
+  "$id": "https://oss.avgeek.ltd/towbar/schemas/app.v2.json"
 }

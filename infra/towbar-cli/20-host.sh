@@ -26,7 +26,7 @@ acquire_lock() {
 
 require_runtime_tools() {
   local command_name
-  for command_name in curl docker git jq openssl tar; do
+  for command_name in curl docker git jq openssl sha256sum tar; do
     command -v "$command_name" >/dev/null ||
       fail "missing required command: $command_name"
   done

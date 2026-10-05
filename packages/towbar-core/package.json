@@ -23,7 +23,8 @@
     "./schema/app": "./schemas/app.v2.json",
     "./schema/compose": "./schemas/compose.v2.json",
     "./schema/resource": "./schemas/resource.v2.json",
-    "./analytics": "./dist/analytics.js"
+    "./analytics": "./dist/analytics.js",
+    "./repository-identity": "./dist/repository-identity.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
