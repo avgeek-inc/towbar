@@ -36,6 +36,7 @@ import { CopyTextButton } from "./copy-text-button";
 import { ApiMcpSettings } from "./api-mcp-settings";
 import { Key01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@workspace/web-design-system/buttons/button";
+import { Avatar } from "@workspace/web-design-system/data-display/avatar";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { Label } from "@workspace/web-design-system/forms/label";
 import { Select, ListBox } from "@workspace/web-design-system/forms/select";
@@ -354,12 +355,21 @@ function TeamMembers() {
       key: "member",
       header: "Member",
       cell: (member) => (
-        <TableCellStack as="div">
-          <span>{member.name}</span>
-          <TableCellDescription className="break-words">
-            {member.email}
-          </TableCellDescription>
-        </TableCellStack>
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar
+            aria-hidden="true"
+            className="shrink-0"
+            email={member.email}
+            name={member.name}
+            size="sm"
+          />
+          <TableCellStack as="div">
+            <span>{member.name}</span>
+            <TableCellDescription className="break-words">
+              {member.email}
+            </TableCellDescription>
+          </TableCellStack>
+        </div>
       ),
     },
     {
@@ -426,7 +436,15 @@ function TeamMembers() {
       key: "email",
       header: "Pending Invitations",
       cell: (invitation) => (
-        <span className="break-words">{invitation.email}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar
+            aria-hidden="true"
+            className="shrink-0"
+            email={invitation.email}
+            size="sm"
+          />
+          <span className="min-w-0 break-words">{invitation.email}</span>
+        </div>
       ),
     },
     {
