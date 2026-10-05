@@ -27,9 +27,11 @@ export function RelativeTimeProvider({ children }: { children: ReactNode }) {
 }
 
 export function RelativeTime({
+  display = "stacked",
   label,
   value,
 }: {
+  display?: "stacked" | "relative";
   label: string;
   value: string;
 }) {
@@ -45,6 +47,14 @@ export function RelativeTime({
   );
   const formatted = formatTableTime(value, now);
   if (!formatted) return <span aria-label={`${label} unavailable`}>—</span>;
+
+  if (display === "relative") {
+    return (
+      <time className="whitespace-nowrap tabular-nums" dateTime={value}>
+        {formatted.relative ? `${label} ${formatted.relative}` : "—"}
+      </time>
+    );
+  }
 
   return (
     <TooltipText
