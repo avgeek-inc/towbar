@@ -39,7 +39,7 @@ export function InstanceEnvironmentChoice({
   if (query.error)
     return (
       <SecondarySection className="order-[-1]" title="Environment">
-        <p className="px-2 text-xs text-danger">{query.error}</p>
+        <p className="px-2 text-sm text-danger">{query.error}</p>
       </SecondarySection>
     );
   if (!query.data) return null;

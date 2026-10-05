@@ -286,7 +286,7 @@ function PreparationStep({
     >
       <p
         className={cn(
-          "text-xs break-words",
+          "text-sm break-words",
           failed ? "text-danger-soft-foreground" : "text-muted",
         )}
       >
@@ -303,14 +303,14 @@ function PreparationStep({
             {step.log}
           </pre>
           {step.logTruncated ? (
-            <p className="text-xs text-muted">
+            <p className="text-sm text-muted">
               Earlier output was trimmed. Showing the most recent terminal
               output.
             </p>
           ) : null}
         </div>
       ) : completed && !model.historyUnavailable ? (
-        <p className="text-xs text-muted">
+        <p className="text-sm text-muted">
           Terminal output was not recorded for this run.
         </p>
       ) : null}

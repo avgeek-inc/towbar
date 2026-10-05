@@ -526,7 +526,7 @@ function SourceCreate({
           <div className="grid min-w-0 gap-4">
             <div className="grid min-w-0 gap-3">
               {branches.error ? (
-                <p className="text-xs text-danger">
+                <p className="text-sm text-danger">
                   Could not load branches: {branches.error}
                 </p>
               ) : null}

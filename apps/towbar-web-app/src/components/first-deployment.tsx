@@ -49,7 +49,7 @@ export function FirstDeployment({
                 ? "Secret status unavailable"
                 : "Checking required secrets…"}
             </p>
-            <p className="text-xs leading-relaxed font-normal text-muted">
+            <p className="text-sm leading-relaxed font-normal text-muted">
               {readiness.error
                 ? "Review the required values before starting the first deployment."
                 : "Towbar is checking whether this workload can be deployed."}
@@ -73,7 +73,7 @@ export function FirstDeployment({
               <p className="text-sm font-medium text-foreground">
                 All secrets are configured
               </p>
-              <p className="text-xs leading-relaxed font-normal text-muted">
+              <p className="text-sm leading-relaxed font-normal text-muted">
                 This {label} is ready for its first deployment.
               </p>
             </div>
@@ -114,7 +114,7 @@ export function FirstDeployment({
               <p className="text-sm font-medium text-foreground">
                 Deployment paused
               </p>
-              <p className="text-xs leading-relaxed font-normal text-muted">
+              <p className="text-sm leading-relaxed font-normal text-muted">
                 Configure the pending secrets before the first deployment.
               </p>
             </div>

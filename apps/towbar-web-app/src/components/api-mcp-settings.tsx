@@ -1,6 +1,5 @@
 "use client";
 
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import {
   TableCellStack,
   TableCellDescription,
@@ -627,11 +626,11 @@ function McpSetup({ url }: { url: string }) {
         </div>
         <RevealedSecret title={config.title} code={config.code} />
         {client === "codex" ? (
-          <div className="text-xs leading-relaxed font-normal text-muted">
+          <p className="text-sm leading-relaxed font-normal text-muted">
             Set{" "}
-            <pre className="inline whitespace-nowrap rounded bg-default px-1 py-0.25 text-foreground">
-              <code>TOWBAR_API_KEY</code>
-            </pre>{" "}
+            <code className="whitespace-nowrap rounded bg-default px-1 py-0.25 text-foreground">
+              TOWBAR_API_KEY
+            </code>{" "}
             to your key in the environment that launches the app, then restart
             it. The configuration stores the variable name, not the key. In the
             CLI, use{" "}
@@ -639,14 +638,14 @@ function McpSetup({ url }: { url: string }) {
               /mcp
             </code>{" "}
             to check the connection.
-          </div>
+          </p>
         ) : null}
-        <FieldDescription>
+        <p className="text-sm leading-relaxed text-muted">
           To connect by signing in, add the MCP URL to your app, sign in to
           Towbar and approve access. Reconnect after 30 days. You can revoke
           access in your personal API keys. The configurations above use
           manually created API keys.
-        </FieldDescription>
+        </p>
         <ButtonLink
           href="https://www.towbar.dev/docs/api/mcp"
           variant="secondary"

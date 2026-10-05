@@ -52,10 +52,7 @@ import { Chip } from "@workspace/web-design-system/data-display/chip";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
 import { InputGroup } from "@workspace/web-design-system/forms/input-group";
 import { Input } from "@workspace/web-design-system/forms/input";
-import {
-  FieldDescription,
-  FieldError,
-} from "@workspace/web-design-system/forms/field";
+import { FieldError } from "@workspace/web-design-system/forms/field";
 import { Widget } from "@workspace/web-design-system/data-display/widget";
 import { TypographyCode } from "@workspace/web-design-system/typography/typography";
 import { toast } from "@workspace/web-design-system/overlays/toast";
@@ -606,10 +603,10 @@ function SecretVariablesEditor({
         </Widget.Header>
         <Widget.Content className="content-grid min-w-0">
           {fileMode && binding.missingKeys?.length ? (
-            <FieldDescription>
+            <p className="text-sm text-muted">
               Required keys without saved values appear blank. Saving a blank
               value sets it to an intentionally empty string.
-            </FieldDescription>
+            </p>
           ) : null}
           <Tabs
             selectedKey={fileMode ? "file" : "form"}

@@ -1,5 +1,4 @@
 "use client";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { Logout01Icon } from "@hugeicons/core-free-icons";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -34,9 +33,9 @@ export function ProfileSettings() {
           <div className="grid gap-3">
             <div className="grid gap-0.5">
               <span className="text-sm font-medium">Gravatar Image</span>
-              <FieldDescription>
+              <p className="text-sm text-muted">
                 Click the image to update it on Gravatar.
-              </FieldDescription>
+              </p>
             </div>
             <a
               aria-label="Edit Gravatar image (opens in a new tab)"

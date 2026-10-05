@@ -1,5 +1,4 @@
 "use client";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { useState } from "react";
@@ -49,9 +48,9 @@ export function SecuritySettings() {
           </p>
           {setup ? (
             <>
-              <FieldDescription>
+              <p className="text-sm text-muted">
                 Scan this QR code with your authenticator app.
-              </FieldDescription>
+              </p>
               <Image
                 src={setup.qr}
                 alt="Authenticator setup QR code"
@@ -126,11 +125,11 @@ export function SecuritySettings() {
                 changed();
               }}
             >
-              <FieldDescription>
+              <p className="text-sm text-muted">
                 {mode === "disable"
                   ? "Future sign-ins will use only your password."
                   : "Your previous recovery codes will stop working."}
-              </FieldDescription>
+              </p>
             </AuthForm>
           ) : (
             <div className="flex flex-wrap gap-3">

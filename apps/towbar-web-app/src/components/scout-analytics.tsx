@@ -516,7 +516,7 @@ export function AnalyticsView({
       {report.filters.some((filter) => filter.field === "responseTime") &&
       report.meanMs === null &&
       report.total > 0 ? (
-        <p className="text-xs text-muted">
+        <p className="text-sm text-muted">
           Response time filters use recorded histogram ranges. An exact average
           is unavailable when a range selects part of an aggregate.
         </p>
@@ -936,7 +936,7 @@ function AnalyticsRows({
           </Table.Header>
           <Table.Body
             renderEmptyState={() => (
-              <div className="p-4 text-xs text-muted">No data yet.</div>
+              <div className="p-4 text-sm text-muted">No data yet.</div>
             )}
           >
             {orderedRows.map((row, index) => (

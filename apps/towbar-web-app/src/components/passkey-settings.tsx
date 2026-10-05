@@ -1,5 +1,4 @@
 "use client";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
 import { useState } from "react";
 
 import { Button } from "@workspace/web-design-system/buttons/button";
@@ -147,10 +146,10 @@ export function PasskeySettings() {
                 }}
               >
                 {!editing ? (
-                  <FieldDescription>
+                  <p className="text-sm text-muted">
                     Your browser will ask where to save your passkey and verify
                     your identity.
-                  </FieldDescription>
+                  </p>
                 ) : null}
               </AuthForm>
             </Modal.Body>
