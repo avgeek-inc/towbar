@@ -79,7 +79,11 @@ export async function githubRequest(
         : "";
     const failure = classifyGitHubResponseFailure(response, failureBody);
     await response.body?.cancel().catch(() => undefined);
-    if (failure.retryable && attempt < attemptLimit) {
+    if (
+      failure.retryable &&
+      attempt < attemptLimit &&
+      (failure.retryAfterMilliseconds ?? 0) <= maximumRetryDelayMs
+    ) {
       await dependencies.sleep(
         retryDelayMs(attempt, failure.retryAfterMilliseconds),
       );

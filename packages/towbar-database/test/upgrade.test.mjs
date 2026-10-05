@@ -35,11 +35,12 @@ test("migration journal keeps notification destinations and failure subscription
     "0018_domain_claims.sql",
     "0019_github_accounts.sql",
     "001_team_access_v2.sql",
+    "0020_preview_reporting_recovery.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 19);
+  assert.equal(journal.entries.length, 20);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -210,7 +211,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 19);
+      assert.equal(count, 20);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(

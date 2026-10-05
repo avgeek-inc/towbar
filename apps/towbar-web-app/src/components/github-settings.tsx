@@ -24,7 +24,6 @@ import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
 import { ActionButton, FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { RelativeTime } from "./last-synced-time";
 
 type GitHubState = {
   configuration: {
@@ -77,7 +76,6 @@ export function GitHubSettings() {
     <GitHubConnectionCard
       configuration={query.data.configuration}
       connections={query.data.connections}
-      previewReporting={query.data.previewReporting}
     />
   );
 }
@@ -85,11 +83,9 @@ export function GitHubSettings() {
 function GitHubConnectionCard({
   configuration,
   connections,
-  previewReporting,
 }: {
   configuration: NonNullable<GitHubState["configuration"]>;
   connections: GitHubConnection[];
-  previewReporting: PreviewReportingHealth;
 }) {
   const connect = (
     <ActionButton
@@ -112,26 +108,6 @@ function GitHubConnectionCard({
           </Attributes.Item>
         </Attributes>
       </FormCard>
-      {previewReporting.failedCount > 0 ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>Preview reporting needs retry</Alert.Title>
-            <Alert.Description>
-              GitHub did not receive every preview status update.
-              {previewReporting.lastError
-                ? ` Last error: ${previewReporting.lastError}`
-                : ""}
-            </Alert.Description>
-            {previewReporting.lastFailedAt ? (
-              <RelativeTime
-                label="Last failed"
-                value={previewReporting.lastFailedAt}
-              />
-            ) : null}
-          </Alert.Content>
-        </Alert>
-      ) : null}
       {connections
         .flatMap((connection) => connection.identityWarnings ?? [])
         .map((message) => (

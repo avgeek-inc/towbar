@@ -1,4 +1,13 @@
-import { and, eq, isNull, notInArray } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  notInArray,
+  or,
+} from "drizzle-orm";
 
 import { terminalDeploymentStates } from "@workspace/towbar-core/temporal";
 import {
@@ -17,10 +26,11 @@ import { sourceProviderClient } from "../sources/repository-provider.js";
 import { publishPreviewPullRequestCommentForDeployment } from "../previews/pr-comment.js";
 import { emitPreviewNotification } from "../notifications/events.js";
 import {
-  markPreviewReportDeliveryAttempt,
-  markPreviewReportDeliveryFailed,
-  markPreviewReportDeliverySucceeded,
-} from "../previews/reporting-state.js";
+  type PreviewReportIdentity,
+  deliverPreviewReport,
+} from "../previews/reporting-delivery.js";
+
+import { HttpError, serviceUnavailable } from "../../http/errors.js";
 
 import type { DeploymentState } from "@workspace/towbar-core/temporal";
 
@@ -82,14 +92,94 @@ export async function propagatePreviewDeploymentState(
 
 export async function publishPreviewDeploymentStatus(
   deploymentId: string,
-  state: DeploymentState | "inactive",
+  _state: DeploymentState | "inactive",
 ) {
+  // Delayed callbacks must publish persisted state rather than replaying their old state.
+  const [preview] = await getTowbarDatabase()
+    .select({
+      sourceId: previewEnvironments.sourceId,
+      pullRequestNumber: previewEnvironments.pullRequestNumber,
+    })
+    .from(deployments)
+    .innerJoin(
+      previewEnvironments,
+      eq(previewEnvironments.id, deployments.previewEnvironmentId),
+    )
+    .where(eq(deployments.id, deploymentId))
+    .limit(1);
+  if (!preview) return;
+  return await publishPreviewDeploymentReport(preview, {}, deploymentId);
+}
+
+export async function publishPreviewDeploymentReport(
+  input: PreviewReportIdentity,
+  options: { onlyIfDue?: boolean; force?: boolean } = {},
+  changedDeploymentId?: string,
+) {
+  return await deliverPreviewReport(
+    input,
+    "deployment",
+    async () => {
+      const current = await getTowbarDatabase()
+        .select({ id: deployments.id })
+        .from(deployments)
+        .innerJoin(
+          previewEnvironments,
+          eq(previewEnvironments.id, deployments.previewEnvironmentId),
+        )
+        .where(
+          and(
+            eq(previewEnvironments.sourceId, input.sourceId),
+            eq(previewEnvironments.pullRequestNumber, input.pullRequestNumber),
+            or(
+              eq(deployments.id, previewEnvironments.latestDeploymentId),
+              changedDeploymentId
+                ? eq(deployments.id, changedDeploymentId)
+                : undefined,
+              and(
+                isNotNull(deployments.githubDeploymentId),
+                or(
+                  isNull(deployments.githubDeploymentStatus),
+                  ne(deployments.githubDeploymentStatus, "inactive"),
+                ),
+                or(
+                  inArray(deployments.state, ["cancelled", "skipped"]),
+                  eq(previewEnvironments.status, "deleted"),
+                ),
+              ),
+            ),
+          ),
+        );
+      let failure: unknown;
+      const deadline = Date.now() + 50_000;
+      for (const deployment of current) {
+        if (Date.now() >= deadline)
+          throw serviceUnavailable(
+            "Preview status publication will continue on the next maintenance pass",
+          );
+        try {
+          await publishCurrentPreviewDeploymentStatus(deployment.id);
+        } catch (error) {
+          failure ??= error;
+          if (error instanceof HttpError && error.status === 429) throw error;
+        }
+      }
+      if (failure) throw failure;
+    },
+    options,
+  );
+}
+
+async function publishCurrentPreviewDeploymentStatus(deploymentId: string) {
   const [deployment] = await getTowbarDatabase()
     .select({
       app: deployments.appSnapshot,
+      state: deployments.state,
+      environmentStatus: previewEnvironments.status,
       commitSha: deployments.commitSha,
       gitRef: deployments.gitRef,
       githubDeploymentId: deployments.githubDeploymentId,
+      githubDeploymentStatus: deployments.githubDeploymentStatus,
       hostname: deployments.hostname,
       pullRequestNumber: previewEnvironments.pullRequestNumber,
       repositoryName: sources.repositoryName,
@@ -110,67 +200,64 @@ export async function publishPreviewDeploymentStatus(
     )
     .limit(1);
   if (!deployment?.hostname || !deployment.gitRef) return;
-  const report = {
-    pullRequestNumber: deployment.pullRequestNumber,
-    sourceId: deployment.sourceId,
-  };
-  await markPreviewReportDeliveryAttempt(report, "deployment");
-  try {
-    const provider = await sourceProviderClient(deployment.sourceId);
-    if (provider.provider === "gitlab") {
-      await publishGitLabCommitStatus({
+  const state =
+    deployment.environmentStatus === "deleted" ? "inactive" : deployment.state;
+  const provider = await sourceProviderClient(deployment.sourceId);
+  if (provider.provider === "gitlab") {
+    await publishGitLabCommitStatus({
+      appName: deployment.app.name,
+      commitSha: deployment.commitSha,
+      connection: provider.connection,
+      description: `Towbar preview is ${state.replaceAll("_", " ")}`,
+      environmentUrl: `https://${deployment.hostname}`,
+      projectId: provider.projectId,
+      repositoryName: deployment.repositoryName,
+      repositoryOwner: deployment.repositoryOwner,
+      state: previewGitLabDeploymentState(state),
+    });
+    return;
+  }
+  const githubState =
+    state === "inactive" ? "inactive" : previewGitHubDeploymentState(state);
+  let githubDeploymentId = deployment.githubDeploymentId;
+  if (githubDeploymentId && deployment.githubDeploymentStatus === githubState)
+    return;
+  if (githubState !== "inactive" || githubDeploymentId) {
+    if (!githubDeploymentId) {
+      githubDeploymentId = await createGitHubPreviewDeployment({
         appName: deployment.app.name,
         commitSha: deployment.commitSha,
-        connection: provider.connection,
-        description: `Towbar preview is ${state.replaceAll("_", " ")}`,
         environmentUrl: `https://${deployment.hostname}`,
-        projectId: provider.projectId,
+        installationId: provider.installationId,
+        pullRequestNumber: deployment.pullRequestNumber,
+        towbarDeploymentId: deploymentId,
         repositoryName: deployment.repositoryName,
         repositoryOwner: deployment.repositoryOwner,
-        state: previewGitLabDeploymentState(state),
       });
-      await markPreviewReportDeliverySucceeded(report, "deployment");
-      return;
+      await getTowbarDatabase()
+        .update(deployments)
+        .set({ githubDeploymentId, updatedAt: new Date() })
+        .where(
+          and(
+            eq(deployments.id, deploymentId),
+            isNull(deployments.githubDeploymentId),
+          ),
+        );
     }
-    let githubDeploymentId = deployment.githubDeploymentId;
-    if (state !== "inactive" || githubDeploymentId) {
-      if (!githubDeploymentId) {
-        githubDeploymentId = await createGitHubPreviewDeployment({
-          appName: deployment.app.name,
-          commitSha: deployment.commitSha,
-          environmentUrl: `https://${deployment.hostname}`,
-          installationId: provider.installationId,
-          pullRequestNumber: deployment.pullRequestNumber,
-          repositoryName: deployment.repositoryName,
-          repositoryOwner: deployment.repositoryOwner,
-        });
-        await getTowbarDatabase()
-          .update(deployments)
-          .set({ githubDeploymentId, updatedAt: new Date() })
-          .where(
-            and(
-              eq(deployments.id, deploymentId),
-              isNull(deployments.githubDeploymentId),
-            ),
-          );
-      }
-      const githubState =
-        state === "inactive" ? "inactive" : previewGitHubDeploymentState(state);
-      if (githubState) {
-        await updateGitHubPreviewDeployment({
-          deploymentId: githubDeploymentId,
-          environmentUrl: `https://${deployment.hostname}`,
-          installationId: provider.installationId,
-          repositoryName: deployment.repositoryName,
-          repositoryOwner: deployment.repositoryOwner,
-          state: githubState,
-        });
-      }
+    if (githubState) {
+      await updateGitHubPreviewDeployment({
+        deploymentId: githubDeploymentId,
+        environmentUrl: `https://${deployment.hostname}`,
+        installationId: provider.installationId,
+        repositoryName: deployment.repositoryName,
+        repositoryOwner: deployment.repositoryOwner,
+        state: githubState,
+      });
+      await getTowbarDatabase()
+        .update(deployments)
+        .set({ githubDeploymentStatus: githubState })
+        .where(eq(deployments.id, deploymentId));
     }
-    await markPreviewReportDeliverySucceeded(report, "deployment");
-  } catch (error) {
-    await markPreviewReportDeliveryFailed(report, "deployment", error);
-    throw error;
   }
 }
 

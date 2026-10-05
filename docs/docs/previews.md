@@ -87,6 +87,8 @@ build status, Preview URL, and deployment details link. A hidden stable marker
 lets Towbar update the same GitHub comment instead of posting a new comment for
 each state change.
 
+Temporary failures delivering GitHub statuses or comments are retried automatically in the background. Towbar publishes the latest Preview state, respects GitHub rate limits, and reuses existing deployments and comments. Reporting delays do not restart or stop a Preview. Delivery errors remain available through the GitHub integration API for diagnostics.
+
 ## Separate secrets and trust
 
 Treat Preview pull requests as executable deployment input. Use separate,

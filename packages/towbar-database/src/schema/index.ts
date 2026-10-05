@@ -1728,6 +1728,12 @@ export const previewPullRequestReports = pgTable(
     commentLastAttemptedAt: timestamp("comment_last_attempted_at", {
       withTimezone: true,
     }),
+    commentDeliveryAttempts: integer("comment_delivery_attempts")
+      .default(0)
+      .notNull(),
+    commentNextAttemptAt: timestamp("comment_next_attempt_at", {
+      withTimezone: true,
+    }),
     commentPublishedAt: timestamp("comment_published_at", {
       withTimezone: true,
     }),
@@ -1742,6 +1748,12 @@ export const previewPullRequestReports = pgTable(
     deploymentLastAttemptedAt: timestamp("deployment_last_attempted_at", {
       withTimezone: true,
     }),
+    deploymentDeliveryAttempts: integer("deployment_delivery_attempts")
+      .default(0)
+      .notNull(),
+    deploymentNextAttemptAt: timestamp("deployment_next_attempt_at", {
+      withTimezone: true,
+    }),
     deploymentPublishedAt: timestamp("deployment_published_at", {
       withTimezone: true,
     }),
@@ -1754,6 +1766,12 @@ export const previewPullRequestReports = pgTable(
       .notNull(),
   },
   (table) => [
+    index("idx_towbar_preview_report_comment_retry")
+      .on(table.commentNextAttemptAt)
+      .where(sql`${table.commentDeliveryStatus} in ('pending', 'failed')`),
+    index("idx_towbar_preview_report_deployment_retry")
+      .on(table.deploymentNextAttemptAt)
+      .where(sql`${table.deploymentDeliveryStatus} in ('pending', 'failed')`),
     uniqueIndex("uq_towbar_preview_report_source_pr").on(
       table.sourceId,
       table.pullRequestNumber,
@@ -1823,6 +1841,7 @@ export const deployments = pgTable(
     gitRef: varchar("git_ref", { length: 512 }),
     hostname: varchar("hostname", { length: 253 }),
     githubDeploymentId: varchar("github_deployment_id", { length: 40 }),
+    githubDeploymentStatus: varchar("github_deployment_status", { length: 40 }),
     previewEnvironmentId: uuid("preview_environment_id").references(
       () => previewEnvironments.id,
       { onDelete: "restrict" },

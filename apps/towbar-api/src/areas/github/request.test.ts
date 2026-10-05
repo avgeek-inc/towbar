@@ -165,3 +165,34 @@ void test("distinguishes rate limits from permission failures", () => {
   assert.equal(authentication.status, 403);
   assert.equal(authentication.retryable, false);
 });
+
+void test("defers long GitHub rate limits to durable recovery without retrying early", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    githubRequest(
+      "/meta",
+      { token: "test" },
+      {
+        fetch: () => {
+          attempts += 1;
+          return Promise.resolve(
+            Response.json(
+              {},
+              { status: 429, headers: { "retry-after": "3600" } },
+            ),
+          );
+        },
+        sleep: () => {
+          throw new Error("must not retry before the rate limit expires");
+        },
+      },
+    ),
+    (error: unknown) => {
+      assert(error instanceof HttpError);
+      assert.equal(error.status, 429);
+      assert.equal(error.responseHeaders?.["retry-after"], "3600");
+      return true;
+    },
+  );
+  assert.equal(attempts, 1);
+});

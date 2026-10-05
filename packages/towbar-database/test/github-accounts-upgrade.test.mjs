@@ -25,9 +25,7 @@ test(
       const journal = JSON.parse(
         await readFile(join(previous, "meta/_journal.json"), "utf8"),
       );
-      journal.entries = journal.entries.filter(
-        (entry) => entry.tag !== "0019_github_accounts",
-      );
+      journal.entries = journal.entries.filter((entry) => entry.idx < 19);
       await writeFile(
         join(previous, "meta/_journal.json"),
         JSON.stringify(journal),
