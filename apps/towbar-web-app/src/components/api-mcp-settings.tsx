@@ -312,12 +312,6 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
           <QueryLoading />
         ) : (
           <>
-            {scope === "team" && (
-              <p className="text-muted text-sm">
-                Team keys represent this workspace and remain active until
-                revoked or expired.
-              </p>
-            )}
             <ResourceTable
               ariaLabel={sectionLabels[section]}
               columns={columns}

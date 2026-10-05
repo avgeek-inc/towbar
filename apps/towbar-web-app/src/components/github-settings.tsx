@@ -119,7 +119,7 @@ function GitHubConnectionCard({
           </Alert>
         ))}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg">Connected accounts</h2>
+        <h2 className="font-medium">Connected accounts</h2>
         {connect}
       </div>
       <ResourceTable<GitHubConnection>
