@@ -14,7 +14,7 @@ export function testEnvironment(source = process.env) {
   for (const key of Object.keys(env))
     if (/^(?:DATABASE_|TOWBAR_|TEMPORAL_|AWS_|GOOGLE_|GCLOUD_|GCP_)/.test(key))
       delete env[key];
-  return { ...env, CI: "1", SENTRY_ALLOW_MISSING: "true", NODE_ENV: "test" };
+  return { ...env, CI: "1", NODE_ENV: "test" };
 }
 
 export async function verificationRun(group) {

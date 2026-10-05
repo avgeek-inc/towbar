@@ -11,7 +11,6 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "prebuild": "pnpm --filter @workspace/towbar-access build && pnpm --filter @workspace/towbar-email build && pnpm --filter @workspace/towbar-core build && pnpm --filter @workspace/towbar-database build && pnpm --filter @workspace/observability-node build",
     "build": "tsc --project tsconfig.build.json",
     "database:migrate:production": "node dist/cli/migrate.js",
     "lint": "eslint . --max-warnings 0",

@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 export type { NextConfig };
 export function createNextConfig(
   wrap: (config: NextConfig) => NextConfig,
-  options: { sentryProject: string; transpilePackages?: string[] },
+  options: { transpilePackages?: string[] },
 ): NextConfig {
   const config: NextConfig = {
     output: "standalone",

@@ -40,6 +40,7 @@ async function fixture(t, version = "v2.0.30") {
   t.after(() => rm(directory, { recursive: true, force: true }));
   await mkdir(join(directory, "schemas"));
   const release = {
+    schemaVersion: 1,
     version,
     commit: "a".repeat(40),
     createdAt: "2026-10-05T12:00:00Z",

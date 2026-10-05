@@ -1,5 +1,5 @@
 import catalog from "./resource-image-catalog.json";
-import type { ResourceType } from "@workspace/towbar-core";
+import type { ResourceType } from "@workspace/towbar-contracts";
 
 export type ResourceBrand = {
   label: string;

@@ -4,17 +4,11 @@ import { digestValue } from "./manifest-values.js";
 
 import type { NormalizedDeployable, NormalizedServer } from "./manifest.js";
 
-export type RepositoryTreeEntry = {
-  mode: string;
-  path: string;
-  sha: string;
-  type: "blob" | "commit";
-};
-
-export type RepositoryTree = {
-  complete: boolean;
-  entries: RepositoryTreeEntry[];
-};
+import type { RepositoryTree } from "@workspace/towbar-contracts/repository-tree";
+export type {
+  RepositoryTree,
+  RepositoryTreeEntry,
+} from "@workspace/towbar-contracts/repository-tree";
 
 export type RepositoryChangedPaths = {
   complete: boolean;

@@ -8,6 +8,10 @@ updates:
       javascript:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+  - package-ecosystem: npm
+    directory: /tools/distribution
+    schedule:
+      interval: weekly
   - package-ecosystem: docker
     directory: /
     schedule:

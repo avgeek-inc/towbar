@@ -89,6 +89,9 @@ jobs:
           bash tools/test-towbar-cli-migration.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm repository:check
+      - run: pnpm repository:test
+      - run: npm ci --prefix tools/distribution --ignore-scripts
+      - run: npm audit --prefix tools/distribution --omit=dev --audit-level=moderate
       - run: pnpm distribution:test
       - run: pnpm docs:check
       - run: pnpm format:check
@@ -113,7 +116,6 @@ jobs:
           TOWBAR_DOCKER_TESTS: "1"
       - run: pnpm build
         env:
-          SENTRY_ALLOW_MISSING: "true"
           NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
 
   compose:

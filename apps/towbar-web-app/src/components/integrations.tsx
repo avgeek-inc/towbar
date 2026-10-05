@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { IntegrationProvider } from "@workspace/towbar-core";
+import type { IntegrationProvider } from "@workspace/towbar-contracts";
 import { usePathname } from "next/navigation";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";

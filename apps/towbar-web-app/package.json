@@ -43,7 +43,8 @@
     "qrcode": "1.5.4",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "@workspace/towbar-contracts": "workspace:*"
   },
   "devDependencies": {
     "@simplewebauthn/server": "13.3.2",

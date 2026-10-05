@@ -5,7 +5,7 @@ import {
   TableCellDescription,
 } from "@workspace/towbar-web-ui/table-cell-text";
 
-import { SCOUT_ALERT_RULE_LIMIT_PER_ENTITY } from "@workspace/towbar-core/scout-alerts";
+import { SCOUT_ALERT_RULE_LIMIT_PER_ENTITY } from "@workspace/towbar-contracts/scout-alerts";
 import { Alert02Icon, AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ScoutIcon } from "./scout-icons";

@@ -14,7 +14,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 
-import { repositoryUrl } from "@workspace/towbar-core/repository-identity";
+import { repositoryUrl } from "@workspace/towbar-contracts/repository-identity";
 
 import type { TowbarUser } from "@workspace/towbar-web-client";
 import { Avatar } from "@workspace/web-design-system/data-display/avatar";

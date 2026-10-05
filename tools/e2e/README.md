@@ -47,7 +47,7 @@ For database-backed execution, build the API and supply a dedicated PostgreSQL
 URL whose database name ends in `_test`:
 
 ```sh
-pnpm --filter towbar-api build
+pnpm exec turbo run build --filter=towbar-api
 TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test node tools/e2e/resource-lifecycle.mjs
 ```
 
@@ -73,8 +73,8 @@ temporal server start-dev --ip 127.0.0.1 --port 17239 --headless
 Build the API, deployer and worker, then run:
 
 ```sh
-pnpm --filter towbar-api build
-pnpm --filter towbar-worker build
+pnpm exec turbo run build --filter=towbar-api
+pnpm exec turbo run build --filter=towbar-worker
 TOWBAR_TEST_TEMPORAL_ADDRESS=127.0.0.1:17239 \
 TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test \
 node tools/e2e/resource-lifecycle.mjs
@@ -98,7 +98,7 @@ requests or GitHub source synchronization.
 ## Non-root vulnerability scanning
 
 ```sh
-pnpm --filter towbar-worker build
+pnpm exec turbo run build --filter=towbar-worker
 node tools/e2e/trivy-lifecycle.mjs
 ```
 
@@ -215,8 +215,8 @@ Build the API and worker from the current checkout, start the dedicated Temporal
 server above, then run:
 
 ```sh
-pnpm --filter towbar-api build
-pnpm --filter towbar-worker build
+pnpm exec turbo run build --filter=towbar-api
+pnpm exec turbo run build --filter=towbar-worker
 TOWBAR_TEST_PR=1 TOWBAR_TEST_HTTPS=1 \
 TOWBAR_TEST_TEMPORAL_ADDRESS=127.0.0.1:17239 \
 TOWBAR_TEST_DATABASE_URL=postgres://user:password@localhost:5432/towbar_test \

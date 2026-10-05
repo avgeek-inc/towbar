@@ -4,7 +4,7 @@ import type {
   NormalizedComposeWorkload,
   NormalizedResource,
   ResourceType,
-} from "@workspace/towbar-core";
+} from "@workspace/towbar-contracts";
 export type TowbarUser = {
   avatarUrl?: string;
   email: string;
@@ -176,8 +176,8 @@ export type Resource = {
 };
 
 export type Server = {
-  scout?: import("@workspace/towbar-core").ServerMonitoringSummary;
-  hardware?: import("@workspace/towbar-core").ServerHardware | null;
+  scout?: import("@workspace/towbar-contracts").ServerMonitoringSummary;
+  hardware?: import("@workspace/towbar-contracts").ServerHardware | null;
   archivedAt: string | null;
   canonicalIp: string;
   name: string | null;
@@ -571,9 +571,9 @@ export type NamedIntegrationConnection = {
   disconnectedAt: string | null;
   id: string;
   name: string;
-  provider: import("@workspace/towbar-core").IntegrationProvider;
+  provider: import("@workspace/towbar-contracts").IntegrationProvider;
   revision: number;
-  scopes: import("@workspace/towbar-core").IntegrationScope[];
+  scopes: import("@workspace/towbar-contracts").IntegrationScope[];
   slug: string;
   updatedAt: string;
   verificationMessage: string | null;

@@ -1,0 +1,12 @@
+{
+  "name": "@avgeek-oss/towbar-release-publisher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0"
+  }
+}
