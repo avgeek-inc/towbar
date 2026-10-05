@@ -31,7 +31,7 @@ const connectionSelection = {
 };
 
 export async function getGitHubConnections(workspaceId: string) {
-  return getTowbarDatabase()
+  return await getTowbarDatabase()
     .select(connectionSelection)
     .from(integrationInstallations)
     .where(
@@ -183,7 +183,7 @@ export async function saveGitHubInstallation(
   workspaceId: string,
   installation: Awaited<ReturnType<typeof getGitHubInstallation>>,
 ) {
-  return getTowbarDatabase().transaction(async (transaction) => {
+  return await getTowbarDatabase().transaction(async (transaction) => {
     // The account lock also prevents another workspace from claiming the same installation.
     await transaction.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`github-account:${installation.account.id}`}, 0))`,
