@@ -114,7 +114,7 @@ export function DeployableActionsMenu({
           aria-label={`More ${type} actions`}
           isDisabled={!active}
           isIconOnly
-          variant="ghost"
+          variant="secondary"
         >
           <HugeiconsIcon aria-hidden="true" icon={MoreHorizontalIcon} />
         </Button>
