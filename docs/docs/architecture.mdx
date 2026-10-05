@@ -47,7 +47,6 @@ flowchart LR
 | `packages/towbar-web-client`                                                         | Typed browser API client                          |
 | `packages/towbar-web-ui`, `packages/web-design-system`, `packages/web-page-sections` | UI components and layouts                         |
 | `infra/towbar-cli`, `infra/upgrade-runner`                                           | Host installation and upgrades                    |
-| `infra/distribution`                                                                 | Shared OSS release host                           |
 
 The API owns database changes. Worker activities perform network and filesystem work. The deployer has no database dependency, and the dashboard accesses data through the API.
 
@@ -110,7 +109,7 @@ The optional [Scout Agent](/docs/scout) reports measurements to Towbar over HTTP
 
 CI runs package tests, disposable-host integration tests, Compose startup checks and vulnerability scans. Release publication builds AMD64/ARM64 images, records digests and attestations, verifies downloads, and tests a fresh installation before promotion.
 
-Read `tools/verification/README.md` for coverage and `.github/workflows/release-images.yml` for publication gates.
+Read `tools/verification/README.md` for coverage and `.github/workflows/release-images.yml` for publication gates. The shared download Worker is maintained in [oss-releases](https://github.com/avgeek-oss/oss-releases); Towbar owns its artifact publication and validation.
 
 ## A practical reading order
 

@@ -31,7 +31,6 @@ allowBuilds:
   "@swc/core": true
   cpu-features: false
   esbuild: true
-  workerd: true
   protobufjs: true
   sharp: true
   ssh2: false

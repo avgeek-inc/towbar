@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import worker from "../../infra/distribution/worker.mjs";
 import {
   artifactNames,
   identity,
@@ -66,26 +65,36 @@ async function fixture(t, version = "v2.0.30") {
   }
   await writeFile(join(directory, "release.json"), JSON.stringify(release));
   const store = new Store();
-  const env = {
-    PRODUCTS: "towbar,mill,rootset,vitalog",
-    DISTRIBUTION_ORIGIN: new URL(identity.distributionUrl).origin,
-    RELEASES: {
-      async get(key) {
-        const object = await store.get(key);
-        return (
-          object && {
-            body: object.body,
-            httpEtag: object.etag,
-            json: async () => JSON.parse(object.body.toString()),
-          }
-        );
-      },
-    },
+  // Model public responses from the documented release-host contract.
+  const fetcher = async (url) => {
+    const path = url.slice(identity.distributionUrl.length + 1);
+    const latest = await store.get(`${identity.releasePrefix}/latest.json`);
+    const promoted = latest && JSON.parse(latest.body.toString());
+    if (path === "releases/latest.json")
+      return promoted
+        ? Response.json(promoted)
+        : new Response(null, { status: 404 });
+    let key;
+    if (path === "install.sh" || path.startsWith("schemas/")) {
+      if (!promoted) return new Response(null, { status: 404 });
+      key = `${identity.releasePrefix}/releases/${promoted.version}/${path}`;
+    } else key = `${identity.releasePrefix}/${path}`;
+    const object = await store.get(key);
+    if (!object) return new Response(null, { status: 404 });
+    if (path.endsWith("/release.json")) {
+      const marker = await store.get(
+        key.replace(/release.json$/, "validated.json"),
+      );
+      return Response.json(
+        marker
+          ? JSON.parse(marker.body.toString())
+          : { ...JSON.parse(object.body.toString()), validated: false },
+      );
+    }
+    return new Response(object.body);
   };
-  const fetcher = (url, options) =>
-    worker.fetch(new Request(url, options), env);
   await uploadRelease(store, directory);
-  return { directory, release, store, env, fetcher };
+  return { directory, release, store, fetcher };
 }
 test("uploads are resumable only when immutable bytes match", async () => {
   const store = new Store();
@@ -122,10 +131,8 @@ test("candidate releases do not change latest or installer; promotion uses one v
   const latest = await fetcher(
     `${identity.distributionUrl}/releases/latest.json`,
   );
-  assert.equal(latest.headers.get("cache-control"), "no-store");
   assert.deepEqual(await latest.json(), { ...release, validated: true });
   const installer = await fetcher(`${identity.distributionUrl}/install.sh`);
-  assert.equal(installer.headers.get("cache-control"), "no-store");
   assert.equal(await installer.text(), "content of install.sh");
   assert.equal(
     (
@@ -171,70 +178,6 @@ test("a concurrent promotion cannot overwrite the changed latest pointer", async
     promoteRelease(store, release, fetcher),
     /Precondition failed/,
   );
-});
-test("Worker isolates product prefixes and never exposes arbitrary R2 objects", async (t) => {
-  const { release, env, store, fetcher } = await fixture(t);
-  store.objects.set("private/credentials", {
-    body: Buffer.from("private"),
-    etag: "x",
-  });
-  for (const path of [
-    "/towbar/releases/v2.0.30/validated.json",
-    "/private/credentials",
-    "/towbar/releases/v02.0.30/towbar",
-    "/towbar/releases/v2.0.30/unknown",
-    "/mill/releases/v2.0.30/towbar",
-    "/towbar/schemas/unknown.json",
-  ])
-    assert.equal(
-      (
-        await worker.fetch(
-          new Request(new URL(path, identity.distributionUrl)),
-          env,
-        )
-      ).status,
-      404,
-      path,
-    );
-  const url = `${identity.distributionUrl}/releases/${release.version}/towbar`;
-  for (const product of env.PRODUCTS.split(",")) {
-    store.objects.set(`${product}/releases/${release.version}/${product}`, {
-      body: Buffer.from(product),
-      etag: "fixture",
-    });
-    assert.equal(
-      (
-        await fetcher(
-          `${env.DISTRIBUTION_ORIGIN}/${product}/releases/${release.version}/${product}`,
-        )
-      ).status,
-      200,
-    );
-    const wrongProduct = env.PRODUCTS.split(",").find(
-      (name) => name !== product,
-    );
-    store.objects.set(
-      `${product}/releases/${release.version}/${wrongProduct}`,
-      { body: Buffer.from("wrong product"), etag: "fixture" },
-    );
-    assert.equal(
-      (
-        await fetcher(
-          `${env.DISTRIBUTION_ORIGIN}/${product}/releases/${release.version}/${wrongProduct}`,
-        )
-      ).status,
-      404,
-    );
-  }
-  const response = await fetcher(url);
-  assert.match(response.headers.get("cache-control"), /immutable/);
-  assert.equal(
-    (await worker.fetch(new Request(url, { method: "POST" }), env)).status,
-    405,
-  );
-  const head = await worker.fetch(new Request(url, { method: "HEAD" }), env);
-  assert.equal(head.status, 200);
-  assert.equal(await head.text(), "");
 });
 test("image validation uses explicit registry identity independently of GitHub owner", () => {
   const release = { version: "v2.0.30", commit: "a".repeat(40) };

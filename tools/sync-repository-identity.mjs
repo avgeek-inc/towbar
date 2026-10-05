@@ -57,20 +57,6 @@ DISTRIBUTION_URL = ${JSON.stringify(identity.distributionUrl)}
 REPOSITORY_URL = "https://github.com/" + REPOSITORY
 `,
 );
-const config = JSON.parse(
-  await readFile(new URL("infra/distribution/wrangler.json", root), "utf8"),
-);
-config.routes = [
-  { pattern: new URL(identity.distributionUrl).hostname, custom_domain: true },
-];
-config.r2_buckets = [
-  { binding: "RELEASES", bucket_name: identity.releaseBucket },
-];
-config.vars.DISTRIBUTION_ORIGIN = new URL(identity.distributionUrl).origin;
-await output(
-  "infra/distribution/wrangler.json",
-  await format(JSON.stringify(config), { parser: "json" }),
-);
 const packagePath = "package.json";
 const pkg = JSON.parse(await readFile(new URL(packagePath, root), "utf8"));
 pkg.bugs = `https://github.com/${identity.repository}/issues`;
