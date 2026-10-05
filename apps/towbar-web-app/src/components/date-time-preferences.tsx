@@ -115,36 +115,38 @@ function PreferencesForm({ data }: { data: PreferencesResponse }) {
         preferences={preferences}
         variant="secondary"
       />
-      <div
-        className="grid min-h-16 content-start gap-0"
-        aria-live="polite"
-        aria-busy={previewPending}
-      >
-        <span className="text-xs text-muted">Preview</span>
-        <span className="text-sm tabular-nums">{preview.display.dateTime}</span>
-        <span className="text-xs text-muted">
-          {preview.display.timeZone}
-          {preview.display.timeZone === preview.display.zoneLabel
-            ? ""
-            : ` (${preview.display.zoneLabel})`}
-        </span>
+      <div className="grid gap-3">
+        <div
+          className="grid content-start gap-0"
+          aria-live="polite"
+          aria-busy={previewPending}
+        >
+          <span className="text-xs text-muted">Preview</span>
+          <span className="text-sm tabular-nums">{preview.display.dateTime}</span>
+          <span className="text-xs text-muted">
+            {preview.display.timeZone}
+            {preview.display.timeZone === preview.display.zoneLabel
+              ? ""
+              : ` (${preview.display.zoneLabel})`}
+          </span>
+        </div>
+        <FieldDescription>
+          Applies to dates and times throughout Towbar and your personal API keys.
+        </FieldDescription>
+        {error ? (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+        <Button
+          className="w-fit min-w-24"
+          type="submit"
+          isDisabled={!dirty || busy}
+          isPending={busy}
+        >
+          Save
+        </Button>
       </div>
-      <FieldDescription>
-        Applies to dates and times throughout Towbar and your personal API keys.
-      </FieldDescription>
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      <Button
-        className="w-fit min-w-24"
-        type="submit"
-        isDisabled={!dirty || busy}
-        isPending={busy}
-      >
-        Save
-      </Button>
     </form>
   );
 }
