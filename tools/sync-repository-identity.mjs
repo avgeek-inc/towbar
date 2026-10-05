@@ -43,9 +43,8 @@ await output(
   "packages/towbar-core/src/repository-identity.ts",
   await format(
     `// Generated from repository.json; run pnpm repository:sync.
-export const repositoryIdentity = ${JSON.stringify(identity)} as const;
-export const repositoryUrl = "https://github.com/" + repositoryIdentity.repository;
-export const distributionUrl = repositoryIdentity.distributionUrl;
+export const repositoryUrl = ${JSON.stringify("https://github.com/" + identity.repository)};
+export const distributionUrl = ${JSON.stringify(identity.distributionUrl)};
 `,
     { parser: "typescript" },
   ),
@@ -58,23 +57,16 @@ DISTRIBUTION_URL = ${JSON.stringify(identity.distributionUrl)}
 REPOSITORY_URL = "https://github.com/" + REPOSITORY
 `,
 );
-const config = {
-  name: "avgeek-oss-releases",
-  main: "worker.mjs",
-  compatibility_date: "2026-10-05",
-  workers_dev: false,
-  routes: [
-    {
-      pattern: new URL(identity.distributionUrl).hostname,
-      custom_domain: true,
-    },
-  ],
-  r2_buckets: [{ binding: "RELEASES", bucket_name: identity.releaseBucket }],
-  vars: {
-    PRODUCTS: "towbar,mill,rootset,vitalog",
-    DISTRIBUTION_ORIGIN: new URL(identity.distributionUrl).origin,
-  },
-};
+const config = JSON.parse(
+  await readFile(new URL("infra/distribution/wrangler.json", root), "utf8"),
+);
+config.routes = [
+  { pattern: new URL(identity.distributionUrl).hostname, custom_domain: true },
+];
+config.r2_buckets = [
+  { binding: "RELEASES", bucket_name: identity.releaseBucket },
+];
+config.vars.DISTRIBUTION_ORIGIN = new URL(identity.distributionUrl).origin;
 await output(
   "infra/distribution/wrangler.json",
   await format(JSON.stringify(config), { parser: "json" }),
@@ -119,9 +111,7 @@ for (const path of files.filter(
   let source = await readFile(new URL(path, root), "utf8");
   if (
     /\.(md|mdx)$/.test(path) ||
-    ["docs/docs.json", "docs/datafast.js", "infra/demo/.env.example"].includes(
-      path,
-    )
+    ["docs/docs.json", "infra/demo/.env.example"].includes(path)
   ) {
     source = source.replaceAll(
       /((?:github\.com|raw\.githubusercontent\.com|api\.github\.com\/repos)\/)[a-z0-9-]+\/towbar(?=[/."'`#?\s]|$)/gi,
@@ -131,11 +121,6 @@ for (const path of files.filter(
       /ghcr\.io\/[a-z0-9-]+(?=\/towbar-(?:api|worker|web-app|demo))/g,
       identity.imageRegistry,
     );
-    if (path === "docs/datafast.js")
-      source = source.replaceAll(
-        /[a-z0-9-]+\\\/towbar/g,
-        identity.repository.replaceAll("/", "\\/"),
-      );
     await output(path, source);
   }
   for (const match of source.matchAll(

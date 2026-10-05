@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { repositoryUrl } from "@workspace/towbar-core/repository-identity";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type {
   SystemHealth,
@@ -30,7 +31,7 @@ export function createUpgradeFixture(
     currentVersion: "v2.0.16",
     targetVersion: "v2.0.17",
     commit: "b".repeat(40),
-    releaseUrl: "https://github.com/avgeek-oss/towbar/releases/tag/v2.0.17",
+    releaseUrl: `${repositoryUrl}/releases/tag/v2.0.17`,
     releaseNotes:
       "Improve deployment readiness checks and System Health reporting.\n\nSee queued operations before upgrading and reconnect automatically after a restart.",
     blockers: [],
@@ -79,7 +80,7 @@ export function createUpgradeFixture(
         currentVersion: "v2.0.17",
         targetVersion: "v2.0.18",
         commit: "c".repeat(40),
-        releaseUrl: "https://github.com/avgeek-oss/towbar/releases/tag/v2.0.18",
+        releaseUrl: `${repositoryUrl}/releases/tag/v2.0.18`,
       };
     }
   }

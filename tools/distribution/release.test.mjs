@@ -197,6 +197,35 @@ test("Worker isolates product prefixes and never exposes arbitrary R2 objects", 
       path,
     );
   const url = `${identity.distributionUrl}/releases/${release.version}/towbar`;
+  for (const product of env.PRODUCTS.split(",")) {
+    store.objects.set(`${product}/releases/${release.version}/${product}`, {
+      body: Buffer.from(product),
+      etag: "fixture",
+    });
+    assert.equal(
+      (
+        await fetcher(
+          `${env.DISTRIBUTION_ORIGIN}/${product}/releases/${release.version}/${product}`,
+        )
+      ).status,
+      200,
+    );
+    const wrongProduct = env.PRODUCTS.split(",").find(
+      (name) => name !== product,
+    );
+    store.objects.set(
+      `${product}/releases/${release.version}/${wrongProduct}`,
+      { body: Buffer.from("wrong product"), etag: "fixture" },
+    );
+    assert.equal(
+      (
+        await fetcher(
+          `${env.DISTRIBUTION_ORIGIN}/${product}/releases/${release.version}/${wrongProduct}`,
+        )
+      ).status,
+      404,
+    );
+  }
   const response = await fetcher(url);
   assert.match(response.headers.get("cache-control"), /immutable/);
   assert.equal(

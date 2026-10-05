@@ -5,16 +5,7 @@ const schemas = new Set([
   "compose.v2.json",
   "resource.v2.json",
 ]);
-const files = new Set([
-  "install.sh",
-  "towbar",
-  "mill",
-  "rootset",
-  "vitalog",
-  "source.tar.gz",
-  "towbar-images.json",
-  "SHA256SUMS",
-]);
+const files = new Set(["install.sh", "source.tar.gz", "SHA256SUMS"]);
 const types = {
   "install.sh": "text/x-shellscript; charset=utf-8",
   towbar: "text/x-shellscript; charset=utf-8",
@@ -100,6 +91,8 @@ export default {
       }
       if (
         !files.has(name) &&
+        name !== product[1] &&
+        name !== `${product[1]}-images.json` &&
         !(name.startsWith("schemas/") && schemas.has(name.slice(8)))
       )
         return missing();
