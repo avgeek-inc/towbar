@@ -5,6 +5,14 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Use design system 1.1.0 for shared application UI, including the notification menu, full-width account menu dividers, and bottom-center toasts on public authentication screens.
+
+### Fixed
+
+- Upgrade the image-processing dependency to sharp 0.35.5 to address GHSA-wq5f-xc86-pv6w.
+
 ## [2.0.30] - 2026-10-05
 
 ### Added

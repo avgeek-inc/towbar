@@ -250,7 +250,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     return (
       <AccessContext.Provider value={user ?? null}>
         {children}
-        <Toast.Provider />
+        <Toast.Provider placement="bottom" />
       </AccessContext.Provider>
     );
   if (!user || user.mustChangePassword) {
