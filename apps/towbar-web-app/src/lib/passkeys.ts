@@ -36,7 +36,10 @@ export async function registerPasskey(name: string, email: string) {
     { name, response },
   );
 }
-export async function verifyPasskeySecondFactor(signal: AbortSignal) {
+export async function verifyPasskeySecondFactor(
+  signal: AbortSignal,
+  onVerificationStart?: () => void,
+) {
   requireSupport();
   const options = await api.get<
     Parameters<typeof startAuthentication>[0]["optionsJSON"]
@@ -53,6 +56,7 @@ export async function verifyPasskeySecondFactor(signal: AbortSignal) {
     signal.removeEventListener("abort", cancel);
   }
   signal.throwIfAborted();
+  onVerificationStart?.();
   await api.post(`${endpoint}/verify-authentication`, { response });
 }
 export function passkeyError(error: unknown) {

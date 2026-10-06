@@ -1,9 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AuthForm, PasskeyVerification } from "@avgeek-oss/design-system";
-import { Button } from "@avgeek-oss/design-system/buttons/button";
+import {
+  PasskeyRecoveryVerification,
+  PasskeyVerification,
+} from "@avgeek-oss/design-system";
 import { toast } from "@avgeek-oss/design-system/overlays/toast";
-import { AuthFrame, AuthBrand, authTextActionClassName } from "./auth-frame";
+import { AuthBrand } from "./auth-frame";
 import { api } from "@/lib/api";
 import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
 
@@ -17,39 +19,19 @@ export function SecondFactorChallenge({ next }: { next: string }) {
         onRecovery={() => setRecovery(true)}
       />
     );
-  // The password was verified before the challenge cookie was issued. Only the
-  // recovery code is needed for this endpoint; do not collect credentials again.
   return (
-    <AuthFrame
-      title="Use a recovery code"
-      description="Enter an unused recovery code to finish signing in."
-    >
-      <AuthForm
-        fields={[
-          {
-            name: "code",
-            label: "Recovery code",
-            required: true,
-            autoComplete: "off",
-            maxLength: 100,
-          },
-        ]}
-        submitLabel="Sign in"
-        onSubmit={async ({ code }) => {
-          await api.post(
-            "/v1/public/auth/identity/passkey/verify-recovery-code",
-            { code },
-          );
-          complete();
-        }}
-      />
-      <Button variant="ghost" onPress={() => setRecovery(false)}>
-        Use passkey
-      </Button>
-      <a href="/login" className={authTextActionClassName}>
-        ← Back to Sign In
-      </a>
-    </AuthFrame>
+    <PasskeyRecoveryVerification
+      brand={<AuthBrand />}
+      onSubmit={async ({ code }) => {
+        await api.post(
+          "/v1/public/auth/identity/passkey/verify-recovery-code",
+          { code },
+        );
+        complete();
+      }}
+      onPasskeyVerification={() => setRecovery(false)}
+      onBackToSignIn={() => window.location.assign("/login")}
+    />
   );
 }
 function PasskeyChallenge({
@@ -61,6 +43,7 @@ function PasskeyChallenge({
 }) {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const request = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -68,13 +51,19 @@ function PasskeyChallenge({
     queueMicrotask(async () => {
       if (controller.signal.aborted) return;
       setBusy(true);
+      setVerifying(false);
       try {
-        await verifyPasskeySecondFactor(controller.signal);
+        await verifyPasskeySecondFactor(controller.signal, () =>
+          setVerifying(true),
+        );
         if (!controller.signal.aborted) onVerified();
       } catch (cause) {
         if (!controller.signal.aborted) toast.danger(passkeyError(cause));
       } finally {
-        if (!controller.signal.aborted) setBusy(false);
+        if (!controller.signal.aborted) {
+          setBusy(false);
+          setVerifying(false);
+        }
       }
     });
     return () => controller.abort();
@@ -84,10 +73,14 @@ function PasskeyChallenge({
       brand={<AuthBrand />}
       isPending={busy}
       onRetry={() => setAttempt((value) => value + 1)}
-      onCancelRequest={() => {
-        request.current?.abort();
-        setBusy(false);
-      }}
+      onCancelRequest={
+        verifying
+          ? undefined
+          : () => {
+              request.current?.abort();
+              setBusy(false);
+            }
+      }
       onRecoverySignIn={onRecovery}
       onBackToSignIn={() => window.location.assign("/login")}
     />

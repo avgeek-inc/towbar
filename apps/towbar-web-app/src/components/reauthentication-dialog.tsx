@@ -8,6 +8,7 @@ import { useAccess } from "./access-context";
 export function ReauthenticationDialog() {
   const { user } = useAccess();
   const [open, setOpen] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const pending = useRef<Array<(result: boolean) => void>>([]);
   const passkeyRequest = useRef<AbortController | null>(null);
   const finish = useCallback((result: boolean) => {
@@ -40,16 +41,26 @@ export function ReauthenticationDialog() {
     <ConfirmIdentityDialog
       {...shared}
       method="passkey"
+      onCancelRequest={
+        verifying ? undefined : () => passkeyRequest.current?.abort()
+      }
       onConfirm={async () => {
         const controller = new AbortController();
         passkeyRequest.current = controller;
+        setVerifying(false);
         try {
-          await verifyPasskeySecondFactor(controller.signal);
+          await verifyPasskeySecondFactor(controller.signal, () =>
+            setVerifying(true),
+          );
         } catch (error) {
-          throw new Error(passkeyError(error));
+          if (!controller.signal.aborted) throw new Error(passkeyError(error));
+        } finally {
+          if (passkeyRequest.current === controller) {
+            passkeyRequest.current = null;
+            setVerifying(false);
+          }
         }
         if (!controller.signal.aborted) finish(true);
-        passkeyRequest.current = null;
       }}
     />
   ) : (
