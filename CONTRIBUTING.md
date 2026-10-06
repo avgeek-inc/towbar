@@ -63,7 +63,10 @@ The Mintlify project lives in `docs/`, with dropdown categories and grouped page
 [Avgeek OSS Docs](https://github.com/avgeek-oss/oss-docs) owns the shared homepage
 layouts, header behavior, screenshots, and authoring conventions. Towbar owns
 `docs/site.json`, product content, navigation destinations, assets, and generated
-API schemas. Write task pages around prerequisites, the action, and a way to verify
+API schemas. The kit dependency lives in the `towbar-docs` workspace so runtime
+Docker builds do not install or package documentation tooling. Upgrade it with
+`pnpm --filter towbar-docs add -D @avgeek-oss/docs@<version>`.
+Write task pages around prerequisites, the action, and a way to verify
 the result. Keep manifest field details in the reference and link to them from guides.
 Use documentation-only IPs and domains, and never include credentials in examples
 or screenshots. Feature screenshots should include light and dark variants,

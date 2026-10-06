@@ -13,6 +13,7 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Fixed
 
+- Upgrade the MCP SDK to 1.31.0 to address GHSA-6qxp-vccf-f47h.
 - Upgrade the image-processing dependency to sharp 0.35.5 to address GHSA-wq5f-xc86-pv6w.
 
 ## [2.0.30] - 2026-10-05
