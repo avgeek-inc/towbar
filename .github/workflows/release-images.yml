@@ -149,7 +149,7 @@ jobs:
           cache: npm
           cache-dependency-path: tools/distribution/package-lock.json
       - run: npm ci --prefix tools/distribution --ignore-scripts
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           pattern: release-image-*
           path: release-images
@@ -231,7 +231,7 @@ jobs:
           cache: npm
           cache-dependency-path: tools/distribution/package-lock.json
       - run: npm ci --prefix tools/distribution --ignore-scripts
-      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: release-distribution-artifacts
           path: release-artifacts
