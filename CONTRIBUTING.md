@@ -19,6 +19,14 @@ product-specific composition in `apps/towbar-web-app` and `packages/towbar-web-u
 Use the package's documented exports and import its stylesheet once. The Next.js
 navigation adapter connects shared links to Towbar's router.
 
+Use the published auth, account settings, and team settings patterns with their
+standard copy. Keep app wrappers limited to typed data, API calls, navigation,
+and supported capabilities. Add a missing common surface to the design system
+instead of copying a form into Towbar. Public verification-link requests use
+`VerificationEmail`; ownership verification, passkeys, and one-use recovery
+codes remain separate flows. Do not add authenticator/TOTP code flows. Report
+submission failures through one bottom-center toast.
+
 [GitHub Packages requires authentication](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)
 for public npm packages. For local installs, sign in with a personal access token
 (classic) with `read:packages`:

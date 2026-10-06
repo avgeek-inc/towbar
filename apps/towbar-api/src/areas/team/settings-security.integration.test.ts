@@ -5,7 +5,10 @@ import {
 import assert from "node:assert/strict";
 import test from "node:test";
 import { verifyPasskeySecurity } from "./passkey-security-tests.js";
-import { verifyEmailResendLimits } from "./email-verification-security-tests.js";
+import {
+  verifyEmailResendLimits,
+  verifyPublicEmailResend,
+} from "./email-verification-security-tests.js";
 
 const databaseUrl = process.env.TOWBAR_SETTINGS_TEST_DATABASE_URL;
 void test(
@@ -161,6 +164,18 @@ void test(
             headers: adminHeaders,
             publicHeaders,
             email: admin.email,
+          }),
+      );
+      await t.test(
+        "public verification requests keep account eligibility private and enforce uniform budgets",
+        () =>
+          verifyPublicEmailResend({
+            database,
+            client,
+            headers: adminHeaders,
+            publicHeaders,
+            email: admin.email,
+            memberEmail: "member@settings.test",
           }),
       );
       await t.test(

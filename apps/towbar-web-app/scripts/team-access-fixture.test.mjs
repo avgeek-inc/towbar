@@ -390,3 +390,33 @@ test("invitations include every role and show unavailable SMTP", async () =>
       409,
     );
   }));
+
+test("public verification preview acknowledges known and unknown addresses without creating a session", async () => {
+  await fixture({ authState: "signed-out" }, async (request) => {
+    const endpoint = "public/auth/request-verification-email";
+    let acknowledgment;
+    for (const email of [fixtureEmail("admin"), "unknown@example.test"]) {
+      const accepted = await request(endpoint, "POST", { email });
+      assert.equal(accepted.status, 200);
+      const result = await accepted.json();
+      assert.equal(result.status, true);
+      if (acknowledgment) assert.deepEqual(result, acknowledgment);
+      acknowledgment = result;
+      assert.equal((await request(endpoint, "POST", { email })).status, 429);
+    }
+    assert.equal(
+      (await request(endpoint, "POST", { email: "invalid" })).status,
+      400,
+    );
+    assert.equal(
+      (
+        await request(endpoint, "POST", {
+          email: "other@example.test",
+          callbackURL: "https://attacker.example",
+        })
+      ).status,
+      400,
+    );
+    assert.equal((await request("core/session")).status, 401);
+  });
+});

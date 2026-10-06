@@ -150,6 +150,7 @@ export function createTeamAccessFixture(
   if (options.emailVerified !== undefined)
     selected.emailVerified = options.emailVerified;
   const verificationRequests = new Map<string, number[]>();
+  const publicVerificationRequests = new Map<string, number[]>();
   let signedIn = !["new-instance", "signed-out"].includes(
     options.authState ?? "authenticated",
   );
@@ -268,6 +269,31 @@ export function createTeamAccessFixture(
     const path = url.pathname,
       method = request.method ?? "GET";
     try {
+      if (
+        path === "/v1/public/auth/request-verification-email" &&
+        method === "POST"
+      ) {
+        const input = await body(request);
+        if (
+          Object.keys(input).some((key) => key !== "email") ||
+          typeof input.email !== "string" ||
+          input.email.length > 320 ||
+          !/^\S+@[^@\s]+\.[^@\s]+$/.test(input.email.trim())
+        )
+          return fail(response, "Enter a valid email address", 400);
+        const email = input.email.trim().toLowerCase();
+        const recent = (publicVerificationRequests.get(email) ?? []).filter(
+          (createdAt) => createdAt > Date.now() - 24 * 60 * 60_000,
+        );
+        if (recent.length >= 5 || (recent.at(-1) ?? 0) > Date.now() - 60_000)
+          return fail(
+            response,
+            "Too many verification requests. Try again later.",
+            429,
+          );
+        publicVerificationRequests.set(email, [...recent, Date.now()]);
+        return send(response, { status: true });
+      }
       if (path === "/v1/public/auth/setup-status")
         return send(response, {
           setupRequired,

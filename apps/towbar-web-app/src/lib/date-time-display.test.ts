@@ -1,3 +1,13 @@
+import {
+  dateFormatOptions as sharedDateFormats,
+  timeFormatOptions as sharedTimeFormats,
+  defaultDateTimePreferences as sharedDefaults,
+} from "@avgeek-oss/design-system/utilities/date-time-preferences";
+import {
+  dateFormatOptions,
+  timeFormatOptions,
+  dateTimePreferencesSchema,
+} from "@workspace/towbar-contracts/date-time";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -64,4 +74,22 @@ void test("preference changes with no timestamps still update subscribers and in
   assert(localizationRevision() > before);
   assert.equal(displayTimeZone(), "Pacific/Auckland");
   assert.equal(displayDateTime("2026-09-16T23:30:00Z"), "—");
+});
+
+void test("server preference metadata and validation match the published shared catalog", () => {
+  assert.deepEqual(dateFormatOptions, sharedDateFormats);
+  assert.deepEqual(timeFormatOptions, sharedTimeFormats);
+  assert.deepEqual(defaultDateTimePreferences, sharedDefaults);
+  for (const dateFormat of sharedDateFormats) {
+    for (const timeFormat of sharedTimeFormats) {
+      assert.equal(
+        dateTimePreferencesSchema.safeParse({
+          ...sharedDefaults,
+          dateFormat: dateFormat.id,
+          timeFormat: timeFormat.id,
+        }).success,
+        true,
+      );
+    }
+  }
 });

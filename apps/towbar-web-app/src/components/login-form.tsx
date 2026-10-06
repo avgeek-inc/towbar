@@ -1,25 +1,18 @@
 "use client";
+import {
+  dateFormatOptions,
+  timeFormatOptions,
+} from "@avgeek-oss/design-system/utilities/date-time-preferences";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  TeamSetup,
-  IdentityCredentialsForm,
-  Button,
-} from "@avgeek-oss/design-system";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Login01Icon } from "@hugeicons/core-free-icons";
-import Link from "next/link";
+import { TeamSetup, SignIn } from "@avgeek-oss/design-system";
 import { Alert } from "@avgeek-oss/design-system/feedback/alert";
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { SecondFactorChallenge } from "./second-factor-challenge";
 import type { DateTimePreferenceOptions } from "@avgeek-oss/design-system/patterns/settings/date-time-preference-fields";
 import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
 import { toast } from "@avgeek-oss/design-system/overlays/toast";
-import {
-  AuthFrame,
-  AuthBrand,
-  authTextActionClassName,
-} from "@/components/auth-frame";
+import { AuthFrame, AuthBrand } from "@/components/auth-frame";
 import { api } from "@/lib/api";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -78,65 +71,47 @@ export function LoginForm() {
 
   if (twoFactor) return <SecondFactorChallenge next={next} />;
   return (
-    <AuthFrame
-      title="Sign in"
-      description="Sign in to your team’s Towbar instance."
-    >
-      <IdentityCredentialsForm
-        identifierLabel="Email"
-        identifierType="email"
-        identifierAutoComplete="email"
-        disabled={passkeyBusy}
-        submitIcon={<HugeiconsIcon aria-hidden icon={Login01Icon} size={16} />}
-        passwordAction={
-          <Link href="/forgot-password" className={authTextActionClassName}>
-            Forgot password?
-          </Link>
+    <SignIn
+      brand={<AuthBrand />}
+      isPending={passkeyBusy}
+      onForgotPassword={() => window.location.assign("/forgot-password")}
+      onResendVerification={() => window.location.assign("/verification")}
+      onSubmit={async ({ identifier, password }) => {
+        const result = await api.post<{
+          twoFactorRequired: boolean;
+          twoFactorMethods: string[];
+        }>("/v1/public/auth/login-email", {
+          email: identifier,
+          password,
+        });
+        if (result.twoFactorRequired) {
+          if (!result.twoFactorMethods?.length)
+            throw new Error(
+              "Your verification methods could not be loaded. Sign in again.",
+            );
+          setTwoFactor(true);
+          return;
         }
-        onSubmit={async ({ identifier, password }) => {
-          const result = await api.post<{
-            twoFactorRequired: boolean;
-            twoFactorMethods: string[];
-          }>("/v1/public/auth/login-email", {
-            email: identifier,
-            password,
-          });
-          if (result.twoFactorRequired) {
-            if (!result.twoFactorMethods?.length)
-              throw new Error(
-                "Your verification methods could not be loaded. Sign in again.",
-              );
-            setTwoFactor(true);
-            return;
-          }
+        window.location.replace(next);
+      }}
+      onPasskeySignIn={async () => {
+        if (passkeyPending.current) return;
+        passkeyPending.current = true;
+        setPasskeyBusy(true);
+        const controller = new AbortController();
+        passkeyController.current = controller;
+        try {
+          await verifyPasskeySecondFactor(controller.signal);
           window.location.replace(next);
-        }}
-      />
-      <Button
-        className="w-full"
-        variant="secondary"
-        isDisabled={passkeyBusy}
-        onPress={async () => {
-          if (passkeyPending.current) return;
-          passkeyPending.current = true;
-          setPasskeyBusy(true);
-          const controller = new AbortController();
-          passkeyController.current = controller;
-          try {
-            await verifyPasskeySecondFactor(controller.signal);
-            window.location.replace(next);
-          } catch (error) {
-            if (!controller.signal.aborted) toast.danger(passkeyError(error));
-          } finally {
-            passkeyPending.current = false;
-            passkeyController.current = null;
-            setPasskeyBusy(false);
-          }
-        }}
-      >
-        {passkeyBusy ? "Waiting for your passkey…" : "Sign in with Passkey"}
-      </Button>
-    </AuthFrame>
+        } catch (error) {
+          if (!controller.signal.aborted) toast.danger(passkeyError(error));
+        } finally {
+          passkeyPending.current = false;
+          passkeyController.current = null;
+          setPasskeyBusy(false);
+        }
+      }}
+    />
   );
 }
 
@@ -144,7 +119,11 @@ function InitialTeamSetup({ options }: { options: DateTimePreferenceOptions }) {
   return (
     <TeamSetup
       brand={<AuthBrand />}
-      preferenceOptions={options}
+      preferenceOptions={{
+        ...options,
+        dateFormats: dateFormatOptions,
+        timeFormats: timeFormatOptions,
+      }}
       onSubmit={async ({
         team,
         name,
