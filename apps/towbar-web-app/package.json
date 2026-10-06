@@ -21,6 +21,7 @@
     "build:demo": "node ./scripts/public-demo/build.mjs"
   },
   "dependencies": {
+    "@avgeek-oss/design-system": "1.1.0",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-yaml": "^6.1.3",
     "@codemirror/language": "^6.12.4",
@@ -30,13 +31,10 @@
     "@hugeicons/react": "catalog:",
     "@lezer/highlight": "1.2.4",
     "@simplewebauthn/browser": "13.3.0",
-    "@workspace/identity-web-ui": "workspace:*",
     "@workspace/towbar-access": "workspace:*",
     "@workspace/towbar-contracts": "workspace:*",
     "@workspace/towbar-web-client": "workspace:*",
     "@workspace/towbar-web-ui": "workspace:*",
-    "@workspace/web-design-system": "workspace:*",
-    "@workspace/web-page-sections": "workspace:*",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
     "date-fns": "^4.4.0",
@@ -58,6 +56,7 @@
     "eslint": "catalog:",
     "tsx": "^4.23.13",
     "typescript": "catalog:",
-    "ws": "8.21.3"
+    "ws": "8.21.3",
+    "@tailwindcss/postcss": "catalog:"
   }
 }

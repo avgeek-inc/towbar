@@ -1,5 +1,4 @@
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 
 import { ScoutIcon } from "./scout-icons";
 
@@ -14,7 +13,7 @@ export function MonitoringDocumentation() {
       <ScoutIcon name="docs" />
       <span>
         Scout Agent documentation
-        <NewTabIndicator />
+        <span aria-hidden="true">↗</span>
       </span>
     </ButtonLink>
   );

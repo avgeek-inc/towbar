@@ -3,7 +3,7 @@ import test from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { TableCellDescription } from "./table-cell-text.js";
+import { TableCellDescription } from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 Object.assign(globalThis, { React });
 

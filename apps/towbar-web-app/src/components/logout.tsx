@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 
 import { clearApiQueryCache } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";

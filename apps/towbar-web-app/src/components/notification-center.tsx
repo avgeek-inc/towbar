@@ -1,16 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Notification02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import Link from "next/link";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
-import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Popover } from "@workspace/web-design-system/overlays/popover";
-import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { usePageVisibilityInterval } from "@avgeek-oss/design-system/hooks/use-page-visibility-interval";
+import { NotificationMenu } from "@avgeek-oss/design-system/patterns/notifications";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 
 import { api } from "@/lib/api";
 import { notificationHref } from "@/lib/notification-route";
@@ -105,96 +100,38 @@ export function NotificationCenter() {
   }, [notifications]);
 
   return (
-    <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Popover.Trigger
-        aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
-            : "Notifications"
-        }
-        className="relative isolate grid size-8 shrink-0 cursor-pointer touch-manipulation place-items-center rounded-full bg-default text-muted outline-none transition-[color,background-color] hover:bg-default/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
-      >
-        <HugeiconsIcon aria-hidden="true" icon={Notification02Icon} size={18} />
-        {unreadCount > 0 ? (
-          <span className="absolute -end-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-mono font-medium leading-4 text-danger-foreground">
-            {Math.min(unreadCount, 9)}
-          </span>
-        ) : null}
-      </Popover.Trigger>
-      <Popover.Content
-        className="w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-transparent p-0"
-        placement="bottom end"
-      >
-        <Popover.Dialog className="p-0 outline-none">
-          <Widget>
-            <Widget.Header
-              endContent={
-                <Button
-                  className="min-h-8 px-2 text-xs"
-                  isDisabled={visibleNotifications.length === 0}
-                  onPress={clearAll}
-                  variant="ghost"
-                >
-                  Clear All
-                </Button>
-              }
-            >
-              <Popover.Heading className="flex min-w-0">
-                <Widget.Title help={false}>Notifications</Widget.Title>
-              </Popover.Heading>
-            </Widget.Header>
-            <Widget.Content className="p-0">
-              <ScrollShadow className="max-h-[26rem]">
-                {loading && notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted">
-                    Loading notifications…
-                  </p>
-                ) : visibleNotifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted">
-                    No notifications yet
-                  </p>
-                ) : (
-                  <ul className="w-full divide-y divide-separator [&>li:first-child>a]:rounded-t-xl [&>li:last-child>a]:rounded-b-xl">
-                    {visibleNotifications.map((notification) => (
-                      <li key={notification.id}>
-                        <Link
-                          className="flex w-full min-w-0 gap-3 rounded-none px-4 py-3 outline-none transition-colors hover:bg-default/60 focus-visible:bg-default/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
-                          href={notificationHref(notification)}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`mt-1 size-2 shrink-0 rounded-full ${notificationTone(notification.type)}`}
-                          />
-                          <div className="grid min-w-0 flex-1 gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                            <p className="text-sm font-medium">
-                              {notification.payload.title}
-                            </p>
-                            <p className="mt-0.5 text-sm text-muted sm:col-span-2">
-                              {notification.payload.message}
-                            </p>
-                            <p className="mt-1 text-xs text-muted sm:col-span-2">
-                              {notification.payload.source?.name ??
-                                notification.payload.entity.name}
-                            </p>
-                            <time
-                              className="mt-1 text-xs text-muted sm:col-start-2 sm:row-start-1 sm:mt-0"
-                              dateTime={notification.occurredAt}
-                            >
-                              {formatDate(notification.occurredAt)}
-                            </time>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </ScrollShadow>
-            </Widget.Content>
-          </Widget>
-        </Popover.Dialog>
-      </Popover.Content>
-    </Popover>
+    <NotificationMenu
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      unreadCount={unreadCount}
+      loading={loading && notifications.length === 0}
+      headerEnd={
+        <Button
+          className="min-h-8 px-2 text-xs"
+          isDisabled={visibleNotifications.length === 0}
+          onPress={clearAll}
+          variant="ghost"
+        >
+          Clear All
+        </Button>
+      }
+      items={visibleNotifications.map((notification) => ({
+        id: notification.id,
+        title: notification.payload.title,
+        message: notification.payload.message,
+        source:
+          notification.payload.source?.name ?? notification.payload.entity.name,
+        href: notificationHref(notification),
+        icon: (
+          <span
+            className={`mt-1 size-2 rounded-full ${notificationTone(notification.type)}`}
+          />
+        ),
+        time: formatDate(notification.occurredAt),
+        dateTime: notification.occurredAt,
+        unread: new Date(notification.occurredAt).getTime() > seenAt,
+      }))}
+    />
   );
 }
 

@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
 import {
   FieldDescription,
   Field,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
+} from "@avgeek-oss/design-system/forms/field";
+import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { api } from "@/lib/api";
 import type { CustomMonitoringRange } from "./monitoring-range";

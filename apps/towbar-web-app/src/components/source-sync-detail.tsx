@@ -1,5 +1,6 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { ElapsedTime } from "./elapsed-time";
 
 import {
@@ -14,16 +15,16 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams } from "next/navigation";
 import type { SourceSync } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DashboardPage, PageTabs } from "@/components/page-parts";
@@ -309,7 +310,7 @@ function SyncChanges({
 function ChangeBadge({ action }: { action: ReconciliationAction }) {
   const variant =
     action === "archive"
-      ? "destructive"
+      ? "danger"
       : action === "update"
         ? "warning"
         : "success";
@@ -322,9 +323,13 @@ function ChangeBadge({ action }: { action: ReconciliationAction }) {
           ? "The sync restored a previously archived item."
           : "The sync applied manifest changes to this item.";
   return (
-    <Chip tooltip={tooltip} variant={variant}>
-      {formatChangeAction(action)}
-    </Chip>
+    <TooltipText className="inline-flex" tooltip={tooltip}>
+      <Chip color={variant}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {formatChangeAction(action)}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 

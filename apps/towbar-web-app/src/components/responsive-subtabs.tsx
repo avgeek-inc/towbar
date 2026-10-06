@@ -7,7 +7,7 @@ import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { PageSelectionTitle } from "./page-selection-title";
 import { useContext, useEffect, type Key, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 
 type ResponsiveSubtab = {

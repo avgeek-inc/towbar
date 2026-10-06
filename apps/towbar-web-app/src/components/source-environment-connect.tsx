@@ -3,11 +3,11 @@
 import { Add01Icon, Link01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Field, FieldLabel } from "@avgeek-oss/design-system/forms/field";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { SourceBranchSelect } from "./source-branch-select";

@@ -1,4 +1,5 @@
 "use client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   Alert02Icon,
   CheckmarkCircle01Icon,
@@ -16,11 +17,11 @@ import type {
   Server,
   TrustedHostKey,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { FieldError } from "@workspace/web-design-system/forms/field";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { FieldError } from "@avgeek-oss/design-system/forms/field";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { FormCard } from "@/components/page-parts";
@@ -237,23 +238,29 @@ function ServerCredentialForm({
       headerEnd={
         credential.keys.includes("privateKey") ? (
           latestHostKey && hostKeys.length ? (
-            <Chip
-              icon={<HugeiconsIcon icon={CheckmarkCircle01Icon} />}
-              size="small"
+            <TooltipText
+              className="inline-flex"
               tooltip={`Verified ${formatDate(latestHostKey.createdAt)}`}
-              variant="success"
             >
-              Host verified
-            </Chip>
+              <Chip size="sm" color="success">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  {<HugeiconsIcon icon={CheckmarkCircle01Icon} />}
+                  Host verified
+                </Chip.Label>
+              </Chip>
+            </TooltipText>
           ) : (
-            <Chip
-              icon={<HugeiconsIcon icon={InformationCircleIcon} />}
-              size="small"
+            <TooltipText
+              className="inline-flex"
               tooltip="Verify the server's SSH host key before using stored credentials."
-              variant="warning"
             >
-              Host verification required
-            </Chip>
+              <Chip size="sm" color="warning">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  {<HugeiconsIcon icon={InformationCircleIcon} />}
+                  Host verification required
+                </Chip.Label>
+              </Chip>
+            </TooltipText>
           )
         ) : null
       }
@@ -449,8 +456,10 @@ function CredentialVerificationModal({
                         <div className="grid min-w-0 gap-1">
                           <div className="flex flex-wrap items-center gap-2">
                             {hostKey.algorithm === "ssh-ed25519" ? (
-                              <Chip size="small" variant="yellow">
-                                ED25519
+                              <Chip size="sm" color="warning">
+                                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                                  ED25519
+                                </Chip.Label>
                               </Chip>
                             ) : (
                               <span className="text-xs text-muted">

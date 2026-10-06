@@ -1,18 +1,28 @@
-import { createNextConfig } from "@workspace/web-design-system/lib/next-config";
+import path from "node:path";
 import type { NextConfig } from "next";
 
-const baseConfig = createNextConfig((config) => config, {
-  transpilePackages: [
-    "@workspace/identity-web-ui",
-    "@workspace/towbar-web-ui",
-    "@workspace/web-page-sections",
-  ],
-});
-
 const nextConfig: NextConfig = {
-  ...baseConfig,
+  output: "standalone",
+  poweredByHeader: false,
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  turbopack: { root: path.resolve(process.cwd(), "../..") },
+  transpilePackages: ["@workspace/towbar-web-ui"],
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
-
 export default nextConfig;

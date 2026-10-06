@@ -8,25 +8,25 @@ import {
   TestTube01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
 import {
   Field,
   FieldDescription,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+} from "@avgeek-oss/design-system/forms/field";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { AlertDialog } from "@avgeek-oss/design-system/overlays/alert-dialog";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";

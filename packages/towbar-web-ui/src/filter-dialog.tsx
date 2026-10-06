@@ -8,14 +8,14 @@ import {
   FilterIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
-import { SearchField } from "@workspace/web-design-system/pickers/autocomplete";
-import { Popover } from "@workspace/web-design-system/overlays/popover";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
+import { SearchField } from "@avgeek-oss/design-system/pickers/autocomplete";
+import { Popover } from "@avgeek-oss/design-system/overlays/popover";
 
 export type FilterCondition<Field extends string, Operator extends string> = {
   field: Field;
@@ -81,11 +81,13 @@ export function FilterDialog<Field extends string, Operator extends string>({
         Filters
         {value.length ? (
           <Chip
-            size="small"
-            variant="info"
+            size="sm"
+            color="accent"
             aria-label={`${value.length} active filters`}
           >
-            {value.length}
+            <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+              {value.length}
+            </Chip.Label>
           </Chip>
         ) : null}
       </Button>
@@ -224,7 +226,7 @@ export function FilterDialog<Field extends string, Operator extends string>({
                       </div>
                       <Button
                         isIconOnly
-                        variant="danger-ghost"
+                        variant="danger-soft"
                         className="size-8 min-w-0 shrink-0 rounded-lg"
                         aria-label={`Remove condition ${index + 1}`}
                         onPress={() =>

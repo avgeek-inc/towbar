@@ -3,15 +3,15 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { useState } from "react";
 import type { AuditEventIcon as AuditEventIconName } from "@workspace/towbar-web-client";
 import { AuditEventIcon } from "./audit-event-icon";
-import { Avatar } from "@workspace/web-design-system/data-display/avatar";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { UserAvatar as Avatar } from "@avgeek-oss/design-system/patterns/user-avatar";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { QueryError } from "@workspace/towbar-web-ui/query-state";
-import type { ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
+import type { ResourceTableColumn } from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { RelativeTime } from "./last-synced-time";
 import {

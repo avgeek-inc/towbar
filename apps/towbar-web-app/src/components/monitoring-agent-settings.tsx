@@ -1,13 +1,14 @@
 "use client";
 
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { FieldDescription } from "@avgeek-oss/design-system/forms/field";
 import { useState } from "react";
 import type { MonitoringAgentStatus } from "@workspace/towbar-web-client";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { ScoutIcon } from "./scout-icons";
 import { ScoutMascot } from "./scout-mascot";
@@ -298,34 +299,40 @@ export function MonitoringStatus({ agent }: { agent: MonitoringAgentStatus }) {
     failed: "Needs attention",
   };
   return (
-    <Chip
-      size="small"
+    <TooltipText
+      className="inline-flex"
       tooltip={monitoringStatusTooltip(agent)}
-      icon={
-        <ScoutIcon
-          name={
-            agent.status === "online"
-              ? "resolved"
-              : agent.status === "failed"
-                ? "critical"
-                : agent.status === "offline"
-                  ? "warning"
-                  : "time"
-          }
-        />
-      }
-      variant={
-        agent.status === "online"
-          ? "success"
-          : agent.status === "failed"
-            ? "destructive"
-            : agent.status === "offline"
-              ? "warning"
-              : "secondary"
-      }
     >
-      {labels[agent.status] ?? agent.status}
-    </Chip>
+      <Chip
+        size="sm"
+        color={
+          agent.status === "online"
+            ? "success"
+            : agent.status === "failed"
+              ? "danger"
+              : agent.status === "offline"
+                ? "warning"
+                : "default"
+        }
+      >
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {
+            <ScoutIcon
+              name={
+                agent.status === "online"
+                  ? "resolved"
+                  : agent.status === "failed"
+                    ? "critical"
+                    : agent.status === "offline"
+                      ? "warning"
+                      : "time"
+              }
+            />
+          }
+          {labels[agent.status] ?? agent.status}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 

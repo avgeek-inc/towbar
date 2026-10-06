@@ -3,19 +3,19 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { useState } from "react";
 import { Clock01Icon, PlayIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import type { AppJobsResponse, AppJobRun } from "@workspace/towbar-web-client";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -73,22 +73,24 @@ export function AppJobs({ appId }: { appId: string }) {
             header: "Status",
             cell: (job) => (
               <Chip
-                size="small"
-                variant={
+                size="sm"
+                color={
                   !job.enabled || automationPaused
-                    ? "secondary"
+                    ? "default"
                     : ready
                       ? "success"
                       : "warning"
                 }
               >
-                {!job.enabled
-                  ? "Disabled"
-                  : automationPaused
-                    ? "Paused"
-                    : ready
-                      ? "Enabled"
-                      : "Awaiting deployment"}
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  {!job.enabled
+                    ? "Disabled"
+                    : automationPaused
+                      ? "Paused"
+                      : ready
+                        ? "Enabled"
+                        : "Awaiting deployment"}
+                </Chip.Label>
               </Chip>
             ),
           },

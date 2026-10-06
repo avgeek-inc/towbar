@@ -1,9 +1,8 @@
 import React from "react";
 import { MailSend01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
 
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { GitHubSettings } from "./github-settings";
@@ -169,7 +168,7 @@ function EnvironmentProvider({
             variant="secondary"
           >
             Open documentation
-            <NewTabIndicator />
+            <span aria-hidden="true">↗</span>
           </ButtonLink>
         </div>
       </FormCard>

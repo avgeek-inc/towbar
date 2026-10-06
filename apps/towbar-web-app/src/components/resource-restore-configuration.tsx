@@ -18,25 +18,25 @@ import type {
   RestoreResult,
   SourceBackup,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
 import {
   Field,
   FieldDescription,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+} from "@avgeek-oss/design-system/forms/field";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ElapsedTime } from "./elapsed-time";

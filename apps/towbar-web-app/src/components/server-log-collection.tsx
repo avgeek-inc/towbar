@@ -3,11 +3,11 @@
 import { FloppyDiskIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
+import { FieldDescription } from "@avgeek-oss/design-system/forms/field";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { useState, type FormEvent } from "react";
 
 import { FormCard } from "@/components/page-parts";

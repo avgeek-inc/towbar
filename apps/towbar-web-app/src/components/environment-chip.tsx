@@ -1,4 +1,5 @@
-import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
 import { EnvironmentIcon } from "./environment-icon";
 
 export function EnvironmentChip({
@@ -13,17 +14,18 @@ export function EnvironmentChip({
   tooltip?: string;
 }) {
   return (
-    <Chip
-      size="small"
-      variant={name === "production" ? "destructive" : "secondary"}
-      icon={
-        showIcon ? (
-          <EnvironmentIcon className="text-current" name={name} />
-        ) : undefined
-      }
+    <TooltipText
+      className="inline-flex"
       tooltip={showTooltip ? tooltip : undefined}
     >
-      {name}
-    </Chip>
+      <Chip size="sm" color={name === "production" ? "danger" : "default"}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {showIcon ? (
+            <EnvironmentIcon className="text-current" name={name} />
+          ) : undefined}
+          {name}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }

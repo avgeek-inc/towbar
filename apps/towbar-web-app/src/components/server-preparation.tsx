@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { Server, ServerPreparation } from "@workspace/towbar-web-client";
-import { Accordion } from "@workspace/web-design-system/data-display/accordion";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { Accordion } from "@avgeek-oss/design-system/data-display/accordion";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   preparationChecklist,

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import {
   TypographyHeading,
   TypographyParagraph,
-} from "@workspace/web-design-system/typography/typography";
+} from "@avgeek-oss/design-system/typography/typography";
 
 export function TowbarSection({
   actions,

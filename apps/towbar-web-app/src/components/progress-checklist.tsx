@@ -10,9 +10,9 @@ import {
   Clock01Icon,
   StopCircleIcon,
 } from "@hugeicons/core-free-icons";
-import { Accordion } from "@workspace/web-design-system/data-display/accordion";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { Accordion } from "@avgeek-oss/design-system/data-display/accordion";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 
 export function ProgressChecklistItem({
   id,

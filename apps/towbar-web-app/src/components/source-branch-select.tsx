@@ -1,11 +1,11 @@
 import { GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ListBox } from "@workspace/web-design-system/collections/list-box";
-import { Select } from "@workspace/web-design-system/forms/select";
+import { ListBox } from "@avgeek-oss/design-system/collections/list-box";
+import { Select } from "@avgeek-oss/design-system/forms/select";
 import {
   Autocomplete,
   SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
+} from "@avgeek-oss/design-system/pickers/autocomplete";
 
 export function SourceBranchSelect({
   ariaLabel,

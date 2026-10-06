@@ -1,10 +1,10 @@
 "use client";
 
 import type { Deployment, DeploymentStep } from "@workspace/towbar-web-client";
-import { Accordion } from "@workspace/web-design-system/data-display/accordion";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { Accordion } from "@avgeek-oss/design-system/data-display/accordion";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { formatStatus } from "@workspace/towbar-web-ui/status-badge";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { displayTime } from "@/lib/date-time-display";
 import { deploymentHref } from "@/lib/deployment-route";
 import { isEventRunning } from "@/lib/elapsed-time";

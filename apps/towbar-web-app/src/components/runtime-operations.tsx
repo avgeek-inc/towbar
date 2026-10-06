@@ -21,15 +21,15 @@ import type {
   ResourceOperation,
   RuntimeState,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
-import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { Dropdown } from "@workspace/web-design-system/overlays/dropdown";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
+import { AlertDialog } from "@avgeek-oss/design-system/overlays/alert-dialog";
+import { Dropdown } from "@avgeek-oss/design-system/overlays/dropdown";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";

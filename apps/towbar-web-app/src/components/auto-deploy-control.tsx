@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import type { AutoDeployControlResponse } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Switch } from "@workspace/web-design-system/forms/switch";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Switch } from "@avgeek-oss/design-system/forms/switch";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { useApiQuery } from "@/hooks/use-api-query";

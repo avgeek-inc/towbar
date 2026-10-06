@@ -8,14 +8,14 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 import type { Server } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import {
   FieldDescription,
   Field,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+} from "@avgeek-oss/design-system/forms/field";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 
 import { FormCard } from "@/components/page-parts";
 import { refreshApiQueries } from "@/hooks/use-api-query";

@@ -7,9 +7,9 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App, Resource, Server } from "@workspace/towbar-web-client";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   groupDeployableInstances,
   groupDeployablesByEnvironment,
@@ -62,12 +62,14 @@ export function DeployableInventoryTable<T extends App | Resource>({
                   (group.name ?? "No environment")
                 )}
               </span>
-              <Chip className="shrink-0" size="small" variant="secondary">
-                {group.items.length}{" "}
-                {["app", "compose"].includes(group.items[0]!.kind)
-                  ? "service"
-                  : "datastore"}
-                {group.items.length === 1 ? "" : "s"}
+              <Chip className="shrink-0" size="sm" color="default">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  {group.items.length}{" "}
+                  {["app", "compose"].includes(group.items[0]!.kind)
+                    ? "service"
+                    : "datastore"}
+                  {group.items.length === 1 ? "" : "s"}
+                </Chip.Label>
               </Chip>
             </div>
             <ResourceTable
@@ -101,15 +103,17 @@ export function DeployableInventoryTable<T extends App | Resource>({
                 {group.manifestId}
               </TooltipText>
             </span>
-            <Chip
-              className="shrink-0"
-              size="small"
+            <TooltipText
+              className="inline-flex"
               tooltip={`This manifest has ${group.items.length} connected environment instance${group.items.length === 1 ? "" : "s"}.`}
-              variant="secondary"
             >
-              {group.items.length}{" "}
-              {group.items.length === 1 ? "environment" : "environments"}
-            </Chip>
+              <Chip className="shrink-0" size="sm" color="default">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  {group.items.length}{" "}
+                  {group.items.length === 1 ? "environment" : "environments"}
+                </Chip.Label>
+              </Chip>
+            </TooltipText>
           </div>
           <ResourceTable
             {...props}

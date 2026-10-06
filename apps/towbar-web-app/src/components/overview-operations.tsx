@@ -3,7 +3,7 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
 
@@ -16,14 +16,14 @@ import type {
   DeploymentHistoryItem,
   DeploymentHistoryPage,
 } from "@workspace/towbar-web-client";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { InlineLink } from "./page-parts";
 import { RelativeTime } from "./last-synced-time";
@@ -140,11 +140,7 @@ function deploymentColumns(
               {detail ? (
                 item.deployableKind === "app" ? (
                   <TableCellDescription className="max-w-48 truncate">
-                    <DomainLink
-                      className="max-w-full"
-                      domain={detail}
-                      tone="secondary"
-                    >
+                    <DomainLink className="max-w-full" domain={detail}>
                       {detail}
                     </DomainLink>
                   </TableCellDescription>

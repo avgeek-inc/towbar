@@ -1,13 +1,13 @@
 "use client";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import type { ReactNode } from "react";
 import {
   TableCellDescription,
   tableCellStackClassName,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 import { useSyncExternalStore } from "react";
-import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
+import { usePageVisibilityInterval } from "@avgeek-oss/design-system/hooks/use-page-visibility-interval";
 import { formatTableTime } from "@/lib/table-time";
 import {
   subscribeLocalization,

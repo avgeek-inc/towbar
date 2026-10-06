@@ -1,5 +1,5 @@
-import { BrandLockup } from "@workspace/web-design-system/media/brand-lockup";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { BrandLockup } from "@avgeek-oss/design-system/media/brand-lockup";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { getTowbarBrandLogoSource } from "@workspace/towbar-web-ui/brand-assets";
 
 import type { ComponentPropsWithoutRef } from "react";

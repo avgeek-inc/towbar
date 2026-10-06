@@ -1,12 +1,13 @@
 "use client";
+import { NextNavigationProvider } from "@avgeek-oss/design-system/adapters/next";
 import { DemoBoundary, isPublicDemo } from "./demo-session";
 import { groupDeployableInstances } from "@/lib/deployable-groups";
 import { ReauthenticationDialog } from "./reauthentication-dialog";
 import { AccessContext, routePermission } from "./access-context";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { ThemeSwitcher } from "@workspace/web-design-system/controls/theme-switcher";
-import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { ThemeSwitcher } from "@avgeek-oss/design-system/controls/theme-switcher";
+import { AlertDialog } from "@avgeek-oss/design-system/overlays/alert-dialog";
 import {
   clearApiQueryCache,
   prefetchApiQueries,
@@ -28,15 +29,15 @@ import type {
   TowbarUser,
   TowbarUpdateInfo,
 } from "@workspace/towbar-web-client";
-import { AppLayout } from "@workspace/web-design-system/navigation/app-layout";
+import { AppLayout } from "@avgeek-oss/design-system/navigation/app-layout";
 import {
   AppShell,
   ApplicationNavbar,
   ApplicationSidebar,
   usePersistentAppSidebar,
-} from "@workspace/web-design-system/layouts/app-shell";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
-import { Toast } from "@workspace/web-design-system/overlays/toast";
+} from "@avgeek-oss/design-system/layouts/app-shell";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
+import { Toast } from "@avgeek-oss/design-system/overlays/toast";
 
 import { api } from "@/lib/api";
 import { createSessionRefresh } from "@/lib/session-refresh";
@@ -50,14 +51,18 @@ import { RelativeTimeProvider } from "./last-synced-time";
 import { getActiveDeploymentStates } from "@/lib/inventory-status";
 import { NotificationCenter } from "@/components/notification-center";
 import { AccountMenu } from "@/components/account-menu";
-import { HeadingHelpContext } from "@workspace/web-design-system/overlays/heading-help";
+import { HeadingHelpContext } from "@avgeek-oss/design-system/overlays/heading-help";
 import { headingDocumentation } from "@/lib/documentation";
 
 export function ApplicationFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (isPublicDemo && pathname === "/demo") return children;
   const frame = <AuthenticatedFrame>{children}</AuthenticatedFrame>;
-  return isPublicDemo ? <DemoBoundary>{frame}</DemoBoundary> : frame;
+  return (
+    <NextNavigationProvider>
+      {isPublicDemo ? <DemoBoundary>{frame}</DemoBoundary> : frame}
+    </NextNavigationProvider>
+  );
 }
 
 const navigationPrefetchPaths: Record<string, string[]> = {
@@ -245,7 +250,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     return (
       <AccessContext.Provider value={user ?? null}>
         {children}
-        <Toast.Provider />
+        <Toast.Provider placement="bottom" />
       </AccessContext.Provider>
     );
   if (!user || user.mustChangePassword) {
@@ -329,7 +334,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
                   <div className="flex items-center gap-2">
                     <NotificationCenter />
                     <div className="flex items-center gap-1">
-                      <ThemeSwitcher size="small" />
+                      <ThemeSwitcher />
                     </div>
                   </div>
                 }

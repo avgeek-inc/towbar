@@ -39,19 +39,19 @@ import {
 } from "@workspace/towbar-web-ui/filter-dialog";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Table } from "@workspace/web-design-system/data-display/table";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
+import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Table } from "@avgeek-oss/design-system/data-display/table";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
 import {
   Tooltip,
   TooltipText,
-} from "@workspace/web-design-system/overlays/tooltip";
-import { HeadingHelp } from "@workspace/web-design-system/overlays/heading-help";
+} from "@avgeek-oss/design-system/overlays/tooltip";
+import { HeadingHelp } from "@avgeek-oss/design-system/overlays/heading-help";
 import { AnalyticsRowIcon } from "./analytics-row-icon";
 
 import { ScoutSelect } from "./scout-controls";

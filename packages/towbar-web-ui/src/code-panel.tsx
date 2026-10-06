@@ -1,4 +1,4 @@
-import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
+import { CodeBlock } from "@avgeek-oss/design-system/typography/code-block";
 
 export function CodePanel({
   ariaLabel,

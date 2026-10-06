@@ -34,20 +34,20 @@ flowchart LR
 
 ## Repository map
 
-| Path                                                                                 | Responsibility                                    |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| `apps/towbar-web-app`                                                                | Dashboard and authentication UI                   |
-| `apps/towbar-api`                                                                    | HTTP/MCP, authorization, persistence and webhooks |
-| `apps/towbar-worker`                                                                 | Temporal workflows and activities                 |
-| `apps/towbar-monitoring-agent`                                                       | Scout host and container measurements             |
-| `packages/towbar-contracts`                                                          | Browser-safe DTOs, schemas and shared validation  |
-| `packages/towbar-core`                                                               | Manifest parsing and server deployment logic      |
-| `packages/towbar-database`                                                           | PostgreSQL schema, client and migrations          |
-| `packages/towbar-deployer`                                                           | SSH, Docker, routing, promotion and rollback      |
-| `packages/towbar-access`                                                             | Roles and permissions                             |
-| `packages/towbar-web-client`                                                         | Typed browser API client                          |
-| `packages/towbar-web-ui`, `packages/web-design-system`, `packages/web-page-sections` | UI components and layouts                         |
-| `infra/towbar-cli`, `infra/upgrade-runner`                                           | Host installation and upgrades                    |
+| Path                                                  | Responsibility                                    |
+| ----------------------------------------------------- | ------------------------------------------------- |
+| `apps/towbar-web-app`                                 | Dashboard and authentication UI                   |
+| `apps/towbar-api`                                     | HTTP/MCP, authorization, persistence and webhooks |
+| `apps/towbar-worker`                                  | Temporal workflows and activities                 |
+| `apps/towbar-monitoring-agent`                        | Scout host and container measurements             |
+| `packages/towbar-contracts`                           | Browser-safe DTOs, schemas and shared validation  |
+| `packages/towbar-core`                                | Manifest parsing and server deployment logic      |
+| `packages/towbar-database`                            | PostgreSQL schema, client and migrations          |
+| `packages/towbar-deployer`                            | SSH, Docker, routing, promotion and rollback      |
+| `packages/towbar-access`                              | Roles and permissions                             |
+| `packages/towbar-web-client`                          | Typed browser API client                          |
+| `packages/towbar-web-ui`, `@avgeek-oss/design-system` | UI components and layouts                         |
+| `infra/towbar-cli`, `infra/upgrade-runner`            | Host installation and upgrades                    |
 
 Browser code imports `towbar-contracts`; it has no Node or server dependencies. Core re-exports existing contract paths for compatibility.
 

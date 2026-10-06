@@ -2,8 +2,8 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ReloadIcon } from "@hugeicons/core-free-icons";
 
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 
 export function QueryLoading({
   variant = "detail",

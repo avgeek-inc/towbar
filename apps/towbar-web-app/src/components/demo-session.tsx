@@ -4,14 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   IdentityAuthFrame,
   IdentityAuthHeading,
-} from "@workspace/identity-web-ui/identity-auth-frame";
+} from "@avgeek-oss/design-system/patterns/auth/identity-auth-frame";
 import { TowbarLockup } from "@workspace/towbar-web-ui/brand";
-import {
-  Button,
-  ButtonLink,
-} from "@workspace/web-design-system/buttons/button";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { Button, ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 
 export const isPublicDemo =
   process.env.NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO === "true";

@@ -13,9 +13,9 @@ import type {
   MonitoringHistory as History,
   MonitoringSeries,
 } from "@workspace/towbar-web-client";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
 
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import { monitoringChartGaps } from "./monitoring-chart-gaps";
 import {
   MonitoringEventMarker,

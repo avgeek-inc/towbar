@@ -1,7 +1,7 @@
 import {
   InlineExternalLink,
   type InlineExternalLinkProps,
-} from "@workspace/web-design-system/navigation/inline-external-link";
+} from "@avgeek-oss/design-system/navigation/inline-external-link";
 
 export function DomainLink({
   children,

@@ -1,15 +1,15 @@
 import { displayDateTime } from "@/lib/date-time-display";
 import { memo, useEffect, useState } from "react";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import { Tooltip } from "@avgeek-oss/design-system/overlays/tooltip";
 import type { MonitoringHistory } from "@workspace/towbar-web-client";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
-import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
+} from "@avgeek-oss/design-system/patterns/resource-table";
+import { useTablePagination } from "@avgeek-oss/design-system/hooks/use-table-pagination";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 const formatDate = displayDateTime;
 
 type Event = MonitoringHistory["events"][number];

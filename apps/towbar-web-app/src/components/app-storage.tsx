@@ -2,9 +2,9 @@
 
 import type { AppStorageResponse } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { formatDate } from "./dashboard-overview";
@@ -13,9 +13,9 @@ import { InlineLink } from "./page-parts";
 const statuses = {
   mounted: { label: "Mounted", color: "success" },
   pending: { label: "Pending deployment", color: "warning" },
-  retained: { label: "Retained", color: "secondary" },
+  retained: { label: "Retained", color: "default" },
   not_mounted: { label: "Not mounted", color: "warning" },
-  unknown: { label: "Not checked", color: "secondary" },
+  unknown: { label: "Not checked", color: "default" },
 } as const;
 
 export function AppStorage({ appId }: { appId: string }) {
@@ -54,8 +54,10 @@ export function AppStorage({ appId }: { appId: string }) {
           key: "status",
           header: "Status",
           cell: (volume) => (
-            <Chip variant={statuses[volume.status].color} size="small">
-              {statuses[volume.status].label}
+            <Chip color={statuses[volume.status].color} size="sm">
+              <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                {statuses[volume.status].label}
+              </Chip.Label>
             </Chip>
           ),
         },

@@ -1,17 +1,17 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { ScoutIcon } from "./scout-icons";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+} from "@avgeek-oss/design-system/patterns/resource-table";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { RelativeTime } from "./last-synced-time";
@@ -69,12 +69,16 @@ export function DeployableVulnerabilities({
       key: "severity",
       header: "Severity",
       cell: (finding) => (
-        <Chip
-          variant={severityVariant(finding.severity)}
+        <TooltipText
+          className="inline-flex"
           tooltip={severityTooltip(finding.severity)}
         >
-          {finding.severity}
-        </Chip>
+          <Chip color={severityVariant(finding.severity)}>
+            <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+              {finding.severity}
+            </Chip.Label>
+          </Chip>
+        </TooltipText>
       ),
       className: "whitespace-nowrap",
     },

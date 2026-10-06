@@ -9,12 +9,12 @@ import {
 import { DetailSettingsContext, SecondaryItems } from "./secondary-sidebar";
 import { FloppyDiskIcon } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   HeadingHelp,
   type HeadingDocumentation,
-} from "@workspace/web-design-system/overlays/heading-help";
-import { NewTabIndicator } from "@workspace/web-design-system/navigation/new-tab-indicator";
+} from "@avgeek-oss/design-system/overlays/heading-help";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
 
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,25 +25,26 @@ import type { ComponentProps, FormEvent, Key, ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
-import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
+import { AlertDialog } from "@avgeek-oss/design-system/overlays/alert-dialog";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import {
   Field,
   FieldDescription,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
-import { Input } from "@workspace/web-design-system/forms/input";
-import type { InputProps } from "@workspace/web-design-system/forms/input";
-import { Textarea } from "@workspace/web-design-system/forms/textarea";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { PageSection } from "@workspace/web-design-system/layouts/page";
-import { cn } from "@workspace/web-design-system/lib/utils";
-import { ApplicationPage } from "@workspace/web-page-sections/page";
-import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
+} from "@avgeek-oss/design-system/forms/field";
+import { PasswordInput } from "@avgeek-oss/design-system/forms/password-input";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import type { InputProps } from "@avgeek-oss/design-system/forms/input";
+import { Textarea } from "@avgeek-oss/design-system/forms/textarea";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import { Page, PageSection } from "@avgeek-oss/design-system/layouts/page";
+import { AppShellBreadcrumb } from "@avgeek-oss/design-system/layouts/app-shell-breadcrumb";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
+import { ApplicationPage } from "@avgeek-oss/design-system/patterns/pages/page";
+import type { BreadcrumbAncestors } from "@avgeek-oss/design-system/patterns/pages/page";
 
 import { refreshApiQueries } from "@/hooks/use-api-query";
 import {
@@ -76,6 +77,7 @@ export function DashboardPage({
   breadcrumbLabel,
   breadcrumbSwitcher,
   children,
+  contentOwnsTitle = false,
   icon,
   title,
   titleContent,
@@ -91,6 +93,7 @@ export function DashboardPage({
     sourceId?: string;
   };
   children: ReactNode;
+  contentOwnsTitle?: boolean;
   icon: ComponentProps<typeof HugeiconsIcon>["icon"];
   title: string;
   titleContent?: ReactNode;
@@ -109,6 +112,25 @@ export function DashboardPage({
   const switcherKey = breadcrumbSwitcher
     ? `${breadcrumbSwitcher.kind}:${breadcrumbSwitcher.id}`
     : undefined;
+  if (contentOwnsTitle) {
+    return (
+      <>
+        <AppShellBreadcrumb
+          items={[...breadcrumbAncestors, { label: title }]}
+          title={title}
+        />
+        <Page>
+          <PageSection
+            className="content-grid pt-0 sm:pt-0"
+            xPadding="none"
+            yPadding="compact"
+          >
+            {children}
+          </PageSection>
+        </Page>
+      </>
+    );
+  }
   return (
     <PageSelectionContext.Provider value={setSelection}>
       <ApplicationPage
@@ -378,7 +400,7 @@ export function ActionButton<T>({
   preserveLabelWhilePending?: boolean;
   redirectOnSuccess?: (result: T) => string;
   success: string;
-  variant?: "danger" | "primary" | "secondary" | "warning";
+  variant?: "danger" | "primary" | "secondary";
 }) {
   const { can } = useAccess();
   const [busy, setBusy] = useState(false);
@@ -452,13 +474,7 @@ export function ActionButton<T>({
               </Button>
               <Button
                 isDisabled={busy || isDisabled}
-                variant={
-                  variant === "danger"
-                    ? "danger"
-                    : variant === "warning"
-                      ? "warning"
-                      : "primary"
-                }
+                variant={variant === "danger" ? "danger" : "primary"}
                 onPress={() => {
                   setIsConfirming(false);
                   void runAction();
@@ -659,6 +675,12 @@ export function InlineLink({
   className?: string;
   href: string;
 }) {
+  if (target === "_blank")
+    return (
+      <InlineExternalLink {...props} href={href} className={className}>
+        {children}
+      </InlineExternalLink>
+    );
   return (
     <Link
       {...props}
@@ -670,7 +692,6 @@ export function InlineLink({
       target={target}
     >
       {children}
-      {target === "_blank" ? <NewTabIndicator /> : null}
     </Link>
   );
 }

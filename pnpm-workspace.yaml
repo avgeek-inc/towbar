@@ -23,7 +23,7 @@ overrides:
   "postcss@8.5.10": 8.5.18
   "proxy-addr@2.0.7": 2.0.8
   "source-map-js@1.2.1": 1.2.2
-  "sharp@0.34.5": 0.35.0
+  "sharp@<0.35.5": 0.35.5
   "tar@7.5.13": 7.5.19
   "undici@7.25.0": 7.29.1
   "websocket-driver@0.7.4": 0.7.5
@@ -41,10 +41,6 @@ catalog:
   "@aws-sdk/client-s3": ^3.1134.0
   "@aws-sdk/lib-storage": 3.1127.0
   "@eslint/js": ^9.39.4
-  "@fontsource-variable/inter": ^5.3.0
-  "@heroui/react": 3.2.6
-  "@heroui/styles": 3.2.6
-  "@hookform/resolvers": ^5.2.2
   "@hugeicons/core-free-icons": 4.3.5
   "@hugeicons/react": ^1.1.10
   "@tailwindcss/postcss": ^4.2.4
@@ -55,24 +51,16 @@ catalog:
   "@types/node": 26.6.3
   "@types/react": ^19.3.0
   "@types/react-dom": ^19.3.0
-  clsx: ^2.1.1
   drizzle-orm: 0.45.3
   eslint: ^9.39.4
   next: 16.3.6
   postgres: ^3.4.9
   prettier: 3.9.9
   react: ^19.3.0
-  react-aria-components: ^1.21.1
   react-dom: ^19.3.0
-  react-hook-form: ^7.88.0
-  recharts: ^3.10.1
-  tailwind-merge: ^3.7.0
-  tailwindcss: ^4.2.4
   typescript: ^5.9.3
   yaml: ^2.9.1
   zod: ^4.5.4
 
-packageExtensions:
-  "@heroui/react@3.2.4":
-    dependencies:
-      "@internationalized/date": "^3.12.4"
+minimumReleaseAgeExclude:
+  - "@avgeek-oss/design-system@1.1.0"

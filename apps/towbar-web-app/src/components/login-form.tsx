@@ -1,34 +1,25 @@
 "use client";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Login01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
-
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useState, type FormEvent } from "react";
-
-import { IdentityCredentialsForm } from "@workspace/identity-web-ui/identity-credentials-form";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
+import { useEffect, useRef, useState } from "react";
 import {
-  FieldDescription,
-  Field,
-  FieldError,
-  FieldGroup,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { PasswordInput } from "@workspace/web-design-system/forms/password-input";
-
+  TeamSetup,
+  IdentityCredentialsForm,
+  Button,
+} from "@avgeek-oss/design-system";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Login01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { SecondFactorChallenge } from "./second-factor-challenge";
-import {
-  browserDateTimePreferences,
-  DateTimePreferenceFields,
-  type DateTimePreferenceOptions,
-} from "./date-time-preference-fields";
+import type { DateTimePreferenceOptions } from "@avgeek-oss/design-system/patterns/settings/date-time-preference-fields";
 import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { AuthFrame, authTextActionClassName } from "@/components/auth-frame";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import {
+  AuthFrame,
+  AuthBrand,
+  authTextActionClassName,
+} from "@/components/auth-frame";
 import { api } from "@/lib/api";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -41,7 +32,10 @@ export function LoginForm() {
   const next = safeNextPath(params.get("next"));
   const [setup, setSetup] = useState<SetupStatus>();
   const [twoFactor, setTwoFactor] = useState(false);
+  const passkeyPending = useRef(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const passkeyController = useRef<AbortController | null>(null);
+  useEffect(() => () => passkeyController.current?.abort(), []);
   const [statusError, setStatusError] = useState<string>();
 
   useEffect(() => {
@@ -85,22 +79,17 @@ export function LoginForm() {
   if (twoFactor) return <SecondFactorChallenge next={next} />;
   return (
     <AuthFrame
-      description="Sign in to your team’s Towbar instance."
       title="Sign in"
+      description="Sign in to your team’s Towbar instance."
     >
       <IdentityCredentialsForm
-        errorPresentation="toast"
-        submitIcon={
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={Login01Icon}
-            className="size-4 shrink-0"
-          />
-        }
         identifierLabel="Email"
         identifierType="email"
+        identifierAutoComplete="email"
+        disabled={passkeyBusy}
+        submitIcon={<HugeiconsIcon aria-hidden icon={Login01Icon} size={16} />}
         passwordAction={
-          <Link className={authTextActionClassName} href="/forgot-password">
+          <Link href="/forgot-password" className={authTextActionClassName}>
             Forgot password?
           </Link>
         }
@@ -124,17 +113,23 @@ export function LoginForm() {
         }}
       />
       <Button
-        variant="secondary"
         className="w-full"
+        variant="secondary"
         isDisabled={passkeyBusy}
         onPress={async () => {
+          if (passkeyPending.current) return;
+          passkeyPending.current = true;
           setPasskeyBusy(true);
+          const controller = new AbortController();
+          passkeyController.current = controller;
           try {
-            await verifyPasskeySecondFactor(new AbortController().signal);
+            await verifyPasskeySecondFactor(controller.signal);
             window.location.replace(next);
           } catch (error) {
-            toast.danger(passkeyError(error));
+            if (!controller.signal.aborted) toast.danger(passkeyError(error));
           } finally {
+            passkeyPending.current = false;
+            passkeyController.current = null;
             setPasskeyBusy(false);
           }
         }}
@@ -146,179 +141,29 @@ export function LoginForm() {
 }
 
 function InitialTeamSetup({ options }: { options: DateTimePreferenceOptions }) {
-  const teamId = useId();
-  const nameId = useId();
-  const emailId = useId();
-  const passwordId = useId();
-  const confirmPasswordId = useId();
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submissionError, setSubmissionError] = useState<string>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dateTimePreferences, setDateTimePreferences] = useState(() =>
-    browserDateTimePreferences(options),
-  );
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (isSubmitting) return;
-    const data = new FormData(event.currentTarget);
-    const teamName = String(data.get("teamName") ?? "").trim();
-    const displayName = String(data.get("displayName") ?? "").trim();
-    const email = String(data.get("email") ?? "").trim();
-    const password = String(data.get("password") ?? "");
-    const confirmPassword = String(data.get("confirmPassword") ?? "");
-    const nextErrors: Record<string, string> = {};
-    if (!teamName) nextErrors.teamName = "Team name is required";
-    if (!displayName) nextErrors.displayName = "Name is required";
-    if (!/^\S+@\S+\.\S+$/u.test(email)) {
-      nextErrors.email = "Enter a valid email address";
-    }
-    if (password.length < 15) {
-      nextErrors.password = "Use at least 15 characters";
-    }
-    if (confirmPassword !== password) {
-      nextErrors.confirmPassword = "Passwords do not match";
-    }
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    setSubmissionError(undefined);
-    setIsSubmitting(true);
-    try {
-      await api.post("/v1/public/auth/setup", {
-        confirmPassword,
-        dateTimePreferences,
-        teamName,
-        displayName,
+  return (
+    <TeamSetup
+      brand={<AuthBrand />}
+      preferenceOptions={options}
+      onSubmit={async ({
+        team,
+        name,
         email,
         password,
-      });
-      window.location.replace("/");
-    } catch (error) {
-      setSubmissionError(
-        error instanceof Error ? error.message : "Unable to set up Towbar",
-      );
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <AuthFrame
-      description="Create your team and its first Admin account."
-      title="Set up Towbar"
-    >
-      <form className="content-grid" method="post" onSubmit={submit}>
-        <FieldGroup>
-          <Field>
-            <Label htmlFor={teamId} isRequired>
-              Team name
-            </Label>
-            <Input
-              id={teamId}
-              name="teamName"
-              autoComplete="organization"
-              maxLength={120}
-              required
-            />
-            {errors.teamName ? (
-              <FieldError>{errors.teamName}</FieldError>
-            ) : null}
-          </Field>
-          <Field>
-            <Label htmlFor={nameId} isRequired>
-              Name
-            </Label>
-            <Input
-              aria-invalid={Boolean(errors.displayName)}
-              autoComplete="name"
-              id={nameId}
-              name="displayName"
-              required
-              type="text"
-            />
-            {errors.displayName ? (
-              <FieldError>{errors.displayName}</FieldError>
-            ) : null}
-          </Field>
-          <Field>
-            <Label htmlFor={emailId} isRequired>
-              Email
-            </Label>
-            <Input
-              aria-invalid={Boolean(errors.email)}
-              autoComplete="email"
-              id={emailId}
-              name="email"
-              required
-              type="email"
-            />
-            {errors.email ? <FieldError>{errors.email}</FieldError> : null}
-          </Field>
-          <Field>
-            <Label htmlFor={passwordId} isRequired>
-              Password
-            </Label>
-            <PasswordInput
-              aria-invalid={Boolean(errors.password)}
-              autoComplete="new-password"
-              id={passwordId}
-              name="password"
-              required
-            />
-            {errors.password ? (
-              <FieldError>{errors.password}</FieldError>
-            ) : null}
-          </Field>
-          <Field>
-            <Label htmlFor={confirmPasswordId} isRequired>
-              Confirm password
-            </Label>
-            <PasswordInput
-              aria-invalid={Boolean(errors.confirmPassword)}
-              autoComplete="new-password"
-              id={confirmPasswordId}
-              name="confirmPassword"
-              required
-            />
-            {errors.confirmPassword ? (
-              <FieldError>{errors.confirmPassword}</FieldError>
-            ) : null}
-          </Field>
-          <div className="content-grid">
-            <div className="grid gap-1">
-              <h2 className="text-sm font-medium">Date and time</h2>
-              <p className="text-sm text-muted">
-                Choose how dates and times appear throughout Towbar.
-              </p>
-            </div>
-            <DateTimePreferenceFields
-              disabled={isSubmitting}
-              onChange={setDateTimePreferences}
-              options={options}
-              preferences={dateTimePreferences}
-            />
-          </div>
-        </FieldGroup>
-        {submissionError ? (
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Description>{submissionError}</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        ) : null}
-        <Button className="w-full" isDisabled={isSubmitting} type="submit">
-          <HugeiconsIcon
-            aria-hidden="true"
-            icon={UserAdd01Icon}
-            className="size-4 shrink-0"
-          />
-          {isSubmitting ? "Creating team…" : "Create team"}
-        </Button>
-      </form>
-      <FieldDescription>
-        Your password must contain at least 15 characters.
-      </FieldDescription>
-    </AuthFrame>
+        ...dateTimePreferences
+      }) => {
+        if (!team.trim() || !name.trim())
+          throw new Error("Team name and your name are required");
+        await api.post("/v1/public/auth/setup", {
+          teamName: team.trim(),
+          displayName: name.trim(),
+          email: email.trim(),
+          password,
+          confirmPassword: password,
+          dateTimePreferences,
+        });
+        window.location.replace("/");
+      }}
+    />
   );
 }

@@ -7,7 +7,7 @@ import {
 } from "@/lib/date-time-display";
 import { useLocalizedChartTicks } from "@/hooks/use-localized-timestamps";
 import { memo, useMemo } from "react";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
 import { metricDefinition, scoutValue } from "./scout-controls";
 import { monitoringChartGaps } from "./monitoring-chart-gaps";
 import type { IncidentDetails } from "./scout-incident-drawer";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bindSidebarSwipe } from "@workspace/web-design-system/lib/sidebar-swipe";
+import { bindSidebarSwipe } from "@avgeek-oss/design-system/lib/sidebar-swipe";
 
 class TouchSurface extends EventTarget {
   clientWidth = 390;

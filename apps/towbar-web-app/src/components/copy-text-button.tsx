@@ -1,7 +1,7 @@
 "use client";
 import { useRef, type ReactNode } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 
 export function CopyTextButton({
   text,

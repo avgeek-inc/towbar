@@ -3,7 +3,7 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { SecondaryItems, SecondarySection } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
@@ -13,12 +13,12 @@ import {
   AlertCircleIcon,
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { DashboardPage } from "./page-parts";
 import {
   conditionDescription,

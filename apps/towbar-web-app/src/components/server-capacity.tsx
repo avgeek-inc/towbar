@@ -12,10 +12,10 @@ import type {
   RuntimeCapacity,
   SystemHealthStatus,
 } from "@workspace/towbar-web-client";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Table } from "@workspace/web-design-system/data-display/table";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Table } from "@avgeek-oss/design-system/data-display/table";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";

@@ -1,5 +1,6 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   Edit02Icon,
   FloppyDiskIcon,
@@ -11,15 +12,15 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Field, FieldLabel } from "@workspace/web-design-system/forms/field";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Field, FieldLabel } from "@avgeek-oss/design-system/forms/field";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { RelativeTime } from "./last-synced-time";
 import { ActionButton } from "./page-parts";
 import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
@@ -97,13 +98,17 @@ export function SourceEnvironments({
             className: "hidden 2xl:table-cell",
             cell: (item) =>
               item.previewsEnabled && !item.disconnectedAt ? (
-                <Chip
-                  variant="success"
-                  icon={<HugeiconsIcon icon={GitPullRequestIcon} />}
+                <TooltipText
+                  className="inline-flex"
                   tooltip={`Pull requests targeting ${item.name} can create preview deployments.`}
                 >
-                  Enabled
-                </Chip>
+                  <Chip color="success">
+                    <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                      {<HugeiconsIcon icon={GitPullRequestIcon} />}
+                      Enabled
+                    </Chip.Label>
+                  </Chip>
+                </TooltipText>
               ) : (
                 <StatusBadge status="disabled" />
               ),

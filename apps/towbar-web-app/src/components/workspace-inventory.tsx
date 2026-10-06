@@ -17,7 +17,7 @@ import {
 import {
   Tooltip,
   TooltipText,
-} from "@workspace/web-design-system/overlays/tooltip";
+} from "@avgeek-oss/design-system/overlays/tooltip";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import type {
@@ -31,17 +31,17 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   TableCellDescription,
   TableCellStack,
-} from "@workspace/towbar-web-ui/table-cell-text";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 import {
   ToggleButton,
   ToggleButtonGroup,
-} from "@workspace/web-design-system/buttons/toggle-button";
+} from "@avgeek-oss/design-system/buttons/toggle-button";
 
 import { DashboardPage } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";

@@ -1,7 +1,7 @@
 "use client";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { useApiQuery } from "@/hooks/use-api-query";
 import type { ScoutIncident } from "./scout-controls";
 export type ScoutOverviewIdentity = {

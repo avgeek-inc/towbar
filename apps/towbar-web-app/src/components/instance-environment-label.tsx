@@ -1,7 +1,7 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 import type { InstanceEnvironment } from "@workspace/towbar-web-client";
 import { EnvironmentChip } from "./environment-chip";
 

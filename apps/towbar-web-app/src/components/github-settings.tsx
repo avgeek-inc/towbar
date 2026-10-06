@@ -12,14 +12,14 @@ import type {
   GitHubConnection,
   PreviewReportingHealth,
 } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import { Tooltip } from "@avgeek-oss/design-system/overlays/tooltip";
 
 import { ActionButton, FormCard } from "@/components/page-parts";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";

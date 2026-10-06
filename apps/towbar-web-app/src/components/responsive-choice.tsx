@@ -1,10 +1,10 @@
 "use client";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PackageIcon } from "@hugeicons/core-free-icons";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Tabs } from "@avgeek-oss/design-system/navigation/tabs";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 export function ResponsiveChoice({
   label,
   value,

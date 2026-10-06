@@ -1,7 +1,6 @@
-import type { ComponentProps, ReactNode } from "react";
-
-import { KPI } from "@workspace/web-design-system/data-display/kpi";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import type { ReactNode } from "react";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 
 export function MetricCard({
   children,
@@ -11,31 +10,24 @@ export function MetricCard({
   value,
 }: {
   children?: ReactNode;
-  className?: ComponentProps<typeof KPI>["className"];
+  className?: string;
   icon?: ReactNode;
   label: string;
   value: number | string;
 }) {
   return (
-    <KPI className={cn("min-w-0", className)}>
-      <KPI.Header>
-        <KPI.Title className="inline-flex items-center gap-2">
-          {icon}
-          {label}
-        </KPI.Title>
-      </KPI.Header>
-      <KPI.Content className="grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-        {typeof value === "number" ? (
-          <KPI.Value
-            className="font-medium"
-            maximumFractionDigits={0}
-            value={value}
-          />
-        ) : (
-          <dd className="typography--h2 tracking-tight font-medium">{value}</dd>
-        )}
+    <Widget className={cn("min-w-0", className)}>
+      <Widget.Header>
+        <Widget.Title icon={icon}>{label}</Widget.Title>
+      </Widget.Header>
+      <Widget.Content className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+        <span className="typography--h2 font-medium tracking-tight tabular-nums">
+          {typeof value === "number"
+            ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+            : value}
+        </span>
         {children}
-      </KPI.Content>
-    </KPI>
+      </Widget.Content>
+    </Widget>
   );
 }

@@ -40,8 +40,8 @@ import type {
   RuntimeState,
   Source,
 } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { getDeploymentDisplayStatus } from "@/lib/deployment-status";
