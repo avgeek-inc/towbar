@@ -4,6 +4,8 @@ description: "Use a scoped Infisical machine identity to resolve deployment secr
 icon: "/assets/integration-logos/infisical.webp"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/infisical.webp"
@@ -35,27 +37,11 @@ Grant the machine identity read access to the intended project, environment, and
 
 If resolution fails, check the deployment's secret stage, path, identity permissions, network reachability, and secret version. Rotate the client secret in YAML, restart Towbar, and deploy a test reference before revoking the old credential.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/infisical-setup-light.jpg"
-      alt="Infisical integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/infisical-setup-dark.jpg"
-      alt="Infisical integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    The Infisical page confirms that Towbar loaded the runtime configuration;
-    test a reference to verify remote access.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/infisical-setup-light.jpg"
+  dark="/assets/release-v2/infisical-setup-dark.jpg"
+  alt="Infisical integration settings in Towbar."
+  width="3200"
+  height="1800"
+  caption="The Infisical page confirms that Towbar loaded the runtime configuration; test a reference to verify remote access."
+/>

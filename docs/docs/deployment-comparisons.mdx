@@ -3,34 +3,20 @@ title: Deployment comparisons
 description: Compare two deployments with equal observation windows, resource usage changes, restarts, and data coverage.
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Open a service or datastore and choose **Monitor → Compare deployments**. Select a baseline and a deployment to compare, choose the observation window, and select **Compare deployments**.
 
 Both deployments must have succeeded, belong to the same workload, and run in the same production or individual preview environment. The list includes the latest 100 successful deployments. The comparison uses the deployment identity reported by Scout, so another release's containers are not silently included.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/deployment-comparison-light.jpg"
-      alt="Compare resource usage over equal periods after two deployments became ready."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/deployment-comparison-dark.jpg"
-      alt="Compare resource usage over equal periods after two deployments became ready."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Compare resource usage over equal periods after two deployments became
-    ready.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/deployment-comparison-light.jpg"
+  dark="/assets/release-v2/deployment-comparison-dark.jpg"
+  alt="Compare resource usage over equal periods after two deployments became ready."
+  width="3200"
+  height="1800"
+  caption="Compare resource usage over equal periods after two deployments became ready."
+/>
 
 ## Choose a fair window
 

@@ -4,6 +4,8 @@ description: "Connect a Telegram bot and route events to chats or forum topics."
 icon: "/assets/integration-logos/telegram.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/telegram.svg"
@@ -29,24 +31,11 @@ Use **Test** and confirm that the sample appears in the right chat or topic. If 
 
 Service and datastore manifests can declare extra Telegram chat/topic destinations without storing the bot token. See [manifest notification routing](/docs/integrations/notifications#route-events-for-one-workload). Rotate the bot token in YAML, restart, and test before discarding the old token.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/telegram-notifications-light.jpg"
-      alt="Telegram chat destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/telegram-notifications-dark.jpg"
-      alt="Telegram chat destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Each Telegram chat or topic can subscribe to different categories.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/telegram-notifications-light.jpg"
+  dark="/assets/release-v2/telegram-notifications-dark.jpg"
+  alt="Telegram chat destinations and category subscriptions in Towbar."
+  width="3200"
+  height="1800"
+  caption="Each Telegram chat or topic can subscribe to different categories."
+/>

@@ -4,6 +4,8 @@ description: "Resolve workload secrets with a scoped Doppler service token."
 icon: "/assets/integration-logos/doppler.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/doppler.svg"
@@ -24,27 +26,11 @@ Run `sudo towbar config validate` and `sudo towbar restart`. Confirm that Dopple
 
 If a deployment cannot load its secrets, check the project/configuration covered by the token and whether the token was revoked. Apply a replacement service token in YAML, restart, verify a test deployment, and then revoke the previous token.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/doppler-setup-light.jpg"
-      alt="Doppler integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/doppler-setup-dark.jpg"
-      alt="Doppler integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    The Doppler page confirms that Towbar loaded the runtime configuration; test
-    a reference to verify remote access.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/doppler-setup-light.jpg"
+  dark="/assets/release-v2/doppler-setup-dark.jpg"
+  alt="Doppler integration settings in Towbar."
+  width="3200"
+  height="1800"
+  caption="The Doppler page confirms that Towbar loaded the runtime configuration; test a reference to verify remote access."
+/>

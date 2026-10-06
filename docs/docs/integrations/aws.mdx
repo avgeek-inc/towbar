@@ -4,6 +4,8 @@ description: "Enable one runtime AWS identity for datastore backups and restores
 icon: "/assets/integration-logos/aws.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/aws.svg"
@@ -30,30 +32,14 @@ Run `sudo towbar config validate` and `sudo towbar restart`.
 
 Towbar shows AWS only when all enabled values pass startup validation and never returns the credential in the UI or API.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/aws-setup-light.jpg"
-      alt="The AWS integration confirms that its runtime configuration is available without exposing credentials."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/aws-setup-dark.jpg"
-      alt="The AWS integration confirms that its runtime configuration is available without exposing credentials."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Runtime-managed integrations expose availability and documentation without
-    returning their credentials.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/aws-setup-light.jpg"
+  dark="/assets/release-v2/aws-setup-dark.jpg"
+  alt="The AWS integration confirms that its runtime configuration is available without exposing credentials."
+  width="3200"
+  height="1800"
+  caption="Runtime-managed integrations expose availability and documentation without returning their credentials."
+/>
 
 ## Verify backup and restore
 

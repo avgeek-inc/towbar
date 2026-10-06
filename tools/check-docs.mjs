@@ -114,7 +114,7 @@ async function checkLink(href, from) {
 for (const [route, source] of pages) {
   const prose = source.replace(/```[\s\S]*?```/g, "");
   for (const match of prose.matchAll(
-    /(?:(?:href|src)="([^"\n]+)"|\]\((\/[^\s)]+)\))/g,
+    /(?:(?:href|src|light|dark)="([^"\n]+)"|\]\((\/[^\s)]+)\))/g,
   )) {
     await checkLink(match[1] ?? match[2], route);
   }

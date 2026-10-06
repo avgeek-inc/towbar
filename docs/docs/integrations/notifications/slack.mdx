@@ -4,6 +4,8 @@ description: "Connect a Slack bot, add channel IDs, and verify notification deli
 icon: "/assets/integration-logos/slack.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/slack.svg"
@@ -29,24 +31,11 @@ Use the row's test action to send a sample notification. If Slack rejects it, ve
 
 For a single workload, additional Slack channel IDs can be declared in its [manifest notification routing](/docs/integrations/notifications#route-events-for-one-workload). Those appear read-only under the entity's **Monitor → Notifications** page after sync. Keep the bot token in YAML, never in the manifest. Rotate it by applying new YAML, restarting Towbar, and testing a destination before revoking the old token.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/slack-notifications-light.jpg"
-      alt="Slack notification destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/slack-notifications-dark.jpg"
-      alt="Slack notification destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Each Slack channel can subscribe to different operational categories.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/slack-notifications-light.jpg"
+  dark="/assets/release-v2/slack-notifications-dark.jpg"
+  alt="Slack notification destinations and category subscriptions in Towbar."
+  width="3200"
+  height="1800"
+  caption="Each Slack channel can subscribe to different operational categories."
+/>

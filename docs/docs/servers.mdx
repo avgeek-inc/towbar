@@ -3,6 +3,8 @@ title: "Servers"
 description: "Register an Ubuntu host, verify its identity, and prepare it for deployments."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 A server is a workspace-owned Ubuntu host. Towbar uses SSH to build and run workloads on it. Multiple Repositories can share the same server without duplicating credentials or competing server configurations.
 
 Follow [Register a server](/docs/servers/register) for SSH and host trust, [Prepare a server](/docs/servers/setup) for runtime prerequisites, and [Server operations](/docs/servers/operations) for checks, capacity, terminal access, and cleanup. [Scout Agent](/docs/scout) covers opt-in monitoring, and [Remove a server](/docs/servers/remove) explains the control-plane and host effects of removal.
@@ -29,30 +31,14 @@ After registering a server, use **Settings → Configuration → Server info** t
   investigating why it changed.
 </Warning>
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/server-credentials-light.jpg"
-      alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/server-credentials-dark.jpg"
-      alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Select a stored SSH key under Configuration. Host verified records the
-    server identity check.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/server-credentials-light.jpg"
+  dark="/assets/release-v2/server-credentials-dark.jpg"
+  alt="Select a stored SSH key under Configuration. Host verified records the server identity check."
+  width="3200"
+  height="1800"
+  caption="Select a stored SSH key under Configuration. Host verified records the server identity check."
+/>
 
 ## Prepare the runtime
 
@@ -66,30 +52,14 @@ Towbar reuses compatible installations. It does not remove conflicting packages 
 
 If the server presents a different host key, Towbar pauses the connection and asks you to verify the new fingerprint. A server rebuild can cause this, but so can an intercepted connection. Update trust only after confirming the new identity independently.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/server-preparation-light.jpg"
-      alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/server-preparation-dark.jpg"
-      alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Server Setup keeps the complete inspection and prerequisites checklist
-    available after setup finishes.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/server-preparation-light.jpg"
+  dark="/assets/release-v2/server-preparation-dark.jpg"
+  alt="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
+  width="3200"
+  height="1800"
+  caption="Server Setup keeps the complete inspection and prerequisites checklist available after setup finishes."
+/>
 
 ## Interactive terminal
 
@@ -170,30 +140,14 @@ Detection is best effort: blocked, unsupported, or slow metadata does not fail a
 
 Capacity comes from server checks. A displayed value is an observation, not a guarantee that the host is reachable at that instant. Check its timestamp and the latest check result during an incident.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/server-overview-light.jpg"
-      alt="Host capacity, connection details, and recent operations appear on the server Overview."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/server-overview-dark.jpg"
-      alt="Host capacity, connection details, and recent operations appear on the server Overview."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Host capacity, connection details, and recent operations appear on the
-    server Overview.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/server-overview-light.jpg"
+  dark="/assets/release-v2/server-overview-dark.jpg"
+  alt="Host capacity, connection details, and recent operations appear on the server Overview."
+  width="3200"
+  height="1800"
+  caption="Host capacity, connection details, and recent operations appear on the server Overview."
+/>
 
 For public routes, continue with [Domains and TLS](/docs/domains-tls). For private database access, see [Datastores](/docs/datastores#connect-privately).
 

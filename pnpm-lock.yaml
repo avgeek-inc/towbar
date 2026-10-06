@@ -146,8 +146,8 @@ importers:
         specifier: ^2.0.11
         version: 2.1.1(hono@4.13.9)
       "@modelcontextprotocol/sdk":
-        specifier: 1.30.1
-        version: 1.30.1(zod@4.5.4)
+        specifier: 1.31.0
+        version: 1.31.0(zod@4.5.4)
       "@noble/hashes":
         specifier: 2.4.0
         version: 2.4.0
@@ -397,6 +397,12 @@ importers:
       typescript:
         specifier: "catalog:"
         version: 5.9.3
+
+  docs:
+    devDependencies:
+      "@avgeek-oss/docs":
+        specifier: github:avgeek-oss/oss-docs#8476de02f2895efac1d119f9392893b11b0277a4
+        version: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4
 
   packages/eslint-config:
     devDependencies:
@@ -757,6 +763,17 @@ packages:
       next: ^16.0.0
       react: ^19.0.0
       react-dom: ^19.0.0
+
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4":
+    resolution:
+      {
+        gitHosted: true,
+        integrity: sha512-i6aCsCe63d0v6OBvPnJVnYLalAqckoIHxjRlYSU0i9wHTNAc7XyDO+FMrAxAFteixj1BHmGnftxK5UTz/ujy4A==,
+        tarball: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4,
+      }
+    version: 0.1.0
+    engines: { node: ">=24" }
+    hasBin: true
 
   "@aws-sdk/checksums@3.1001.0":
     resolution:
@@ -2437,10 +2454,10 @@ packages:
         integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==,
       }
 
-  "@modelcontextprotocol/sdk@1.30.1":
+  "@modelcontextprotocol/sdk@1.31.0":
     resolution:
       {
-        integrity: sha512-H2HxLvC3HDNybePJaLdSrU1hhUK5iQw+WvV1b01myFyI7sdVGe1u/IPTE5D9fGCiJDVtgMV/lmFkQXLmQyIFYA==,
+        integrity: sha512-UvTMgnNlnIBO/22ob2RcVGDlcvOslQs8T59+FTGdA0L27a39fdGF/EDETNtDVK4DZGpwomlsYpRdA8UXcVL/pw==,
       }
     engines: { node: ">=18" }
     peerDependencies:
@@ -5393,13 +5410,6 @@ packages:
       }
     engines: { node: ">=10.0.0" }
 
-  hono@4.13.10:
-    resolution:
-      {
-        integrity: sha512-dQuLsa5oO+47QVMVMaaD9cIv8ctmVtK1iRvwWngkfloFJMeFeuoUFDswIqZGxmGX3hrRzREgEArjkK9OgsQEhA==,
-      }
-    engines: { node: ">=16.9.0" }
-
   hono@4.13.9:
     resolution:
       {
@@ -7883,6 +7893,10 @@ snapshots:
       - vest
       - yup
 
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4":
+    dependencies:
+      prettier: 3.9.9
+
   "@aws-sdk/checksums@3.1001.0":
     dependencies:
       "@aws-sdk/core": 3.978.0
@@ -8507,10 +8521,6 @@ snapshots:
 
   "@hexagon/base64@1.1.28": {}
 
-  "@hono/node-server@2.1.1(hono@4.13.10)":
-    dependencies:
-      hono: 4.13.10
-
   "@hono/node-server@2.1.1(hono@4.13.9)":
     dependencies:
       hono: 4.13.9
@@ -8848,9 +8858,9 @@ snapshots:
 
   "@marijn/find-cluster-break@1.0.4": {}
 
-  "@modelcontextprotocol/sdk@1.30.1(zod@4.5.4)":
+  "@modelcontextprotocol/sdk@1.31.0(zod@4.5.4)":
     dependencies:
-      "@hono/node-server": 2.1.1(hono@4.13.10)
+      "@hono/node-server": 2.1.1(hono@4.13.9)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -8860,7 +8870,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.2.1
       express-rate-limit: 8.7.0(express@5.2.1)
-      hono: 4.13.10
+      hono: 4.13.9
       jose: 6.2.12
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -10814,8 +10824,6 @@ snapshots:
       function-bind: 1.1.2
 
   heap-js@2.7.1: {}
-
-  hono@4.13.10: {}
 
   hono@4.13.9: {}
 

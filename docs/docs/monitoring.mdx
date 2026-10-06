@@ -3,6 +3,8 @@ title: "Monitoring, health, and capacity"
 description: "Read control-plane checks, runtime health, resource usage, and operation history."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Towbar exposes several kinds of health. Read the relevant check and its timestamp before deciding whether an installation or workload is ready.
 
 Start with [Operate Towbar](/docs/operate/index) for an investigation path. Use [System and workload health](/docs/operate/health) for fresh checks, [Performance history](/docs/operate/performance) for Scout measurements, and [Investigate incidents](/docs/operate/incidents) for alert context and delivery outcomes.
@@ -40,30 +42,14 @@ for setup, backups, and help if an upgrade fails.
 | ------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
 | Control plane | API/database, Temporal, worker/maintenance | API reachability, workflow admission, recent worker activity, and version alignment |
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/system-health-light.jpg"
-      alt="System health shows control-plane checks and Towbar database storage."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/system-health-dark.jpg"
-      alt="System health shows control-plane checks and Towbar database storage."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    System health focuses on Towbar's control plane; provider availability lives
-    under Integrations.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/system-health-light.jpg"
+  dark="/assets/release-v2/system-health-dark.jpg"
+  alt="System health shows control-plane checks and Towbar database storage."
+  width="3200"
+  height="1800"
+  caption="System health focuses on Towbar's control plane; provider availability lives under Integrations."
+/>
 
 ## Server and workload health
 
@@ -77,30 +63,14 @@ Allocation is the limit declared for a workload. Usage is the latest observed co
 
 On **Servers → All servers**, the CPU and memory capacity columns describe each host's maximum capacity, not a workload's allocation. When Scout has measured usage, each capacity has a **% used** line below it; hover or focus that line to see when the sample was recorded. These columns are also available on mobile through the horizontally scrollable table. Missing measurements display as **Not measured**, rather than zero.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/server-workloads-light.jpg"
-      alt="A server’s Services page compares observed usage with allocated CPU and memory."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/server-workloads-dark.jpg"
-      alt="A server’s Services page compares observed usage with allocated CPU and memory."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    A server’s Services page compares observed usage with allocated CPU and
-    memory.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/server-workloads-light.jpg"
+  dark="/assets/release-v2/server-workloads-dark.jpg"
+  alt="A server’s Services page compares observed usage with allocated CPU and memory."
+  width="3200"
+  height="1800"
+  caption="A server’s Services page compares observed usage with allocated CPU and memory."
+/>
 
 ## Follow an operation
 

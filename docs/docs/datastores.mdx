@@ -3,6 +3,8 @@ title: "Datastores"
 description: "Run supported databases and caches with persistent storage and recovery."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Datastores are supported database and cache engines that Towbar configures with persistent storage, connection details, health checks, and backup and restore. Use a [Service](/docs/services) for any other OCI image.
 
 Use the [Datastore manifest](/docs/datastores/manifest) to review every declaration field. The [engine guides](/docs/databases) show required runtime inputs and supported versions. [Backups](/docs/backups) and [restores](/docs/restores) cover recovery.
@@ -18,27 +20,14 @@ Use the [Datastore manifest](/docs/datastores/manifest) to review every declarat
 
 Managed engines have reviewed digest-pinned defaults. Custom managed images must use a digest and the supported major version. See [Engine guides](/docs/databases) for versions, architectures, declarative runtime inputs, and restore boundaries.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/resource-overview-light.jpg"
-      alt="Datastore state and the latest deployment attempt are shown separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/resource-overview-dark.jpg"
-      alt="Datastore state and the latest deployment attempt are shown separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Datastore state and the latest deployment attempt are shown separately.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/resource-overview-light.jpg"
+  dark="/assets/release-v2/resource-overview-dark.jpg"
+  alt="Datastore state and the latest deployment attempt are shown separately."
+  width="3200"
+  height="1800"
+  caption="Datastore state and the latest deployment attempt are shown separately."
+/>
 
 ## Browse datastores
 
@@ -48,27 +37,14 @@ staging, or another environment. **Group by ID** brings together instances
 with the same manifest `id`; **Unified view** returns to the flat
 list. Filters still apply to the selected view.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/datastores-environments-light.jpg"
-      alt="Group datastores by environment to see where each database is used."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/datastores-environments-dark.jpg"
-      alt="Group datastores by environment to see where each database is used."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Group datastores by environment to see where each database is used.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/datastores-environments-light.jpg"
+  dark="/assets/release-v2/datastores-environments-dark.jpg"
+  alt="Group datastores by environment to see where each database is used."
+  width="3200"
+  height="1800"
+  caption="Group datastores by environment to see where each database is used."
+/>
 
 ## Add a database
 

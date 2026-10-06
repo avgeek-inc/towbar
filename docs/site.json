@@ -1,22 +1,4 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "appearance": {
-    "default": "system"
-  },
-  "icons": {
-    "library": "lucide"
-  },
-  "styling": {
-    "eyebrows": "breadcrumbs",
-    "codeblocks": "system"
-  },
-  "interaction": {
-    "drilldown": false
-  },
-  "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
-  },
   "name": "Towbar",
   "description": "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own.",
   "logo": {
@@ -1014,11 +996,11 @@
       "og:image": "https://www.towbar.dev/assets/towbar-og.png",
       "og:image:width": "1200",
       "og:image:height": "630",
-      "og:image:alt": "Towbar — Open-Source Git-native PaaS",
+      "og:image:alt": "Towbar \u2014 Open-Source Git-native PaaS",
       "twitter:card": "summary_large_image",
       "twitter:image": "https://www.towbar.dev/assets/towbar-og.png",
       "canonical": "https://www.towbar.dev",
-      "twitter:image:alt": "Towbar — Open-Source Git-native PaaS"
+      "twitter:image:alt": "Towbar \u2014 Open-Source Git-native PaaS"
     },
     "organization": {
       "name": "Towbar",
