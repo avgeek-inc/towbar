@@ -414,6 +414,15 @@ async function updateDocumentDimensions(manifest) {
           : match;
       },
     );
+    content = content.replace(
+      /(<(?:Screenshot|ThemeImage)\s+[^>]*?light="\/assets\/release-v2\/([^"/]+)"[^>]*?width=")\d+("\s+height=")\d+("[^>]*>)/gs,
+      (match, before, name, between, after) => {
+        const size = dimensions.get(name);
+        return size
+          ? `${before}${size.width}${between}${size.height}${after}`
+          : match;
+      },
+    );
     await writeFile(file, content);
   }
 }

@@ -4,6 +4,8 @@ description: "Register one or more Discord webhooks and choose events for each."
 icon: "/assets/integration-logos/discord.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/discord.svg"
@@ -32,24 +34,11 @@ Use **Test** to send a sample notification after confirmation. Check the intende
 
 Additional Discord destinations for one service or datastore can be declared in its [manifest](/docs/integrations/notifications#route-events-for-one-workload). Do not put webhook tokens in that manifest.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/discord-notifications-light.jpg"
-      alt="Discord webhook IDs and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/discord-notifications-dark.jpg"
-      alt="Discord webhook IDs and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Each configured Discord webhook ID has its own category subscriptions.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/discord-notifications-light.jpg"
+  dark="/assets/release-v2/discord-notifications-dark.jpg"
+  alt="Discord webhook IDs and category subscriptions in Towbar."
+  width="3200"
+  height="1800"
+  caption="Each configured Discord webhook ID has its own category subscriptions."
+/>

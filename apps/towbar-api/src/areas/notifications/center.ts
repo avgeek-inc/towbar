@@ -32,7 +32,7 @@ function receiptScope(owner: NotificationOwner) {
   );
 }
 
-export async function listNotificationCenter(
+export function listNotificationCenter(
   owner: NotificationOwner,
   input: z.infer<typeof notificationCenterQuery>,
   database: Database = getTowbarDatabase(),

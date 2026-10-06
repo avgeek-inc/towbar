@@ -59,23 +59,32 @@ Changes to fixture routes must be reviewed against the public gateway allowlist.
 
 ## Documentation
 
-The Mintlify project lives in `docs/`, organized into Guides, Self-hosting, and
-Reference. Write task pages around prerequisites, the action, and a way to verify
+The Mintlify project lives in `docs/`, with dropdown categories and grouped pages.
+[Avgeek OSS Docs](https://github.com/avgeek-oss/oss-docs) owns the shared homepage
+layouts, header behavior, screenshots, and authoring conventions. Towbar owns
+`docs/site.json`, product content, navigation destinations, assets, and generated
+API schemas. The kit dependency lives in the `towbar-docs` workspace so runtime
+Docker builds do not install or package documentation tooling. Upgrade it with
+`pnpm --filter towbar-docs add -D @avgeek-oss/docs@<version>`.
+Write task pages around prerequisites, the action, and a way to verify
 the result. Keep manifest field details in the reference and link to them from guides.
 Use documentation-only IPs and domains, and never include credentials in examples
 or screenshots. Feature screenshots should include light and dark variants,
 descriptive alt text, and enough resolution for Retina displays.
 
-When the public manifest schema or starter manifest changes, update their
-published copies:
+After changing the site configuration, upgrading the pinned documentation kit,
+or changing published manifest examples, regenerate the checked-in artifacts:
 
 ```bash
 pnpm docs:sync
 pnpm docs:check
 ```
 
-`pnpm docs:check` verifies page metadata, navigation, internal links, and published
-artifacts. Core tests parse the YAML examples against the deployment contract.
+`pnpm docs:check` rejects edits to shared generated files and verifies page
+metadata, navigation, internal links, and published artifacts. Import snippets
+from `/snippets/oss/` directly in MDX pages; never edit `docs/oss-docs.css`,
+`docs/oss-docs.js`, `docs/docs.json`, or `docs/snippets/oss/` by hand. Keep
+product-only logo styles in `docs/style.css`. Core tests parse the YAML examples against the deployment contract.
 
 Install the [Mintlify CLI](https://www.mintlify.com/docs/cli/install), then run
 `mint dev` from `docs/` for a local preview. Before publishing, run `mint validate`

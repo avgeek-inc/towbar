@@ -1,0 +1,11 @@
+{
+  "name": "towbar-docs",
+  "private": true,
+  "scripts": {
+    "sync": "oss-docs sync --config site.json --dir .",
+    "check": "oss-docs check --config site.json --dir ."
+  },
+  "devDependencies": {
+    "@avgeek-oss/docs": "github:avgeek-oss/oss-docs#8476de02f2895efac1d119f9392893b11b0277a4"
+  }
+}

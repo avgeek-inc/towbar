@@ -3,6 +3,8 @@ title: "Email (SMTP)"
 description: "Connect an SMTP server, add recipients, and test operational and account email."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Towbar uses one SMTP connection for operational notifications and account messages such as invitations, password resets, and email-change confirmation. The connection belongs in the protected control-plane YAML file; operational recipients are managed in the dashboard.
 
 ## Prepare an SMTP account
@@ -30,27 +32,11 @@ Choose **Add email**, enter an operational recipient, and choose **All** or **Fa
 
 If testing fails, check the sender identity, SMTP authentication, TLS mode, host resolution, and the [delivery result](/docs/integrations/notifications#delivery-history). A provider acceptance does not guarantee inbox placement. Rotate a credential in YAML, validate and restart, send a test message, and only then revoke the previous credential.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/email-notifications-light.jpg"
-      alt="Email notification destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/email-notifications-dark.jpg"
-      alt="Email notification destinations and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Email destinations and their category subscriptions appear here once SMTP is
-    configured.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/email-notifications-light.jpg"
+  dark="/assets/release-v2/email-notifications-dark.jpg"
+  alt="Email notification destinations and category subscriptions in Towbar."
+  width="3200"
+  height="1800"
+  caption="Email destinations and their category subscriptions appear here once SMTP is configured."
+/>

@@ -3,6 +3,8 @@ title: "Domains and TLS"
 description: "Expose an HTTP service through Caddy with direct DNS or Cloudflare DNS validation."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Towbar uses Caddy on the target server to route public HTTP traffic. Domain settings live with the service or datastore in the manifest; provider credentials come from the Towbar runtime configuration.
 
 For [Compose projects](/docs/services/modes/compose#route-tls-per-service), declare `services.<service>.tls.mode` beside each route's `port`, `domains`, and `ingress`. Routes in one project may mix direct and Cloudflare DNS TLS. Existing Compose manifests without `tls` keep direct validation.
@@ -63,29 +65,14 @@ Towbar creates or attaches only resources carrying its ownership identity, write
 
 Enabling Tunnel does not expose SSH, the Docker API, Towbar's control plane, or another service on the host. Cloudflare Access is an explicit manifest choice. Credential rotation replaces the runtime configuration on the next reconciliation.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/previews-light.jpg"
-      alt="Preview environments show their URL, commit, expiry, and cleanup status."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/previews-dark.jpg"
-      alt="Preview environments show their URL, commit, expiry, and cleanup status."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Preview environments show their URL, commit, expiry, and cleanup status.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/previews-light.jpg"
+  dark="/assets/release-v2/previews-dark.jpg"
+  alt="Preview environments show their URL, commit, expiry, and cleanup status."
+  width="3200"
+  height="1800"
+  caption="Preview environments show their URL, commit, expiry, and cleanup status."
+/>
 
 ## Move a domain to another workload
 

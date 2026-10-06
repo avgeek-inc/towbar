@@ -3,6 +3,8 @@ title: "Personal settings"
 description: "Manage your profile, sign-in methods, browser sessions, and personal API keys."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Open **Manage → My Settings**, or select your name at the bottom of the sidebar for quick links to Profile, Preferences, Auth & Security, and My API Keys. The account menu also links to the changelog and documentation, opens an email for feedback, and lets you log out.
 
 These settings affect your own account. Your team role determines which operational actions you can take, but every user can secure their account and review their sessions.
@@ -25,27 +27,14 @@ Your personal API keys and MCP connections use your current preferences. Team AP
 
 Open **Email & Password** for the separate email and password forms. Save each form independently.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/email-password-light.jpg"
-      alt="Email and password have separate forms in My Settings."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/email-password-dark.jpg"
-      alt="Email and password have separate forms in My Settings."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Email and password have separate forms in My Settings.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/email-password-light.jpg"
+  dark="/assets/release-v2/email-password-dark.jpg"
+  alt="Email and password have separate forms in My Settings."
+  width="3200"
+  height="1800"
+  caption="Email and password have separate forms in My Settings."
+/>
 
 ### Change your email
 

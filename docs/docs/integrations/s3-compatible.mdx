@@ -4,6 +4,8 @@ description: "Configure an S3-compatible endpoint for managed database backups a
 icon: "/assets/integration-logos/aws.svg"
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 <img
   className="towbar-doc-brand-logo"
   src="/assets/integration-logos/aws.svg"
@@ -31,27 +33,11 @@ Set `addressingStyle` to `auto`, `path`, or `virtual` as required by the service
 
 Configure a managed datastore's [backup policy](/docs/backups), create a real backup, and complete a [fresh-target restore](/docs/restores). Check remote object permissions, versioning, retention, and the final restore state before relying on it for recovery. A configured chip alone does not prove the endpoint accepts writes or reads. Rotate keys by applying new YAML, verifying an operation, and then revoking the old keys. [Cloudflare R2](/docs/integrations/r2) has its own integration slug and setup guide.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/s3-setup-light.jpg"
-      alt="S3-compatible storage integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/s3-setup-dark.jpg"
-      alt="S3-compatible storage integration settings in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    The S3-compatible provider appears here after its runtime configuration
-    validates.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/s3-setup-light.jpg"
+  dark="/assets/release-v2/s3-setup-dark.jpg"
+  alt="S3-compatible storage integration settings in Towbar."
+  width="3200"
+  height="1800"
+  caption="The S3-compatible provider appears here after its runtime configuration validates."
+/>
