@@ -29,7 +29,7 @@ RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
     --config.blockExoticSubdeps=false deploy --legacy --offline \
     --store-dir /pnpm/store /prod/towbar-worker
 
-FROM cgr.dev/chainguard/wolfi-base@sha256:1d95114038f76513a9ace6fca107d5582b08c65981f81f61cb56bf7fd2ef216d AS runner
+FROM cgr.dev/chainguard/wolfi-base@sha256:00fd4e9cdd9c5576c336d979fa663f9976f160c456b6ae9fe87e19c4e9c759a2 AS runner
 WORKDIR /app
 ENV NODE_ENV=production WORKER_HEALTH_PORT=4030
 RUN apk add --no-cache \
