@@ -1,17 +1,17 @@
 "use client";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { useAccess } from "./access-context";
 import {
   ProfileSettings as LibraryProfileSettings,
   SessionsSettings,
+  ProfileImageSettings,
+  PasswordChangeSettings,
 } from "@avgeek-oss/design-system";
 
 import type { TowbarUser, UserSession } from "@workspace/towbar-web-client";
 
-import { UserAvatar as Avatar } from "@avgeek-oss/design-system/patterns/user-avatar";
-
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
-import { FormCard, SimpleForm } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { EmailSettings } from "./email-settings";
@@ -24,28 +24,10 @@ export function ProfileSettings() {
 
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard title="Appearance">
-        <div className="grid gap-3">
-          <span className="text-sm font-medium">Gravatar Image</span>
-          <p className="text-sm text-muted">
-            Click the image to update it on Gravatar.
-          </p>
-          <a
-            aria-label="Edit Gravatar image (opens in a new tab)"
-            className="inline-flex w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-focus"
-            href="https://gravatar.com/profile/avatars"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <Avatar
-              aria-hidden="true"
-              email={profile.data.user.email}
-              name={profile.data.user.name}
-              size="md"
-            />
-          </a>
-        </div>
-      </FormCard>
+      <ProfileImageSettings
+        email={profile.data.user.email}
+        name={profile.data.user.name}
+      />
       <LibraryProfileSettings
         key={profile.data.user.name}
         value={profile.data.user.name}
@@ -66,55 +48,13 @@ export function EmailPasswordSettings() {
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
       <EmailSettings />
-      <FormCard title="Change password">
-        <SimpleForm
-          fields={[
-            ...(!user?.twoFactorEnabled
-              ? [
-                  {
-                    autoComplete: "current-password",
-                    label: "Current password",
-                    maxLength: 1_024,
-                    minLength: 15,
-                    name: "currentPassword",
-                    required: true,
-                    type: "password",
-                    variant: "secondary" as const,
-                  },
-                ]
-              : []),
-            {
-              autoComplete: "new-password",
-              description: "Use at least 15 characters.",
-              label: "New password",
-              maxLength: 1_024,
-              minLength: 15,
-              name: "newPassword",
-              required: true,
-              type: "password",
-              variant: "secondary",
-            },
-            {
-              autoComplete: "new-password",
-              label: "Confirm new password",
-              maxLength: 1_024,
-              minLength: 15,
-              name: "confirmPassword",
-              required: true,
-              type: "password",
-              variant: "secondary",
-            },
-          ]}
-          onSubmit={async (values) => {
-            if (values.newPassword !== values.confirmPassword) {
-              throw new Error("New passwords do not match");
-            }
-            await api.put("/v1/core/profile/password", values);
-          }}
-          successMessage="Password changed"
-          submitLabel="Change password"
-        />
-      </FormCard>
+      <PasswordChangeSettings
+        requireCurrentPassword={!user?.twoFactorEnabled}
+        onChangePassword={async (values) => {
+          await api.put("/v1/core/profile/password", values);
+          toast.success("Password changed");
+        }}
+      />
     </div>
   );
 }

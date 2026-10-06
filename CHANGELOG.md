@@ -7,6 +7,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Changed
 
+- Adopt design system 1.2.1 for shared profile images, password changes, passkey recovery, and team settings tables and dialogs. Keep passkey verification cancellable until server verification begins.
+
 - Use the shared OSS documentation kit for Mintlify homepage layouts, header behavior and themed screenshots while keeping product content and navigation in Towbar.
 
 - Use design system 1.2.0 for shared application UI, including the notification menu, full-width account menu dividers, and bottom-center toasts on public authentication screens.

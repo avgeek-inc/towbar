@@ -1,11 +1,5 @@
 "use client";
 
-import { FieldDescription } from "@avgeek-oss/design-system/forms/field";
-import {
-  TableCellStack,
-  TableCellDescription,
-} from "@avgeek-oss/design-system/data-display/table-cell-text";
-
 import { TeamAuditLogs } from "./team-audit-logs";
 import { canShowApiMcpSettings } from "@/lib/config";
 import {
@@ -36,21 +30,20 @@ import { CopyTextButton } from "./copy-text-button";
 import { ApiMcpSettings } from "./api-mcp-settings";
 import { Key01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@avgeek-oss/design-system/buttons/button";
-import { UserAvatar as Avatar } from "@avgeek-oss/design-system/patterns/user-avatar";
-import { Widget } from "@avgeek-oss/design-system/data-display/widget";
-import { Label } from "@avgeek-oss/design-system/forms/label";
-import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
-import { Modal } from "@avgeek-oss/design-system/overlays/modal";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import {
-  ResourceTable,
-  type ResourceTableColumn,
-} from "@avgeek-oss/design-system/patterns/resource-table";
-import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { DashboardPage, SimpleForm, ActionButton } from "./page-parts";
+import { DashboardPage } from "./page-parts";
 import { SecondaryItems } from "./secondary-sidebar";
 import { PageSelectionTitle } from "./page-selection-title";
-import { AuthForm } from "@avgeek-oss/design-system";
+import {
+  TeamGeneralSettings,
+  AddMemberDialog,
+  InviteMemberDialog,
+  MemberEditDialog,
+  MembersTable,
+  InvitationsTable,
+  RemoveMemberDialog,
+} from "@avgeek-oss/design-system";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { RelativeTime } from "./last-synced-time";
 import { getPendingInvitations } from "@/lib/pending-invitations";
 import { useAccess } from "./access-context";
@@ -112,45 +105,18 @@ function usePendingInvitations(invitations: Invitation[]) {
   }, [invitations]);
   return getPendingInvitations(invitations, now);
 }
-function RoleSelect({
-  value,
-  onChange,
-}: {
-  value: WorkspaceRole;
-  onChange: (role: WorkspaceRole) => void;
-}) {
-  return (
-    <Select
-      selectedKey={value}
-      onSelectionChange={(key) => {
-        if (isWorkspaceRole(key)) onChange(key);
-      }}
-      fullWidth
-      isRequired
-      variant="secondary"
-    >
-      <Label isRequired>Role</Label>
-      <Select.Trigger>
-        <Select.Value>{roleLabels[value]}</Select.Value>
-        <Select.Indicator />
-      </Select.Trigger>
-      <Select.Popover className="w-(--trigger-width)">
-        <ListBox>
-          {workspaceRoles.map((role) => (
-            <ListBox.Item id={role} key={role} textValue={roleLabels[role]}>
-              <div className="grid min-w-0 flex-1 gap-1 pr-3">
-                <span className="font-medium">{roleLabels[role]}</span>
-                <span className="text-xs leading-relaxed font-normal text-muted whitespace-normal">
-                  {roleDescriptions[role]}
-                </span>
-              </div>
-              <ListBox.ItemIndicator />
-            </ListBox.Item>
-          ))}
-        </ListBox>
-      </Select.Popover>
-    </Select>
-  );
+const roleOptions = workspaceRoles.map((role) => ({
+  id: role,
+  label: roleLabels[role],
+  description: roleDescriptions[role],
+}));
+function requireRole(role: string): WorkspaceRole {
+  if (!isWorkspaceRole(role)) throw new Error("Choose a valid role");
+  return role;
+}
+function teamChanged() {
+  refreshApiQueries();
+  window.dispatchEvent(new Event("towbar:identity-changed"));
 }
 export type TeamSettingsPage =
   "members" | "general" | "api-keys" | "audit-logs";
@@ -261,39 +227,18 @@ function TeamGeneral() {
   if (!query.data) return <QueryLoading />;
   return (
     <div className="content-grid lg:grid-cols-2 lg:items-start">
-      <Widget>
-        <Widget.Content>
-          <SimpleForm
-            key={query.data.team.name}
-            fields={[
-              {
-                name: "name",
-                label: "Team name",
-                required: true,
-                maxLength: 120,
-                defaultValue: query.data.team.name,
-                variant: "secondary",
-              },
-              {
-                name: "description",
-                label: "Description",
-                type: "textarea",
-                rows: 3,
-                maxLength: 500,
-                defaultValue: query.data.team.description ?? "",
-                variant: "secondary",
-              },
-            ]}
-            submitLabel="Update"
-            successMessage="Team updated"
-            onSubmit={async (values) => {
-              await api.patch("/v1/core/team", values);
-              refreshApiQueries();
-              window.dispatchEvent(new Event("towbar:identity-changed"));
-            }}
-          />
-        </Widget.Content>
-      </Widget>
+      <TeamGeneralSettings
+        mode="details"
+        value={{
+          name: query.data.team.name,
+          description: query.data.team.description ?? "",
+        }}
+        onSave={async (values) => {
+          await api.patch("/v1/core/team", values);
+          refreshApiQueries();
+          window.dispatchEvent(new Event("towbar:identity-changed"));
+        }}
+      />
     </div>
   );
 }
@@ -350,185 +295,51 @@ function TeamMembers() {
     ),
     [],
   );
-  const columns: ResourceTableColumn<Member>[] = [
-    {
-      key: "member",
-      header: "Member",
-      cell: (member) => (
-        <div className="flex min-w-0 items-center gap-2">
-          <Avatar
-            aria-hidden="true"
-            className="shrink-0"
-            email={member.email}
-            name={member.name}
-            size="sm"
-          />
-          <TableCellStack as="div">
-            <span>{member.name}</span>
-            <TableCellDescription className="break-words">
-              {member.email}
-            </TableCellDescription>
-          </TableCellStack>
-        </div>
-      ),
-    },
-    {
-      key: "role",
-      header: "Role",
-      cell: (member) => (
-        <StatusBadge status={member.role} label={roleLabels[member.role]} />
-      ),
-    },
-    {
-      key: "account",
-      header: "Account",
-      cell: (member) => (
-        <StatusBadge
-          status={member.mustChangePassword ? "pending" : "active"}
-          label={
-            member.mustChangePassword ? "Password setup pending" : "Active"
-          }
-        />
-      ),
-    },
-    {
-      key: "two-factor",
-      header: "2FA",
-      cell: (member) => (
-        <StatusBadge
-          status={member.twoFactorEnabled ? "healthy" : "two_factor_disabled"}
-          label={member.twoFactorEnabled ? "Enabled" : "Not enabled"}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      headerClassName: "text-end",
-      cell: (member) => (
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onPress={() => edit("role", member)}>
-            Edit
-          </Button>
-          <ActionButton
-            variant="danger"
-            success="Team access removed"
-            confirm={{
-              title: `Remove ${member.name}?`,
-              description:
-                "This revokes their sessions and personal API keys. Operational history is retained.",
-              actionLabel: "Remove access",
-            }}
-            action={async () => {
-              await api.delete(`/v1/core/team/members/${member.id}`);
-              refreshApiQueries();
-              window.dispatchEvent(new Event("towbar:identity-changed"));
-            }}
-          >
-            Remove
-          </ActionButton>
-        </div>
-      ),
-    },
-  ];
-  const inviteColumns: ResourceTableColumn<Invitation>[] = [
-    {
-      key: "email",
-      header: "Pending Invitations",
-      cell: (invitation) => (
-        <div className="flex min-w-0 items-center gap-2">
-          <Avatar
-            aria-hidden="true"
-            className="shrink-0"
-            email={invitation.email}
-            size="sm"
-          />
-          <span className="min-w-0 break-words">{invitation.email}</span>
-        </div>
-      ),
-    },
-    {
-      key: "role",
-      header: "Role",
-      cell: (invitation) => (
-        <StatusBadge
-          status={invitation.role}
-          label={roleLabels[invitation.role]}
-        />
-      ),
-    },
-    {
-      key: "expires",
-      header: "Expires",
-      cell: (invitation) => (
-        <RelativeTime
-          value={invitation.expiresAt}
-          label="Expires"
-          display="relative"
-        />
-      ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      headerClassName: "text-end",
-      cell: (invitation) => (
-        <div className="flex justify-end gap-2">
-          <CopyTextButton
-            text={() => `${window.location.origin}/invite/${invitation.id}`}
-          >
-            Copy link
-          </CopyTextButton>
-          <ActionButton
-            variant="secondary"
-            success="New invitation created"
-            confirm={{
-              title: "Resend invitation?",
-              description: `Send a new invitation to ${invitation.email}? Their previous invitation will no longer work.`,
-              actionLabel: "Resend",
-            }}
-            action={async () => {
-              await api.post("/v1/core/team/invitations", {
-                email: invitation.email,
-                role: invitation.role,
-              });
-              refreshApiQueries();
-            }}
-          >
-            Resend
-          </ActionButton>
-          <ActionButton
-            variant="danger"
-            success="Invitation revoked"
-            confirm={{
-              title: "Revoke invitation?",
-              description: `The invitation for ${invitation.email} will no longer work.`,
-              actionLabel: "Revoke",
-            }}
-            action={async () => {
-              await api.delete(`/v1/core/team/invitations/${invitation.id}`);
-              refreshApiQueries();
-            }}
-          >
-            Revoke
-          </ActionButton>
-        </div>
-      ),
-    },
-  ];
+  const [removing, setRemoving] = useState<Member | null>(null);
   if (members.error) return <QueryError message={members.error} />;
   if (!members.data) return <QueryLoading />;
   return (
     <div className="content-grid">
       <PageSelectionTitle label="Members" actions={actions} />
-      <ResourceTable
-        ariaLabel="Team members"
-        columns={columns}
-        items={members.data.members}
-        emptyTitle="No members"
-        emptyDescription="Add a team member to get started."
-        getRowKey={(member) => member.id}
+      <MembersTable
+        roles={roleOptions}
+        items={members.data.members.map((member) => ({
+          ...member,
+          passkeyEnabled: member.twoFactorEnabled,
+          accountStatus: {
+            label: member.mustChangePassword
+              ? "Password setup pending"
+              : "Active",
+            color: member.mustChangePassword
+              ? ("warning" as const)
+              : ("success" as const),
+          },
+        }))}
+        actions={(member) => (
+          <>
+            <Button variant="secondary" onPress={() => edit("role", member)}>
+              Edit
+            </Button>
+            <Button variant="danger" onPress={() => setRemoving(member)}>
+              Remove
+            </Button>
+          </>
+        )}
       />
+      {removing ? (
+        <RemoveMemberDialog
+          isOpen
+          onOpenChange={(value) => {
+            if (!value) setRemoving(null);
+          }}
+          member={removing}
+          onRemove={async () => {
+            await api.delete(`/v1/core/team/members/${removing.id}`);
+            teamChanged();
+            toast.success("Team access removed");
+          }}
+        />
+      ) : null}
       {members.data.total > 25 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted">
@@ -555,13 +366,35 @@ function TeamMembers() {
       {invitations.error ? (
         <QueryError message={invitations.error} />
       ) : (
-        <ResourceTable
-          ariaLabel="Pending invitations"
-          columns={inviteColumns}
-          items={pending}
-          getRowKey={(invitation) => invitation.id}
-          emptyTitle="No pending invitations"
-          emptyDescription="Invite someone by email to let them choose their own password."
+        <InvitationsTable
+          roles={roleOptions}
+          items={pending.map((invitation) => ({
+            ...invitation,
+            status: undefined,
+          }))}
+          formatDate={(value) => (
+            <RelativeTime value={value} label="Expires" display="relative" />
+          )}
+          actions={(invitation) => (
+            <CopyTextButton
+              text={() => `${window.location.origin}/invite/${invitation.id}`}
+            >
+              Copy link
+            </CopyTextButton>
+          )}
+          onResend={async (invitation) => {
+            await api.post("/v1/core/team/invitations", {
+              email: invitation.email,
+              role: invitation.role,
+            });
+            refreshApiQueries();
+            toast.success("New invitation created");
+          }}
+          onRevoke={async (invitation) => {
+            await api.delete(`/v1/core/team/invitations/${invitation.id}`);
+            refreshApiQueries();
+            toast.success("Invitation revoked");
+          }}
         />
       )}
       <MemberDialog
@@ -582,132 +415,54 @@ function MemberDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [role, setRole] = useState<WorkspaceRole>(
-    dialog.member?.role ?? "member",
-  );
-  const [inviteUrl, setInviteUrl] = useState<string>();
-  const title =
-    dialog.mode === "create"
-      ? "Add user"
-      : dialog.mode === "invite"
-        ? "Create invitation"
-        : `Edit ${dialog.member?.name}`;
+  const shared = { isOpen: open, onOpenChange, roles: roleOptions };
+  if (dialog.mode === "create")
+    return (
+      <AddMemberDialog
+        {...shared}
+        onAdd={async (values) => {
+          await api.post("/v1/core/team/members", {
+            ...values,
+            role: requireRole(values.role),
+          });
+          teamChanged();
+          toast.success("User added");
+        }}
+      />
+    );
+  if (dialog.mode === "role") {
+    if (!dialog.member) return null;
+    const member = dialog.member;
+    return (
+      <MemberEditDialog
+        {...shared}
+        member={member}
+        onSave={async (values) => {
+          await api.patch(`/v1/core/team/members/${member.id}`, {
+            ...values,
+            role: requireRole(values.role),
+          });
+          teamChanged();
+          toast.success("Member updated");
+        }}
+      />
+    );
+  }
   return (
-    <Modal.Backdrop isOpen={open} onOpenChange={onOpenChange}>
-      <Modal.Container size="sm" scroll="inside">
-        <Modal.Dialog>
-          <Modal.Header>
-            <Modal.Heading>{title}</Modal.Heading>
-            <Modal.CloseTrigger />
-          </Modal.Header>
-          <Modal.Body>
-            {inviteUrl ? (
-              <div className="content-grid">
-                <p>
-                  Invitation created. The recipient must verify their email
-                  before joining.
-                </p>
-                <CopyTextButton text={inviteUrl}>
-                  Copy invitation link
-                </CopyTextButton>
-                <Button variant="secondary" onPress={() => onOpenChange(false)}>
-                  Done
-                </Button>
-              </div>
-            ) : (
-              <AuthForm
-                variant="secondary"
-
-                onCancel={() => onOpenChange(false)}
-                fields={
-                  dialog.mode === "role"
-                    ? [
-                        {
-                          name: "name",
-                          label: "Name",
-                          defaultValue: dialog.member?.name,
-                          required: true,
-                          maxLength: 120,
-                          autoComplete: "off",
-                        },
-                      ]
-                    : [
-                        ...(dialog.mode === "create"
-                          ? [
-                              {
-                                name: "name",
-                                label: "Name",
-                                required: true,
-                                maxLength: 120,
-                                autoComplete: "off",
-                              },
-                            ]
-                          : []),
-                        {
-                          name: "email",
-                          label: "Email",
-                          type: "email",
-                          required: true,
-                          maxLength: 320,
-                          autoComplete: "off",
-                        },
-                        ...(dialog.mode === "create"
-                          ? [
-                              {
-                                name: "password",
-                                label: "Temporary password",
-                                type: "password",
-                                required: true,
-                                minLength: 15,
-                                maxLength: 1024,
-                                autoComplete: "new-password",
-                              },
-                            ]
-                          : []),
-                      ]
-                }
-                submitLabel={
-                  dialog.mode === "role"
-                    ? "Update"
-                    : dialog.mode === "invite"
-                      ? "Create invitation"
-                      : "Add user"
-                }
-                onSubmit={async (values) => {
-                  if (dialog.mode === "create") {
-                    await api.post("/v1/core/team/members", {
-                      ...values,
-                      role,
-                    });
-                  } else if (dialog.mode === "role")
-                    await api.patch(
-                      `/v1/core/team/members/${dialog.member!.id}`,
-                      { role, name: values.name },
-                    );
-                  else {
-                    const result = await api.post<{ inviteUrl: string }>(
-                      "/v1/core/team/invitations",
-                      { ...values, role },
-                    );
-                    setInviteUrl(result.inviteUrl);
-                  }
-                  refreshApiQueries();
-                  window.dispatchEvent(new Event("towbar:identity-changed"));
-                  if (dialog.mode !== "invite") onOpenChange(false);
-                }}
-              >
-                <RoleSelect value={role} onChange={setRole} />
-                {dialog.mode === "create" ? (
-                  <FieldDescription>
-                    This password is valid only for the first sign-in. The user
-                    will choose a new password during account setup.
-                  </FieldDescription>
-                ) : null}
-              </AuthForm>
-            )}
-          </Modal.Body>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+    <InviteMemberDialog
+      {...shared}
+      resultGuidance={
+        <p>The recipient must verify their email before joining.</p>
+      }
+      onInvite={async (values) => {
+        const result = await api.post<{ inviteUrl: string }>(
+          "/v1/core/team/invitations",
+          { ...values, role: requireRole(values.role) },
+        );
+        teamChanged();
+        toast.success("Invitation created");
+        return result;
+      }}
+    />
   );
 }

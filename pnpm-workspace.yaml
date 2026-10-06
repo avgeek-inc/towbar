@@ -64,4 +64,4 @@ catalog:
   zod: ^4.5.4
 
 minimumReleaseAgeExclude:
-  - "@avgeek-oss/design-system@1.2.0"
+  - "@avgeek-oss/design-system@1.2.1"
