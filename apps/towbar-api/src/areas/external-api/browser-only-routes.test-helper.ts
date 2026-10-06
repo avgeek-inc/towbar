@@ -14,6 +14,7 @@ export const expectedBrowserOnlyRoutes = new Set([
   "GET /gitlab/oauth/callback",
   "GET /monitoring/summary",
   "GET /notifications",
+  "POST /notifications/read-all",
   "GET /notifications/deliveries",
   "GET /notifications/destinations",
   "GET /notifications/discord/destinations",

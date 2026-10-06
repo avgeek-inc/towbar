@@ -142,6 +142,7 @@ export type NotificationDestination = {
 };
 
 export type NotificationEvent = {
+  readAt?: string | null;
   category: NotificationCategory | "test";
   createdAt: string;
   id: string;

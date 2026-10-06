@@ -900,6 +900,11 @@ export const notificationEvents = pgTable(
       .notNull(),
   },
   (table) => [
+    index("idx_towbar_notification_events_workspace_occurred").on(
+      table.workspaceId,
+      table.occurredAt.desc(),
+      table.id.desc(),
+    ),
     index("idx_towbar_notification_events_workspace_id").on(
       table.workspaceId,
       table.id,
@@ -921,6 +926,25 @@ export const notificationEvents = pgTable(
       table.sourceId,
       table.createdAt,
     ),
+  ],
+);
+
+export const notificationReads = pgTable(
+  "towbar_notification_reads",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => notificationEvents.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.userId, table.eventId] }),
   ],
 );
 

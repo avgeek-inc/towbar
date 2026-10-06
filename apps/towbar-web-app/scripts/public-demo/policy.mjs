@@ -68,6 +68,7 @@ const writes = [
   ["DELETE", /^\/v1\/core\/github$/],
   ["POST", /^\/v1\/core\/gitlab\/oauth\/start$/],
   ["DELETE", /^\/v1\/core\/gitlab\/oauth\/connection$/],
+  ["POST", /^\/v1\/core\/notifications\/read-all$/],
   ["PATCH", /^\/v1\/core\/(team|profile)$/],
   ["POST", /^\/v1\/core\/team\/(members|invitations)$/],
   ...["PATCH", "DELETE"].map((method) => [

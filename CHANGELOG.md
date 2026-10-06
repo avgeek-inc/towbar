@@ -11,6 +11,8 @@ All notable changes to Towbar are documented in this file. This project follows
 
 ### Fixed
 
+- Notifications now use durable per-user read receipts and an explicit Mark all as read action. Unread events remain available through pagination; read events remain visible for 24 hours after acknowledgement. Opening the menu no longer marks events read, and marking read does not delete history.
+
 - Upgrade the image-processing dependency to sharp 0.35.5 to address GHSA-wq5f-xc86-pv6w.
 
 ## [2.0.30] - 2026-10-05
