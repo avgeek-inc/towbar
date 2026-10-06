@@ -2,7 +2,12 @@ import { z } from "zod";
 import { Hono } from "hono";
 
 import { getNotificationProviderState } from "../../../areas/notifications/configuration.js";
-import { listNotificationEvents } from "../../../areas/notifications/service.js";
+import {
+  listNotificationCenter,
+  markAllNotificationsRead,
+  notificationCenterQuery,
+} from "../../../areas/notifications/center.js";
+import { unauthorized } from "../../../http/errors.js";
 import { operation } from "../../../http/operation.js";
 
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
@@ -33,22 +38,47 @@ notificationCenterRoutes.get(
     permissions: ["inbox.read"],
     browserOnly: true,
     responseSchema: 'notification-center.ts:get:"/"',
-    summary: "List notification events",
-    query: z
-      .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
-      .strict(),
+    summary: "List unread and recently read notifications",
+    query: notificationCenterQuery,
     response: "JSON object containing notifications.",
     status: 200,
   }),
   async (context) => {
-    const requestedLimit = Number(context.req.query("limit") ?? 20);
-    return context.json({
-      notifications: await listNotificationEvents({
-        limit: Number.isInteger(requestedLimit)
-          ? Math.min(100, Math.max(1, requestedLimit))
-          : 20,
-        workspaceId: context.get("user").workspaceId,
+    const user = context.get("user");
+    if (!user.id) throw unauthorized();
+    context.header("Cache-Control", "no-store");
+    return context.json(
+      await listNotificationCenter(
+        { workspaceId: user.workspaceId, userId: user.id },
+        notificationCenterQuery.parse(context.req.query()),
+      ),
+    );
+  },
+);
+
+notificationCenterRoutes.post(
+  "/read-all",
+  operation({
+    permissions: ["inbox.read"],
+    browserOnly: true,
+    responseSchema: 'notification-center.ts:post:"/read-all"',
+    summary: "Mark all notifications as read for the signed-in user",
+    body: z.object({}).strict(),
+    response: "Read receipts saved without deleting notification history.",
+    status: 200,
+  }),
+  async (context) => {
+    const user = context.get("user");
+    if (!user.id) throw unauthorized();
+    context.header("Cache-Control", "no-store");
+    z.object({})
+      .strict()
+      .parse(await context.req.json());
+    return context.json(
+      await markAllNotificationsRead({
+        workspaceId: user.workspaceId,
+        userId: user.id,
       }),
-    });
+    );
   },
 );

@@ -1,4 +1,3 @@
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   type NotificationEventPayload,
@@ -40,25 +39,6 @@ export async function listNotificationDestinations(input: {
           : ("environment" as const),
     }),
   );
-}
-
-export async function listNotificationEvents(input: {
-  limit?: number;
-  workspaceId: string;
-}) {
-  return await getTowbarDatabase()
-    .select({
-      category: notificationEvents.category,
-      createdAt: notificationEvents.createdAt,
-      id: notificationEvents.id,
-      occurredAt: notificationEvents.occurredAt,
-      payload: notificationEvents.payload,
-      type: notificationEvents.type,
-    })
-    .from(notificationEvents)
-    .where(eq(notificationEvents.workspaceId, input.workspaceId))
-    .orderBy(desc(notificationEvents.occurredAt))
-    .limit(Math.min(input.limit ?? 20, 50));
 }
 
 export async function emitNotificationEvent(input: {

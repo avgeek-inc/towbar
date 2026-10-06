@@ -148,6 +148,13 @@
       "when": 1791226532454,
       "tag": "0021_passkey_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791302563096,
+      "tag": "0022_notification_reads",
+      "breakpoints": true
     }
   ]
 }

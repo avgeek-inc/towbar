@@ -12295,6 +12295,76 @@
           "required": ["localization"]
         }
       ]
+    },
+    "notification-center.ts:post:\"/read-all\"": {
+      "allOf": [
+        { "$ref": "#/components/schemas/Response_460" },
+        {
+          "type": "object",
+          "properties": {
+            "localization": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "dateFormat": {
+                  "type": "string",
+                  "enum": [
+                    "day-short-month-year",
+                    "short-month-day-year",
+                    "year-month-day",
+                    "day-month-year",
+                    "month-day-year"
+                  ]
+                },
+                "timeFormat": {
+                  "type": "string",
+                  "enum": [
+                    "24-hour",
+                    "12-hour",
+                    "24-hour-seconds",
+                    "12-hour-seconds"
+                  ]
+                },
+                "timeZone": { "type": "string" },
+                "timestamps": {
+                  "type": "object",
+                  "propertyNames": { "type": "string" },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "time": { "type": ["string", "null"] },
+                      "dateTime": { "type": ["string", "null"] },
+                      "timeZone": { "type": "string" },
+                      "zoneLabel": { "type": "string" },
+                      "epochMilliseconds": { "type": "number" },
+                      "inputDateTime": { "type": ["string", "null"] }
+                    },
+                    "required": [
+                      "date",
+                      "time",
+                      "dateTime",
+                      "timeZone",
+                      "zoneLabel",
+                      "epochMilliseconds",
+                      "inputDateTime"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "dateFormat",
+                "timeFormat",
+                "timeZone",
+                "timestamps"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["localization"]
+        }
+      ]
     }
   },
   "definitions": {
@@ -21103,24 +21173,9 @@
         "title"
       ]
     },
-    "Response_455": {
+    "Omit_455": {
       "type": "object",
       "properties": {
-        "category": {
-          "anyOf": [
-            { "type": "string", "const": "test" },
-            { "type": "string", "const": "scout" },
-            { "type": "string", "const": "deployments" },
-            { "type": "string", "const": "deploymentFailures" },
-            { "type": "string", "const": "health" },
-            { "type": "string", "const": "backups" },
-            { "type": "string", "const": "restores" }
-          ]
-        },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "id": { "type": "string" },
-        "occurredAt": { "type": "string", "format": "date-time" },
-        "payload": { "$ref": "#/components/schemas/Response_456" },
         "type": {
           "anyOf": [
             { "type": "string", "const": "deployment.queued" },
@@ -21149,26 +21204,68 @@
             { "type": "string", "const": "scout.reminder" },
             { "type": "string", "const": "notification.test" }
           ]
+        },
+        "id": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "category": {
+          "anyOf": [
+            { "type": "string", "const": "test" },
+            { "type": "string", "const": "scout" },
+            { "type": "string", "const": "deployments" },
+            { "type": "string", "const": "deploymentFailures" },
+            { "type": "string", "const": "health" },
+            { "type": "string", "const": "backups" },
+            { "type": "string", "const": "restores" }
+          ]
+        },
+        "payload": { "$ref": "#/components/schemas/Response_456" },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "readAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "format": "date-time" }
+          ]
         }
       },
       "required": [
-        "category",
-        "createdAt",
+        "type",
         "id",
-        "occurredAt",
+        "createdAt",
+        "category",
         "payload",
-        "type"
+        "occurredAt",
+        "readAt"
       ]
+    },
+    "Response_459": {
+      "type": "object",
+      "properties": {
+        "before": { "type": "string" },
+        "beforeId": { "type": "string" }
+      },
+      "required": ["before", "beforeId"]
     },
     "Response_454": {
       "type": "object",
       "properties": {
         "notifications": {
           "type": "array",
-          "items": { "$ref": "#/components/schemas/Response_455" }
-        }
+          "items": { "$ref": "#/components/schemas/Omit_455" }
+        },
+        "nextCursor": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/components/schemas/Response_459" }
+          ]
+        },
+        "unreadCount": { "type": "number" }
       },
-      "required": ["notifications"]
+      "required": ["notifications", "nextCursor", "unreadCount"]
+    },
+    "Response_460": {
+      "type": "object",
+      "properties": { "ok": { "type": "boolean" } },
+      "required": ["ok"]
     }
   }
 }

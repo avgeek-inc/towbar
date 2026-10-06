@@ -2420,3 +2420,43 @@ test("GitHub account selection, source moves, and disconnect remain scoped", asy
     await once(server, "close");
   }
 });
+
+test("notifications paginate unread history and mark read without clearing rows", async () => {
+  const server = createFixtureApiServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert(address && typeof address === "object");
+  const endpoint = `http://127.0.0.1:${address.port}/v1/core/notifications`;
+  try {
+    const first = await (await fetch(`${endpoint}?limit=1`)).json();
+    assert.equal(first.unreadCount, 2);
+    assert.equal(first.notifications.length, 1);
+    assert.equal(first.notifications[0].readAt, null);
+    assert(first.nextCursor);
+    const query = new URLSearchParams({ limit: "1", ...first.nextCursor });
+    const second = await (await fetch(`${endpoint}?${query}`)).json();
+    assert.equal(second.unreadCount, 2);
+    assert.notEqual(second.notifications[0].id, first.notifications[0].id);
+    assert.equal(second.nextCursor, null);
+    const mark = () =>
+      fetch(`${endpoint}/read-all`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+    assert.equal((await mark()).status, 200);
+    const read = await (await fetch(endpoint)).json();
+    assert.equal(read.unreadCount, 0);
+    assert.equal(read.notifications.length, 2);
+    assert(read.notifications.every((item) => item.readAt));
+    await mark();
+    assert.deepEqual(
+      (await (await fetch(endpoint)).json()).notifications,
+      read.notifications,
+    );
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});

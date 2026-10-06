@@ -1,121 +1,160 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { NotificationEvent } from "@workspace/towbar-web-client";
 import { usePageVisibilityInterval } from "@avgeek-oss/design-system/hooks/use-page-visibility-interval";
 import { NotificationMenu } from "@avgeek-oss/design-system/patterns/notifications";
-import { Button } from "@avgeek-oss/design-system/buttons/button";
-
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { api } from "@/lib/api";
 import { notificationHref } from "@/lib/notification-route";
 import { formatDate } from "./dashboard-overview";
 
-const seenAtStorageKey = "towbar-notifications-seen-at";
-const clearedAtStorageKey = "towbar-notifications-cleared-at";
-
-type NotificationListResponse = { notifications: NotificationEvent[] };
+type NotificationPage = {
+  notifications: (NotificationEvent & { readAt: string | null })[];
+  nextCursor: { before: string; beforeId: string } | null;
+  unreadCount: number;
+};
 
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [feed, setFeed] = useState<NotificationPage>({
+    notifications: [],
+    nextCursor: null,
+    unreadCount: 0,
+  });
   const [loading, setLoading] = useState(false);
-  const [seenAt, setSeenAt] = useState(0);
-  const [clearedAt, setClearedAt] = useState(0);
-
-  useEffect(() => {
-    const stored = Number(window.localStorage.getItem(seenAtStorageKey));
-    if (Number.isFinite(stored) && stored > 0) {
-      setSeenAt(stored);
-    }
-    const cleared = Number(window.localStorage.getItem(clearedAtStorageKey));
-    if (Number.isFinite(cleared) && cleared > 0) {
-      setClearedAt(cleared);
-    }
-  }, []);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [markingRead, setMarkingRead] = useState(false);
+  const pageCount = useRef(1);
+  const generation = useRef(0);
+  const mutationPending = useRef(false);
+  const paginationPending = useRef(false);
 
   const refresh = useCallback(async () => {
+    const requestGeneration = ++generation.current;
     setLoading(true);
     try {
-      const response = await api.get<NotificationListResponse>(
-        "/v1/core/notifications?limit=20",
+      let page = await api.get<NotificationPage>(
+        "/v1/core/notifications?limit=50",
       );
-      setNotifications(response.notifications);
-    } catch {
-      return;
+      const notifications = [...page.notifications];
+      const unreadCount = page.unreadCount;
+      for (
+        let index = 1;
+        index < pageCount.current && page.nextCursor;
+        index++
+      ) {
+        const query = new URLSearchParams({ limit: "50", ...page.nextCursor });
+        page = await api.get<NotificationPage>(
+          `/v1/core/notifications?${query}`,
+        );
+        notifications.push(...page.notifications);
+      }
+      if (generation.current === requestGeneration) {
+        setFeed({
+          ...page,
+          unreadCount,
+          notifications: [
+            ...new Map(notifications.map((item) => [item.id, item])).values(),
+          ],
+        });
+        setLoadError(null);
+      }
+      return null;
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : "Could not load notifications";
+      if (generation.current === requestGeneration) setLoadError(message);
+      return message;
     } finally {
-      setLoading(false);
+      if (generation.current === requestGeneration) setLoading(false);
     }
   }, []);
 
-  usePageVisibilityInterval(() => void refresh(), 30_000, {
-    runImmediately: true,
-  });
+  usePageVisibilityInterval(
+    () => {
+      if (!mutationPending.current && !paginationPending.current)
+        void refresh();
+    },
+    30_000,
+    { runImmediately: true },
+  );
 
   useEffect(() => {
-    if (isOpen) void refresh();
+    if (isOpen && !mutationPending.current && !paginationPending.current)
+      void refresh();
   }, [isOpen, refresh]);
 
-  useEffect(() => {
-    if (!isOpen || notifications.length === 0) return;
-    const timer = window.setTimeout(() => {
-      const nextSeenAt = Math.max(
-        Date.now(),
-        ...notifications.map((notification) =>
-          new Date(notification.occurredAt).getTime(),
-        ),
+  const markAllRead = async () => {
+    if (mutationPending.current || paginationPending.current) return;
+    mutationPending.current = true;
+    generation.current++;
+    setMarkingRead(true);
+    try {
+      await api.post("/v1/core/notifications/read-all", {});
+      const refreshError = await refresh();
+      if (refreshError) toast.danger(refreshError);
+    } catch (cause) {
+      toast.danger(
+        cause instanceof Error
+          ? cause.message
+          : "Could not mark notifications as read",
       );
-      window.localStorage.setItem(seenAtStorageKey, String(nextSeenAt));
-      setSeenAt(nextSeenAt);
-    }, 3_000);
-    return () => window.clearTimeout(timer);
-  }, [isOpen, notifications]);
-
-  const visibleNotifications = useMemo(
-    () =>
-      notifications.filter(
-        (notification) =>
-          new Date(notification.occurredAt).getTime() > clearedAt,
-      ),
-    [clearedAt, notifications],
-  );
-  const unreadCount = useMemo(
-    () =>
-      visibleNotifications.filter(
-        (notification) => new Date(notification.occurredAt).getTime() > seenAt,
-      ).length,
-    [seenAt, visibleNotifications],
-  );
-  const clearAll = useCallback(() => {
-    const nextClearedAt = Math.max(
-      Date.now(),
-      ...notifications.map((notification) =>
-        new Date(notification.occurredAt).getTime(),
-      ),
-    );
-    window.localStorage.setItem(clearedAtStorageKey, String(nextClearedAt));
-    window.localStorage.setItem(seenAtStorageKey, String(nextClearedAt));
-    setClearedAt(nextClearedAt);
-    setSeenAt(nextClearedAt);
-  }, [notifications]);
+    } finally {
+      mutationPending.current = false;
+      setMarkingRead(false);
+    }
+  };
+  const loadMore = async () => {
+    if (paginationPending.current || mutationPending.current) return;
+    paginationPending.current = true;
+    pageCount.current++;
+    try {
+      const error = await refresh();
+      if (error) {
+        pageCount.current--;
+        toast.danger(error);
+      }
+    } finally {
+      paginationPending.current = false;
+    }
+  };
 
   return (
     <NotificationMenu
       isOpen={isOpen}
       onOpenChange={setIsOpen}
-      unreadCount={unreadCount}
-      loading={loading && notifications.length === 0}
-      headerEnd={
-        <Button
-          className="min-h-8 px-2 text-xs"
-          isDisabled={visibleNotifications.length === 0}
-          onPress={clearAll}
-          variant="ghost"
-        >
-          Clear All
-        </Button>
+      unreadCount={feed.unreadCount}
+      loading={loading && feed.notifications.length === 0}
+      markingRead={markingRead}
+      onMarkAllRead={() => void markAllRead()}
+      emptyContent={
+        loadError ? (
+          <div className="grid justify-items-center gap-3 px-4 py-6">
+            <p role="status" className="text-center text-sm text-muted">
+              {loadError}
+            </p>
+            <Widget.Action
+              isDisabled={loading || markingRead}
+              onPress={() => void refresh()}
+            >
+              Retry
+            </Widget.Action>
+          </div>
+        ) : undefined
       }
-      items={visibleNotifications.map((notification) => ({
+      footer={
+        feed.nextCursor ? (
+          <Widget.Action
+            isDisabled={loading || markingRead}
+            onPress={() => void loadMore()}
+          >
+            {loading ? "Loading…" : "Load more"}
+          </Widget.Action>
+        ) : undefined
+      }
+      items={feed.notifications.map((notification) => ({
         id: notification.id,
         title: notification.payload.title,
         message: notification.payload.message,
@@ -129,7 +168,7 @@ export function NotificationCenter() {
         ),
         time: formatDate(notification.occurredAt),
         dateTime: notification.occurredAt,
-        unread: new Date(notification.occurredAt).getTime() > seenAt,
+        unread: notification.readAt === null,
       }))}
     />
   );

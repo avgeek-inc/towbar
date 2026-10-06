@@ -2430,6 +2430,7 @@ export function createFixtureApiServer({
     publicDemo ? undefined : upgradeScenario,
     fixtureSystemHealth,
   );
+  const notificationReadAt = new Map<string, string>();
   const fixtureServer = createServer(async (request, response) => {
     useFixtureLocalization(response, teamAccess.getPreferences);
     if (!authorizeFixtureCorsRequest(response, request.headers.origin)) return;
@@ -2448,6 +2449,59 @@ export function createFixtureApiServer({
     )
       return;
     if (await teamAccess.handle(request, response, requestUrl)) return;
+    if (
+      path === "/v1/core/notifications/read-all" &&
+      request.method === "POST"
+    ) {
+      const readAt = new Date().toISOString();
+      for (const item of notificationEvents) {
+        if (!notificationReadAt.has(item.id))
+          notificationReadAt.set(item.id, readAt);
+      }
+      writeJson(response, 200, { ok: true });
+      return;
+    }
+    if (path === "/v1/core/notifications" && request.method === "GET") {
+      const limit = Math.min(
+        100,
+        Math.max(1, Number(requestUrl.searchParams.get("limit") ?? 50)),
+      );
+      const before = requestUrl.searchParams.get("before");
+      const beforeId = requestUrl.searchParams.get("beforeId");
+      const visible = notificationEvents
+        .map((item) => ({
+          ...item,
+          readAt: notificationReadAt.get(item.id) ?? null,
+        }))
+        .filter(
+          (item) =>
+            !item.readAt || Date.parse(item.readAt) >= Date.now() - 86_400_000,
+        )
+        .sort(
+          (a, b) =>
+            b.occurredAt.localeCompare(a.occurredAt) ||
+            b.id.localeCompare(a.id),
+        )
+        .filter(
+          (item) =>
+            !before ||
+            item.occurredAt < before ||
+            (item.occurredAt === before && item.id < (beforeId ?? "")),
+        );
+      const page = visible.slice(0, limit);
+      const last = page.at(-1);
+      writeJson(response, 200, {
+        notifications: page,
+        unreadCount: notificationEvents.filter(
+          (item) => !notificationReadAt.has(item.id),
+        ).length,
+        nextCursor:
+          visible.length > limit && last
+            ? { before: last.occurredAt, beforeId: last.id }
+            : null,
+      });
+      return;
+    }
     if (await upgradeFixture(request, response, path)) return;
     if (
       path === "/v1/core/notifications/telegram/destinations/test" &&
@@ -4758,7 +4812,6 @@ function getFixturePayload(
         providers: notificationProviderState,
       },
     ],
-    [`/v1/core/notifications`, { notifications: notificationEvents }],
     ...sourceSyncs.map(
       (sync) =>
         [`/v1/core/sources/${source.id}/syncs/${sync.id}`, { sync }] as const,
