@@ -213,7 +213,7 @@ Runtime integrations also cover private OCI registries, backup storage, external
 
 Towbar supports Admin, Member, and Viewer roles. Teams can invite members, add them directly when transactional email is unavailable, and manage personal or team API keys with scoped permissions and expiry.
 
-Accounts support password sign-in, authenticator-based two-factor authentication, recovery codes, and passkeys. Browser sessions can be reviewed and revoked. Sensitive recovery operations run locally on the Towbar host and revoke affected sessions instead of creating a permanent recovery backdoor.
+Accounts support password and passkey sign-in, with passkey verification required for accounts that have one registered. Recovery codes provide access after a valid password if a passkey is lost. Browser sessions can be reviewed and revoked. Sensitive recovery operations run locally on the Towbar host and revoke affected sessions instead of creating a permanent recovery backdoor.
 
 The audit log records who performed an operation, what it targeted, how the actor authenticated, and when it happened. It avoids recording secret values. Filters for event type and user, searchable targets, and stable event identifiers make it useful during an investigation rather than merely present for compliance.
 

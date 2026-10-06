@@ -6,7 +6,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { verifyPasskeySecurity } from "./passkey-security-tests.js";
 import { verifyEmailResendLimits } from "./email-verification-security-tests.js";
-import { totp } from "./authentication-security-tests.js";
 
 const databaseUrl = process.env.TOWBAR_SETTINGS_TEST_DATABASE_URL;
 void test(
@@ -61,7 +60,7 @@ void test(
           assert.equal(
             (
               await request(
-                "/v1/core/profile/two-factor/setup",
+                "/v1/core/profile/passkeys/recovery-codes",
                 memberHeaders,
                 {},
               )
@@ -127,118 +126,14 @@ void test(
         },
       );
       await t.test(
-        "authenticator setup without password still requires freshness and a valid code",
+        "retired authenticator endpoints cannot be used",
         async () => {
-          const session = (await auth.findSession(adminHeaders))!;
-          await database
-            .update(schema.sessions)
-            .set({ authenticatedAt: new Date(Date.now() - 700000) })
-            .where(eq(schema.sessions.id, session.sessionId));
-          assert.equal(
-            (
-              await request(
-                "/v1/core/profile/two-factor/setup",
-                adminHeaders,
-                {},
-              )
-            ).status,
-            403,
-          );
-          await database
-            .update(schema.sessions)
-            .set({ authenticatedAt: new Date() })
-            .where(eq(schema.sessions.id, session.sessionId));
-          const factor = (await (
-            await ok(
-              await request(
-                "/v1/core/profile/two-factor/setup",
-                adminHeaders,
-                {},
-              ),
-            )
-          ).json()) as { totpURI: string; backupCodes: string[] };
-          assert.equal(
-            (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
-            false,
-          );
-          const secret = new URL(factor.totpURI).searchParams.get("secret")!;
-          const confirmed = await ok(
-            await request(
-              "/v1/public/auth/identity/two-factor/verify-totp",
-              adminHeaders,
-              { code: totp(secret) },
-            ),
-          );
-          adminHeaders = cookies(confirmed, adminHeaders);
-          assert.equal(
-            (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
-            true,
-          );
-          assert.equal(
-            (
-              await request(
-                "/v1/core/profile/two-factor/setup",
-                adminHeaders,
-                {},
-              )
-            ).status,
-            409,
-          );
-          assert.equal(
-            (
-              await request(
-                "/v1/core/profile/two-factor/manage",
-                adminHeaders,
-                { action: "disable", code: "000000" },
-              )
-            ).ok,
-            false,
-          );
-          for (let attempt = 1; attempt < 5; attempt++)
-            assert.equal(
-              (
-                await request(
-                  "/v1/core/profile/two-factor/manage",
-                  adminHeaders,
-                  { action: "disable", code: "000000" },
-                )
-              ).ok,
-              false,
-            );
-          assert.equal(
-            (
-              await request(
-                "/v1/core/profile/two-factor/manage",
-                adminHeaders,
-                { action: "disable", code: "000000" },
-              )
-            ).status,
-            429,
-          );
-          await (
-            await import("../../http/rate-limit.js")
-          ).clearPersistentBucket(`authenticator-settings:${admin.id}`);
-          const replacement = (await (
-            await ok(
-              await request(
-                "/v1/core/profile/two-factor/manage",
-                adminHeaders,
-                { action: "recovery", code: totp(secret) },
-              ),
-            )
-          ).json()) as { backupCodes: string[] };
-          assert.equal(replacement.backupCodes.length, 10);
-          assert.notDeepEqual(replacement.backupCodes, factor.backupCodes);
-          await ok(
-            await request("/v1/core/profile/two-factor/manage", adminHeaders, {
-              action: "disable",
-              code: totp(secret),
-            }),
-          );
-          assert.equal(
-            (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
-            false,
-          );
+          for (const path of [
+            "/v1/public/auth/identity/two-factor/enable",
+            "/v1/public/auth/identity/two-factor/verify-totp",
+            "/v1/core/profile/two-factor/setup",
+          ])
+            assert.equal((await request(path, adminHeaders, {})).status, 404);
         },
       );
       await t.test(

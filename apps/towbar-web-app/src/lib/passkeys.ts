@@ -31,7 +31,10 @@ export async function registerPasskey(name: string, email: string) {
       user: { ...options.user, name: email, displayName: email },
     },
   });
-  await api.post(`${endpoint}/verify-registration`, { name, response });
+  return await api.post<{ recoveryCodes?: string[] }>(
+    `${endpoint}/verify-registration`,
+    { name, response },
+  );
 }
 export async function verifyPasskeySecondFactor(signal: AbortSignal) {
   requireSupport();

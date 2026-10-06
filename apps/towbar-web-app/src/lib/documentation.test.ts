@@ -25,7 +25,7 @@ void test("detail routes keep help scoped to the feature being viewed", () => {
     ["/manage/integrations/r2", "r2"],
     ["/manage/integrations/cloudflare", "cloudflare"],
     ["/settings/email-password", "emailPassword"],
-    ["/settings/2fa", "security"],
+    ["/settings/passkeys", "security"],
     ["/team-settings/api-keys", "apiKeys"],
     ["/team-settings/audit-logs", "auditLogs"],
     ["/manage/integrations/deliveries", "deliveries"],

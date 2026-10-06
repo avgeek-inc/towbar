@@ -32,6 +32,7 @@
     "@simplewebauthn/browser": "13.3.0",
     "@workspace/identity-web-ui": "workspace:*",
     "@workspace/towbar-access": "workspace:*",
+    "@workspace/towbar-contracts": "workspace:*",
     "@workspace/towbar-web-client": "workspace:*",
     "@workspace/towbar-web-ui": "workspace:*",
     "@workspace/web-design-system": "workspace:*",
@@ -40,16 +41,13 @@
     "@xterm/xterm": "6.0.0",
     "date-fns": "^4.4.0",
     "next": "catalog:",
-    "qrcode": "1.5.4",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "yaml": "catalog:",
-    "@workspace/towbar-contracts": "workspace:*"
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@simplewebauthn/server": "13.3.2",
     "@types/node": "catalog:",
-    "@types/qrcode": "1.5.6",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@types/ws": "8.18.1",

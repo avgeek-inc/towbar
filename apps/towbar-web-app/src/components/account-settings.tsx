@@ -13,7 +13,7 @@ import { DashboardPage } from "./page-parts";
 import { useRouter } from "next/navigation";
 import { SecondaryItems } from "./secondary-sidebar";
 import { ApiMcpSettings } from "./api-mcp-settings";
-import { SecuritySettings } from "./security-settings";
+import { PasskeySettings } from "./passkey-settings";
 import { DateTimePreferencesSettings } from "./date-time-preferences";
 import {
   ProfileSettings,
@@ -27,7 +27,7 @@ type AccountSettingsPage =
   | "preferences"
   | "email-password"
   | "sessions"
-  | "2fa"
+  | "passkeys"
   | "api-keys"
   | "mcp";
 
@@ -38,7 +38,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     pages: readonly AccountSettingsPage[];
   }> = [
     { title: "Account", pages: ["profile", "preferences"] },
-    { title: "Security", pages: ["email-password", "2fa", "sessions"] },
+    { title: "Security", pages: ["email-password", "passkeys", "sessions"] },
     ...(canShowApiMcpSettings()
       ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
       : []),
@@ -48,7 +48,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     preferences: "Preferences",
     "email-password": "Email & Password",
     sessions: "Sessions",
-    "2fa": "Two-factor Auth",
+    passkeys: "Passkeys",
     "api-keys": "API Keys",
     mcp: "MCP Guide",
   };
@@ -57,7 +57,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     preferences: Settings01Icon,
     "email-password": Mail01Icon,
     sessions: ComputerIcon,
-    "2fa": SecurityCheckIcon,
+    passkeys: SecurityCheckIcon,
     "api-keys": Key01Icon,
     mcp: BookOpen01Icon,
   };
@@ -82,8 +82,8 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
         <DateTimePreferencesSettings />
       ) : page === "email-password" ? (
         <EmailPasswordSettings />
-      ) : page === "2fa" ? (
-        <SecuritySettings />
+      ) : page === "passkeys" ? (
+        <PasskeySettings />
       ) : page === "sessions" ? (
         <SessionSettings />
       ) : (

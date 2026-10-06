@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import * as schema from "@workspace/towbar-database/schema";
-import { totp } from "./authentication-security-tests.js";
 import { testAuthenticator } from "./webauthn-test-authenticator.js";
 import type { settingsTestClient } from "./settings-test-client.js";
 import type { getTowbarDatabase } from "../../infrastructure/database.js";
@@ -31,22 +30,11 @@ export async function verifyPasskeySecurity({
   const endpoint = "/v1/public/auth/identity/passkey";
   const authenticator = testAuthenticator();
   const options = passkeyOptions(endpoint, adminHeaders);
-  assert.equal(
-    (
-      await request(endpoint + "/verify-authentication", publicHeaders, {
-        response: null,
-      })
-    ).status,
-    400,
-  );
-  const currentSession = (await auth.findSession(adminHeaders))!;
+  const current = (await auth.findSession(adminHeaders))!;
   await database
     .update(schema.sessions)
-    .set({
-      createdAt: new Date(Date.now() - 7200000),
-      authenticatedAt: new Date(Date.now() - 700000),
-    })
-    .where(eq(schema.sessions.id, currentSession.sessionId));
+    .set({ authenticatedAt: new Date(Date.now() - 700000) })
+    .where(eq(schema.sessions.id, current.sessionId));
   assert.equal(
     (await request(endpoint + "/generate-register-options", adminHeaders))
       .status,
@@ -57,44 +45,49 @@ export async function verifyPasskeySecurity({
       password,
     }),
   );
-  let registration = await options("/generate-register-options");
-  assert.equal(
-    (
-      await request(endpoint + "/verify-registration", registration.headers, {
-        name: "Test key",
-        response: authenticator.registration(
-          registration.data.challenge,
-          origin,
-          false,
-        ),
-      })
-    ).ok,
-    false,
-  );
-  registration = await options("/generate-register-options");
-  assert.equal(
-    (
-      await request(endpoint + "/verify-registration", registration.headers, {
-        name: "Test key",
-        response: authenticator.registration(
-          registration.data.challenge,
-          "https://wrong-origin.test",
-        ),
-      })
-    ).ok,
-    false,
-  );
-  registration = await options("/generate-register-options");
+  for (const [verified, testOrigin] of [
+    [false, origin],
+    [true, "https://wrong-origin.test"],
+  ] as const) {
+    const registration = await options("/generate-register-options");
+    assert.equal(
+      (
+        await request(endpoint + "/verify-registration", registration.headers, {
+          name: "Test key",
+          response: authenticator.registration(
+            registration.data.challenge,
+            testOrigin,
+            verified,
+          ),
+        })
+      ).ok,
+      false,
+    );
+  }
+  const registration = await options("/generate-register-options");
   const payload = {
     name: "Test key",
     response: authenticator.registration(registration.data.challenge, origin),
   };
-  await ok(
+  const registered = await ok(
     await request(
       endpoint + "/verify-registration",
       registration.headers,
       payload,
     ),
+  );
+  const firstCodes = ((await registered.json()) as { recoveryCodes: string[] })
+    .recoveryCodes;
+  assert.equal(firstCodes.length, 10);
+  const [stored] = await database
+    .select()
+    .from(schema.authRecoveryCodes)
+    .where(eq(schema.authRecoveryCodes.userId, adminId));
+  assert(stored);
+  assert(!JSON.stringify(stored).includes(firstCodes[0]!));
+  assert.equal(
+    (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
+    true,
   );
   assert.equal(
     (
@@ -118,26 +111,15 @@ export async function verifyPasskeySecurity({
     ).ok,
     false,
   );
-  const listed = await (
-    await ok(await request(endpoint + "/list-user-passkeys", memberHeaders))
-  ).json();
-  assert.deepEqual(listed, []);
-  for (const headers of [publicHeaders, adminHeaders]) {
-    assert.equal(
-      (await request(endpoint + "/generate-authenticate-options", headers))
-        .status,
-      401,
-    );
-    assert.equal(
-      (
-        await request(endpoint + "/verify-authentication", headers, {
-          response: authenticator.authentication("no-password", origin),
-        })
-      ).ok,
-      false,
-    );
-  }
-  const passwordChallenge = async (methods = ["passkey"]) => {
+  assert.equal(
+    (
+      await request("/v1/core/session/reauthenticate", adminHeaders, {
+        password,
+      })
+    ).status,
+    401,
+  );
+  const passwordChallenge = async () => {
     const response = await ok(
       await request("/v1/public/auth/login-email", publicHeaders, {
         email: "admin@settings.test",
@@ -146,17 +128,17 @@ export async function verifyPasskeySecurity({
     );
     assert.deepEqual(await response.clone().json(), {
       twoFactorRequired: true,
-      twoFactorMethods: methods,
+      twoFactorMethods: ["passkey"],
       user: null,
     });
     const headers = cookies(response);
     assert.equal(await auth.findSession(headers), null);
     return headers;
   };
-  const pendingHeaders = await passwordChallenge();
+  // Passwordless authentication verifies origin, user presence/verification and replay protection.
   let challenge = await options(
     "/generate-authenticate-options",
-    pendingHeaders,
+    publicHeaders,
   );
   assert.equal(
     (
@@ -171,7 +153,19 @@ export async function verifyPasskeySecurity({
     ).ok,
     false,
   );
-  challenge = await options("/generate-authenticate-options", pendingHeaders);
+  challenge = await options("/generate-authenticate-options", publicHeaders);
+  assert.equal(
+    (
+      await request(endpoint + "/verify-authentication", challenge.headers, {
+        response: authenticator.authentication(
+          challenge.data.challenge,
+          "https://wrong-origin.test",
+        ),
+      })
+    ).ok,
+    false,
+  );
+  challenge = await options("/generate-authenticate-options", publicHeaders);
   const signed = {
     response: authenticator.authentication(challenge.data.challenge, origin),
   };
@@ -180,17 +174,9 @@ export async function verifyPasskeySecurity({
     request(endpoint + "/verify-authentication", challenge.headers, signed),
   ]);
   assert.equal(attempts.filter((response) => response.ok).length, 1);
-  const session = await auth.findSession(
-    cookies(attempts.find((response) => response.ok)!),
-  );
-  assert.equal(session?.user.id, adminId);
-  assert.equal(
-    (await request(endpoint + "/generate-authenticate-options", pendingHeaders))
-      .status,
-    401,
-  );
-
-  // A signed WebAuthn response cannot be carried into a different password attempt.
+  const direct = cookies(attempts.find((response) => response.ok)!);
+  assert.equal((await auth.findSession(direct))?.user.id, adminId);
+  // The passkey after a password cannot be carried into a different password attempt.
   const firstAttempt = await passwordChallenge();
   const firstOptions = await options(
     "/generate-authenticate-options",
@@ -224,27 +210,41 @@ export async function verifyPasskeySecurity({
     ).ok,
     false,
   );
-
-  // A different account's credential cannot complete this account's challenge.
-  const pendingOther = await passwordChallenge();
-  const otherOptions = await options(
-    "/generate-authenticate-options",
-    pendingOther,
+  const pending = await passwordChallenge();
+  challenge = await options("/generate-authenticate-options", pending);
+  const completed = await ok(
+    await request(endpoint + "/verify-authentication", challenge.headers, {
+      response: authenticator.authentication(
+        challenge.data.challenge,
+        origin,
+        2,
+      ),
+    }),
   );
+  assert.equal((await auth.findSession(cookies(completed)))!.user.id, adminId);
+  // An account's credential cannot authenticate another user's existing session.
   const otherId = (await auth.findSession(memberHeaders))!.user.id;
+  const otherChallenge = await options(
+    "/generate-authenticate-options",
+    adminHeaders,
+  );
   await database
     .update(schema.authPasskeys)
     .set({ userId: otherId })
     .where(eq(schema.authPasskeys.id, keys[0]!.id));
   assert.equal(
     (
-      await request(endpoint + "/verify-authentication", otherOptions.headers, {
-        response: authenticator.authentication(
-          otherOptions.data.challenge,
-          origin,
-          2,
-        ),
-      })
+      await request(
+        endpoint + "/verify-authentication",
+        otherChallenge.headers,
+        {
+          response: authenticator.authentication(
+            otherChallenge.data.challenge,
+            origin,
+            3,
+          ),
+        },
+      )
     ).ok,
     false,
   );
@@ -252,85 +252,224 @@ export async function verifyPasskeySecurity({
     .update(schema.authPasskeys)
     .set({ userId: adminId })
     .where(eq(schema.authPasskeys.id, keys[0]!.id));
-
+  // Reauthentication retains the session and never permits password fallback.
+  await database
+    .update(schema.sessions)
+    .set({ authenticatedAt: new Date(0) })
+    .where(eq(schema.sessions.id, current.sessionId));
+  assert.equal(
+    (
+      await request(
+        "/v1/core/profile/password",
+        adminHeaders,
+        {
+          newPassword: password + " changed",
+          confirmPassword: password + " changed",
+        },
+        "PUT",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "/v1/core/profile/passkeys/recovery-codes",
+        adminHeaders,
+        {},
+      )
+    ).status,
+    403,
+  );
+  challenge = await options("/generate-authenticate-options", adminHeaders);
+  const reauthenticated = await ok(
+    await request(endpoint + "/verify-authentication", challenge.headers, {
+      response: authenticator.authentication(
+        challenge.data.challenge,
+        origin,
+        3,
+      ),
+    }),
+  );
+  assert.deepEqual(await reauthenticated.json(), { authenticated: true });
+  assert.equal(reauthenticated.headers.getSetCookie().length, 0);
+  assert.equal(
+    (await auth.findSession(adminHeaders))?.sessionId,
+    current.sessionId,
+  );
+  await ok(
+    await request(
+      "/v1/core/profile/password",
+      adminHeaders,
+      {
+        newPassword: password + " changed",
+        confirmPassword: password + " changed",
+      },
+      "PUT",
+    ),
+  );
+  assert.equal(
+    (
+      await auth.authenticatePassword({
+        email: "admin@settings.test",
+        password,
+      })
+    ).ok,
+    false,
+  );
+  const changedLogin = await auth.authenticatePassword({
+    email: "admin@settings.test",
+    password: password + " changed",
+  });
+  assert.equal(
+    ((await changedLogin.json()) as { twoFactorRedirect: boolean })
+      .twoFactorRedirect,
+    true,
+  );
+  await ok(
+    await request(
+      "/v1/core/profile/password",
+      adminHeaders,
+      {
+        newPassword: password,
+        confirmPassword: password,
+      },
+      "PUT",
+    ),
+  );
+  const replaced = await ok(
+    await request("/v1/core/profile/passkeys/recovery-codes", adminHeaders, {}),
+  );
+  const codes = ((await replaced.json()) as { recoveryCodes: string[] })
+    .recoveryCodes;
+  assert.equal(codes.length, 10);
+  assert.notDeepEqual(codes, firstCodes);
+  assert.equal(
+    (
+      await request(
+        endpoint + "/verify-recovery-code",
+        await passwordChallenge(),
+        { code: firstCodes[0] },
+      )
+    ).ok,
+    false,
+  );
+  const recovery = await passwordChallenge();
+  const recovered = await Promise.all([
+    request(endpoint + "/verify-recovery-code", recovery, { code: codes[0] }),
+    request(endpoint + "/verify-recovery-code", recovery, { code: codes[0] }),
+  ]);
+  assert.equal(recovered.filter((result) => result.ok).length, 1);
+  assert.equal(
+    (await auth.findSession(cookies(recovered.find((result) => result.ok)!)))
+      ?.user.id,
+    adminId,
+  );
+  assert.equal(
+    (
+      await request(
+        endpoint + "/verify-recovery-code",
+        await passwordChallenge(),
+        { code: codes[0] },
+      )
+    ).ok,
+    false,
+  );
   const expired = await passwordChallenge();
+  const expiringOptions = await options(
+    "/generate-authenticate-options",
+    expired,
+  );
   await database
     .update(schema.authVerifications)
     .set({ expiresAt: new Date(0) })
     .where(eq(schema.authVerifications.value, adminId));
   assert.equal(
-    (await request(endpoint + "/generate-authenticate-options", expired))
-      .status,
+    (
+      await request(endpoint + "/verify-recovery-code", expired, {
+        code: codes[1],
+      })
+    ).status,
     401,
   );
-
-  const factorSetup = (await (
+  assert.equal(
+    (
+      await request(
+        endpoint + "/verify-authentication",
+        expiringOptions.headers,
+        {
+          response: authenticator.authentication(
+            expiringOptions.data.challenge,
+            origin,
+            4,
+          ),
+        },
+      )
+    ).ok,
+    false,
+  );
+  const freshOptions = await ok(
+    await request(endpoint + "/generate-authenticate-options", expired),
+  );
+  assert.equal(
+    ((await freshOptions.json()) as { allowCredentials?: unknown[] })
+      .allowCredentials?.length ?? 0,
+    0,
+  );
+  const secondKey = testAuthenticator();
+  const additional = await options("/generate-register-options");
+  const added = await ok(
+    await request(endpoint + "/verify-registration", additional.headers, {
+      name: "Second key",
+      response: secondKey.registration(additional.data.challenge, origin),
+    }),
+  );
+  assert.equal(
+    ((await added.json()) as { recoveryCodes?: string[] }).recoveryCodes,
+    undefined,
+  );
+  assert.equal(await auth.findSession(direct), null);
+  // Delete the last key only with recent authentication; recovery codes go with it.
+  const all = (await (
+    await ok(await request(endpoint + "/list-user-passkeys", adminHeaders))
+  ).json()) as Array<{ id: string }>;
+  for (const key of all)
     await ok(
-      await request("/v1/core/profile/two-factor/setup", adminHeaders, {}),
-    )
-  ).json()) as { totpURI: string };
-  const secret = new URL(factorSetup.totpURI).searchParams.get("secret")!;
-  const verified = await ok(
-    await request(
-      "/v1/public/auth/identity/two-factor/verify-totp",
-      adminHeaders,
-      { code: totp(secret) },
-    ),
-  );
-  adminHeaders = cookies(verified, adminHeaders);
-  const both = await passwordChallenge(["totp", "passkey"]);
-  const bothOptions = await options("/generate-authenticate-options", both);
-  const completed = await ok(
-    await request("/v1/public/auth/identity/two-factor/verify-totp", both, {
-      code: totp(secret),
-    }),
-  );
-  assert.equal((await auth.findSession(cookies(completed)))?.user.id, adminId);
+      await request(endpoint + "/delete-passkey", adminHeaders, { id: key.id }),
+    );
   assert.equal(
-    (
-      await request(endpoint + "/verify-authentication", bothOptions.headers, {
-        response: authenticator.authentication(
-          bothOptions.data.challenge,
-          origin,
-          2,
-        ),
-      })
-    ).ok,
+    (await auth.findSession(adminHeaders))!.user.twoFactorEnabled,
     false,
-  );
-  await ok(
-    await request("/v1/core/profile/two-factor/manage", adminHeaders, {
-      action: "disable",
-      code: totp(secret),
-    }),
-  );
-
-  await ok(
-    await request(endpoint + "/update-passkey", adminHeaders, {
-      id: keys[0]!.id,
-      name: "Renamed key",
-    }),
-  );
-  challenge = await options(
-    "/generate-authenticate-options",
-    await passwordChallenge(),
-  );
-  await ok(
-    await request(endpoint + "/delete-passkey", adminHeaders, {
-      id: keys[0]!.id,
-    }),
   );
   assert.equal(
     (
-      await request(endpoint + "/verify-authentication", challenge.headers, {
-        response: authenticator.authentication(
-          challenge.data.challenge,
-          origin,
-          2,
-        ),
-      })
-    ).ok,
-    false,
+      await database
+        .select()
+        .from(schema.authRecoveryCodes)
+        .where(eq(schema.authRecoveryCodes.userId, adminId))
+    ).length,
+    0,
+  );
+  assert.equal(
+    (
+      await request(
+        "/v1/core/profile/passkeys/recovery-codes",
+        adminHeaders,
+        {},
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await auth.findSession(
+      cookies(
+        await auth.authenticatePassword({
+          email: "admin@settings.test",
+          password,
+        }),
+      ),
+    ))!.user.id,
+    adminId,
   );
   return adminHeaders;
 }

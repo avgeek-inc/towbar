@@ -26,11 +26,13 @@ export function MetricCard({
       </KPI.Header>
       <KPI.Content className="grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
         {typeof value === "number" ? (
-          <KPI.Value maximumFractionDigits={0} value={value} />
+          <KPI.Value
+            className="font-medium"
+            maximumFractionDigits={0}
+            value={value}
+          />
         ) : (
-          <dd className="typography--h2 tracking-tight font-semibold">
-            {value}
-          </dd>
+          <dd className="typography--h2 tracking-tight font-medium">{value}</dd>
         )}
         {children}
       </KPI.Content>

@@ -4,7 +4,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { hashPassword, verifyPassword } from "better-auth/crypto";
-import { emailOTP, organization, twoFactor } from "better-auth/plugins";
+import { emailOTP, organization } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
 import { passkey } from "@better-auth/passkey";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
@@ -14,7 +14,6 @@ import {
   apiKeys,
   authAccounts,
   authPasskeys,
-  authTwoFactors,
   authVerifications,
   sessions,
   users,
@@ -61,7 +60,6 @@ function identityOptions(database: AuthDatabase) {
         authAccounts,
         authPasskeys,
         authVerifications,
-        authTwoFactors,
         workspaces,
         workspaceMembers,
         workspaceInvitations,
@@ -306,10 +304,6 @@ function identityOptions(database: AuthDatabase) {
             expiresAt: new Date(Date.now() + 600_000),
           });
         },
-      }),
-      twoFactor({
-        issuer: "Towbar",
-        schema: { twoFactor: { modelName: "authTwoFactors" } },
       }),
       apiKey(
         [

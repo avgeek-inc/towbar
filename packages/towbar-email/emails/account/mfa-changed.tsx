@@ -10,7 +10,7 @@ export default function Preview() {
         role: "member",
         previousRole: "viewer",
         keyName: "Production automation",
-        actionUrl: "https://towbar.example.com/settings/2fa",
+        actionUrl: "https://towbar.example.com/settings/passkeys",
       }}
     />
   );

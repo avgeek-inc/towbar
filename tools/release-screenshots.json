@@ -945,25 +945,6 @@
       ]
     },
     {
-      "name": "two-factor-auth",
-      "route": "/settings/2fa",
-      "guides": ["docs/docs/personal-settings.mdx"],
-      "themes": [
-        {
-          "theme": "light",
-          "file": "docs/assets/release-v2/two-factor-auth-light.jpg",
-          "width": 3200,
-          "height": 1800
-        },
-        {
-          "theme": "dark",
-          "file": "docs/assets/release-v2/two-factor-auth-dark.jpg",
-          "width": 3200,
-          "height": 1800
-        }
-      ]
-    },
-    {
       "name": "upgrade-applying",
       "route": "/system-health",
       "guides": ["docs/docs/self-hosting/upgrades.md"],

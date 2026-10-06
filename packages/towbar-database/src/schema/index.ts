@@ -352,23 +352,15 @@ export const emailChanges = pgTable(
   (table) => [uniqueIndex("uq_towbar_email_change_user").on(table.userId)],
 );
 
-export const authTwoFactors = pgTable(
-  "towbar_auth_two_factors",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    secret: text("secret").notNull(),
-    backupCodes: text("backup_codes").notNull(),
-    verified: boolean("verified").default(false).notNull(),
-    failedVerificationCount: integer("failed_verification_count")
-      .default(0)
-      .notNull(),
-    lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  },
-  (table) => [uniqueIndex("uq_towbar_two_factor_user").on(table.userId)],
-);
+export const authRecoveryCodes = pgTable("towbar_auth_recovery_codes", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  codeHashes: jsonb("code_hashes").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 export const workspaces = pgTable(
   "towbar_workspaces",

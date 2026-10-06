@@ -26,7 +26,8 @@ import {
   DateTimePreferenceFields,
   type DateTimePreferenceOptions,
 } from "./date-time-preference-fields";
-import type { SecondFactorMethod } from "@/lib/second-factor";
+import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
+import { toast } from "@workspace/web-design-system/overlays/toast";
 import { AuthFrame, authTextActionClassName } from "@/components/auth-frame";
 import { api } from "@/lib/api";
 import { safeNextPath } from "@/lib/safe-next-path";
@@ -39,7 +40,8 @@ export function LoginForm() {
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
   const [setup, setSetup] = useState<SetupStatus>();
-  const [twoFactor, setTwoFactor] = useState<SecondFactorMethod[] | null>(null);
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [statusError, setStatusError] = useState<string>();
 
   useEffect(() => {
@@ -80,8 +82,7 @@ export function LoginForm() {
   }
   if (setup.setupRequired) return <InitialTeamSetup options={setup.options} />;
 
-  if (twoFactor)
-    return <SecondFactorChallenge methods={twoFactor} next={next} />;
+  if (twoFactor) return <SecondFactorChallenge next={next} />;
   return (
     <AuthFrame
       description="Sign in to your team’s Towbar instance."
@@ -106,7 +107,7 @@ export function LoginForm() {
         onSubmit={async ({ identifier, password }) => {
           const result = await api.post<{
             twoFactorRequired: boolean;
-            twoFactorMethods: SecondFactorMethod[];
+            twoFactorMethods: string[];
           }>("/v1/public/auth/login-email", {
             email: identifier,
             password,
@@ -116,12 +117,30 @@ export function LoginForm() {
               throw new Error(
                 "Your verification methods could not be loaded. Sign in again.",
               );
-            setTwoFactor(result.twoFactorMethods);
+            setTwoFactor(true);
             return;
           }
           window.location.replace(next);
         }}
       />
+      <Button
+        variant="secondary"
+        className="w-full"
+        isDisabled={passkeyBusy}
+        onPress={async () => {
+          setPasskeyBusy(true);
+          try {
+            await verifyPasskeySecondFactor(new AbortController().signal);
+            window.location.replace(next);
+          } catch (error) {
+            toast.danger(passkeyError(error));
+          } finally {
+            setPasskeyBusy(false);
+          }
+        }}
+      >
+        {passkeyBusy ? "Waiting for your passkey…" : "Sign in with Passkey"}
+      </Button>
     </AuthFrame>
   );
 }

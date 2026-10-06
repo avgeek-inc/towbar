@@ -17,10 +17,10 @@ import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { enqueuePreviewPullRequestEvent } from "../../infrastructure/temporal.js";
 import { requestEnvironmentSync } from "../sources/environments.js";
 import { shouldReconcilePreviewPullRequest } from "./webhook-events.js";
-import {
-  getGitHubAppConfigurationByAppId,
-  getGitHubAppConfigurationForInstallation,
-} from "./configuration.js";
+import { requireGitHubRuntimeConfiguration } from "../../infrastructure/runtime-integrations.js";
+import { getGitHubInstallation } from "./client.js";
+import { saveGitHubInstallation } from "./service.js";
+import { workspaces } from "@workspace/towbar-database/schema";
 
 const pushSchema = z.object({
   after: z.string().regex(/^[a-f0-9]{40}$/u),
@@ -64,11 +64,23 @@ export async function processGitHubWebhook(input: {
   } catch {
     throw badRequest("GitHub webhook body is invalid JSON");
   }
+  const configuration = requireGitHubRuntimeConfiguration();
+  if (input.targetId && input.targetId !== configuration.appId)
+    throw unauthorized("GitHub App target is invalid");
+  verifyWebhookSignature(
+    input.body,
+    input.signature,
+    configuration.webhookSecret,
+  );
+  if (input.eventName === "ping") return { accepted: true, duplicate: false };
   const installationId = getWebhookInstallationId(payload);
-  const github = input.targetId
-    ? await getGitHubAppConfigurationByAppId(input.targetId, installationId)
-    : await getGitHubAppConfigurationForInstallation(installationId);
-  verifyWebhookSignature(input.body, input.signature, github.webhookSecret);
+  const github = await resolveWebhookInstallation({
+    installationId,
+    eventName: input.eventName,
+    payload,
+    signed: Boolean(configuration.webhookSecret),
+  });
+  if (!github) return { accepted: true, duplicate: false };
   const database = getTowbarDatabase();
   const created = await database
     .insert(integrationWebhookDeliveries)
@@ -79,7 +91,7 @@ export async function processGitHubWebhook(input: {
           : null,
       deliveryId: input.deliveryId,
       eventName: input.eventName,
-      installationId: github.installationRecordId,
+      installationId: github.id,
       payloadDigest: digestValue(input.body),
       provider: "github",
     })
@@ -254,12 +266,55 @@ async function processInstallation(payload: unknown) {
     .update(integrationInstallations)
     .set({ suspendedAt, updatedAt: new Date() })
     .where(
-      eq(
-        integrationInstallations.externalId,
-        String(installation.installation.id),
+      and(
+        eq(integrationInstallations.provider, "github"),
+        eq(
+          integrationInstallations.externalId,
+          String(installation.installation.id),
+        ),
       ),
     );
   return null;
+}
+
+export async function resolveWebhookInstallation(
+  input: {
+    installationId: string;
+    eventName: string;
+    payload: unknown;
+    signed: boolean;
+  },
+  lookup = getGitHubInstallation,
+) {
+  const database = getTowbarDatabase();
+  const [known] = await database
+    .select()
+    .from(integrationInstallations)
+    .where(
+      and(
+        eq(integrationInstallations.provider, "github"),
+        eq(integrationInstallations.externalId, input.installationId),
+      ),
+    );
+  const event = installationSchema.safeParse(input.payload);
+  if (
+    input.eventName !== "installation" ||
+    !event.success ||
+    !["created", "unsuspend", "new_permissions_accepted"].includes(
+      event.data.action,
+    )
+  )
+    return known ?? null;
+  if (!input.signed)
+    throw unauthorized(
+      "A webhook secret is required to connect GitHub accounts automatically",
+    );
+  const available = known
+    ? [{ id: known.workspaceId }]
+    : await database.select({ id: workspaces.id }).from(workspaces).limit(2);
+  if (available.length !== 1) return null;
+  const installation = await lookup(input.installationId, available[0]!.id);
+  return await saveGitHubInstallation(available[0]!.id, installation);
 }
 
 function isDeletedPush(push: z.infer<typeof pushSchema>) {

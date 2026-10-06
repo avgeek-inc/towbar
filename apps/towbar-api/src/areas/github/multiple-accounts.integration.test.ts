@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
-import { randomBytes, randomInt, randomUUID } from "node:crypto";
+import {
+  createHmac,
+  generateKeyPairSync,
+  randomBytes,
+  randomInt,
+  randomUUID,
+} from "node:crypto";
 import test from "node:test";
 import { and, eq } from "drizzle-orm";
+import postgres from "postgres";
 import {
   auditEvents,
   integrationInstallations,
+  integrationWebhookDeliveries,
   sourceEnvironments,
   sourceSyncs,
   sources,
@@ -21,7 +29,11 @@ import {
 } from "./service.js";
 import { HttpError } from "../../http/errors.js";
 import { changeSourceGitHubConnection } from "../sources/github-connection.js";
-import { processGitHubPush } from "./webhooks.js";
+import {
+  processGitHubPush,
+  processGitHubWebhook,
+  resolveWebhookInstallation,
+} from "./webhooks.js";
 import { createInstallationToken } from "./client.js";
 import { withActor } from "../auth/actor-context.js";
 
@@ -31,40 +43,128 @@ void test(
   { skip: !url },
   async () => {
     assert(url && new URL(url).pathname.endsWith("_test"));
-    process.env.DATABASE_TOWBAR_URL = url;
-    process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
-    process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
-    const { runTowbarMigrations } =
-      await import("@workspace/towbar-database/migrate");
-    await runTowbarMigrations({
-      databaseUrl: url,
-      logger: { info() {}, error() {} },
-    });
+    const admin = postgres(url, { max: 1, onnotice() {} });
+    const databaseName = `github_accounts_${randomUUID().replaceAll("-", "")}_test`;
+    const databaseUrl = new URL(url);
+    databaseUrl.pathname = `/${databaseName}`;
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
-    const database = getTowbarDatabase();
-    const workspaceId = randomUUID(),
-      otherWorkspaceId = randomUUID(),
-      sourceId = randomUUID();
-    const firstId = randomInt(1, 1_000_000_000),
-      secondId = firstId + 1,
-      reinstalledId = firstId + 2;
-    const accountId = firstId + 3;
-    const installation = (id: number, principalId: number, login: string) => ({
-      id,
-      account: { id: principalId, login, type: "Organization" },
-      permissions: {
-        contents: "read",
-        deployments: "write",
-        pull_requests: "write",
-      },
-      suspended_at: null,
-    });
-    await database.insert(workspaces).values([
-      { id: workspaceId, slug: workspaceId, name: "GitHub accounts test" },
-      { id: otherWorkspaceId, slug: otherWorkspaceId, name: "Other workspace" },
-    ]);
     try {
+      await admin.unsafe(`CREATE DATABASE "${databaseName}"`);
+      process.env.DATABASE_TOWBAR_URL = databaseUrl.href;
+      process.env.TOWBAR_CREDENTIALS_KEY = randomBytes(32).toString("base64");
+      process.env.TOWBAR_INTERNAL_HMAC_SECRET = randomBytes(32).toString("hex");
+      const { runTowbarMigrations } =
+        await import("@workspace/towbar-database/migrate");
+      await runTowbarMigrations({
+        databaseUrl: databaseUrl.href,
+        logger: { info() {}, error() {} },
+      });
+      const database = getTowbarDatabase();
+      const workspaceId = randomUUID(),
+        otherWorkspaceId = randomUUID(),
+        sourceId = randomUUID();
+      const firstId = randomInt(1, 1_000_000_000),
+        secondId = firstId + 1,
+        reinstalledId = firstId + 2;
+      const accountId = firstId + 3;
+      const installation = (
+        id: number,
+        principalId: number,
+        login: string,
+      ) => ({
+        id,
+        account: { id: principalId, login, type: "Organization" },
+        permissions: {
+          contents: "read",
+          deployments: "write",
+          pull_requests: "write",
+        },
+        suspended_at: null,
+      });
+      await database.insert(workspaces).values({
+        id: workspaceId,
+        slug: workspaceId,
+        name: "GitHub accounts test",
+      });
+      const autoId = firstId + 10;
+      const autoInput = {
+        installationId: String(autoId),
+        eventName: "installation",
+        payload: { action: "created", installation: { id: autoId } },
+        signed: true,
+      };
+      const lookup = () =>
+        Promise.resolve(installation(autoId, accountId + 20, "auto-account"));
+      await assert.rejects(
+        resolveWebhookInstallation({ ...autoInput, signed: false }, lookup),
+        /webhook secret/,
+      );
+      const automatic = await resolveWebhookInstallation(autoInput, lookup);
+      assert(automatic);
+      assert.equal(
+        (await resolveWebhookInstallation(autoInput, lookup))?.id,
+        automatic.id,
+      );
+      process.env.TOWBAR_GITHUB_ENABLED = "true";
+      process.env.TOWBAR_GITHUB_APP_ID = "1234";
+      process.env.TOWBAR_GITHUB_APP_SLUG = "towbar";
+      process.env.TOWBAR_GITHUB_PRIVATE_KEY_BASE64 = Buffer.from(
+        generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({
+          type: "pkcs8",
+          format: "pem",
+        }),
+      ).toString("base64");
+      process.env.TOWBAR_GITHUB_WEBHOOK_SECRET = "test-webhook-secret";
+      const deletedBody = JSON.stringify({
+        action: "deleted",
+        installation: { id: autoId },
+      });
+      const webhook = {
+        body: deletedBody,
+        deliveryId: randomUUID(),
+        eventName: "installation",
+        targetId: "1234",
+        signature: `sha256=${createHmac("sha256", "test-webhook-secret").update(deletedBody).digest("hex")}`,
+      };
+      await assert.rejects(
+        processGitHubWebhook({ ...webhook, signature: "invalid" }),
+        /signature/,
+      );
+      await processGitHubWebhook(webhook);
+      assert(
+        (await getGitHubConnection(workspaceId, automatic.id))?.suspendedAt,
+      );
+      assert.equal((await processGitHubWebhook(webhook)).duplicate, true);
+      await resolveWebhookInstallation(
+        {
+          ...autoInput,
+          payload: { action: "unsuspend", installation: { id: autoId } },
+        },
+        lookup,
+      );
+      assert.equal(
+        (await getGitHubConnection(workspaceId, automatic.id))?.suspendedAt,
+        null,
+      );
+      await database.insert(workspaces).values({
+        id: otherWorkspaceId,
+        slug: otherWorkspaceId,
+        name: "Other workspace",
+      });
+      assert.equal(
+        await resolveWebhookInstallation(
+          { ...autoInput, installationId: String(autoId + 1) },
+          lookup,
+        ),
+        null,
+      );
+      await database
+        .delete(integrationWebhookDeliveries)
+        .where(eq(integrationWebhookDeliveries.installationId, automatic.id));
+      await database
+        .delete(integrationInstallations)
+        .where(eq(integrationInstallations.id, automatic.id));
       // Legacy records have no GitHub account/repository IDs until access is verified.
       const [legacy] = await database
         .insert(integrationInstallations)
@@ -370,21 +470,9 @@ void test(
         String(reinstalledId),
       );
     } finally {
-      await database
-        .delete(auditEvents)
-        .where(eq(auditEvents.workspaceId, workspaceId));
-      await database
-        .delete(sourceSyncs)
-        .where(eq(sourceSyncs.sourceId, sourceId));
-      await database
-        .delete(sourceEnvironments)
-        .where(eq(sourceEnvironments.sourceId, sourceId));
-      await database.delete(sources).where(eq(sources.id, sourceId));
-      await database.delete(workspaces).where(eq(workspaces.id, workspaceId));
-      await database
-        .delete(workspaces)
-        .where(eq(workspaces.id, otherWorkspaceId));
       await closeDatabase();
+      await admin.unsafe(`DROP DATABASE IF EXISTS "${databaseName}"`);
+      await admin.end();
     }
   },
 );

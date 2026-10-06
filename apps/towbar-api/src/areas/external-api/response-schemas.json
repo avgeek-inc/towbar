@@ -3670,8 +3670,7 @@
     "account.ts:get:\"/profile/email-change\"": {},
     "account.ts:post:\"/profile/email-change\"": {},
     "account.ts:delete:\"/profile/email-change\"": {},
-    "account.ts:post:\"/profile/two-factor/setup\"": {},
-    "account.ts:post:\"/profile/two-factor/manage\"": {},
+    "account.ts:post:\"/profile/passkeys/recovery-codes\"": {},
     "apps.ts:get:\"/\"": {
       "allOf": [
         { "$ref": "#/components/schemas/Response_134" },

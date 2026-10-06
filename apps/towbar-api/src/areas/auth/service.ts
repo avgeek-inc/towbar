@@ -1,8 +1,11 @@
-import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { passkeyEnabled } from "./passkeys.js";
+import { requireRecentAuthentication } from "./recent-authentication.js";
+import { and, count, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { isWorkspaceRole, roleActions } from "@workspace/towbar-access";
 import type { DateTimePreferences } from "@workspace/towbar-core/date-time";
 import {
   authAccounts,
+  authPasskeys,
   sessions,
   users,
   workspaceMembers,
@@ -87,13 +90,20 @@ export async function authenticatePassword(
   headers?: Headers,
 ) {
   const email = input.email.trim().toLowerCase();
-  const response = await getIdentityAuth().api.signInEmail({
-    body: { email, password: input.password },
-    headers,
-    asResponse: true,
+  return await getTowbarDatabase().transaction(async (tx) => {
+    await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .for("update");
+    const response = await createIdentityAuth(tx).api.signInEmail({
+      body: { email, password: input.password },
+      headers,
+      asResponse: true,
+    });
+    await recordSuccessfulSignIn(tx, response);
+    return response;
   });
-  await recordSuccessfulSignIn(getTowbarDatabase(), response);
-  return response;
 }
 
 export async function recordSuccessfulSignIn(
@@ -132,7 +142,7 @@ export async function getUserIdentity(userId: string) {
       dateTimePreferences: users.dateTimePreferences,
       emailVerified: users.emailVerified,
       mustChangePassword: users.mustChangePassword,
-      twoFactorEnabled: users.twoFactorEnabled,
+      twoFactorEnabled: passkeyEnabled,
       workspaceRole: workspaceMembers.role,
       workspaceId: workspaces.id,
       teamName: workspaces.name,
@@ -202,6 +212,11 @@ export async function changePassword(input: {
   userId: string;
 }): Promise<Headers> {
   return await getTowbarDatabase().transaction(async (tx) => {
+    await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .for("update");
     const auth = createIdentityAuth(tx);
     const [credential] = await tx
       .select({ password: authAccounts.password })
@@ -214,7 +229,39 @@ export async function changePassword(input: {
       )
       .limit(1);
     let responseHeaders = new Headers();
-    if (credential?.password) {
+    const [key] = await tx
+      .select({ id: authPasskeys.id })
+      .from(authPasskeys)
+      .where(eq(authPasskeys.userId, input.userId))
+      .limit(1);
+    if (credential?.password && key) {
+      const session = await auth.api.getSession({ headers: input.headers });
+      if (!session || session.user.id !== input.userId)
+        throw forbidden("Sign in to continue");
+      await requireRecentAuthentication(input.userId, session.session.id);
+      await tx
+        .update(authAccounts)
+        .set({
+          password: await (
+            await auth.$context
+          ).password.hash(input.newPassword),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(authAccounts.userId, input.userId),
+            eq(authAccounts.providerId, "credential"),
+          ),
+        );
+      await tx
+        .delete(sessions)
+        .where(
+          and(
+            eq(sessions.userId, input.userId),
+            ne(sessions.id, session.session.id),
+          ),
+        );
+    } else if (credential?.password) {
       if (!input.currentPassword)
         throw unauthorized("Enter your current password");
       const result = await auth.api.changePassword({

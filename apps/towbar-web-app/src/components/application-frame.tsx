@@ -258,7 +258,8 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
           <Spinner aria-label="Loading Towbar" color="warning" />
           {sessionUnavailable ? (
             <p className="text-sm text-muted">
-              Towbar is temporarily unavailable. Reconnecting automatically…
+              Towbar is temporarily unavailable.
+              <span className="block">Reconnecting automatically…</span>
             </p>
           ) : null}
         </div>

@@ -95,26 +95,11 @@ route with editable subscriptions and a test confirmation. With the flag unset,
 Discord shows the missing-configuration widget.
 Set `TOWBAR_FIXTURE_TELEGRAM_CONFIGURED=true` to review Telegram chat and topic destinations, subscriptions, and the test confirmation. Without it, Telegram shows the missing-credentials widget.
 
-To test two-factor sign-in, open `/login` and use `2fa@example.com` with
-password `Towbar fixture passphrase 2026`, then enter authenticator code
-`123456`. This fixture account starts with 2FA enabled; no enrollment is needed.
-An incorrect password or code shows an error toast. Use `fixture-recovery-one`
-to preview the recovery-code path. These credentials work only with the local
-fixture API. Restart that API after changing its scripts so the login flow uses
-the current response format.
+To test passkey sign-in, start the fixture with `TOWBAR_FIXTURE_AUTH_STATE=signed-out` and open `/login`. Use `2fa-both@example.com` with password `Towbar fixture passphrase 2026`. Password sign-in requires the seeded passkey; `fixture-recovery-one` provides a one-use recovery path. These credentials work only in the local fixture.
 
-Use `2fa-both@example.com` with the same password and authenticator code to
-preview an account with **both authenticator and passkey** configured. Towbar
-requests the passkey automatically when the browser supports it. Switch to an
-authenticator or recovery code if the passkey is unavailable.
+The seeded passkey belongs to a virtual authenticator, not your device. Tests can import the public test material from `scripts/dual-factor-fixture.ts` for RP ID `localhost`. The fixture verifies WebAuthn signatures. To test your device, sign in with a recovery code and register a passkey under **My Settings → Passkeys**.
 
-The seeded passkey is a virtual-authenticator test credential, not a passkey on
-your device. Authenticator code `123456` works immediately. To test with your own
-device, sign in with that code and register a passkey from **My Settings →
-Two-factor Auth**. Automated tests can import the credential and PKCS#8 private
-key from `scripts/dual-factor-fixture.ts` into a WebAuthn virtual authenticator
-for RP ID `localhost`. The fixture verifies genuine WebAuthn signatures; it does
-not bypass passkey verification.
+Set `TOWBAR_FIXTURE_AUTH_STATE=passkey-user` to review the passkey table and recovery-code menu directly. Restart the fixture after changing its scripts.
 
 ## Documentation screenshots
 

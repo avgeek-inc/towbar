@@ -180,7 +180,7 @@ export function DashboardOverview() {
                 <div className="grid justify-items-start gap-3">
                   <InlineLink
                     href={metric.href}
-                    className="inline-flex items-center text-2xl font-semibold tracking-tight font-mono tabular-nums"
+                    className="inline-flex items-center text-2xl font-medium tracking-tight font-mono tabular-nums"
                     aria-label={`${metric.value} ${metric.label.toLowerCase()} — view all`}
                   >
                     {metric.value}

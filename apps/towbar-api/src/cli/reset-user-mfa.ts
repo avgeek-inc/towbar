@@ -6,7 +6,7 @@ try {
   const options = recoveryArguments(process.argv.slice(2), "mfa");
   await resetUserMfa(options);
   process.stdout.write(
-    "Authenticator and recovery codes reset. Existing sessions and personal API keys were revoked.\n",
+    "Recovery codes reset. Existing sessions and personal API keys were revoked.\n",
   );
   process.stdout.write(
     options.removePasskeys
@@ -14,7 +14,7 @@ try {
       : "Registered passkeys were retained.\n",
   );
   process.stdout.write(
-    "Sign in with the existing password and set up two-factor authentication again.\n",
+    "Sign in with the existing password and verify a retained passkey or add a new passkey.\n",
   );
 } catch (error) {
   process.stderr.write(

@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import {
   authAccounts,
+  authPasskeys,
   sessions,
   users,
 } from "@workspace/towbar-database/schema";
@@ -26,7 +27,7 @@ export async function requireRecentAuthentication(
     throw new HttpError(
       403,
       "REAUTHENTICATION_REQUIRED",
-      "Confirm your password to continue",
+      "Confirm your identity to continue",
     );
 }
 export async function reauthenticate(input: {
@@ -34,7 +35,6 @@ export async function reauthenticate(input: {
   sessionId: string;
   headers: Headers;
   password: string;
-  code?: string;
 }) {
   const bucket = await incrementPersistentBucket(
     `reauth:${input.userId}`,
@@ -48,47 +48,51 @@ export async function reauthenticate(input: {
       "Too many attempts. Try again later",
       { responseHeaders: { "Retry-After": "600" } },
     );
-  const [account] = await getTowbarDatabase()
-    .select({
-      password: authAccounts.password,
-      twoFactorEnabled: users.twoFactorEnabled,
-    })
-    .from(authAccounts)
-    .innerJoin(users, eq(users.id, authAccounts.userId))
-    .where(
-      and(
-        eq(authAccounts.userId, input.userId),
-        eq(authAccounts.providerId, "credential"),
-      ),
+  await getTowbarDatabase().transaction(async (tx) => {
+    const [user] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .for("update");
+    if (!user) throw unauthorized("Sign in to continue");
+    const [passkey] = await tx
+      .select({ id: authPasskeys.id })
+      .from(authPasskeys)
+      .where(eq(authPasskeys.userId, input.userId))
+      .limit(1);
+    if (passkey)
+      throw unauthorized("Use your passkey to confirm your identity");
+    const [account] = await tx
+      .select({
+        password: authAccounts.password,
+      })
+      .from(authAccounts)
+      .where(
+        and(
+          eq(authAccounts.userId, input.userId),
+          eq(authAccounts.providerId, "credential"),
+        ),
+      )
+      .limit(1);
+    const auth = getIdentityAuth();
+    const authContext = await auth.$context;
+    if (
+      !account?.password ||
+      !(await authContext.password.verify({
+        hash: account.password,
+        password: input.password,
+      }))
     )
-    .limit(1);
-  const auth = getIdentityAuth();
-  const authContext = await auth.$context;
-  if (
-    !account?.password ||
-    !(await authContext.password.verify({
-      hash: account.password,
-      password: input.password,
-    }))
-  )
-    throw unauthorized("Password is incorrect");
-  if (account.twoFactorEnabled) {
-    if (!input.code)
-      throw new HttpError(
-        400,
-        "TWO_FACTOR_REQUIRED",
-        "Enter the code from your authenticator app",
+      throw unauthorized("Password is incorrect");
+    await tx
+      .update(sessions)
+      .set({ authenticatedAt: new Date() })
+      .where(
+        and(
+          eq(sessions.id, input.sessionId),
+          eq(sessions.userId, input.userId),
+        ),
       );
-    await auth.api.verifyTOTP({
-      headers: input.headers,
-      body: { code: input.code },
-    });
-  }
+  });
   await clearPersistentBucket(`reauth:${input.userId}`);
-  await getTowbarDatabase()
-    .update(sessions)
-    .set({ authenticatedAt: new Date() })
-    .where(
-      and(eq(sessions.id, input.sessionId), eq(sessions.userId, input.userId)),
-    );
 }
