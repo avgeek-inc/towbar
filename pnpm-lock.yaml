@@ -237,8 +237,8 @@ importers:
   apps/towbar-web-app:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.1
-        version: 1.2.1(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.3
+        version: 1.2.3(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@codemirror/commands":
         specifier: ^6.11.1
         version: 6.11.1
@@ -672,8 +672,8 @@ importers:
   packages/towbar-web-ui:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.1
-        version: 1.2.1(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.3
+        version: 1.2.3(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
         version: 4.3.5
@@ -752,11 +752,11 @@ packages:
       }
     engines: { node: ">=10" }
 
-  "@avgeek-oss/design-system@1.2.1":
+  "@avgeek-oss/design-system@1.2.3":
     resolution:
       {
-        integrity: sha512-M3BuIAIePNMHQzfqFOWNBv/LmXwZ8UYqiXWG3g47qnKnVlTsRHEhSW4AHO/rGb1hD8i2rj0FZVO8x9o804B07A==,
-        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.1/b104a1123b652156ddbd785b3dd58d2931bd2922,
+        integrity: sha512-/kEAKNMyMlke7znDRMvX4HFXmxDnvzACto/Ea/+CQVJ6seOdWl9wzIIzRyjXb6nPFzYnf10RgE87JfvJ1evy5Q==,
+        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.3/c6b89d3134d6ae45c82a82e97b39cdacf19488bb,
       }
     engines: { node: ">=24" }
     peerDependencies:
@@ -7839,7 +7839,7 @@ snapshots:
 
   "@alloc/quick-lru@5.2.0": {}
 
-  "@avgeek-oss/design-system@1.2.1(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
+  "@avgeek-oss/design-system@1.2.3(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
     dependencies:
       "@fontsource-variable/geist-mono": 5.3.0
       "@fontsource-variable/inter": 5.3.0

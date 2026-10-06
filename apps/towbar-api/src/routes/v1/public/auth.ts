@@ -1,4 +1,5 @@
 import { replaceRecoveryCodes } from "../../../areas/auth/recovery-codes.js";
+import { requestPublicVerificationEmail } from "../../../areas/auth/public-email-verification.js";
 import { validatePasskeyRequest } from "../../../areas/auth/passkey-requests.js";
 import { preferenceOptions } from "../../../areas/auth/preferences.js";
 import { dateTimePreferencesSchema } from "@workspace/towbar-core/date-time";
@@ -76,6 +77,16 @@ publicAuthRoutes.get("/setup-status", async (context) =>
     options: preferenceOptions(),
   }),
 );
+publicAuthRoutes.post("/request-verification-email", async (context) => {
+  if (context.req.header("authorization") || context.req.header("x-api-key"))
+    throw forbidden("Use the public verification form");
+  const { email } = await readJson(
+    context,
+    z.object({ email: z.string().trim().pipe(z.email().max(320)) }).strict(),
+  );
+  await requestPublicVerificationEmail(email, getClientAddress(context));
+  return context.json({ status: true });
+});
 publicAuthRoutes.post("/setup", async (context) => {
   await enforceInitialSetupRateLimit(getClientAddress(context));
   const input = await readJson(context, setupSchema);

@@ -13,6 +13,7 @@ import {
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { AuthFrame, AuthBrand, authTextActionClassName } from "./auth-frame";
 import {
+  VerificationEmail,
   ForgotPassword,
   ResetLinkSent,
   PasswordSetup,
@@ -110,6 +111,22 @@ export function FirstPasswordForm() {
     </AuthFrame>
   );
 }
+export function VerificationEmailForm() {
+  return (
+    <VerificationEmail
+      brand={<AuthBrand />}
+      onBackToSignIn={() => window.location.assign("/login")}
+      onSubmit={async ({ email }) => {
+        const result = await api.post<{ status: boolean }>(
+          "/v1/public/auth/request-verification-email",
+          { email },
+        );
+        if (result?.status !== true)
+          throw new Error("Verification email was not requested. Try again.");
+      }}
+    />
+  );
+}
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
   const back = () => window.location.assign("/login");
@@ -183,6 +200,16 @@ function BackToSignIn() {
     </Link>
   );
 }
+async function requestInvitationVerification(invitationId: string) {
+  const result = await api.post<{ existingAccount: boolean }>(
+    `/v1/public/auth/invitations/${invitationId}/verify`,
+    {},
+  );
+  if (typeof result?.existingAccount !== "boolean")
+    throw new Error("Invitation verification was not completed. Try again.");
+  return result;
+}
+
 export function InvitationForm({ invitationId }: { invitationId: string }) {
   const query = useApiQuery<{
     invitation: {
@@ -218,6 +245,13 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
         brand={<AuthBrand />}
         teamName={invitation.teamName}
         maxNameLength={120}
+        onResendCode={async () => {
+          const result = await requestInvitationVerification(invitationId);
+          if (result.existingAccount) {
+            setExisting(true);
+            setVerifying(false);
+          }
+        }}
         onSubmit={async (values) => {
           await api.post(
             `/v1/public/auth/invitations/${invitationId}/signup`,
@@ -242,10 +276,7 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
           verifyRequestPending.current = true;
           setVerifyPending(true);
           try {
-            const result = await api.post<{ existingAccount: boolean }>(
-              `/v1/public/auth/invitations/${invitationId}/verify`,
-              {},
-            );
+            const result = await requestInvitationVerification(invitationId);
             setExisting(result.existingAccount);
             setVerifying(!result.existingAccount);
           } catch (error) {

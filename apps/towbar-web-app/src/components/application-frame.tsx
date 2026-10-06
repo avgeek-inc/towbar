@@ -176,6 +176,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     [
       "/oauth/consent",
       "/forgot-password",
+      "/verification",
       "/reset-password",
       "/verify-email",
       "/confirm-email-change",

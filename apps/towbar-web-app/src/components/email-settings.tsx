@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { AuthForm, EmailChangeSettings } from "@avgeek-oss/design-system";
+import {
+  EmailConfirmation,
+  EmailChangeSettings,
+} from "@avgeek-oss/design-system";
 import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { displayDate } from "@/lib/date-time-display";
-import { AuthFrame } from "./auth-frame";
+import { AuthBrand } from "./auth-frame";
 import { useAccess } from "./access-context";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -55,8 +57,8 @@ export function ConfirmEmailChange() {
     function readProof() {
       const hash = window.location.hash.slice(1);
       const match = hash.match(/^([a-f0-9-]{36})\.([A-Za-z0-9_-]{43})$/);
-      if (match) {
-        setProof({ id: match[1]!, token: match[2]! });
+      if (match?.[1] && match[2]) {
+        setProof({ id: match[1], token: match[2] });
         setDone(false);
         window.history.replaceState(null, "", window.location.pathname);
       } else if (hash) setProof(null);
@@ -66,41 +68,29 @@ export function ConfirmEmailChange() {
     window.addEventListener("hashchange", readProof);
     return () => window.removeEventListener("hashchange", readProof);
   }, []);
+  const shared = {
+    brand: <AuthBrand />,
+    purpose: "email-change" as const,
+    onBackToSignIn: () => window.location.assign("/login"),
+  };
+  if (!checked) return <EmailConfirmation {...shared} status="checking" />;
+  if (done) return <EmailConfirmation {...shared} status="confirmed" />;
+  if (!proof) return <EmailConfirmation {...shared} status="unavailable" />;
   return (
-    <AuthFrame
-      title={done ? "Email updated" : "Confirm email change"}
-      description={
-        done
-          ? "Use your new email address to sign in. Your password is unchanged."
-          : "Confirm the new email address for your Towbar account."
-      }
-    >
-      {!checked ? (
-        <p role="status">Checking confirmation link…</p>
-      ) : done ? (
-        <Link className="underline underline-offset-4" href="/login">
-          Sign in
-        </Link>
-      ) : proof ? (
-        <AuthForm
-          fields={[]}
-          submitLabel="Confirm email change"
-          onSubmit={async () => {
-            await api.post("/v1/public/auth/confirm-email-change", proof);
-            setDone(true);
-            window.dispatchEvent(new Event("towbar:identity-changed"));
-          }}
-        >
-          <p className="text-sm text-muted">
-            You’ll be signed out of all browser sessions after confirming.
-          </p>
-        </AuthForm>
-      ) : (
-        <p role="alert">
-          Open the full confirmation link from your email. If it has expired,
-          request a new link from Email &amp; Password in Personal Settings.
-        </p>
-      )}
-    </AuthFrame>
+    <EmailConfirmation
+      {...shared}
+      status="ready"
+      onConfirm={async () => {
+        const result = await api.post<{ success: boolean }>(
+          "/v1/public/auth/confirm-email-change",
+          proof,
+        );
+        if (result?.success !== true)
+          throw new Error("Email confirmation was not completed. Try again.");
+        setDone(true);
+        window.dispatchEvent(new Event("towbar:identity-changed"));
+        toast.success("Email updated");
+      }}
+    />
   );
 }
