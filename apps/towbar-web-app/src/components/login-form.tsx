@@ -1,4 +1,8 @@
 "use client";
+import {
+  dateFormatOptions,
+  timeFormatOptions,
+} from "@avgeek-oss/design-system/utilities/date-time-preferences";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { TeamSetup, SignIn } from "@avgeek-oss/design-system";
@@ -115,7 +119,11 @@ function InitialTeamSetup({ options }: { options: DateTimePreferenceOptions }) {
   return (
     <TeamSetup
       brand={<AuthBrand />}
-      preferenceOptions={options}
+      preferenceOptions={{
+        ...options,
+        dateFormats: dateFormatOptions,
+        timeFormats: timeFormatOptions,
+      }}
       onSubmit={async ({
         team,
         name,

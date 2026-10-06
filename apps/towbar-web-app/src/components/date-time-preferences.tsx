@@ -1,4 +1,8 @@
 "use client";
+import {
+  dateFormatOptions,
+  timeFormatOptions,
+} from "@avgeek-oss/design-system/utilities/date-time-preferences";
 import { useEffect, useState } from "react";
 import type { LocalizedTimestamp } from "@workspace/towbar-web-client";
 import { PreferencesSettings } from "@avgeek-oss/design-system";
@@ -28,7 +32,11 @@ export function DateTimePreferencesSettings() {
       <PreferencesSettings
         key={JSON.stringify(data.preferences)}
         value={data.preferences}
-        options={data.options}
+        options={{
+          ...data.options,
+          dateFormats: dateFormatOptions,
+          timeFormats: timeFormatOptions,
+        }}
         formatPreview={(preferences) => (
           <PreferencePreview value={preferences} initial={data.preview} />
         )}
