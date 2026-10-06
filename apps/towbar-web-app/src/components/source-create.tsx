@@ -16,22 +16,19 @@ import type {
   GitHubRepository,
   Source,
 } from "@workspace/towbar-web-client";
-import {
-  Button,
-  ButtonLink,
-} from "@workspace/web-design-system/buttons/button";
-import { ListBox } from "@workspace/web-design-system/collections/list-box";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Checkbox } from "@workspace/web-design-system/forms/checkbox";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select } from "@workspace/web-design-system/forms/select";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button, ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { ListBox } from "@avgeek-oss/design-system/collections/list-box";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Select } from "@avgeek-oss/design-system/forms/select";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import {
   Autocomplete,
   SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
+} from "@avgeek-oss/design-system/pickers/autocomplete";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";

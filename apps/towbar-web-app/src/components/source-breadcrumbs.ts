@@ -3,7 +3,7 @@
 import { createElement } from "react";
 
 import type { Source } from "@workspace/towbar-web-client";
-import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
+import type { BreadcrumbAncestors } from "@avgeek-oss/design-system/patterns/pages/page";
 
 import { sourcesBreadcrumb } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";

@@ -2,8 +2,8 @@
 
 import { Add01Icon, Unlink01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 

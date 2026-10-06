@@ -1,7 +1,7 @@
 import type {
   HeadingDocumentation,
   HeadingKind,
-} from "@workspace/web-design-system/overlays/heading-help";
+} from "@avgeek-oss/design-system/overlays/heading-help";
 
 const docsOrigin = "https://www.towbar.dev";
 function guide(path: string, description: string): HeadingDocumentation {

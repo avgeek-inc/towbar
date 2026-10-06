@@ -3,7 +3,7 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -16,7 +16,7 @@ import type {
   Server,
 } from "@workspace/towbar-web-client";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { type ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
+import { type ResourceTableColumn } from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { DeployableInventoryTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import { Tooltip } from "@avgeek-oss/design-system/overlays/tooltip";
 
 export function SecretReferenceTooltip({
   children,

@@ -1,1 +1,1 @@
-export { default } from "@workspace/web-design-system/postcss.config";
+export default { plugins: { "@tailwindcss/postcss": {} } };

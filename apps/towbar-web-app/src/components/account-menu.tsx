@@ -17,12 +17,7 @@ import { useRouter } from "next/navigation";
 import { repositoryUrl } from "@workspace/towbar-contracts/repository-identity";
 
 import type { TowbarUser } from "@workspace/towbar-web-client";
-import { Avatar } from "@workspace/web-design-system/data-display/avatar";
-import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
-import {
-  Dropdown,
-  Header,
-} from "@workspace/web-design-system/overlays/dropdown";
+import { SidebarAccountMenu } from "@avgeek-oss/design-system";
 
 const changelogUrl = `${repositoryUrl}/blob/main/CHANGELOG.md`;
 const documentationUrl = "https://www.towbar.dev/docs";
@@ -35,7 +30,6 @@ export function AccountMenu({
   onLogoutRequest: () => void;
 }) {
   const router = useRouter();
-  const { close } = useMobileNavigation();
 
   const onAction = (key: React.Key) => {
     switch (key) {
@@ -65,127 +59,68 @@ export function AccountMenu({
         onLogoutRequest();
         break;
     }
-    close();
   };
 
+  const icon = (value: typeof UserAccountIcon) => (
+    <HugeiconsIcon icon={value} />
+  );
   return (
-    <Dropdown>
-      <Dropdown.Trigger
-        aria-label={`Account menu for ${user.name}`}
-        className="sidebar-identity flex min-h-16 w-full min-w-0 items-center gap-2.5 px-4 py-3 text-start text-sm"
-      >
-        <Avatar
-          aria-hidden="true"
-          className="size-9 shrink-0"
-          email={user.email}
-          name={user.name}
-          size="md"
-          src={user.avatarUrl}
-        />
-        <span className="grid min-w-0 flex-1 gap-0.25">
-          <span className="truncate font-medium">{user.name}</span>
-          <span className="truncate text-xs text-foreground/70">
-            {user.teamName}
-          </span>
-        </span>
-      </Dropdown.Trigger>
-      <Dropdown.Popover
-        className="w-60 max-w-[calc(100vw-2rem)] rounded-2xl border border-separator"
-        placement="top start"
-      >
-        <div className="grid gap-0.25 border-b border-separator px-3 py-3">
-          <div className="truncate text-sm font-medium">{user.name}</div>
-          <div className="truncate text-xs text-muted">{user.email}</div>
-        </div>
-        <Dropdown.Menu aria-label="Account menu" onAction={onAction}>
-          <Dropdown.Section className="w-full" aria-label="Account">
-            <Header>Account</Header>
-            <Dropdown.Item id="profile" textValue="Profile">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={UserAccountIcon}
-              />
-              Profile
-            </Dropdown.Item>
-            <Dropdown.Item id="preferences" textValue="Preferences">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={Settings01Icon}
-              />
-              Preferences
-            </Dropdown.Item>
-            <Dropdown.Item id="email-password" textValue="Auth & Security">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={Mail01Icon}
-              />
-              Auth &amp; Security
-            </Dropdown.Item>
-            <Dropdown.Item id="api-keys" textValue="My API Keys">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={Key01Icon}
-              />
-              My API Keys
-            </Dropdown.Item>
-          </Dropdown.Section>
-          <Dropdown.Section
-            aria-label="Towbar"
-            className="mt-1.5 w-full border-t border-separator pt-1.5"
-          >
-            <Header>Towbar</Header>
-            <Dropdown.Item id="changelog" textValue="Changelog">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={News01Icon}
-              />
-              Changelog
-            </Dropdown.Item>
-            <Dropdown.Item id="documentation" textValue="Documentation">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={BookOpen01Icon}
-              />
-              Documentation
-            </Dropdown.Item>
-            <Dropdown.Item id="repository" textValue="Repo / Contribute">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={GithubIcon}
-              />
-              Repo / Contribute
-            </Dropdown.Item>
-            <Dropdown.Item id="feedback" textValue="Feedback">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-muted"
-                icon={Message01Icon}
-              />
-              Feedback
-            </Dropdown.Item>
-          </Dropdown.Section>
-          <Dropdown.Section
-            aria-label="Session"
-            className="mt-1.5 w-full border-t border-separator pt-1.5"
-          >
-            <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
-              <HugeiconsIcon
-                aria-hidden="true"
-                className="size-4 text-danger"
-                icon={Logout03Icon}
-              />
-              <span className="text-danger">Sign out</span>
-            </Dropdown.Item>
-          </Dropdown.Section>
-        </Dropdown.Menu>
-      </Dropdown.Popover>
-    </Dropdown>
+    <SidebarAccountMenu
+      name={user.name}
+      email={user.email}
+      teamName={user.teamName}
+      avatarUrl={user.avatarUrl}
+      onAction={onAction}
+      groups={[
+        {
+          id: "account",
+          label: "Account",
+          items: [
+            { id: "profile", label: "Profile", icon: icon(UserAccountIcon) },
+            {
+              id: "preferences",
+              label: "Preferences",
+              icon: icon(Settings01Icon),
+            },
+            {
+              id: "email-password",
+              label: "Auth & Security",
+              icon: icon(Mail01Icon),
+            },
+            { id: "api-keys", label: "My API Keys", icon: icon(Key01Icon) },
+          ],
+        },
+        {
+          id: "towbar",
+          label: "Towbar",
+          items: [
+            { id: "changelog", label: "Changelog", icon: icon(News01Icon) },
+            {
+              id: "documentation",
+              label: "Documentation",
+              icon: icon(BookOpen01Icon),
+            },
+            {
+              id: "repository",
+              label: "Repo / Contribute",
+              icon: icon(GithubIcon),
+            },
+            { id: "feedback", label: "Feedback", icon: icon(Message01Icon) },
+          ],
+        },
+        {
+          id: "session",
+          label: "Session",
+          items: [
+            {
+              id: "logout",
+              label: "Sign out",
+              icon: icon(Logout03Icon),
+              destructive: true,
+            },
+          ],
+        },
+      ]}
+    />
   );
 }

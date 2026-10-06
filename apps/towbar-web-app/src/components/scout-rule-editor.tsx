@@ -8,15 +8,15 @@ import {
   scoutAlertRuleSchema,
   type ScoutAlertRuleInput,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
 import {
   FieldDescription,
   Field,
   FieldLabel,
-} from "@workspace/web-design-system/forms/field";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+} from "@avgeek-oss/design-system/forms/field";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { api } from "@/lib/api";
 import {
   ScoutNumber,

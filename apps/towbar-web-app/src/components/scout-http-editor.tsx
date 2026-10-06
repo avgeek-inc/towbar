@@ -5,8 +5,8 @@ import {
   Field,
   FieldLabel,
   FieldDescription,
-} from "@workspace/web-design-system/forms/field";
-import { Input } from "@workspace/web-design-system/forms/input";
+} from "@avgeek-oss/design-system/forms/field";
+import { Input } from "@avgeek-oss/design-system/forms/input";
 import { ScoutNumber, ScoutSelect } from "./scout-controls";
 
 export function ScoutHttpEditor({

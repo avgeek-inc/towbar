@@ -1,10 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Button,
-  ButtonLink,
-} from "@workspace/web-design-system/buttons/button";
+import { Button, ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 
 type ErrorScreenProps = {
   code: "404" | "500";

@@ -1,4 +1,5 @@
 "use client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { ScoutIcon } from "./scout-icons";
 
 import {
@@ -15,10 +16,10 @@ import type {
   ComparisonMetricSummary,
   MonitoringAggregates,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { scheduleChartUpdate } from "./monitoring-chart-slot";
@@ -262,7 +263,7 @@ const assessmentLabel = {
 
 function assessmentVariant(assessment: ComparisonMetric["assessment"]) {
   if (assessment === "decreased") return "success";
-  if (assessment === "increased") return "destructive";
+  if (assessment === "increased") return "danger";
   return "warning";
 }
 
@@ -356,13 +357,16 @@ function ComparisonChart({
     <Widget className="min-w-0">
       <Widget.Header
         endContent={
-          <Chip
-            size="small"
+          <TooltipText
+            className="inline-flex"
             tooltip={comparisonAssessmentTooltip(metric)}
-            variant={assessmentVariant(metric.assessment)}
           >
-            {assessmentLabel[metric.assessment]}
-          </Chip>
+            <Chip size="sm" color={assessmentVariant(metric.assessment)}>
+              <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                {assessmentLabel[metric.assessment]}
+              </Chip.Label>
+            </Chip>
+          </TooltipText>
         }
       >
         <Widget.Title>{metric.label}</Widget.Title>

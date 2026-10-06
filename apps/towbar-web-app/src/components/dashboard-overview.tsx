@@ -21,15 +21,15 @@ import type {
   Resource,
   Server,
 } from "@workspace/towbar-web-client";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+} from "@avgeek-oss/design-system/patterns/resource-table";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";

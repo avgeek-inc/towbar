@@ -1,4 +1,4 @@
-import { AuthPage } from "@workspace/web-page-sections/page";
+import { AuthPage } from "@avgeek-oss/design-system/patterns/pages/page";
 import { InvitationForm } from "@/components/public-auth-flows";
 export const metadata = { referrer: "no-referrer" as const };
 export default async function Page({

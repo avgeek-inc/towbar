@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { createPortal } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -26,8 +26,8 @@ import {
   GitBranchIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
-import { cn } from "@workspace/web-design-system/lib/utils";
-import { useMobileNavigation } from "@workspace/web-design-system/hooks/app-navigation";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
+import { useMobileNavigation } from "@avgeek-oss/design-system/hooks/app-navigation";
 
 export const DetailSettingsContext = createContext<boolean | null>(null);
 

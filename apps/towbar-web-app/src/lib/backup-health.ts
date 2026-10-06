@@ -7,7 +7,7 @@ import type {
 type BackupOperation = Pick<ResourceOperation, "errorMessage" | "state">;
 type RetainedBackup = Pick<SourceBackup, "id">;
 
-type BackupHealthTone = "destructive" | "secondary" | "success" | "warning";
+type BackupHealthTone = "danger" | "default" | "success" | "warning";
 
 type BackupHealthStage = {
   description: string;
@@ -54,7 +54,7 @@ export function getBackupHealth(input: {
         "Towbar could not finish the latest backup. Check the operation, then run another backup.",
       label: "Needs attention",
       title: "Backup failed",
-      tone: "destructive",
+      tone: "danger",
     };
   }
 
@@ -83,7 +83,7 @@ export function getBackupHealth(input: {
       description: "Run a backup to create the first restore point.",
       label: "No backup",
       title: "No backup yet",
-      tone: "secondary",
+      tone: "default",
     };
   }
 
@@ -114,7 +114,7 @@ export function getBackupHealth(input: {
       description: "The latest saved backup is too old. Run a new backup.",
       label: "Needs attention",
       title: "Backup is out of date",
-      tone: "destructive",
+      tone: "danger",
     };
   }
 
@@ -123,7 +123,7 @@ export function getBackupHealth(input: {
     description: friendlyAssuranceFailure(assurance.checks),
     label: "Needs attention",
     title: "Backup cannot be verified",
-    tone: "destructive",
+    tone: "danger",
   };
 }
 
@@ -146,14 +146,14 @@ function getBackupHealthStages(input: {
           description: "Waiting for the first completed backup.",
           label: "Saved copy",
           status: "Waiting",
-          tone: "secondary",
+          tone: "default",
         }
       : !assurance
         ? {
             description: "Towbar has not checked the saved file yet.",
             label: "Saved copy",
             status: "Waiting",
-            tone: "secondary",
+            tone: "default",
           }
         : savedFileVerified
           ? {
@@ -166,7 +166,7 @@ function getBackupHealthStages(input: {
               description: friendlyStorageFailure(assurance.checks),
               label: "Saved copy",
               status: "Cannot verify",
-              tone: "destructive",
+              tone: "danger",
             },
     assurance?.restoreReady
       ? {
@@ -180,13 +180,13 @@ function getBackupHealthStages(input: {
             description: "Do not rely on this backup for a restore yet.",
             label: "Restore check",
             status: "Not ready",
-            tone: "destructive",
+            tone: "danger",
           }
         : {
             description: "Waiting for the saved file check.",
             label: "Restore check",
             status: "Waiting",
-            tone: "secondary",
+            tone: "default",
           },
   ];
 }
@@ -207,7 +207,7 @@ function operationStage(
           description: "No backup has been started.",
           label: "Backup run",
           status: "Not started",
-          tone: "secondary",
+          tone: "default",
         };
   }
   if (operation.state === "queued" || operation.state === "running") {
@@ -236,7 +236,7 @@ function operationStage(
         : "Towbar could not complete this run.",
     label: "Backup run",
     status: operation.state === "cancelled" ? "Cancelled" : "Failed",
-    tone: operation.state === "cancelled" ? "warning" : "destructive",
+    tone: operation.state === "cancelled" ? "warning" : "danger",
   };
 }
 

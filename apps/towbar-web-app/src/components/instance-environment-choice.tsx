@@ -3,9 +3,9 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { App, Resource } from "@workspace/towbar-web-client";
-import { ListBox } from "@workspace/web-design-system/collections/list-box";
-import { Select } from "@workspace/web-design-system/forms/select";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { ListBox } from "@avgeek-oss/design-system/collections/list-box";
+import { Select } from "@avgeek-oss/design-system/forms/select";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 import { prefetchApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { SecondarySection } from "./secondary-sidebar";
 import { EnvironmentIcon } from "./environment-icon";

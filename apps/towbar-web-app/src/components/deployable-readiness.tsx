@@ -1,5 +1,5 @@
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 
 export function DeployableReadiness({
   ready,

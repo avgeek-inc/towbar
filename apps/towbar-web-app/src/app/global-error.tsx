@@ -1,7 +1,7 @@
 "use client";
 
-import "@workspace/web-design-system/styles/globals.css";
-import { themeBootstrapScript } from "@workspace/web-design-system/lib/theme";
+import "../../styles.css";
+import { themeBootstrapScript } from "@avgeek-oss/design-system/lib/theme";
 
 import { ErrorScreen } from "@/components/error-screen";
 

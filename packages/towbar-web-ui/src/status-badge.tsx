@@ -1,3 +1,4 @@
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   Alert02Icon,
   AlertCircleIcon,
@@ -14,7 +15,7 @@ import {
   UserShield01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
 import type { ReactNode } from "react";
 
 const success = new Set([
@@ -140,8 +141,8 @@ export function StatusBadge({
       : warning.has(status)
         ? "warning"
         : destructive.has(status)
-          ? "destructive"
-          : "secondary";
+          ? "danger"
+          : "default";
   const statusIcon =
     status === "admin"
       ? CrownIcon
@@ -161,7 +162,7 @@ export function StatusBadge({
                     ? StopIcon
                     : variant === "success"
                       ? CheckmarkCircle01Icon
-                      : variant === "destructive"
+                      : variant === "danger"
                         ? AlertCircleIcon
                         : status === "queued" ||
                             status === "pending" ||
@@ -173,13 +174,17 @@ export function StatusBadge({
                               : Alert02Icon
                             : InformationCircleIcon;
   return (
-    <Chip
-      variant={variant}
-      icon={icon ?? <HugeiconsIcon icon={statusIcon} />}
+    <TooltipText
+      className="inline-flex"
       tooltip={tooltip ?? statusTooltip(status, context)}
     >
-      {label ?? formatStatus(status)}
-    </Chip>
+      <Chip color={variant}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {icon ?? <HugeiconsIcon aria-hidden icon={statusIcon} />}
+          {label ?? formatStatus(status)}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 

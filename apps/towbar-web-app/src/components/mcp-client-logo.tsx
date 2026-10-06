@@ -1,6 +1,6 @@
 import { McpServerIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 
 // Brand paths from LobeHub Icons (MIT); see THIRD_PARTY_NOTICES.md.
 const brandPaths: Record<string, string> = {

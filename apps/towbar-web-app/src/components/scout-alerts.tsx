@@ -1,23 +1,24 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { SCOUT_ALERT_RULE_LIMIT_PER_ENTITY } from "@workspace/towbar-contracts/scout-alerts";
 import { Alert02Icon, AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ActionButton } from "./page-parts";
@@ -149,75 +150,84 @@ export function ScoutAlerts({
       key: "status",
       header: "Status",
       cell: (r) => (
-        <Chip
-          size="small"
-          tooltip={ruleStatusTooltip(r)}
-          icon={
-            <ScoutIcon
-              name={
-                !r.enabled
-                  ? "paused"
+        <TooltipText className="inline-flex" tooltip={ruleStatusTooltip(r)}>
+          <Chip
+            size="sm"
+            color={
+              !r.enabled
+                ? "default"
+                : r.evaluationState === "firing"
+                  ? r.severity === "critical"
+                    ? "danger"
+                    : "warning"
                   : r.evaluationState === "healthy"
-                    ? "resolved"
-                    : r.evaluationState === "firing"
-                      ? r.severity === "critical"
-                        ? "critical"
-                        : "warning"
-                      : r.evaluationState === "error"
-                        ? "critical"
-                        : "time"
+                    ? "success"
+                    : r.evaluationState === "error"
+                      ? "danger"
+                      : r.evaluationState === "pending"
+                        ? "warning"
+                        : "default"
+            }
+          >
+            <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+              {
+                <ScoutIcon
+                  name={
+                    !r.enabled
+                      ? "paused"
+                      : r.evaluationState === "healthy"
+                        ? "resolved"
+                        : r.evaluationState === "firing"
+                          ? r.severity === "critical"
+                            ? "critical"
+                            : "warning"
+                          : r.evaluationState === "error"
+                            ? "critical"
+                            : "time"
+                  }
+                />
               }
-            />
-          }
-          variant={
-            !r.enabled
-              ? "secondary"
-              : r.evaluationState === "firing"
-                ? r.severity === "critical"
-                  ? "destructive"
-                  : "warning"
-                : r.evaluationState === "healthy"
-                  ? "success"
-                  : r.evaluationState === "error"
-                    ? "destructive"
-                    : r.evaluationState === "pending"
-                      ? "warning"
-                      : "secondary"
-          }
-        >
-          {!r.enabled
-            ? "Paused"
-            : ({
-                healthy: "Healthy",
-                firing: "Alerting",
-                pending: "Evaluating",
-                unknown: "No recent data",
-                inactive: "Scout inactive",
-                error: "Evaluation error",
-              }[r.evaluationState] ?? "Evaluating")}
-        </Chip>
+              {!r.enabled
+                ? "Paused"
+                : ({
+                    healthy: "Healthy",
+                    firing: "Alerting",
+                    pending: "Evaluating",
+                    unknown: "No recent data",
+                    inactive: "Scout inactive",
+                    error: "Evaluation error",
+                  }[r.evaluationState] ?? "Evaluating")}
+            </Chip.Label>
+          </Chip>
+        </TooltipText>
       ),
     },
     {
       key: "severity",
       header: "Severity",
       cell: (r) => (
-        <Chip
-          size="small"
+        <TooltipText
+          className="inline-flex"
           tooltip={
             r.severity === "critical"
               ? "A firing rule creates a critical incident and uses urgent notification styling."
               : "A firing rule creates a warning incident."
           }
-          icon={
-            <ScoutIcon
-              name={r.severity === "critical" ? "critical" : "warning"}
-            />
-          }
-          variant={r.severity === "critical" ? "destructive" : "warning"}
         >
-          {r.severity === "critical" ? "Critical" : "Warning"}
-        </Chip>
+          <Chip
+            size="sm"
+            color={r.severity === "critical" ? "danger" : "warning"}
+          >
+            <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+              {
+                <ScoutIcon
+                  name={r.severity === "critical" ? "critical" : "warning"}
+                />
+              }
+              {r.severity === "critical" ? "Critical" : "Warning"}
+            </Chip.Label>
+          </Chip>
+        </TooltipText>
       ),
     },
     {
@@ -248,7 +258,7 @@ export function ScoutAlerts({
               Edit
             </Button>
             <ActionButton
-              variant="warning"
+              variant="secondary"
               action={() =>
                 api.put(`${endpoint}/rules/${r.id}`, {
                   name: r.name,

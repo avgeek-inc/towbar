@@ -1,20 +1,12 @@
 "use client";
-
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
-import { useEffect, useState, type FormEvent } from "react";
-
+import { useEffect, useState } from "react";
+import type { LocalizedTimestamp } from "@workspace/towbar-web-client";
+import { PreferencesSettings } from "@avgeek-oss/design-system";
 import type {
   DateTimePreferences,
-  LocalizedTimestamp,
-} from "@workspace/towbar-web-client";
+  DateTimePreferenceOptions,
+} from "@avgeek-oss/design-system/patterns/settings/date-time-preference-fields";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { FormCard } from "./page-parts";
-import {
-  DateTimePreferenceFields,
-  type DateTimePreferenceOptions,
-} from "./date-time-preference-fields";
 import { useApiQuery, clearApiQueryCache } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
@@ -24,132 +16,82 @@ type PreferencesResponse = {
   preview: Preview;
   options: DateTimePreferenceOptions;
 };
-
 export function DateTimePreferencesSettings() {
   const query = useApiQuery<PreferencesResponse>(
     "/v1/core/profile/preferences",
   );
   if (query.error) return <QueryError message={query.error} />;
   if (!query.data) return <QueryLoading />;
+  const data = query.data;
   return (
     <div className="content-grid min-w-0 lg:grid-cols-2 lg:items-start">
-      <FormCard title="Date and time">
-        <PreferencesForm
-          key={JSON.stringify(query.data.preferences)}
-          data={query.data}
-        />
-      </FormCard>
+      <PreferencesSettings
+        key={JSON.stringify(data.preferences)}
+        value={data.preferences}
+        options={data.options}
+        formatPreview={(preferences) => (
+          <PreferencePreview value={preferences} initial={data.preview} />
+        )}
+        onSave={async (preferences) => {
+          await api.put("/v1/core/profile/preferences", preferences);
+          clearApiQueryCache();
+          window.dispatchEvent(new Event("towbar:preferences-changed"));
+          try {
+            localStorage.setItem(
+              "towbar:preferences-revision",
+              crypto.randomUUID(),
+            );
+          } catch {
+            /* Storage can be unavailable in private browsing. */
+          }
+        }}
+      />
     </div>
   );
 }
-
-function PreferencesForm({ data }: { data: PreferencesResponse }) {
-  const [preferences, setPreferences] = useState(data.preferences);
-  const [preview, setPreview] = useState(data.preview);
-  const [previewPending, setPreviewPending] = useState(false);
-  const [busy, setBusy] = useState(false);
+function PreferencePreview({
+  value,
+  initial,
+}: {
+  value: DateTimePreferences;
+  initial: Preview;
+}) {
+  const [preview, setPreview] = useState(initial);
   const [error, setError] = useState<string>();
-  const dirty =
-    JSON.stringify(preferences) !== JSON.stringify(data.preferences);
   useEffect(() => {
     let active = true;
-    setPreviewPending(true);
     const timer = setTimeout(() => {
       void api
         .post<{ preview: Preview }>(
           "/v1/core/profile/preferences/preview",
-          preferences,
+          value,
         )
         .then((result) => {
           if (active) {
             setPreview(result.preview);
-            setPreviewPending(false);
             setError(undefined);
           }
         })
         .catch((cause: unknown) => {
-          if (active) {
-            setPreviewPending(false);
+          if (active)
             setError(
               cause instanceof Error ? cause.message : "Could not load preview",
             );
-          }
         });
     }, 200);
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [preferences]);
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError(undefined);
-    try {
-      await api.put("/v1/core/profile/preferences", preferences);
-      clearApiQueryCache();
-      // Other tabs reload their server-rendered labels after this save.
-      try {
-        localStorage.setItem(
-          "towbar:preferences-revision",
-          crypto.randomUUID(),
-        );
-      } catch {
-        /* Storage can be unavailable in private browsing. */
-      }
-      toast.success("Preferences updated");
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Could not save preferences",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [value]);
   return (
-    <form className="grid gap-5" onSubmit={save}>
-      <DateTimePreferenceFields
-        disabled={busy}
-        onChange={setPreferences}
-        options={data.options}
-        preferences={preferences}
-        variant="secondary"
-      />
-      <div className="grid gap-3">
-        <div
-          className="grid content-start gap-0"
-          aria-live="polite"
-          aria-busy={previewPending}
-        >
-          <span className="text-xs text-muted">Preview</span>
-          <span className="text-sm tabular-nums">
-            {preview.display.dateTime}
-          </span>
-          <span className="text-xs text-muted">
-            {preview.display.timeZone}
-            {preview.display.timeZone === preview.display.zoneLabel
-              ? ""
-              : ` (${preview.display.zoneLabel})`}
-          </span>
-        </div>
-        <FieldDescription>
-          Applies to dates and times throughout Towbar and your personal API
-          keys.
-        </FieldDescription>
-        {error ? (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
-        <Button
-          className="w-fit min-w-24"
-          type="submit"
-          isDisabled={!dirty || busy}
-          isPending={busy}
-        >
-          Save
-        </Button>
-      </div>
-    </form>
+    <>
+      {preview.display.dateTime}
+      {error && (
+        <span role="alert" className="block text-danger-soft-foreground">
+          {error}
+        </span>
+      )}
+    </>
   );
 }

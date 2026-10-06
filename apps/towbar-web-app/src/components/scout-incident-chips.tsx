@@ -1,4 +1,5 @@
-import { Chip } from "@workspace/web-design-system/data-display/chip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
 import type { ScoutIncident } from "./scout-controls";
 import { formatDate } from "./dashboard-overview";
 import { ScoutIcon } from "./scout-icons";
@@ -19,26 +20,33 @@ export function ScoutIncidentStateChip({
     : `The triggering condition has remained active since ${formatDate(incident.openedAt)}.`;
 
   return (
-    <Chip
-      size="small"
-      tooltip={tooltip}
-      icon={
-        <ScoutIcon
-          name={
-            incident.resolvedAt ? (recovered ? "resolved" : "close") : "active"
+    <TooltipText className="inline-flex" tooltip={tooltip}>
+      <Chip
+        size="sm"
+        color={
+          incident.resolvedAt ? (recovered ? "success" : "default") : "danger"
+        }
+      >
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {
+            <ScoutIcon
+              name={
+                incident.resolvedAt
+                  ? recovered
+                    ? "resolved"
+                    : "close"
+                  : "active"
+              }
+            />
           }
-        />
-      }
-      variant={
-        incident.resolvedAt
-          ? recovered
-            ? "success"
-            : "secondary"
-          : "destructive"
-      }
-    >
-      {incident.resolvedAt ? (recovered ? "Recovered" : "Closed") : "Active"}
-    </Chip>
+          {incident.resolvedAt
+            ? recovered
+              ? "Recovered"
+              : "Closed"
+            : "Active"}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 
@@ -50,17 +58,20 @@ export function ScoutIncidentSeverityChip({
   const critical = severity === "critical";
 
   return (
-    <Chip
-      size="small"
+    <TooltipText
+      className="inline-flex"
       tooltip={
         critical
           ? "Critical incidents represent high-impact threshold breaches."
           : "Warning incidents need attention but are not classified as critical."
       }
-      icon={<ScoutIcon name={critical ? "critical" : "warning"} />}
-      variant={critical ? "destructive" : "warning"}
     >
-      {critical ? "Critical" : "Warning"}
-    </Chip>
+      <Chip size="sm" color={critical ? "danger" : "warning"}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {<ScoutIcon name={critical ? "critical" : "warning"} />}
+          {critical ? "Critical" : "Warning"}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }

@@ -3,11 +3,11 @@
 import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ManifestNotifications } from "@workspace/towbar-contracts";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 
 import { NotificationProviderIcon } from "./notification-provider-icon";
 

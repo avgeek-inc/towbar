@@ -6,7 +6,7 @@ read-only; actions are limited to sync, check, deploy, rollback, and settings.
 
 ## Table text
 
-Use `TableCellStack` from `@workspace/towbar-web-ui/table-cell-text` for stacked
+Use `TableCellStack` from `@avgeek-oss/design-system/data-display/table-cell-text` for stacked
 content in a table cell, and `TableCellDescription` for secondary text. This
 matches `RelativeTime`: a 2px gap, 14px primary text with a 20px line height,
 and 12px secondary text with a 16px line height. These use the shared rem-based
@@ -36,7 +36,7 @@ that opens a row's details remains styled as table content.
 ## Inline external links
 
 Use `InlineExternalLink` from
-`@workspace/web-design-system/navigation/inline-external-link` for external
+`@avgeek-oss/design-system/navigation/inline-external-link` for external
 text links. It preserves the surrounding typography and provides a dashed
 underline, a close superscript arrow, a new-tab hint for screen readers, and
 matching hover and keyboard-focus colors. Use `tone="secondary"` within muted

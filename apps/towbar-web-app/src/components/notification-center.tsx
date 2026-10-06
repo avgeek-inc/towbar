@@ -6,11 +6,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 
 import type { NotificationEvent } from "@workspace/towbar-web-client";
-import { usePageVisibilityInterval } from "@workspace/web-design-system/hooks/use-page-visibility-interval";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Popover } from "@workspace/web-design-system/overlays/popover";
-import { ScrollShadow } from "@workspace/web-design-system/utilities/scroll-shadow";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { usePageVisibilityInterval } from "@avgeek-oss/design-system/hooks/use-page-visibility-interval";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Popover } from "@avgeek-oss/design-system/overlays/popover";
+import { ScrollShadow } from "@avgeek-oss/design-system/utilities/scroll-shadow";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 
 import { api } from "@/lib/api";
 import { notificationHref } from "@/lib/notification-route";

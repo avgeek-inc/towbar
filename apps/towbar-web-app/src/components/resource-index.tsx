@@ -21,17 +21,17 @@ import {
 import {
   Tooltip,
   TooltipText,
-} from "@workspace/web-design-system/overlays/tooltip";
+} from "@avgeek-oss/design-system/overlays/tooltip";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import type { App, Resource, Source } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DashboardPage } from "@/components/page-parts";

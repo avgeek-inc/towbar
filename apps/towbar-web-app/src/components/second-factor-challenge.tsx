@@ -1,56 +1,70 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { AuthFrame, authTextActionClassName } from "./auth-frame";
-import { AuthForm } from "./auth-form";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AuthForm, PasskeyVerification } from "@avgeek-oss/design-system";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import { AuthFrame, AuthBrand, authTextActionClassName } from "./auth-frame";
 import { api } from "@/lib/api";
 import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
 
 export function SecondFactorChallenge({ next }: { next: string }) {
   const [recovery, setRecovery] = useState(false);
   const complete = useCallback(() => window.location.replace(next), [next]);
+  if (!recovery)
+    return (
+      <PasskeyChallenge
+        onVerified={complete}
+        onRecovery={() => setRecovery(true)}
+      />
+    );
+  // The password was verified before the challenge cookie was issued. Only the
+  // recovery code is needed for this endpoint; do not collect credentials again.
   return (
-    <AuthFrame title="Verify your sign-in" description="">
-      {recovery ? (
-        <AuthForm
-          errorPresentation="toast"
-          fields={[
-            {
-              name: "code",
-              label: "Recovery code",
-              required: true,
-              autoComplete: "off",
-              maxLength: 100,
-            },
-          ]}
-          submitLabel="Sign in"
-          submitClassName="w-full"
-          onSubmit={async ({ code }) => {
-            await api.post(
-              "/v1/public/auth/identity/passkey/verify-recovery-code",
-              { code },
-            );
-            complete();
-          }}
-        />
-      ) : (
-        <PasskeyChallenge onVerified={complete} />
-      )}
-      <Button variant="ghost" onPress={() => setRecovery((value) => !value)}>
-        {recovery ? "Use passkey" : "Use a recovery code"}
+    <AuthFrame
+      title="Use a recovery code"
+      description="Enter an unused recovery code to finish signing in."
+    >
+      <AuthForm
+        fields={[
+          {
+            name: "code",
+            label: "Recovery code",
+            required: true,
+            autoComplete: "off",
+            maxLength: 100,
+          },
+        ]}
+        submitLabel="Sign in"
+        onSubmit={async ({ code }) => {
+          await api.post(
+            "/v1/public/auth/identity/passkey/verify-recovery-code",
+            { code },
+          );
+          complete();
+        }}
+      />
+      <Button variant="ghost" onPress={() => setRecovery(false)}>
+        Use passkey
       </Button>
       <a href="/login" className={authTextActionClassName}>
-        Back to sign in
+        ← Back to Sign In
       </a>
     </AuthFrame>
   );
 }
-export function PasskeyChallenge({ onVerified }: { onVerified: () => void }) {
+function PasskeyChallenge({
+  onVerified,
+  onRecovery,
+}: {
+  onVerified: () => void;
+  onRecovery: () => void;
+}) {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(true);
+  const request = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController();
+    request.current = controller;
     queueMicrotask(async () => {
       if (controller.signal.aborted) return;
       setBusy(true);
@@ -66,8 +80,16 @@ export function PasskeyChallenge({ onVerified }: { onVerified: () => void }) {
     return () => controller.abort();
   }, [attempt, onVerified]);
   return (
-    <Button isDisabled={busy} onPress={() => setAttempt((value) => value + 1)}>
-      {busy ? "Waiting for your passkey…" : "Try passkey again"}
-    </Button>
+    <PasskeyVerification
+      brand={<AuthBrand />}
+      isPending={busy}
+      onRetry={() => setAttempt((value) => value + 1)}
+      onCancelRequest={() => {
+        request.current?.abort();
+        setBusy(false);
+      }}
+      onRecoverySignIn={onRecovery}
+      onBackToSignIn={() => window.location.assign("/login")}
+    />
   );
 }

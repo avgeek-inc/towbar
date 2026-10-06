@@ -1,10 +1,10 @@
 "use client";
 
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
+import { FieldDescription } from "@avgeek-oss/design-system/forms/field";
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { TeamAuditLogs } from "./team-audit-logs";
 import { canShowApiMcpSettings } from "@/lib/config";
@@ -35,22 +35,22 @@ import {
 import { CopyTextButton } from "./copy-text-button";
 import { ApiMcpSettings } from "./api-mcp-settings";
 import { Key01Icon } from "@hugeicons/core-free-icons";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Avatar } from "@workspace/web-design-system/data-display/avatar";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { UserAvatar as Avatar } from "@avgeek-oss/design-system/patterns/user-avatar";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 import { DashboardPage, SimpleForm, ActionButton } from "./page-parts";
 import { SecondaryItems } from "./secondary-sidebar";
 import { PageSelectionTitle } from "./page-selection-title";
-import { AuthForm } from "./auth-form";
+import { AuthForm } from "@avgeek-oss/design-system";
 import { RelativeTime } from "./last-synced-time";
 import { getPendingInvitations } from "@/lib/pending-invitations";
 import { useAccess } from "./access-context";
@@ -617,7 +617,7 @@ function MemberDialog({
             ) : (
               <AuthForm
                 variant="secondary"
-                errorPresentation="toast"
+
                 onCancel={() => onOpenChange(false)}
                 fields={
                   dialog.mode === "role"

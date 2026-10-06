@@ -1,4 +1,5 @@
 "use client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { displayDateTime } from "@/lib/date-time-display";
 
 import {
@@ -8,14 +9,14 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Deployment } from "@workspace/towbar-web-client";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { useTablePagination } from "@avgeek-oss/design-system/hooks/use-table-pagination";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { DeploymentDuration } from "./elapsed-time";
@@ -152,9 +153,8 @@ export function DeploymentTriggerChip({
   trigger: Deployment["trigger"];
 }) {
   return (
-    <Chip
-      size="small"
-      variant={trigger === "manual" ? "warning" : "secondary"}
+    <TooltipText
+      className="inline-flex"
       tooltip={
         trigger === "auto_deploy"
           ? "Queued automatically after a repository change."
@@ -162,19 +162,23 @@ export function DeploymentTriggerChip({
             ? "Restores a previously deployed revision."
             : "Queued manually by a user or API client."
       }
-      icon={
-        <HugeiconsIcon
-          icon={
-            trigger === "auto_deploy"
-              ? GitBranchIcon
-              : trigger === "rollback"
-                ? RefreshIcon
-                : PlayIcon
-          }
-        />
-      }
     >
-      {formatDeploymentTrigger(trigger)}
-    </Chip>
+      <Chip size="sm" color={trigger === "manual" ? "warning" : "default"}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {
+            <HugeiconsIcon
+              icon={
+                trigger === "auto_deploy"
+                  ? GitBranchIcon
+                  : trigger === "rollback"
+                    ? RefreshIcon
+                    : PlayIcon
+              }
+            />
+          }
+          {formatDeploymentTrigger(trigger)}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }

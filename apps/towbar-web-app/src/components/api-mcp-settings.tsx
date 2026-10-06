@@ -3,7 +3,7 @@
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import {
   type KeyScope,
@@ -26,21 +26,18 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import {
-  Button,
-  ButtonLink,
-} from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
-import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
+import { Button, ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
+import { CodeBlock } from "@avgeek-oss/design-system/typography/code-block";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import { ActionButton, FormCard } from "./page-parts";

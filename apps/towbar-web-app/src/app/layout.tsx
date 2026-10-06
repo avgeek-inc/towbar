@@ -1,10 +1,8 @@
 import type { Metadata, Viewport } from "next";
 
-import "@workspace/identity-web-ui/styles.css";
-import "@workspace/web-design-system/styles/globals.css";
-import "@workspace/web-page-sections/styles.css";
-import { WorkspaceDocument } from "@workspace/web-design-system/layouts/workspace-document";
-import { designSystemViewportColors } from "@workspace/web-design-system/lib/design-theme";
+import "../../styles.css";
+import { WorkspaceDocument } from "@avgeek-oss/design-system/layouts/workspace-document";
+import { designSystemViewportColors } from "@avgeek-oss/design-system/lib/design-theme";
 import { getTowbarBrandFaviconSource } from "@workspace/towbar-web-ui/brand-assets";
 
 import { ApplicationFrame } from "@/components/application-frame";

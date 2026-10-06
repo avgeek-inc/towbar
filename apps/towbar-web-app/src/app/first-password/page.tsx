@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { AuthPage } from "@workspace/web-page-sections/page";
+import { AuthPage } from "@avgeek-oss/design-system/patterns/pages/page";
 import { QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { FirstPasswordForm } from "@/components/public-auth-flows";
 export const metadata = { referrer: "no-referrer" as const };

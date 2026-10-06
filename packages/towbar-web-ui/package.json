@@ -10,12 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/web-design-system": "workspace:*",
+    "@avgeek-oss/design-system": "1.0.0",
+    "@hugeicons/core-free-icons": "catalog:",
+    "@hugeicons/react": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:",
-    "@hugeicons/core-free-icons": "catalog:",
-    "@hugeicons/react": "catalog:"
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

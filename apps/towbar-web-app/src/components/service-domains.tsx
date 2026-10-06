@@ -7,12 +7,12 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { App } from "@workspace/towbar-web-client";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { ResourceTable } from "@workspace/towbar-web-ui/resource-table";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
+import { ResourceTable } from "@avgeek-oss/design-system/patterns/resource-table";
 import {
   TableCellDescription,
   TableCellStack,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { getServiceDomains, type ServiceDomain } from "@/lib/service-domains";
 import { CopyTextButton } from "./copy-text-button";

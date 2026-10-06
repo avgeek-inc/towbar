@@ -17,12 +17,12 @@ import type {
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
-import { Header } from "@workspace/web-design-system/collections/list-box";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
+import { Header } from "@avgeek-oss/design-system/collections/list-box";
+import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
 import {
   Autocomplete,
   SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
+} from "@avgeek-oss/design-system/pickers/autocomplete";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { groupDeployableInstances } from "@/lib/deployable-groups";

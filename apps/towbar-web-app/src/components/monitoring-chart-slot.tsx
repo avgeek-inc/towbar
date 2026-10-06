@@ -2,7 +2,7 @@
 
 import { memo, startTransition, useEffect, useRef, useState } from "react";
 
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import { MetricChart, type MetricChartProps } from "./monitoring-metric-chart";
 
 // Give the browser a paint/input opportunity between chart commits. A single

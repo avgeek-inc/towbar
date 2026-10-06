@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TowbarUser } from "@workspace/towbar-web-client";
 import {
   roleDescriptions,
@@ -11,8 +11,17 @@ import {
   type WorkspaceRole,
 } from "@workspace/towbar-access";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { AuthFrame, authTextActionClassName } from "./auth-frame";
-import { AuthForm } from "./auth-form";
+import { AuthFrame, AuthBrand, authTextActionClassName } from "./auth-frame";
+import {
+  ForgotPassword,
+  ResetLinkSent,
+  PasswordSetup,
+  AcceptInvitation,
+  InvitationVerification,
+  InvitationUnavailable,
+  AuthForm,
+} from "@avgeek-oss/design-system";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { api } from "@/lib/api";
 import { useApiQuery } from "@/hooks/use-api-query";
 
@@ -103,46 +112,42 @@ export function FirstPasswordForm() {
 }
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
-  return (
-    <AuthFrame
-      title="Reset your password"
-      description={
-        sent
-          ? "If an account exists for that email, we’ll send a password reset link. Check your inbox and spam folder."
-          : "Enter your email to request a password reset link."
-      }
-    >
-      {!sent ? (
-        <AuthForm
-          errorPresentation="toast"
-          fields={[
-            {
-              name: "email",
-              label: "Email",
-              type: "email",
-              autoComplete: "email",
-              required: true,
-              maxLength: 320,
-            },
-          ]}
-          submitLabel="Send reset link"
-          onSubmit={async (values) => {
-            await api.post("/v1/public/auth/identity/request-password-reset", {
-              email: values.email,
-              redirectTo: `${window.location.origin}/reset-password`,
-            });
-            setSent(true);
-          }}
-        />
-      ) : null}
-      <BackToSignIn />
-    </AuthFrame>
+  const back = () => window.location.assign("/login");
+  return sent ? (
+    <ResetLinkSent brand={<AuthBrand />} onBackToSignIn={back} />
+  ) : (
+    <ForgotPassword
+      brand={<AuthBrand />}
+      onBackToSignIn={back}
+      onSubmit={async ({ email }) => {
+        await api.post("/v1/public/auth/identity/request-password-reset", {
+          email,
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        setSent(true);
+      }}
+    />
   );
 }
 export function ResetPasswordForm() {
   const params = useSearchParams();
   const token = params.get("token");
   const [complete, setComplete] = useState(false);
+  if (token && !complete)
+    return (
+      <PasswordSetup
+        brand={<AuthBrand />}
+        onBackToSignIn={() => window.location.assign("/login")}
+        onSubmit={async ({ password }) => {
+          await api.post("/v1/public/auth/identity/reset-password", {
+            token,
+            newPassword: password,
+          });
+          window.history.replaceState(null, "", "/reset-password");
+          setComplete(true);
+        }}
+      />
+    );
   return (
     <AuthFrame
       title={complete ? "Password updated" : "Choose a new password"}
@@ -154,22 +159,6 @@ export function ResetPasswordForm() {
             : "This link is missing or has expired. Request a new password reset."
       }
     >
-      {token && !complete ? (
-        <AuthForm
-          errorPresentation="toast"
-          fields={newPasswordFields}
-          submitLabel="Reset password"
-          onSubmit={async (values) => {
-            requireMatching(values);
-            await api.post("/v1/public/auth/identity/reset-password", {
-              token,
-              newPassword: values.newPassword,
-            });
-            window.history.replaceState(null, "", "/reset-password");
-            setComplete(true);
-          }}
-        />
-      ) : null}
       {!complete ? (
         <Link href="/forgot-password" className={authTextActionClassName}>
           Request a new link
@@ -208,23 +197,70 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
     account: { email: string; emailVerified: boolean } | null;
   }>("/v1/public/auth/state");
   const [verifying, setVerifying] = useState(false);
+  const [verifyPending, setVerifyPending] = useState(false);
+  const verifyRequestPending = useRef(false);
   const [existing, setExisting] = useState(false);
   const [sent, setSent] = useState(false);
   const self = `/invite/${invitationId}`;
   if (query.error)
     return (
-      <AuthFrame
-        title="Invitation unavailable"
-        description="This invitation may have expired, been revoked, or already been accepted. Ask your admin for a new link."
-      >
-        <Link href="/login" className={authTextActionClassName}>
-          Sign in
-        </Link>
-      </AuthFrame>
+      <InvitationUnavailable
+        brand={<AuthBrand />}
+        onBackToSignIn={() => window.location.assign("/login")}
+      />
     );
   if (!query.data || !session.data) return <QueryLoading />;
   const invitation = query.data.invitation;
   const account = session.data.account;
+  if (!account && verifying)
+    return (
+      <InvitationVerification
+        brand={<AuthBrand />}
+        teamName={invitation.teamName}
+        maxNameLength={120}
+        onSubmit={async (values) => {
+          await api.post(
+            `/v1/public/auth/invitations/${invitationId}/signup`,
+            values,
+          );
+          window.location.replace("/first-password");
+        }}
+      />
+    );
+  if (!account && !existing)
+    return (
+      <AcceptInvitation
+        brand={<AuthBrand />}
+        teamName={invitation.teamName}
+        role={roleLabels[invitation.role]}
+        isPending={verifyPending}
+        onBackToSignIn={() =>
+          window.location.assign(`/login?next=${encodeURIComponent(self)}`)
+        }
+        onVerifyEmail={async () => {
+          if (verifyRequestPending.current) return;
+          verifyRequestPending.current = true;
+          setVerifyPending(true);
+          try {
+            const result = await api.post<{ existingAccount: boolean }>(
+              `/v1/public/auth/invitations/${invitationId}/verify`,
+              {},
+            );
+            setExisting(result.existingAccount);
+            setVerifying(!result.existingAccount);
+          } catch (error) {
+            toast.danger(
+              error instanceof Error
+                ? error.message
+                : "Unable to verify invitation",
+            );
+          } finally {
+            verifyRequestPending.current = false;
+            setVerifyPending(false);
+          }
+        }}
+      />
+    );
   return (
     <AuthFrame
       title={`Join ${invitation.teamName}`}
@@ -276,53 +312,12 @@ export function InvitationForm({ invitationId }: { invitationId: string }) {
             }}
           />
         </>
-      ) : verifying ? (
-        <AuthForm
-          fields={[
-            {
-              name: "name",
-              label: "Name",
-              autoComplete: "name",
-              required: true,
-              maxLength: 120,
-            },
-            {
-              name: "code",
-              label: "Email verification code",
-              autoComplete: "one-time-code",
-              required: true,
-              maxLength: 6,
-              description:
-                "Enter the six-digit code sent to your invited email address.",
-            },
-          ]}
-          submitLabel="Verify and continue"
-          onSubmit={async (values) => {
-            await api.post(
-              `/v1/public/auth/invitations/${invitationId}/signup`,
-              values,
-            );
-            window.location.replace("/first-password");
-          }}
-        />
       ) : existing ? (
         <p>
           An account already exists for this email. Sign in to accept your
           invitation.
         </p>
-      ) : (
-        <AuthAction
-          label="Verify email to join"
-          onAction={async () => {
-            const result = await api.post<{ existingAccount: boolean }>(
-              `/v1/public/auth/invitations/${invitationId}/verify`,
-              {},
-            );
-            setExisting(result.existingAccount);
-            setVerifying(!result.existingAccount);
-          }}
-        />
-      )}
+      ) : null}
       {!account ? (
         <Link
           href={`/login?next=${encodeURIComponent(self)}`}

@@ -6,16 +6,16 @@ import type {
   GitHubRepository,
   Source,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { ListBox } from "@workspace/web-design-system/collections/list-box";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select } from "@workspace/web-design-system/forms/select";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { ListBox } from "@avgeek-oss/design-system/collections/list-box";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Select } from "@avgeek-oss/design-system/forms/select";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import {
   Autocomplete,
   SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
+} from "@avgeek-oss/design-system/pickers/autocomplete";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { refreshApiQueries, useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";

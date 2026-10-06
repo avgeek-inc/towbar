@@ -11,8 +11,8 @@ import type {
   Deployment,
   InstanceSecretReadiness,
 } from "@workspace/towbar-web-client";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";

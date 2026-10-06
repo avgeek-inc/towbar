@@ -1,18 +1,19 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { useState } from "react";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIcon } from "./scout-icons";
@@ -71,32 +72,35 @@ export function ScoutIncidentNotifications({
       key: "status",
       header: "Status",
       cell: (d) => (
-        <Chip
-          size="small"
-          tooltip={deliveryTooltip(d)}
-          icon={
-            <ScoutIcon
-              name={
-                d.state === "succeeded"
-                  ? "resolved"
-                  : d.state === "failed"
-                    ? "critical"
-                    : "time"
+        <TooltipText className="inline-flex" tooltip={deliveryTooltip(d)}>
+          <Chip
+            size="sm"
+            color={
+              d.state === "succeeded"
+                ? "success"
+                : d.state === "failed"
+                  ? "danger"
+                  : "default"
+            }
+          >
+            <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+              {
+                <ScoutIcon
+                  name={
+                    d.state === "succeeded"
+                      ? "resolved"
+                      : d.state === "failed"
+                        ? "critical"
+                        : "time"
+                  }
+                />
               }
-            />
-          }
-          variant={
-            d.state === "succeeded"
-              ? "success"
-              : d.state === "failed"
-                ? "destructive"
-                : "secondary"
-          }
-        >
-          {d.state === "succeeded"
-            ? "Sent"
-            : d.state[0]!.toUpperCase() + d.state.slice(1)}
-        </Chip>
+              {d.state === "succeeded"
+                ? "Sent"
+                : d.state[0]!.toUpperCase() + d.state.slice(1)}
+            </Chip.Label>
+          </Chip>
+        </TooltipText>
       ),
     },
     {

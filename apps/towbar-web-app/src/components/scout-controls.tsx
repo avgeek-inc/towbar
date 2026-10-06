@@ -1,14 +1,14 @@
 "use client";
 import { ScoutOptionIcon } from "./scout-icons";
 import { useId } from "react";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { ListBox, Select } from "@workspace/web-design-system/forms/select";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
 import {
   Field,
   FieldLabel,
   FieldDescription,
-} from "@workspace/web-design-system/forms/field";
+} from "@avgeek-oss/design-system/forms/field";
 import type {
   ScoutAlertCondition,
   ScoutAlertRuleInput,

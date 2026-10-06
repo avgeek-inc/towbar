@@ -4,7 +4,7 @@ import {
   TableCellStack,
   TableCellDescription,
   tableCellDescriptionClassName,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import Image, { type ImageLoaderProps } from "next/image";
 import { useState } from "react";
@@ -21,7 +21,7 @@ import type { App, Resource } from "@workspace/towbar-web-client";
 import {
   Tooltip,
   TooltipText,
-} from "@workspace/web-design-system/overlays/tooltip";
+} from "@avgeek-oss/design-system/overlays/tooltip";
 import { InlineLink } from "./page-parts";
 import { DomainLink } from "./domain-link";
 
@@ -69,7 +69,6 @@ export function AppIdentity({
               className="truncate"
               domain={primaryDomain}
               showTooltip={false}
-              tone="secondary"
             >
               {primaryDomain}
             </DomainLink>
@@ -85,7 +84,6 @@ export function AppIdentity({
                 className="truncate"
                 domain={primaryDomain}
                 showTooltip={false}
-                tone="secondary"
               >
                 {primaryDomain}
               </DomainLink>
@@ -108,7 +106,6 @@ export function AppIdentity({
                     domain={domain}
                     key={domain}
                     showTooltip={false}
-                    tone="secondary"
                   >
                     {domain}
                   </DomainLink>

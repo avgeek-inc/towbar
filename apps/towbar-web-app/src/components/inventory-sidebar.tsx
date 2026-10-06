@@ -10,8 +10,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server, Source } from "@workspace/towbar-web-client";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { usePageQuery } from "@/hooks/use-page-query";
 import { SecondaryItems, SecondarySection } from "./secondary-sidebar";
 import { ScoutSelect } from "./scout-controls";

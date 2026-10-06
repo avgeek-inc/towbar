@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 
 const providerLogos = {
   github: "/integration-logos/github.svg",

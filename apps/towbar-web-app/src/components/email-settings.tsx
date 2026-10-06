@@ -1,15 +1,15 @@
 "use client";
-import { FieldDescription } from "@workspace/web-design-system/forms/field";
+import { FieldDescription } from "@avgeek-oss/design-system/forms/field";
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
 import { FormCard, SimpleForm, ActionButton } from "./page-parts";
-import { AuthForm } from "./auth-form";
+import { AuthForm } from "@avgeek-oss/design-system";
 import { AuthFrame } from "./auth-frame";
 import { useAccess } from "./access-context";
 import { useApiQuery } from "@/hooks/use-api-query";

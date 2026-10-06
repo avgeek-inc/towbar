@@ -15,18 +15,6 @@ catalogs:
     "@eslint/js":
       specifier: ^9.39.4
       version: 9.39.5
-    "@fontsource-variable/inter":
-      specifier: ^5.3.0
-      version: 5.3.0
-    "@heroui/react":
-      specifier: 3.2.6
-      version: 3.2.6
-    "@heroui/styles":
-      specifier: 3.2.6
-      version: 3.2.6
-    "@hookform/resolvers":
-      specifier: ^5.2.2
-      version: 5.9.1
     "@hugeicons/core-free-icons":
       specifier: 4.3.5
       version: 4.3.5
@@ -57,9 +45,6 @@ catalogs:
     "@types/react-dom":
       specifier: ^19.3.0
       version: 19.3.0
-    clsx:
-      specifier: ^2.1.1
-      version: 2.1.1
     drizzle-orm:
       specifier: 0.45.3
       version: 0.45.3
@@ -78,24 +63,9 @@ catalogs:
     react:
       specifier: ^19.3.0
       version: 19.3.0
-    react-aria-components:
-      specifier: ^1.21.1
-      version: 1.21.1
     react-dom:
       specifier: ^19.3.0
       version: 19.3.0
-    react-hook-form:
-      specifier: ^7.88.0
-      version: 7.88.0
-    recharts:
-      specifier: ^3.10.1
-      version: 3.10.1
-    tailwind-merge:
-      specifier: ^3.7.0
-      version: 3.7.0
-    tailwindcss:
-      specifier: ^4.2.4
-      version: 4.3.3
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
@@ -132,8 +102,6 @@ overrides:
   undici@7.25.0: 7.29.1
   websocket-driver@0.7.4: 0.7.5
   ws@8.19.0: 8.21.0
-
-packageExtensionsChecksum: sha256-WejKyr6zvoDpFmj1i33Xcbcv9+JkaWcD4QiWJn/qGf8=
 
 importers:
   .:
@@ -268,6 +236,9 @@ importers:
 
   apps/towbar-web-app:
     dependencies:
+      "@avgeek-oss/design-system":
+        specifier: 1.0.0
+        version: 1.0.0(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@codemirror/commands":
         specifier: ^6.11.1
         version: 6.11.1
@@ -295,9 +266,6 @@ importers:
       "@simplewebauthn/browser":
         specifier: 13.3.0
         version: 13.3.0
-      "@workspace/identity-web-ui":
-        specifier: workspace:*
-        version: link:../../packages/identity-web-ui
       "@workspace/towbar-access":
         specifier: workspace:*
         version: link:../../packages/towbar-access
@@ -310,12 +278,6 @@ importers:
       "@workspace/towbar-web-ui":
         specifier: workspace:*
         version: link:../../packages/towbar-web-ui
-      "@workspace/web-design-system":
-        specifier: workspace:*
-        version: link:../../packages/web-design-system
-      "@workspace/web-page-sections":
-        specifier: workspace:*
-        version: link:../../packages/web-page-sections
       "@xterm/addon-fit":
         specifier: 0.11.0
         version: 0.11.0
@@ -341,6 +303,9 @@ importers:
       "@simplewebauthn/server":
         specifier: 13.3.2
         version: 13.3.2
+      "@tailwindcss/postcss":
+        specifier: "catalog:"
+        version: 4.3.3
       "@types/node":
         specifier: "catalog:"
         version: 26.6.3
@@ -468,40 +433,6 @@ importers:
       typescript-eslint:
         specifier: 8.70.1
         version: 8.70.1(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-
-  packages/identity-web-ui:
-    dependencies:
-      "@hookform/resolvers":
-        specifier: "catalog:"
-        version: 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.5.4)
-      "@workspace/web-design-system":
-        specifier: workspace:*
-        version: link:../web-design-system
-      react:
-        specifier: "catalog:"
-        version: 19.3.0
-      react-hook-form:
-        specifier: "catalog:"
-        version: 7.88.0(react@19.3.0)
-      zod:
-        specifier: "catalog:"
-        version: 4.5.4
-    devDependencies:
-      "@types/react":
-        specifier: "catalog:"
-        version: 19.3.0
-      "@workspace/eslint-config":
-        specifier: workspace:*
-        version: link:../eslint-config
-      "@workspace/typescript-config":
-        specifier: workspace:*
-        version: link:../typescript-config
-      eslint:
-        specifier: "catalog:"
-        version: 9.39.5(jiti@2.7.0)
-      typescript:
-        specifier: "catalog:"
-        version: 5.9.3
 
   packages/observability-node:
     devDependencies:
@@ -734,15 +665,15 @@ importers:
 
   packages/towbar-web-ui:
     dependencies:
+      "@avgeek-oss/design-system":
+        specifier: 1.0.0
+        version: 1.0.0(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
         version: 4.3.5
       "@hugeicons/react":
         specifier: "catalog:"
         version: 1.1.10(react@19.3.0)
-      "@workspace/web-design-system":
-        specifier: workspace:*
-        version: link:../web-design-system
       next:
         specifier: "catalog:"
         version: 16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -780,104 +711,6 @@ importers:
 
   packages/typescript-config: {}
 
-  packages/web-design-system:
-    dependencies:
-      "@fontsource-variable/geist-mono":
-        specifier: ^5.3.0
-        version: 5.3.0
-      "@fontsource-variable/inter":
-        specifier: "catalog:"
-        version: 5.3.0
-      "@heroui/react":
-        specifier: "catalog:"
-        version: 3.2.6(@internationalized/date@3.12.4)(@react-aria/ssr@3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-aria/utils@3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-aria-components@1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-aria@3.52.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
-      "@heroui/styles":
-        specifier: "catalog:"
-        version: 3.2.6(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
-      "@hugeicons/core-free-icons":
-        specifier: "catalog:"
-        version: 4.3.5
-      "@hugeicons/react":
-        specifier: "catalog:"
-        version: 1.1.10(react@19.3.0)
-      clsx:
-        specifier: "catalog:"
-        version: 2.1.1
-      next:
-        specifier: "catalog:"
-        version: 16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      prism-react-renderer:
-        specifier: ^2.4.1
-        version: 2.4.1(react@19.3.0)
-      react:
-        specifier: "catalog:"
-        version: 19.3.0
-      react-aria-components:
-        specifier: "catalog:"
-        version: 1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react-dom:
-        specifier: "catalog:"
-        version: 19.3.0(react@19.3.0)
-      recharts:
-        specifier: "catalog:"
-        version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
-      tailwind-merge:
-        specifier: "catalog:"
-        version: 3.7.0
-    devDependencies:
-      "@tailwindcss/postcss":
-        specifier: "catalog:"
-        version: 4.3.3
-      "@types/node":
-        specifier: "catalog:"
-        version: 26.6.3
-      "@types/react":
-        specifier: "catalog:"
-        version: 19.3.0
-      "@types/react-dom":
-        specifier: "catalog:"
-        version: 19.3.0(@types/react@19.3.0)
-      "@workspace/eslint-config":
-        specifier: workspace:*
-        version: link:../eslint-config
-      "@workspace/typescript-config":
-        specifier: workspace:*
-        version: link:../typescript-config
-      eslint:
-        specifier: "catalog:"
-        version: 9.39.5(jiti@2.7.0)
-      tailwindcss:
-        specifier: "catalog:"
-        version: 4.3.3
-      typescript:
-        specifier: "catalog:"
-        version: 5.9.3
-
-  packages/web-page-sections:
-    dependencies:
-      "@workspace/web-design-system":
-        specifier: workspace:*
-        version: link:../web-design-system
-      react:
-        specifier: "catalog:"
-        version: 19.3.0
-    devDependencies:
-      "@types/react":
-        specifier: "catalog:"
-        version: 19.3.0
-      "@workspace/eslint-config":
-        specifier: workspace:*
-        version: link:../eslint-config
-      "@workspace/typescript-config":
-        specifier: workspace:*
-        version: link:../typescript-config
-      eslint:
-        specifier: "catalog:"
-        version: 9.39.5(jiti@2.7.0)
-      typescript:
-        specifier: "catalog:"
-        version: 5.9.3
-
 packages:
   "@adobe/react-spectrum-ui@1.2.1":
     resolution:
@@ -912,6 +745,18 @@ packages:
         integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==,
       }
     engines: { node: ">=10" }
+
+  "@avgeek-oss/design-system@1.0.0":
+    resolution:
+      {
+        integrity: sha512-DoQ8L9BaZtTZJAt3yDgf3/pfFp7FIiU1qRzAMOMxAqDa1zNlsZIJe5UOiO9adBzem2mfy+B58XcMn38kqyBDbQ==,
+        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.0.0/a8bdede3616e5ada0de863099441460e09548bab,
+      }
+    engines: { node: ">=24" }
+    peerDependencies:
+      next: ^16.0.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
 
   "@aws-sdk/checksums@3.1001.0":
     resolution:
@@ -7983,6 +7828,60 @@ snapshots:
       use-sync-external-store: 1.6.0(react@19.3.0)
 
   "@alloc/quick-lru@5.2.0": {}
+
+  "@avgeek-oss/design-system@1.0.0(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
+    dependencies:
+      "@fontsource-variable/geist-mono": 5.3.0
+      "@fontsource-variable/inter": 5.3.0
+      "@heroui/react": 3.2.6(@internationalized/date@3.12.4)(@react-aria/ssr@3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-aria/utils@3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-aria-components@1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-aria@3.52.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
+      "@heroui/styles": 3.2.6(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
+      "@hookform/resolvers": 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.5.4)
+      "@hugeicons/core-free-icons": 4.3.5
+      "@hugeicons/react": 1.1.10(react@19.3.0)
+      "@internationalized/date": 3.12.4
+      "@react-aria/ssr": 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      "@react-aria/utils": 3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      clsx: 2.1.1
+      next: 16.3.6(@opentelemetry/api@1.9.1)(@types/node@26.6.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      prism-react-renderer: 2.4.1(react@19.3.0)
+      react: 19.3.0
+      react-aria: 3.52.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-aria-components: 1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-dom: 19.3.0(react@19.3.0)
+      react-hook-form: 7.88.0(react@19.3.0)
+      recharts: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+      tailwind-merge: 3.7.0
+      tailwindcss: 4.3.3
+      zod: 4.5.4
+    transitivePeerDependencies:
+      - "@react-spectrum/provider"
+      - "@sinclair/typebox"
+      - "@standard-schema/spec"
+      - "@types/react"
+      - "@types/react-dom"
+      - "@typeschema/main"
+      - "@vinejs/vine"
+      - ajv
+      - ajv-errors
+      - ajv-formats
+      - arktype
+      - ata-validator
+      - class-transformer
+      - class-validator
+      - computed-types
+      - effect
+      - fluentvalidation-ts
+      - fp-ts
+      - io-ts
+      - joi
+      - nope-validator
+      - react-is
+      - redux
+      - superstruct
+      - typanion
+      - valibot
+      - vest
+      - yup
 
   "@aws-sdk/checksums@3.1001.0":
     dependencies:

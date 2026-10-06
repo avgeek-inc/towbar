@@ -1,4 +1,5 @@
 "use client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { useAccess } from "./access-context";
 import { useDetailNavigation } from "@/hooks/use-detail-navigation";
 import { usePageQuery, useQueryChoice } from "@/hooks/use-page-query";
@@ -25,7 +26,7 @@ import dynamic from "next/dynamic";
 import { ResponsiveChoice } from "./responsive-choice";
 import { SecretReferenceTooltip } from "./secret-reference-tooltip";
 import { IntegrationProviderLogo } from "./integration-provider-logo";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { Tabs } from "@avgeek-oss/design-system/navigation/tabs";
 import {
   managedSecretKeyError,
   parseSecretEnv,
@@ -46,16 +47,16 @@ import type {
   AppSecretStage,
   AppSecretsResponse,
 } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { InputGroup } from "@workspace/web-design-system/forms/input-group";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { FieldError } from "@workspace/web-design-system/forms/field";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { toast } from "@workspace/web-design-system/overlays/toast";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { InputGroup } from "@avgeek-oss/design-system/forms/input-group";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { FieldError } from "@avgeek-oss/design-system/forms/field";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
+import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
@@ -728,21 +729,28 @@ function SecretVariablesEditor({
                               {key}
                             </span>
                             {binding.inheritedOrigins[key] ? (
-                              <Chip
-                                size="small"
+                              <TooltipText
+                                className="inline-flex"
                                 tooltip={`This value comes from ${binding.inheritedOrigins[key]} and can be overridden here.`}
-                                variant="secondary"
                               >
-                                Inherited from {binding.inheritedOrigins[key]}
-                              </Chip>
+                                <Chip size="sm" color="default">
+                                  <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                                    Inherited from{" "}
+                                    {binding.inheritedOrigins[key]}
+                                  </Chip.Label>
+                                </Chip>
+                              </TooltipText>
                             ) : binding.missingKeys?.includes(key) ? (
-                              <Chip
-                                size="small"
+                              <TooltipText
+                                className="inline-flex"
                                 tooltip="This declared key does not have a saved value in the selected environment and stage."
-                                variant="warning"
                               >
-                                Missing
-                              </Chip>
+                                <Chip size="sm" color="warning">
+                                  <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                                    Missing
+                                  </Chip.Label>
+                                </Chip>
+                              </TooltipText>
                             ) : null}
                           </span>
                           {canManageKeys ? (

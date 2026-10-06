@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { CpuIcon, RamMemoryIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server } from "@workspace/towbar-web-client";

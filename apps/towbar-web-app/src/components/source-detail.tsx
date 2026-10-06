@@ -29,15 +29,15 @@ import type {
   Source,
   SourceSync,
 } from "@workspace/towbar-web-client";
-import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { useTablePagination } from "@avgeek-oss/design-system/hooks/use-table-pagination";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import {

@@ -1,9 +1,10 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import {
   TableCellStack,
   TableCellDescription,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { useMemo, useState } from "react";
 import { ServerStack01Icon } from "@hugeicons/core-free-icons";
@@ -19,8 +20,8 @@ import { ResourceLogo, ServiceLogo } from "./deployable-identity";
 import { CloudProviderLogo } from "./cloud-provider-logo";
 import { EnvironmentChip } from "./environment-chip";
 import { resourceImageBrand } from "./resource-image-brand";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import type { ResourceTableColumn } from "@workspace/towbar-web-ui/resource-table";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import type { ResourceTableColumn } from "@avgeek-oss/design-system/patterns/resource-table";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIcon } from "./scout-icons";
 import {
@@ -86,24 +87,30 @@ function deliveryStatusIcon(state: Delivery["state"]) {
 }
 function deliveryStatus(item: Delivery) {
   return (
-    <Chip
-      size="small"
-      variant={
-        item.state === "succeeded"
-          ? "success"
-          : item.state === "failed"
-            ? "destructive"
-            : "secondary"
-      }
-      icon={deliveryStatusIcon(item.state)}
+    <TooltipText
+      className="inline-flex"
       tooltip={
         item.state === "succeeded"
           ? "The provider accepted this notification."
           : (item.errorCode ?? undefined)
       }
     >
-      {stateLabels[item.state]}
-    </Chip>
+      <Chip
+        size="sm"
+        color={
+          item.state === "succeeded"
+            ? "success"
+            : item.state === "failed"
+              ? "danger"
+              : "default"
+        }
+      >
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          {deliveryStatusIcon(item.state)}
+          {stateLabels[item.state]}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 export function NotificationDeliveries() {

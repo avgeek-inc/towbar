@@ -12,10 +12,10 @@ import type {
   TowbarUpgradePlan,
   TowbarUpgradeStatus,
 } from "@workspace/towbar-web-client";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { AlertDialog } from "@workspace/web-design-system/overlays/alert-dialog";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { AlertDialog } from "@avgeek-oss/design-system/overlays/alert-dialog";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
 import { useApiQuery, refreshApiQueries } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 import {

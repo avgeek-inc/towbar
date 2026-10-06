@@ -11,6 +11,28 @@ Thank you for helping improve Towbar.
 - Security vulnerabilities must follow [SECURITY.md](SECURITY.md), not a public
   issue.
 
+## Design system dependency
+
+The dashboard uses `@avgeek-oss/design-system` from GitHub Packages. Shared UI
+belongs in that package; Towbar owns API calls, access checks, routing, and
+product-specific composition in `apps/towbar-web-app` and `packages/towbar-web-ui`.
+Use the package's documented exports and import its stylesheet once. The Next.js
+navigation adapter connects shared links to Towbar's router.
+
+[GitHub Packages requires authentication](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry)
+for public npm packages. For local installs, sign in with a personal access token
+(classic) with `read:packages`:
+
+```bash
+npm login --scope=@avgeek-oss --auth-type=legacy --registry=https://npm.pkg.github.com
+```
+
+For source Docker builds, export `NODE_AUTH_TOKEN` with the same registry read
+permission. Compose passes it as a BuildKit secret only to the web installer.
+Do not put tokens in `.npmrc`, build arguments, tracked files, or image layers.
+Installed Towbar hosts pulling release images do not need this npm token.
+GitHub Actions uses its scoped `GITHUB_TOKEN` with package read permission.
+
 ## Local checks
 
 ```bash

@@ -62,7 +62,11 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     mcp: BookOpen01Icon,
   };
   return (
-    <DashboardPage title={titles[page]} icon={icons[page]}>
+    <DashboardPage
+      title={titles[page]}
+      icon={icons[page]}
+      contentOwnsTitle={page === "passkeys"}
+    >
       {accountSettingsGroups.map((group) => (
         <SecondaryItems
           key={group.title}

@@ -3,16 +3,16 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, ReloadIcon } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
 
 import type { PreviewEnvironment } from "@workspace/towbar-web-client";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { ActionButton, InlineLink } from "@/components/page-parts";

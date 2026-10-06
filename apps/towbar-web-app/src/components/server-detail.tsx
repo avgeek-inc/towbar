@@ -54,19 +54,19 @@ import type {
   ServerChecksPage,
   ServerPreparation,
 } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { useTablePagination } from "@avgeek-oss/design-system/hooks/use-table-pagination";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceName,
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import {
@@ -79,7 +79,7 @@ import {
 } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
-import { Spinner } from "@workspace/web-design-system/feedback/spinner";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 import { serverPreparationIndicator } from "@/lib/server-preparation-visibility";
 import { reconcileServerSetupStatus } from "@/lib/server-preparation-status";
 import { hasScheduledPostSetupCheck } from "@/lib/server-preparation-redirect";
@@ -667,13 +667,17 @@ export function ServerDetail() {
                       value: "cleanup",
                       label: "Docker cleanup",
                       badge: cleanup.data?.inProgress ? (
-                        <Chip size="small" variant="warning">
-                          In progress
+                        <Chip size="sm" color="warning">
+                          <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                            In progress
+                          </Chip.Label>
                         </Chip>
                       ) : undefined,
                       titleBadge: cleanup.data?.inProgress ? (
-                        <Chip size="small" variant="warning">
-                          In progress
+                        <Chip size="sm" color="warning">
+                          <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                            In progress
+                          </Chip.Label>
                         </Chip>
                       ) : undefined,
                       content: (

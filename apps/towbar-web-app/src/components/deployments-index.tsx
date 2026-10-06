@@ -15,12 +15,12 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { useTablePagination } from "@workspace/web-design-system/hooks/use-table-pagination";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import { Tooltip } from "@workspace/web-design-system/overlays/tooltip";
+import { useTablePagination } from "@avgeek-oss/design-system/hooks/use-table-pagination";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
+import { Tooltip } from "@avgeek-oss/design-system/overlays/tooltip";
 
 import { DashboardPage, InlineLink } from "@/components/page-parts";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -38,12 +38,12 @@ import { deploymentSubtitle } from "@/lib/overview";
 import {
   TableCellDescription,
   TableCellStack,
-} from "@workspace/towbar-web-ui/table-cell-text";
+} from "@avgeek-oss/design-system/data-display/table-cell-text";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { SecondarySection } from "./secondary-sidebar";
 import { ScoutSelect } from "./scout-controls";
-import { Button } from "@workspace/web-design-system/buttons/button";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
 
 const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
   {

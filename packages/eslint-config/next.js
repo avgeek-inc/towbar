@@ -55,25 +55,15 @@ export const nextJsConfig = [
         {
           paths: [
             {
-              name: "@workspace/web-design-system/layouts/page",
+              name: "@avgeek-oss/design-system/layouts/page",
               importNames: ["Page"],
               message:
-                "Use a page archetype from @workspace/web-page-sections/page.",
+                "Use a page archetype from @avgeek-oss/design-system/patterns/pages/page.",
             },
             {
-              name: "@workspace/web-design-system/navigation/breadcrumbs",
+              name: "@avgeek-oss/design-system/navigation/breadcrumbs",
               message:
-                "Breadcrumbs are owned by the title lead in @workspace/web-page-sections/page.",
-            },
-            {
-              name: "@workspace/web-page-sections/hero-section",
-              message:
-                "Use MarketingPage from @workspace/web-page-sections/page.",
-            },
-            {
-              name: "@workspace/web-page-sections/title-section",
-              message:
-                "Use ApplicationPage or ContentPage from @workspace/web-page-sections/page.",
+                "Breadcrumbs are owned by the title lead in @avgeek-oss/design-system/patterns/pages/page.",
             },
           ],
         },
@@ -105,6 +95,24 @@ export const nextJsConfig = [
       ],
       // Use <Link> instead of <a> for internal navigation
       "@next/next/no-html-link-for-pages": "error",
+    },
+  },
+  {
+    files: ["**/src/components/page-parts.tsx"],
+    rules: {
+      // DashboardPage also hosts library patterns that supply their own heading.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@avgeek-oss/design-system/navigation/breadcrumbs",
+              message:
+                "Register breadcrumbs through the application page wrapper.",
+            },
+          ],
+        },
+      ],
     },
   },
 ];

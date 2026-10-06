@@ -1,22 +1,22 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Input } from "@workspace/web-design-system/forms/input";
-import { Label } from "@workspace/web-design-system/forms/label";
-import { Select, ListBox } from "@workspace/web-design-system/forms/select";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Input } from "@avgeek-oss/design-system/forms/input";
+import { Label } from "@avgeek-oss/design-system/forms/label";
+import { Select, ListBox } from "@avgeek-oss/design-system/forms/select";
 import {
   Autocomplete,
   SearchField,
-} from "@workspace/web-design-system/pickers/autocomplete";
-import { Modal } from "@workspace/web-design-system/overlays/modal";
-import { Pagination } from "@workspace/web-design-system/navigation/pagination";
+} from "@avgeek-oss/design-system/pickers/autocomplete";
+import { Modal } from "@avgeek-oss/design-system/overlays/modal";
+import { Pagination } from "@avgeek-oss/design-system/navigation/pagination";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { CodeBlock } from "@workspace/web-design-system/typography/code-block";
+import { CodeBlock } from "@avgeek-oss/design-system/typography/code-block";
 
 export type HistoryCursor = { before: string; beforeId: string } | null;
 export type HistoryResponse<T> = { items: T[]; nextCursor: HistoryCursor };

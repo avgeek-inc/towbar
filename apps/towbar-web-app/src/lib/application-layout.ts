@@ -26,8 +26,8 @@ import type {
   ApplicationPolicy,
   HeaderConfig,
   SidebarConfig,
-} from "@workspace/web-design-system/layouts/application-shell-types";
-import { defineSidebarIcons } from "@workspace/web-design-system/layouts/sidebar-icons";
+} from "@avgeek-oss/design-system/layouts/application-shell-types";
+import { defineSidebarIcons } from "@avgeek-oss/design-system/layouts/sidebar-icons";
 
 const sidebarIcons = defineSidebarIcons({
   incidents: AlertCircleIcon,

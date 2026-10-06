@@ -1,4 +1,5 @@
 "use client";
+import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 import { useState } from "react";
 import { HostUpgrade } from "./host-upgrade";
 import { upgradeIsActive, upgradeNeedsRecovery } from "./host-upgrade-state";
@@ -11,8 +12,8 @@ import {
   ReloadIcon,
 } from "@hugeicons/core-free-icons";
 
-import { TooltipText } from "@workspace/web-design-system/overlays/tooltip";
-import { LineChart } from "@workspace/web-design-system/charts/line-chart";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
+import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -23,10 +24,10 @@ import type {
   TowbarUpdateInfo,
   TowbarUpgradeJob,
 } from "@workspace/towbar-web-client";
-import { ButtonLink } from "@workspace/web-design-system/buttons/button";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { cn } from "@workspace/web-design-system/lib/utils";
+import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 
 import { ActionButton, DashboardPage } from "@/components/page-parts";
@@ -50,7 +51,7 @@ const statusPresentation = {
     icon: AlertCircleIcon,
     label: "Critical",
     text: "text-danger",
-    variant: "destructive" as const,
+    variant: "danger" as const,
   },
   healthy: {
     icon: CheckmarkCircle02Icon,
@@ -62,7 +63,7 @@ const statusPresentation = {
     icon: InformationCircleIcon,
     label: "Not checked",
     text: "text-muted",
-    variant: "secondary" as const,
+    variant: "default" as const,
   },
 };
 
@@ -360,13 +361,24 @@ function TowbarUpdates({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-medium">Towbar version</h3>
             {recovery ? (
-              <Chip variant="destructive">Recovery required</Chip>
+              <Chip color="danger">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  Recovery required
+                </Chip.Label>
+              </Chip>
             ) : active ? (
-              <Chip variant="warning" loading>
-                Upgrade in progress
+              <Chip color="warning">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  <Spinner size="sm" color="current" />
+                  Upgrade in progress
+                </Chip.Label>
               </Chip>
             ) : status === "available" ? (
-              <Chip variant="warning">Update available</Chip>
+              <Chip color="warning">
+                <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                  Update available
+                </Chip.Label>
+              </Chip>
             ) : null}
           </div>
           <p className="text-sm text-muted">{description}</p>
@@ -398,9 +410,8 @@ function HealthStatusChip({
 }) {
   const presentation = statusPresentation[stale ? "attention" : status];
   return (
-    <Chip
-      variant={presentation.variant}
-      icon={<HugeiconsIcon icon={presentation.icon} />}
+    <TooltipText
+      className="inline-flex"
       tooltip={
         tooltip ??
         (checkedAt
@@ -408,8 +419,13 @@ function HealthStatusChip({
           : "This check has not run yet.")
       }
     >
-      {stale ? "Checks stale" : presentation.label}
-    </Chip>
+      <Chip color={presentation.variant}>
+        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+          <HugeiconsIcon aria-hidden icon={presentation.icon} />
+          {stale ? "Checks stale" : presentation.label}
+        </Chip.Label>
+      </Chip>
+    </TooltipText>
   );
 }
 

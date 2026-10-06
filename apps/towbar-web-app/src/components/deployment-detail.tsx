@@ -1,4 +1,5 @@
 "use client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { displayTime } from "@/lib/date-time-display";
 import { useAccess } from "./access-context";
 import { DeploymentEnvironmentChip } from "./deployment-environment-chip";
@@ -23,7 +24,7 @@ import { DeploymentDuration } from "./elapsed-time";
 import { DeploymentProgress } from "./deployment-progress";
 
 import { DomainLink } from "./domain-link";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useParams, useRouter } from "next/navigation";
@@ -32,13 +33,13 @@ import type {
   DeploymentPullRequest,
   Source,
 } from "@workspace/towbar-web-client";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
-import type { BreadcrumbAncestors } from "@workspace/web-page-sections/page";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
+import type { BreadcrumbAncestors } from "@avgeek-oss/design-system/patterns/pages/page";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
@@ -488,33 +489,37 @@ export function DeploymentDetail() {
                       {revision.data.pullRequest.title}
                     </Attributes.Item>
                     <Attributes.Item label="Status">
-                      <Chip
-                        size="small"
-                        icon={
-                          revision.data.pullRequest.merged ? (
-                            <HugeiconsIcon icon={GitMergeIcon} />
-                          ) : undefined
-                        }
+                      <TooltipText
+                        className="inline-flex"
                         tooltip={pullRequestStateTooltip(
                           revision.data.pullRequest,
                         )}
-                        variant={
-                          revision.data.pullRequest.merged
-                            ? "purple"
-                            : revision.data.pullRequest.state === "open" &&
-                                !revision.data.pullRequest.draft
-                              ? "success"
-                              : "secondary"
-                        }
                       >
-                        {revision.data.pullRequest.merged
-                          ? "Merged"
-                          : revision.data.pullRequest.draft
-                            ? "Draft"
-                            : revision.data.pullRequest.state === "open"
-                              ? "Open"
-                              : "Closed"}
-                      </Chip>
+                        <Chip
+                          size="sm"
+                          color={
+                            revision.data.pullRequest.merged
+                              ? "accent"
+                              : revision.data.pullRequest.state === "open" &&
+                                  !revision.data.pullRequest.draft
+                                ? "success"
+                                : "default"
+                          }
+                        >
+                          <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                            {revision.data.pullRequest.merged ? (
+                              <HugeiconsIcon icon={GitMergeIcon} />
+                            ) : undefined}
+                            {revision.data.pullRequest.merged
+                              ? "Merged"
+                              : revision.data.pullRequest.draft
+                                ? "Draft"
+                                : revision.data.pullRequest.state === "open"
+                                  ? "Open"
+                                  : "Closed"}
+                          </Chip.Label>
+                        </Chip>
+                      </TooltipText>
                     </Attributes.Item>
                     <Attributes.Item
                       icon={<HugeiconsIcon icon={GitBranchIcon} />}

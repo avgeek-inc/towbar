@@ -1,5 +1,6 @@
 "use client";
 
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { RelativeTime as SharedRelativeTime } from "./last-synced-time";
 
 import { DatabaseIcon } from "@hugeicons/core-free-icons";
@@ -14,20 +15,20 @@ import type {
   ResourceOperation,
   SourceBackup,
 } from "@workspace/towbar-web-client";
-import { Chip } from "@workspace/web-design-system/data-display/chip";
-import { EmptyState } from "@workspace/web-design-system/data-display/empty-state";
-import { Alert } from "@workspace/web-design-system/feedback/alert";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { TypographyCode } from "@workspace/web-design-system/typography/typography";
+import { Chip } from "@avgeek-oss/design-system/data-display/chip";
+import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
+import { Alert } from "@avgeek-oss/design-system/feedback/alert";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { TypographyCode } from "@avgeek-oss/design-system/typography/typography";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import {
   ResourceTable,
   type ResourceTableColumn,
-} from "@workspace/towbar-web-ui/resource-table";
+} from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
-import { InlineExternalLink } from "@workspace/web-design-system/navigation/inline-external-link";
-import { Attributes } from "@workspace/web-design-system/data-display/attributes";
+import { Tabs } from "@avgeek-oss/design-system/navigation/tabs";
+import { InlineExternalLink } from "@avgeek-oss/design-system/navigation/inline-external-link";
+import { Attributes } from "@avgeek-oss/design-system/data-display/attributes";
 
 import { ActionButton } from "@/components/page-parts";
 import { CloudProviderLogo } from "@/components/cloud-provider-logo";
@@ -190,13 +191,20 @@ function ResourceBackupContent({
           <Widget className="min-w-0">
             <Widget.Header
               endContent={
-                <Chip
-                  className="shrink-0"
+                <TooltipText
+                  className="inline-flex"
                   tooltip={backupHealth.description}
-                  variant={backupHealth.tone}
                 >
-                  {backupHealth.label}
-                </Chip>
+                  <Chip
+                    className="shrink-0"
+
+                    color={backupHealth.tone}
+                  >
+                    <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                      {backupHealth.label}
+                    </Chip.Label>
+                  </Chip>
+                </TooltipText>
               }
             >
               <Widget.Title>{backupHealth.title}</Widget.Title>
@@ -212,8 +220,10 @@ function ResourceBackupContent({
                       <span className="font-medium typography--body-sm">
                         {stage.label}
                       </span>
-                      <Chip size="small" variant={stage.tone}>
-                        {stage.status}
+                      <Chip size="sm" color={stage.tone}>
+                        <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                          {stage.status}
+                        </Chip.Label>
                       </Chip>
                     </div>
                     <p className="text-muted typography--body-sm">

@@ -3,11 +3,11 @@ import { displayDateTime } from "@/lib/date-time-display";
 import { ScoutIcon } from "./scout-icons";
 import { RelativeTime } from "./last-synced-time";
 import { ScoutIncidentNotifications } from "./scout-incident-notifications";
-import { Tabs } from "@workspace/web-design-system/navigation/tabs";
+import { Tabs } from "@avgeek-oss/design-system/navigation/tabs";
 import { useMemo, useState } from "react";
-import { Button } from "@workspace/web-design-system/buttons/button";
-import { Widget } from "@workspace/web-design-system/data-display/widget";
-import { Drawer } from "@workspace/web-design-system/overlays/drawer";
+import { Button } from "@avgeek-oss/design-system/buttons/button";
+import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { Drawer } from "@avgeek-oss/design-system/overlays/drawer";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
