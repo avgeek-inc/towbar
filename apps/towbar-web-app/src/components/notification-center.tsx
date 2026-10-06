@@ -24,10 +24,12 @@ export function NotificationCenter() {
     unreadCount: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [markingRead, setMarkingRead] = useState(false);
   const pageCount = useRef(1);
   const generation = useRef(0);
   const mutationPending = useRef(false);
+  const paginationPending = useRef(false);
 
   const refresh = useCallback(async () => {
     const requestGeneration = ++generation.current;
@@ -57,7 +59,14 @@ export function NotificationCenter() {
             ...new Map(notifications.map((item) => [item.id, item])).values(),
           ],
         });
+        setLoadError(null);
       }
+      return null;
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : "Could not load notifications";
+      if (generation.current === requestGeneration) setLoadError(message);
+      return message;
     } finally {
       if (generation.current === requestGeneration) setLoading(false);
     }
@@ -65,25 +74,27 @@ export function NotificationCenter() {
 
   usePageVisibilityInterval(
     () => {
-      if (!mutationPending.current) void refresh().catch(() => undefined);
+      if (!mutationPending.current && !paginationPending.current)
+        void refresh();
     },
     30_000,
     { runImmediately: true },
   );
 
   useEffect(() => {
-    if (isOpen && !mutationPending.current)
-      void refresh().catch(() => undefined);
+    if (isOpen && !mutationPending.current && !paginationPending.current)
+      void refresh();
   }, [isOpen, refresh]);
 
   const markAllRead = async () => {
-    if (mutationPending.current) return;
+    if (mutationPending.current || paginationPending.current) return;
     mutationPending.current = true;
     generation.current++;
     setMarkingRead(true);
     try {
       await api.post("/v1/core/notifications/read-all", {});
-      await refresh();
+      const refreshError = await refresh();
+      if (refreshError) toast.danger(refreshError);
     } catch (cause) {
       toast.danger(
         cause instanceof Error
@@ -96,14 +107,17 @@ export function NotificationCenter() {
     }
   };
   const loadMore = async () => {
+    if (paginationPending.current || mutationPending.current) return;
+    paginationPending.current = true;
     pageCount.current++;
     try {
-      await refresh();
-    } catch (cause) {
-      pageCount.current--;
-      toast.danger(
-        cause instanceof Error ? cause.message : "Could not load notifications",
-      );
+      const error = await refresh();
+      if (error) {
+        pageCount.current--;
+        toast.danger(error);
+      }
+    } finally {
+      paginationPending.current = false;
     }
   };
 
@@ -113,23 +127,32 @@ export function NotificationCenter() {
       onOpenChange={setIsOpen}
       unreadCount={feed.unreadCount}
       loading={loading && feed.notifications.length === 0}
-      headerEnd={
-        <span className="flex items-center gap-3">
-          {feed.nextCursor ? (
+      markingRead={markingRead}
+      onMarkAllRead={() => void markAllRead()}
+      emptyContent={
+        loadError ? (
+          <div className="grid justify-items-center gap-3 px-4 py-6">
+            <p role="status" className="text-center text-sm text-muted">
+              {loadError}
+            </p>
             <Widget.Action
               isDisabled={loading || markingRead}
-              onPress={() => void loadMore()}
+              onPress={() => void refresh()}
             >
-              Load more
+              Retry
             </Widget.Action>
-          ) : null}
+          </div>
+        ) : undefined
+      }
+      footer={
+        feed.nextCursor ? (
           <Widget.Action
-            isDisabled={!feed.unreadCount || loading || markingRead}
-            onPress={() => void markAllRead()}
+            isDisabled={loading || markingRead}
+            onPress={() => void loadMore()}
           >
-            {markingRead ? "Marking read…" : "Mark all as read"}
+            {loading ? "Loading…" : "Load more"}
           </Widget.Action>
-        </span>
+        ) : undefined
       }
       items={feed.notifications.map((notification) => ({
         id: notification.id,
