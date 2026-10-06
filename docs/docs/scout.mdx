@@ -3,7 +3,9 @@ title: "Scout Agent"
 description: "Meet Scout Agent, Towbar’s monitoring agent. Track server, Service, and Datastore performance with updates every 30 seconds."
 ---
 
-<div className="towbar-scout-intro">
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
+<div className="oss-spotlight-intro">
   <img
     src="/assets/scout/mascot.webp"
     alt="Scout Agent, Towbar’s monitoring mascot"
@@ -25,27 +27,14 @@ Scout Agent runs as two small systemd services: a local collector and an HTTPS s
 
 **Installing** means the worker is setting up the services. **Awaiting report** means installation completed but no sample has arrived yet. **Online** requires a received sample. **No recent report** appears when the latest collection is older than 90 seconds; old data is never presented as a fresh zero.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/scout-settings-light.jpg"
-      alt="Choose retention and consent before installing Scout Agent."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/scout-settings-dark.jpg"
-      alt="Choose retention and consent before installing Scout Agent."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Choose retention and consent before installing Scout Agent.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/scout-settings-light.jpg"
+  dark="/assets/release-v2/scout-settings-dark.jpg"
+  alt="Choose retention and consent before installing Scout Agent."
+  width="3200"
+  height="1800"
+  caption="Choose retention and consent before installing Scout Agent."
+/>
 
 ### Performance history
 
@@ -66,30 +55,14 @@ Custom ranges are fixed in time, must span at least 30 seconds, and stay within 
 
 The API preserves the sum, count, minimum, and maximum for each metric. Longer chart ranges use fewer points; averages remain sample-weighted and peaks remain the highest observed value for that container. Up to 32 recently reporting instances are shown per query. A shorter range helps when a workload has many historical replacements.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/performance-light.jpg"
-      alt="Performance history combines measurements, aggregation controls, and deployment markers."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/performance-dark.jpg"
-      alt="Performance history combines measurements, aggregation controls, and deployment markers."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Performance history combines measurements, aggregation controls, and
-    deployment markers.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/performance-light.jpg"
+  dark="/assets/release-v2/performance-dark.jpg"
+  alt="Performance history combines measurements, aggregation controls, and deployment markers."
+  width="3200"
+  height="1800"
+  caption="Performance history combines measurements, aggregation controls, and deployment markers."
+/>
 
 ### Alerts and deployment comparisons
 

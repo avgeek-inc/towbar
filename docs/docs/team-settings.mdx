@@ -3,6 +3,8 @@ title: "Team settings"
 description: "Set your team name, add members, manage invitations, and create team API keys."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 A Towbar installation has one team. The person who completes onboarding becomes its first Admin. Only Admins can open **Manage → Team Settings**.
 
 The sidebar groups **General** and **Members** under **Account**, followed by **API Keys**, **Audit Logs**, and **SSH keys** under **Security**.
@@ -25,27 +27,14 @@ Members cannot connect repositories, change branch mappings, sync inventory, dep
 
 Towbar keeps at least one Admin in the team. You cannot remove or demote the last Admin. Removing a member ends their sessions and revokes their personal keys. It does not erase deployment history or reactivate old keys if the person joins again.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/team-members-light.jpg"
-      alt="Manage members and pending invitations from separate tables."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/team-members-dark.jpg"
-      alt="Manage members and pending invitations from separate tables."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Manage members and pending invitations from separate tables.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/team-members-light.jpg"
+  dark="/assets/release-v2/team-members-dark.jpg"
+  alt="Manage members and pending invitations from separate tables."
+  width="3200"
+  height="1800"
+  caption="Manage members and pending invitations from separate tables."
+/>
 
 ### Add a user directly
 

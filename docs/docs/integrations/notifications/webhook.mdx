@@ -3,6 +3,8 @@ title: "Webhook push"
 description: "Configure signed HTTPS notification endpoints with optional headers."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Use webhook push when another service should consume Towbar's operational events. Configure one endpoint per use case. Keep its URL, optional authorization headers, and signing secret in the protected runtime YAML file; the dashboard manages only subscriptions. Webhook push is workspace-wide.
 
 ```yaml title="/etc/towbar/config.yml"
@@ -26,27 +28,11 @@ Towbar POSTs JSON with `x-towbar-timestamp` and `x-towbar-signature-256: sha256=
 
 Towbar rejects credentials embedded in URLs, custom ports, private-network destinations, redirects, and reserved delivery-header overrides. If an endpoint fails, check HTTPS reachability, the exact URL path, receiver response, header values, and signature verification. Changing a URL or secret requires YAML validation and restart. Keep the endpoint ID stable when rotating a secret so its subscription remains attached.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/webhook-notifications-light.jpg"
-      alt="Webhook push endpoints and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/webhook-notifications-dark.jpg"
-      alt="Webhook push endpoints and category subscriptions in Towbar."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    The endpoint list shows labels and hostnames while keeping full URLs and
-    headers in the runtime configuration.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/webhook-notifications-light.jpg"
+  dark="/assets/release-v2/webhook-notifications-dark.jpg"
+  alt="Webhook push endpoints and category subscriptions in Towbar."
+  width="3200"
+  height="1800"
+  caption="The endpoint list shows labels and hostnames while keeping full URLs and headers in the runtime configuration."
+/>

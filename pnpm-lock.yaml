@@ -106,6 +106,9 @@ overrides:
 importers:
   .:
     devDependencies:
+      "@avgeek-oss/docs":
+        specifier: github:avgeek-oss/oss-docs#8476de02f2895efac1d119f9392893b11b0277a4
+        version: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4
       "@types/node":
         specifier: "catalog:"
         version: 26.6.3
@@ -757,6 +760,17 @@ packages:
       next: ^16.0.0
       react: ^19.0.0
       react-dom: ^19.0.0
+
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4":
+    resolution:
+      {
+        gitHosted: true,
+        integrity: sha512-i6aCsCe63d0v6OBvPnJVnYLalAqckoIHxjRlYSU0i9wHTNAc7XyDO+FMrAxAFteixj1BHmGnftxK5UTz/ujy4A==,
+        tarball: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4,
+      }
+    version: 0.1.0
+    engines: { node: ">=24" }
+    hasBin: true
 
   "@aws-sdk/checksums@3.1001.0":
     resolution:
@@ -7882,6 +7896,10 @@ snapshots:
       - valibot
       - vest
       - yup
+
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/8476de02f2895efac1d119f9392893b11b0277a4":
+    dependencies:
+      prettier: 3.9.9
 
   "@aws-sdk/checksums@3.1001.0":
     dependencies:

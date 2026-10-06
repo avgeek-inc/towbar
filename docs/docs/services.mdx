@@ -3,36 +3,22 @@ title: "Services"
 description: "Build from source, run an OCI image, or deploy a Compose workload on your servers."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 A Service is a workload declared in a connected GitHub or GitLab repository. Towbar can build a committed source revision, run a prebuilt OCI image, or deploy a Compose workload. Supporting software such as an analytics server or metrics collector is also a Service. Use a [Datastore](/docs/datastores) when Towbar provides engine-specific storage, connections, and recovery.
 
 Towbar keeps the desired configuration in Git. The dashboard shows the effective manifest, secret status, deployment history, logs, and current state; it does not create a second workload definition.
 
 One manifest `id` identifies the service across renames and file moves. A Repository sync imports that declaration for each mapped environment, but leaves the currently running release alone. A deployment then builds or resolves an image and promotes it on the environment's server after its checks pass. The service can reach a Datastore on the same private Docker network; its connection credentials live in Towbar secrets rather than Git. A Preview is a separate, temporary instance for an eligible pull request.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/app-overview-light.jpg"
-      alt="A public Service uses its domain favicon beside its name and shows current state and latest deployment separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/app-overview-dark.jpg"
-      alt="A public Service uses its domain favicon beside its name and shows current state and latest deployment separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Public Services use the configured domain favicon when one is available. The
-    current state and latest deployment attempt appear in separate widgets.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/app-overview-light.jpg"
+  dark="/assets/release-v2/app-overview-dark.jpg"
+  alt="A public Service uses its domain favicon beside its name and shows current state and latest deployment separately."
+  width="3200"
+  height="1800"
+  caption="Public Services use the configured domain favicon when one is available. The current state and latest deployment attempt appear in separate widgets."
+/>
 
 ## Browse services
 
@@ -42,29 +28,14 @@ separately. **Group by ID** brings together instances with the same manifest
 `id`; **Unified view** returns to the flat list. Filters still apply
 to the selected view.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/services-environments-light.jpg"
-      alt="Group services by environment to review production and staging separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/services-environments-dark.jpg"
-      alt="Group services by environment to review production and staging separately."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Group services by environment to review production and staging separately.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/services-environments-light.jpg"
+  dark="/assets/release-v2/services-environments-dark.jpg"
+  alt="Group services by environment to review production and staging separately."
+  width="3200"
+  height="1800"
+  caption="Group services by environment to review production and staging separately."
+/>
 
 ## Define a Service
 

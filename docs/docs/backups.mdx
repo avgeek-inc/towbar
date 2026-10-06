@@ -3,6 +3,8 @@ title: "Database backups"
 description: "Protect managed databases with runtime-configured object-storage providers."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Towbar backs up all eight managed database engines. Use AWS S3, generic S3, Cloudflare R2, or Google Cloud Storage. The manifest stores the runtime provider name, location policy, retention, and schedule; provider credentials remain in the protected Towbar configuration.
 
 ## Prerequisites
@@ -111,30 +113,14 @@ Choose **Back up now** to trigger an immediate backup run. Towbar performs a 3-s
 
 Freshness and usability answer different questions. An older retained backup can miss the schedule's recovery-point objective while remaining usable for an explicit restore.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/backups-light.jpg"
-      alt="Backup configuration shows the location, retention, cron schedule, and provider credential status."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/backups-dark.jpg"
-      alt="Backup configuration shows the location, retention, cron schedule, and provider credential status."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Backup configuration shows the location, retention, cron schedule, and
-    provider credential status.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/backups-light.jpg"
+  dark="/assets/release-v2/backups-dark.jpg"
+  alt="Backup configuration shows the location, retention, cron schedule, and provider credential status."
+  width="3200"
+  height="1800"
+  caption="Backup configuration shows the location, retention, cron schedule, and provider credential status."
+/>
 
 ## Practice recovery
 

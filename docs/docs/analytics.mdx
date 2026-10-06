@@ -3,6 +3,8 @@ title: "Service analytics"
 description: "See requests, pageviews, viewing time, and how website visits end."
 ---
 
+import { Screenshot } from "/snippets/oss/screenshot.jsx";
+
 Scout analytics shows how much traffic reaches a public service and which pages receive it. Start with request counts. Add a small script to your website when you also want pageviews. Collection is off until you enable it.
 
 ## Turn on request analytics
@@ -18,29 +20,14 @@ Open **Services → your service → Analytics** and select **HTTP requests**. V
 
 Requests include API calls, images, scripts, and bots, so request counts do not tell you how many people visited. Analytics is available for single-container services with a public primary domain.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/analytics-requests-light.jpg"
-      alt="HTTP requests show traffic, errors, response times, and requested paths."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/analytics-requests-dark.jpg"
-      alt="HTTP requests show traffic, errors, response times, and requested paths."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    HTTP requests show traffic, errors, response times, and requested paths.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/analytics-requests-light.jpg"
+  dark="/assets/release-v2/analytics-requests-dark.jpg"
+  alt="HTTP requests show traffic, errors, response times, and requested paths."
+  width="3200"
+  height="1800"
+  caption="HTTP requests show traffic, errors, response times, and requested paths."
+/>
 
 ## Count website pageviews
 
@@ -60,53 +47,25 @@ Put this script once in your site’s shared page template:
 
 Select **Pageviews** in Analytics. The script counts the first page and navigation within your site, including single-page applications. It is served from your own service domain. It also measures time spent while a page is visible and clicks to other websites. It does not measure conversions or scroll depth. Blocked scripts and disabled JavaScript reduce the count.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/analytics-pageviews-light.jpg"
-      alt="Pageviews show visits, viewing time, bounce rate, and page activity."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/analytics-pageviews-dark.jpg"
-      alt="Pageviews show visits, viewing time, bounce rate, and page activity."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Pageviews show visits, viewing time, bounce rate, and page activity.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/analytics-pageviews-light.jpg"
+  dark="/assets/release-v2/analytics-pageviews-dark.jpg"
+  alt="Pageviews show visits, viewing time, bounce rate, and page activity."
+  width="3200"
+  height="1800"
+  caption="Pageviews show visits, viewing time, bounce rate, and page activity."
+/>
 
 Countries and cities show approximate locations for pageviews. Browser and device names help you understand how visitors access the site. Missing details appear as **Unknown**.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/analytics-locations-light.jpg"
-      alt="Countries, cities, browsers, and devices help explain website pageviews."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/analytics-locations-dark.jpg"
-      alt="Countries, cities, browsers, and devices help explain website pageviews."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Countries, cities, browsers, and devices help explain website pageviews.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/analytics-locations-light.jpg"
+  dark="/assets/release-v2/analytics-locations-dark.jpg"
+  alt="Countries, cities, browsers, and devices help explain website pageviews."
+  width="3200"
+  height="1800"
+  caption="Countries, cities, browsers, and devices help explain website pageviews."
+/>
 
 ## Optional visitor and session estimates
 
@@ -134,30 +93,14 @@ Update Scout Agent to version 1.2.0 or later to collect viewing time, ordered ex
 
 Filters select matching pages and visits. Bounce rate counts all pages in each matching visit so a visit with several pages does not become a bounce when a path filter matches just one. Visits that started before the selected range are excluded from bounce rate and exits. Exit page rows must also match the filters.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/analytics-exits-light.jpg"
-      alt="Exit pages and outbound websites describe how finished visits end and which links visitors click."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/analytics-exits-dark.jpg"
-      alt="Exit pages and outbound websites describe how finished visits end and which links visitors click."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>
-    Exit pages and outbound websites describe how finished visits end and which
-    links visitors click.
-  </p>
-</div>
+<Screenshot
+  light="/assets/release-v2/analytics-exits-light.jpg"
+  dark="/assets/release-v2/analytics-exits-dark.jpg"
+  alt="Exit pages and outbound websites describe how finished visits end and which links visitors click."
+  width="3200"
+  height="1800"
+  caption="Exit pages and outbound websites describe how finished visits end and which links visitors click."
+/>
 
 ## Filter analytics
 
@@ -171,27 +114,14 @@ An outbound website filter selects pages with a recorded click to that website d
 
 All conditions must match. For example, `/docs` as a prefix includes `/docs`, `/docs/api`, and `/docs-old`; use `/docs/` to match only paths beneath that directory. Matching is case-sensitive and treats `%` and `_` literally. Enter paths without query strings or fragments. Filters scope totals, trends, breakdowns, and the previous period consistently. A previous period with no matching activity is shown as unavailable.
 
-<div className="towbar-doc-screenshot">
-  <div className="towbar-product-light">
-    <img
-      src="/assets/release-v2/analytics-filters-light.jpg"
-      alt="Combine conditions to focus every chart and table on the same activity."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <div className="towbar-product-dark">
-    <img
-      src="/assets/release-v2/analytics-filters-dark.jpg"
-      alt="Combine conditions to focus every chart and table on the same activity."
-      width="3200"
-      height="1800"
-      loading="lazy"
-    />
-  </div>
-  <p>Combine conditions to focus every chart and table on the same activity.</p>
-</div>
+<Screenshot
+  light="/assets/release-v2/analytics-filters-light.jpg"
+  dark="/assets/release-v2/analytics-filters-dark.jpg"
+  alt="Combine conditions to focus every chart and table on the same activity."
+  width="3200"
+  height="1800"
+  caption="Combine conditions to focus every chart and table on the same activity."
+/>
 
 ## Technical details
 
