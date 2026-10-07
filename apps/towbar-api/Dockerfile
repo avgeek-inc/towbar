@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
-FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS base
+FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
 
 FROM base AS pruner
-ARG TURBO_VERSION=2.11.4
+ARG TURBO_VERSION=2.11.7
 WORKDIR /repo
 RUN npm install --global turbo@${TURBO_VERSION}
 COPY . .
