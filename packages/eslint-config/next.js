@@ -62,6 +62,7 @@ export const nextJsConfig = [
             },
             {
               name: "@avgeek-oss/design-system/navigation/breadcrumbs",
+              importNames: ["Breadcrumbs"],
               message:
                 "Breadcrumbs are owned by the title lead in @avgeek-oss/design-system/patterns/pages/page.",
             },
@@ -107,6 +108,7 @@ export const nextJsConfig = [
           paths: [
             {
               name: "@avgeek-oss/design-system/navigation/breadcrumbs",
+              importNames: ["Breadcrumbs"],
               message:
                 "Register breadcrumbs through the application page wrapper.",
             },

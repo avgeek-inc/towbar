@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@avgeek-oss/design-system": "1.2.7",
+    "@avgeek-oss/design-system": "file:/Users/praveen/.codex/tasks/attribute-list-polish/design-system-local-30.tgz",
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "next": "catalog:",

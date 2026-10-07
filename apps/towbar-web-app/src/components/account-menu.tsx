@@ -2,9 +2,8 @@
 
 import {
   BookOpen01Icon,
-  GithubIcon,
   Key01Icon,
-  Logout03Icon,
+  Logout01Icon,
   Mail01Icon,
   Message01Icon,
   News01Icon,
@@ -45,9 +44,6 @@ export function AccountMenu({
       case "documentation":
         window.open(documentationUrl, "_blank", "noopener,noreferrer");
         break;
-      case "repository":
-        window.open(repositoryUrl, "_blank", "noopener,noreferrer");
-        break;
       case "feedback":
         window.open(
           `${repositoryUrl}/issues/new`,
@@ -84,10 +80,10 @@ export function AccountMenu({
             },
             {
               id: "email-password",
-              label: "Auth & Security",
+              label: "Email & Password",
               icon: icon(Mail01Icon),
             },
-            { id: "api-keys", label: "My API Keys", icon: icon(Key01Icon) },
+            { id: "api-keys", label: "API Keys", icon: icon(Key01Icon) },
           ],
         },
         {
@@ -101,11 +97,10 @@ export function AccountMenu({
               icon: icon(BookOpen01Icon),
             },
             {
-              id: "repository",
-              label: "Repo / Contribute",
-              icon: icon(GithubIcon),
+              id: "feedback",
+              label: "Leave Feedback",
+              icon: icon(Message01Icon),
             },
-            { id: "feedback", label: "Feedback", icon: icon(Message01Icon) },
           ],
         },
         {
@@ -115,7 +110,7 @@ export function AccountMenu({
             {
               id: "logout",
               label: "Sign out",
-              icon: icon(Logout03Icon),
+              icon: icon(Logout01Icon),
               destructive: true,
             },
           ],

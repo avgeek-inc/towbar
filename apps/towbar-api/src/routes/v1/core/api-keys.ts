@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createKeySchema } from "../../../areas/api-keys/create-key-contract.js";
 import { z } from "zod";
 import {
   createApiKey,
@@ -12,14 +13,6 @@ import { operation } from "../../../http/operation.js";
 import { readJson, readUuidPathParameter } from "../../../http/requests.js";
 import { sessionUser } from "../../../http/session-user.js";
 import type { TowbarHonoEnvironment } from "../../../http/types.js";
-const createKeySchema = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    access: z.enum(["read", "edit"]),
-    includeAdmin: z.boolean().default(false),
-    expiresAt: z.iso.datetime().nullable().optional(),
-  })
-  .strict();
 export const apiKeyRoutes = new Hono<TowbarHonoEnvironment>();
 apiKeyRoutes.use("*", requireHttpsExternalAccess);
 apiKeyRoutes.use("*", async (c, next) => {

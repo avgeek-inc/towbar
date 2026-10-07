@@ -295,6 +295,8 @@ for (const role of ["admin", "member", "viewer"]) {
       const key = await request("core/settings/api-keys/personal", "POST", {
         name: "Viewer tool",
         access: "read",
+        includeAdmin: false,
+        expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
       });
       assert.equal(key.status, 201);
       assert.equal((await key.json()).key.access, "read");
@@ -303,6 +305,8 @@ for (const role of ["admin", "member", "viewer"]) {
           await request("core/settings/api-keys/personal", "POST", {
             name: "Write tool",
             access: "edit",
+            includeAdmin: false,
+            expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
           })
         ).status,
         role === "viewer" ? 403 : 201,

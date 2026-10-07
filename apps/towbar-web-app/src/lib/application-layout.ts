@@ -81,6 +81,7 @@ const sidebar = {
   groups: [
     {
       id: "overview",
+      label: "Dashboard",
       items: [
         {
           kind: "link",

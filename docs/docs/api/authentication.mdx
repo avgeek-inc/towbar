@@ -5,14 +5,14 @@ description: Scope, rotate and revoke personal and team API keys with live role 
 
 ## Keys and permissions
 
-Create personal keys in **Manage → My Settings → API Keys**. Admins create team keys in **Manage → Team Settings → API Keys**. The API Keys table shows name, access, expiry and last use. The raw token is shown only when created.
+Create personal keys in **Account Settings → API Keys**. Admins create team keys in **Team Settings → API Keys**. Enter a name, choose permissions, and choose an expiry. All three fields are required; none is selected for you. The API Keys table shows name, access, expiry and last use. The raw token is shown only when created.
 
-| Setting                    | Options                                              |
-| -------------------------- | ---------------------------------------------------- |
-| Scope                      | Personal; Team for Admins                            |
-| Access                     | Read-only; Edit for Members and Admins               |
-| Administrative permissions | Admins only; includes Edit                           |
-| Expiry                     | 30 days, 90 days (default), 1 year; Never for Admins |
+| Setting                    | Options                                    |
+| -------------------------- | ------------------------------------------ |
+| Scope                      | Personal; Team for Admins                  |
+| Access                     | Read-only; Edit for Members and Admins     |
+| Administrative permissions | Admins only; includes Edit                 |
+| Expiry                     | 30 days, 90 days, 1 year; Never for Admins |
 
 Read-only grants permitted operational reads, not credential reveal. Edit adds repository, secret-update and Scout operations allowed by the current role. Administrative permissions add supported deployment and infrastructure actions. Browser-only account management, key creation and credential reveal remain unavailable to API/MCP tokens.
 

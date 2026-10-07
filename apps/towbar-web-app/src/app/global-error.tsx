@@ -6,10 +6,10 @@ import { themeBootstrapScript } from "@avgeek-oss/design-system/lib/theme";
 import { ErrorScreen } from "@/components/error-screen";
 
 export default function GlobalError({
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   return (
     <html data-theme="light" lang="en" suppressHydrationWarning>
@@ -24,7 +24,7 @@ export default function GlobalError({
           code="500"
           title="Towbar couldn't load"
           description="The app ran into a problem. Try again, or return to the overview if it keeps happening."
-          onRetry={reset}
+          onRetry={retry}
         />
       </body>
     </html>

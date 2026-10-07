@@ -5,7 +5,7 @@ import {
   Key01Icon,
   BookOpen01Icon,
   UserAccountIcon,
-  SecurityCheckIcon,
+  FingerPrintIcon,
   Mail01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
@@ -57,7 +57,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     preferences: Settings01Icon,
     "email-password": Mail01Icon,
     sessions: ComputerIcon,
-    passkeys: SecurityCheckIcon,
+    passkeys: FingerPrintIcon,
     "api-keys": Key01Icon,
     "mcp-connections": Link01Icon,
     mcp: BookOpen01Icon,
