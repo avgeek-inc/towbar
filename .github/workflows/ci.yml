@@ -20,7 +20,7 @@ jobs:
   monitoring-agent:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container: golang:1.26.8-bookworm@sha256:9fdc884aacc3bec89b20ffc69f4bb369c78210e3e4f600387b5128b12c199f81
+    container: golang:1.27.1-bookworm@sha256:8d48e12ec56735e9358640898b9d9b9fcca110612ed8a5567438c0a1baa24e66
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: test -z "$(gofmt -l .)"

@@ -26715,6 +26715,7 @@
                   "fingerprint": {
                     "type": "string",
                     "maxLength": 255,
+                    "format": "starts_with",
                     "pattern": "^SHA256:.*"
                   },
                   "publicKey": {

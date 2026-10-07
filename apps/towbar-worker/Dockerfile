@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1.7
-FROM golang:1.26.8-bookworm@sha256:9fdc884aacc3bec89b20ffc69f4bb369c78210e3e4f600387b5128b12c199f81 AS monitoring-builder
+FROM golang:1.27.1-bookworm@sha256:8d48e12ec56735e9358640898b9d9b9fcca110612ed8a5567438c0a1baa24e66 AS monitoring-builder
 WORKDIR /agent
 COPY apps/towbar-monitoring-agent/ ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-amd64 . \
   && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o /out/towbar-monitoring-linux-arm64 .
 
-FROM node:24-trixie-slim@sha256:6950b66b4c0cb0151ce89fa75074673850763d096b044f422c6729b588dd4956 AS base
+FROM node:24-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66 AS base
 
 FROM base AS pruner
-ARG TURBO_VERSION=2.11.4
+ARG TURBO_VERSION=2.11.7
 WORKDIR /repo
 RUN npm install --global turbo@${TURBO_VERSION}
 COPY . .
@@ -29,7 +29,7 @@ RUN --mount=type=cache,id=towbar-pnpm-store,target=/pnpm/store,sharing=locked \
     --config.blockExoticSubdeps=false deploy --legacy --offline \
     --store-dir /pnpm/store /prod/towbar-worker
 
-FROM cgr.dev/chainguard/wolfi-base@sha256:1d95114038f76513a9ace6fca107d5582b08c65981f81f61cb56bf7fd2ef216d AS runner
+FROM cgr.dev/chainguard/wolfi-base@sha256:238642d42c5613936474d00b900c4e65fb6f637d8991c913403ff09a09cf43a3 AS runner
 WORKDIR /app
 ENV NODE_ENV=production WORKER_HEALTH_PORT=4030
 RUN apk add --no-cache \

@@ -20,7 +20,12 @@
           "default": [],
           "maxItems": 30,
           "type": "array",
-          "items": { "type": "string", "maxLength": 256, "pattern": "^\\/.*" }
+          "items": {
+            "type": "string",
+            "maxLength": 256,
+            "format": "starts_with",
+            "pattern": "^\\/.*"
+          }
         }
       },
       "additionalProperties": false
@@ -77,7 +82,7 @@
                 "type": "string",
                 "maxLength": 320,
                 "format": "email",
-                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
               }
             },
             "required": [
@@ -952,11 +957,13 @@
             "publicPath": {
               "type": "string",
               "maxLength": 1024,
+              "format": "starts_with",
               "pattern": "^\\/.*"
             },
             "path": {
               "type": "string",
               "maxLength": 1024,
+              "format": "starts_with",
               "pattern": "^\\/.*"
             },
             "command": {
@@ -982,11 +989,13 @@
             "publicPath": {
               "type": "string",
               "maxLength": 1024,
+              "format": "starts_with",
               "pattern": "^\\/.*"
             },
             "path": {
               "type": "string",
               "maxLength": 1024,
+              "format": "starts_with",
               "pattern": "^\\/.*"
             },
             "timeoutSeconds": {
@@ -1182,6 +1191,7 @@
                 "items": {
                   "type": "string",
                   "maxLength": 256,
+                  "format": "starts_with",
                   "pattern": "^\\/.*"
                 }
               }
@@ -1255,7 +1265,7 @@
                       "type": "string",
                       "maxLength": 320,
                       "format": "email",
-                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                     }
                   },
                   "required": [
@@ -2238,11 +2248,13 @@
                   "publicPath": {
                     "type": "string",
                     "maxLength": 1024,
+                    "format": "starts_with",
                     "pattern": "^\\/.*"
                   },
                   "path": {
                     "type": "string",
                     "maxLength": 1024,
+                    "format": "starts_with",
                     "pattern": "^\\/.*"
                   },
                   "command": {
@@ -2272,11 +2284,13 @@
                   "publicPath": {
                     "type": "string",
                     "maxLength": 1024,
+                    "format": "starts_with",
                     "pattern": "^\\/.*"
                   },
                   "path": {
                     "type": "string",
                     "maxLength": 1024,
+                    "format": "starts_with",
                     "pattern": "^\\/.*"
                   },
                   "timeoutSeconds": {

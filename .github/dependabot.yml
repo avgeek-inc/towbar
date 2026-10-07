@@ -1,17 +1,26 @@
 version: 2
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: weekly
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: weekly
-    groups:
-      javascript:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Better Auth 1.7 plugins require the 0.4 utilities peer dependency.
+      - dependency-name: "@better-auth/utils"
+        versions: [">=0.5.0"]
   - package-ecosystem: npm
     directory: /tools/distribution
-    schedule:
-      interval: weekly
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directories:
       - /apps/towbar-api
@@ -20,9 +29,12 @@ updates:
       - /examples
       - /examples/persistent-files
       - /examples/platform-modes/node-app
-    schedule:
-      interval: weekly
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies

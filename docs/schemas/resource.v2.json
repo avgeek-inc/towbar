@@ -87,7 +87,7 @@
                 "type": "string",
                 "maxLength": 320,
                 "format": "email",
-                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
               }
             },
             "required": [
@@ -347,9 +347,15 @@
         "publicPath": {
           "type": "string",
           "maxLength": 1024,
+          "format": "starts_with",
           "pattern": "^\\/.*"
         },
-        "path": { "type": "string", "maxLength": 1024, "pattern": "^\\/.*" },
+        "path": {
+          "type": "string",
+          "maxLength": 1024,
+          "format": "starts_with",
+          "pattern": "^\\/.*"
+        },
         "command": {
           "minItems": 1,
           "maxItems": 64,
@@ -541,7 +547,7 @@
                       "type": "string",
                       "maxLength": 320,
                       "format": "email",
-                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
                     }
                   },
                   "required": [
@@ -804,11 +810,13 @@
               "publicPath": {
                 "type": "string",
                 "maxLength": 1024,
+                "format": "starts_with",
                 "pattern": "^\\/.*"
               },
               "path": {
                 "type": "string",
                 "maxLength": 1024,
+                "format": "starts_with",
                 "pattern": "^\\/.*"
               },
               "command": {
