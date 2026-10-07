@@ -1032,9 +1032,7 @@ function SecretValueInput({
       </InputGroup.Prefix>
       <InputGroup.Input
         aria-label={label}
-        className={
-          hasReference ? "text-yellow-600 dark:text-yellow-400" : undefined
-        }
+        className={hasReference ? "text-warning" : undefined}
         type="text"
         autoComplete="off"
         data-lpignore="true"

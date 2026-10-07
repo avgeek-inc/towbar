@@ -22,9 +22,7 @@ const tokens = new MatchDecorator({
     /(?:^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*(?=\s*=))|(?:\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\})/g,
   decoration: (match) =>
     Decoration.mark({
-      class: match[0].includes("{{")
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-accent",
+      class: match[0].includes("{{") ? "text-warning" : "text-accent",
     }),
 });
 const highlighting = ViewPlugin.fromClass(

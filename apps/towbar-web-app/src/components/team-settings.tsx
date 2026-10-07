@@ -166,7 +166,13 @@ export function TeamSettingsShell({
       <QueryError message="You do not have permission to manage this team setting." />
     );
   return (
-    <DashboardPage title={active.label} icon={active.icon}>
+    <DashboardPage
+      title={active.label}
+      icon={active.icon}
+      breadcrumbAncestors={[
+        { label: "Team Settings", href: "/team-settings/general" },
+      ]}
+    >
       {teamSettingsGroups.map((group) => {
         const items = group.pages
           .filter((id) => id !== "api-keys" || canShowApiMcpSettings())

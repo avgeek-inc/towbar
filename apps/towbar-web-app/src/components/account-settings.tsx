@@ -65,6 +65,9 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
   return (
     <DashboardPage
       title={titles[page]}
+      breadcrumbAncestors={[
+        { label: "Account Settings", href: "/settings/profile" },
+      ]}
       icon={icons[page]}
       contentOwnsTitle={page === "passkeys"}
     >

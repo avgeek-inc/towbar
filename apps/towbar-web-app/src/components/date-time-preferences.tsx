@@ -3,8 +3,6 @@ import {
   dateFormatOptions,
   timeFormatOptions,
 } from "@avgeek-oss/design-system/utilities/date-time-preferences";
-import { useEffect, useState } from "react";
-import type { LocalizedTimestamp } from "@workspace/towbar-web-client";
 import { PreferencesSettings } from "@avgeek-oss/design-system";
 import type {
   DateTimePreferences,
@@ -14,10 +12,8 @@ import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery, clearApiQueryCache } from "@/hooks/use-api-query";
 import { api } from "@/lib/api";
 
-type Preview = { instant: string; display: LocalizedTimestamp };
 type PreferencesResponse = {
   preferences: DateTimePreferences;
-  preview: Preview;
   options: DateTimePreferenceOptions;
 };
 export function DateTimePreferencesSettings() {
@@ -37,9 +33,6 @@ export function DateTimePreferencesSettings() {
           dateFormats: dateFormatOptions,
           timeFormats: timeFormatOptions,
         }}
-        formatPreview={(preferences) => (
-          <PreferencePreview value={preferences} initial={data.preview} />
-        )}
         onSave={async (preferences) => {
           await api.put("/v1/core/profile/preferences", preferences);
           clearApiQueryCache();
@@ -55,51 +48,5 @@ export function DateTimePreferencesSettings() {
         }}
       />
     </div>
-  );
-}
-function PreferencePreview({
-  value,
-  initial,
-}: {
-  value: DateTimePreferences;
-  initial: Preview;
-}) {
-  const [preview, setPreview] = useState(initial);
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    let active = true;
-    const timer = setTimeout(() => {
-      void api
-        .post<{ preview: Preview }>(
-          "/v1/core/profile/preferences/preview",
-          value,
-        )
-        .then((result) => {
-          if (active) {
-            setPreview(result.preview);
-            setError(undefined);
-          }
-        })
-        .catch((cause: unknown) => {
-          if (active)
-            setError(
-              cause instanceof Error ? cause.message : "Could not load preview",
-            );
-        });
-    }, 200);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [value]);
-  return (
-    <>
-      {preview.display.dateTime}
-      {error && (
-        <span role="alert" className="block text-danger-soft-foreground">
-          {error}
-        </span>
-      )}
-    </>
   );
 }

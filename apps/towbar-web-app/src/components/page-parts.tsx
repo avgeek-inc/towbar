@@ -121,7 +121,7 @@ export function DashboardPage({
         />
         <Page>
           <PageSection
-            className="content-grid pt-0 sm:pt-0"
+            className="pt-0 sm:pt-0"
             xPadding="none"
             yPadding="compact"
           >
