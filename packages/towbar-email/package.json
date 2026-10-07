@@ -15,7 +15,7 @@
   "dependencies": {
     "react": "catalog:",
     "react-dom": "catalog:",
-    "@avgeek-oss/design-system": "file:/Users/praveen/.codex/tasks/attribute-list-polish/design-system-local-30.tgz"
+    "@avgeek-oss/design-system": "1.2.8"
   },
   "devDependencies": {
     "@types/node": "catalog:",
