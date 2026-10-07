@@ -7,7 +7,11 @@ export const authTextActionClassName =
   "w-fit text-sm/5 text-muted underline decoration-dashed underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-focus";
 export function AuthBrand() {
   return (
-    <Link aria-label="Towbar sign in" className="w-fit" href="/login">
+    <Link
+      aria-label="Towbar sign in"
+      className="inline-flex w-fit text-foreground"
+      href="/login"
+    >
       <TowbarLockup />
     </Link>
   );
