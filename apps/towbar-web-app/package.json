@@ -44,7 +44,7 @@
     "yaml": "catalog:"
   },
   "devDependencies": {
-    "@simplewebauthn/server": "13.3.2",
+    "@simplewebauthn/server": "13.3.3",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
