@@ -124,6 +124,7 @@ services:
     build:
       context: .
       dockerfile: apps/towbar-api/Dockerfile
+      secrets: [NODE_AUTH_TOKEN]
     restart: unless-stopped
     depends_on:
       migrate:
@@ -211,6 +212,7 @@ services:
     build:
       context: .
       dockerfile: apps/towbar-worker/Dockerfile
+      secrets: [NODE_AUTH_TOKEN]
     restart: unless-stopped
     depends_on:
       api:
