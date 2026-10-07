@@ -12,16 +12,12 @@ import {
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  UserAccountIcon,
+  UserGroupIcon,
   Settings01Icon,
   Add01Icon,
-  Mail01Icon,
   FileSearchIcon,
 } from "@hugeicons/core-free-icons";
 import {
-  roleLabels,
-  roleDescriptions,
-  workspaceRoles,
   isWorkspaceRole,
   type Action,
   type WorkspaceRole,
@@ -36,7 +32,7 @@ import { SecondaryItems } from "./secondary-sidebar";
 import { PageSelectionTitle } from "./page-selection-title";
 import {
   TeamGeneralSettings,
-  AddMemberDialog,
+  teamRoleOptions,
   InviteMemberDialog,
   MemberEditDialog,
   MembersTable,
@@ -68,7 +64,7 @@ type Invitation = {
   expiresAt: string;
 };
 type Dialog = {
-  mode: "create" | "invite" | "role";
+  mode: "invite" | "role";
   member?: Member;
   instance: number;
 };
@@ -105,11 +101,7 @@ function usePendingInvitations(invitations: Invitation[]) {
   }, [invitations]);
   return getPendingInvitations(invitations, now);
 }
-const roleOptions = workspaceRoles.map((role) => ({
-  id: role,
-  label: roleLabels[role],
-  description: roleDescriptions[role],
-}));
+const roleOptions = teamRoleOptions;
 function requireRole(role: string): WorkspaceRole {
   if (!isWorkspaceRole(role)) throw new Error("Choose a valid role");
   return role;
@@ -135,7 +127,7 @@ const teamSettingsPages: Record<
     permission: "team.read",
   },
   members: {
-    icon: UserAccountIcon,
+    icon: UserGroupIcon,
     label: "Members",
     permission: "team.read",
   },
@@ -267,19 +259,6 @@ function TeamMembers() {
     () => (
       <div className="flex flex-wrap gap-3">
         <Button
-          variant="secondary"
-          onPress={() => {
-            setDialog((previous) => ({
-              mode: "create",
-              instance: previous.instance + 1,
-            }));
-            setOpen(true);
-          }}
-        >
-          <HugeiconsIcon icon={Add01Icon} className="size-4" />
-          Add user
-        </Button>
-        <Button
           onPress={() => {
             setDialog((previous) => ({
               mode: "invite",
@@ -288,8 +267,8 @@ function TeamMembers() {
             setOpen(true);
           }}
         >
-          <HugeiconsIcon icon={Mail01Icon} className="size-4" />
-          Create invite
+          <HugeiconsIcon icon={Add01Icon} size={16} aria-hidden />
+          Create invitation
         </Button>
       </div>
     ),
@@ -416,20 +395,6 @@ function MemberDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const shared = { isOpen: open, onOpenChange, roles: roleOptions };
-  if (dialog.mode === "create")
-    return (
-      <AddMemberDialog
-        {...shared}
-        onAdd={async (values) => {
-          await api.post("/v1/core/team/members", {
-            ...values,
-            role: requireRole(values.role),
-          });
-          teamChanged();
-          toast.success("User added");
-        }}
-      />
-    );
   if (dialog.mode === "role") {
     if (!dialog.member) return null;
     const member = dialog.member;

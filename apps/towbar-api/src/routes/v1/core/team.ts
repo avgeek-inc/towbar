@@ -9,7 +9,6 @@ import { z } from "zod";
 import { workspaceRoles } from "@workspace/towbar-access";
 import {
   createTeamInvitation,
-  createTeamMember,
   getTeam,
   listInvitations,
   listTeamMembers,
@@ -27,14 +26,6 @@ const teamSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     description: z.string().trim().max(500).nullable().optional(),
-  })
-  .strict();
-const userSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    email: z.email().max(320),
-    password: z.string().min(15).max(1024),
-    role,
   })
   .strict();
 const invitationSchema = z.object({ email: z.email().max(320), role }).strict();
@@ -88,27 +79,6 @@ teamRoutes.get(
   }),
   async (c) =>
     c.json(await listTeamMembers(sessionUser(c), paging.parse(c.req.query()))),
-);
-teamRoutes.post(
-  "/members",
-  operation({
-    permissions: ["member.create"],
-    browserOnly: true,
-    summary: "Add team member",
-    responseSchema: 'team.ts:post:"/members"',
-    response: "Created member.",
-    status: 201,
-    body: userSchema,
-  }),
-  async (c) => {
-    const input = await readJson(c, userSchema);
-    if (input.role === "admin")
-      await requireRecentAuthentication(
-        sessionUser(c).id,
-        c.get("currentSessionId"),
-      );
-    return c.json(await createTeamMember(sessionUser(c), input), 201);
-  },
 );
 teamRoutes.patch(
   "/members/:memberId",

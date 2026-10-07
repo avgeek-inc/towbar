@@ -1,5 +1,6 @@
 "use client";
 import {
+  Link01Icon,
   ComputerIcon,
   Key01Icon,
   BookOpen01Icon,
@@ -8,6 +9,7 @@ import {
   Mail01Icon,
   Settings01Icon,
 } from "@hugeicons/core-free-icons";
+import { settingsPageLabels } from "@avgeek-oss/design-system/patterns/settings/page-title";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DashboardPage } from "./page-parts";
 import { useRouter } from "next/navigation";
@@ -28,6 +30,7 @@ type AccountSettingsPage =
   | "email-password"
   | "sessions"
   | "passkeys"
+  | "mcp-connections"
   | "api-keys"
   | "mcp";
 
@@ -40,18 +43,15 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     { title: "Account", pages: ["profile", "preferences"] },
     { title: "Security", pages: ["email-password", "passkeys", "sessions"] },
     ...(canShowApiMcpSettings()
-      ? [{ title: "API & MCP", pages: ["api-keys", "mcp"] as const }]
+      ? [
+          {
+            title: "API & MCP",
+            pages: ["api-keys", "mcp-connections", "mcp"] as const,
+          },
+        ]
       : []),
   ];
-  const titles = {
-    profile: "Profile",
-    preferences: "Preferences",
-    "email-password": "Email & Password",
-    sessions: "Sessions",
-    passkeys: "Passkeys",
-    "api-keys": "API Keys",
-    mcp: "MCP Guide",
-  };
+  const titles = settingsPageLabels;
   const icons = {
     profile: UserAccountIcon,
     preferences: Settings01Icon,
@@ -59,6 +59,7 @@ export function AccountSettings({ page }: { page: AccountSettingsPage }) {
     sessions: ComputerIcon,
     passkeys: SecurityCheckIcon,
     "api-keys": Key01Icon,
+    "mcp-connections": Link01Icon,
     mcp: BookOpen01Icon,
   };
   return (

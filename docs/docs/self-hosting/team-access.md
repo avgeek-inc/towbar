@@ -31,8 +31,6 @@ Under **Manage → Team Settings → Members**, choose **Create invite**, enter 
 
 Resend creates a replacement invitation. Revoking an invitation or demoting/removing its inviting Admin invalidates pending invitations and cancels their queued mail. Opening a link for preview does not consume it. Delivery status means SMTP acceptance, not confirmed inbox delivery.
 
-For an installation without working SMTP, **Add user** creates an account with a temporary password. Share the password through a separate secure channel. The person must replace it before accessing the dashboard or creating keys. Towbar never emails that password and does not mark an admin-provisioned email as verified.
-
 There must always be at least one active Admin. Removing a member revokes their sessions and personal keys. Operational history and audit attribution remain. Rejoining does not reactivate old keys.
 
 ## Personal and team keys
@@ -71,4 +69,4 @@ Sensitive account changes require authentication within the last ten minutes. Ol
 
 Passkeys use WebAuthn with device verification required. Manage them under **My Settings → Passkeys**. They support passwordless sign-in and are mandatory after password sign-in when registered. Recovery codes provide a one-use alternative after a valid password. Set `installation.appUrl` to the stable HTTPS origin users visit; changing its domain requires registering new passkeys. Localhost works for development. Password resets do not remove passkeys.
 
-Team Settings opens General first, followed by Members and API Keys. Admins can edit member names and roles, add users with a temporary password, and confirm before resending or revoking an invitation. User email changes are verified through the user's Email & Password page.
+Team Settings opens General first, followed by Members and API Keys. Admins can edit member names and roles, create invitations, and confirm before resending or revoking an invitation. User email changes are verified through the user's Email & Password page.

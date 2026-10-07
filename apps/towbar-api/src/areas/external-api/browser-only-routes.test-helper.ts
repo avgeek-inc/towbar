@@ -82,7 +82,6 @@ export const expectedBrowserOnlyRoutes = new Set([
   "POST /system-health/upgrade/jobs",
   "POST /system-health/upgrade/plan",
   "POST /team/invitations",
-  "POST /team/members",
   "PUT /notifications/discord/destinations",
   "PUT /notifications/email/destinations",
   "PUT /notifications/slack/destinations",

@@ -43,17 +43,26 @@ void test(
       let memberHeaders: Headers;
       let memberId: string;
       await t.test(
-        "add and edit members without a confirmation password; enforce admin boundaries",
+        "reject direct member creation and enforce member edit boundaries",
         async () => {
-          const added = await ok(
-            await request("/v1/core/team/members", adminHeaders, {
-              name: "Member",
-              email: "member@settings.test",
-              password,
-              role: "member",
-            }),
+          assert.equal(
+            (
+              await request("/v1/core/team/members", adminHeaders, {
+                name: "Member",
+                email: "member@settings.test",
+                password,
+                role: "member",
+              })
+            ).status,
+            404,
           );
-          const member = (await added.json()) as { id: string; userId: string };
+          const teams = await import("./service.js");
+          const member = await teams.createTeamMember(admin, {
+            name: "Member",
+            email: "member@settings.test",
+            password,
+            role: "member",
+          });
           memberId = member.id;
           const login = await auth.authenticatePassword({
             email: "member@settings.test",
