@@ -21,7 +21,7 @@ injected = {
     "TOWBAR_WORKER_IMAGE",
 }
 compose = set(re.findall(r"\$\{([A-Z][A-Z0-9_]*)", (root / "docker-compose.yml").read_text()))
-supported = set(config.FIELDS) | {"COMPOSE_PROFILES", "TOWBAR_GATEWAY_API_DOMAIN"}
+supported = set(config.FIELDS) | {"COMPOSE_PROFILES", "TOWBAR_GATEWAY_DOMAIN", "TOWBAR_GATEWAY_API_DOMAIN"}
 expected = (compose - injected) | {"COMPOSE_PROFILES", "TOWBAR_INSTALL_MODE"}
 missing = expected - supported
 unused = supported - expected

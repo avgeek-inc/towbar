@@ -345,8 +345,7 @@ upgrade_release() {
       --yaml "$TOWBAR_YAML_FILE" \
       --mode "$INSTALL_MODE" \
       --app-url "$INSTALL_APP_URL" \
-      --api-base-url "$INSTALL_API_BASE_URL" \
-      --gateway-domain "$INSTALL_HOSTNAME"
+      --api-base-url "$INSTALL_API_BASE_URL"
     python3 "$(config_helper_for "$release_dir")" render \
       --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
     if [[ "$CONFIG_CREATED" == true ]]; then
