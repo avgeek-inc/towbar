@@ -949,13 +949,51 @@
             "href": "/docs/self-hosting/installation"
           },
           {
+            "label": "Connect a repository",
+            "href": "/docs/repositories/connect"
+          },
+          {
             "label": "Manifest reference",
             "href": "/docs/deployment-manifest"
           }
         ]
       },
       {
-        "header": "Project",
+        "header": "Our OSS Philosophy",
+        "items": [
+          {
+            "label": "Why we build open source",
+            "href": "https://github.com/avgeek-oss/.github/blob/main/profile/README.md"
+          },
+          {
+            "label": "Towbar on GitHub",
+            "href": "https://github.com/avgeek-oss/towbar"
+          },
+          {
+            "label": "Report an issue",
+            "href": "https://github.com/avgeek-oss/towbar/issues"
+          }
+        ]
+      },
+      {
+        "header": "Other OSS Apps",
+        "items": [
+          {
+            "label": "Vitalog · Keep your health ledger",
+            "href": "https://www.vitalog.dev"
+          },
+          {
+            "label": "Mill · Organize tasks",
+            "href": "https://github.com/avgeek-oss/mill"
+          },
+          {
+            "label": "Rootset · Manage structured data",
+            "href": "https://github.com/avgeek-oss/rootset"
+          }
+        ]
+      },
+      {
+        "header": "Project & Legal",
         "items": [
           {
             "label": "GitHub",
@@ -968,12 +1006,7 @@
           {
             "label": "Security",
             "href": "/docs/self-hosting/security"
-          }
-        ]
-      },
-      {
-        "header": "Legal",
-        "items": [
+          },
           {
             "label": "Privacy",
             "href": "/privacy"

@@ -14,18 +14,19 @@
 
   function enhanceHeader() {
     observer.disconnect();
+    for (const logo of document.querySelectorAll(
+      "#navbar a:has(.nav-logo), #footer a:has(.nav-logo)",
+    )) {
+      if (!logo.querySelector("[data-oss-wordmark]")) {
+        const wordmark = document.createElement("span");
+        wordmark.dataset.ossWordmark = "";
+        wordmark.setAttribute("aria-hidden", "true");
+        wordmark.textContent = settings.name;
+        logo.append(wordmark);
+      }
+    }
     const header = document.getElementById("navbar");
     if (header) {
-      for (const logo of header.querySelectorAll("a:has(.nav-logo)")) {
-        if (!logo.querySelector("[data-oss-wordmark]")) {
-          const wordmark = document.createElement("span");
-          wordmark.dataset.ossWordmark = "";
-          wordmark.setAttribute("aria-hidden", "true");
-          wordmark.textContent = settings.name;
-          logo.append(wordmark);
-        }
-      }
-
       const theme = header.querySelector("#theme-preference-menu-trigger");
       const primary = header.querySelector("#topbar-cta-button a");
       const actions = theme?.parentElement?.parentElement;

@@ -404,8 +404,8 @@ importers:
   docs:
     devDependencies:
       "@avgeek-oss/docs":
-        specifier: github:avgeek-oss/oss-docs#704cfbb6b952257e0b9d6a2ec0ec4bd66527475d
-        version: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/704cfbb6b952257e0b9d6a2ec0ec4bd66527475d
+        specifier: github:avgeek-oss/oss-docs#3b16b472e03563b1a15df33a5ada2c5fba81bb87
+        version: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/3b16b472e03563b1a15df33a5ada2c5fba81bb87
 
   packages/eslint-config:
     devDependencies:
@@ -779,14 +779,14 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/704cfbb6b952257e0b9d6a2ec0ec4bd66527475d":
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/3b16b472e03563b1a15df33a5ada2c5fba81bb87":
     resolution:
       {
         gitHosted: true,
-        integrity: sha512-cGzuadvXjdulMgbLyeizqVCI74YNL0gqQFxVDn+gyWPcO8QPwRZjHiOsTeI1bOXxOosXBWebCjRaXT1iC36kyw==,
-        tarball: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/704cfbb6b952257e0b9d6a2ec0ec4bd66527475d,
+        integrity: sha512-J8LdsbCuCJdRAPFoYBskZqxtVNqHSa9blxFgz/pMwkQZP+1JrV3sLKriE0UoUoQGLS7BpuFYvISqg1Xy/wU0DQ==,
+        tarball: https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/3b16b472e03563b1a15df33a5ada2c5fba81bb87,
       }
-    version: 0.1.3
+    version: 0.1.5
     engines: { node: ">=24" }
     hasBin: true
 
@@ -8028,7 +8028,7 @@ snapshots:
       - vest
       - yup
 
-  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/704cfbb6b952257e0b9d6a2ec0ec4bd66527475d":
+  "@avgeek-oss/docs@https://codeload.github.com/avgeek-oss/oss-docs/tar.gz/3b16b472e03563b1a15df33a5ada2c5fba81bb87":
     dependencies:
       prettier: 3.9.9
 
