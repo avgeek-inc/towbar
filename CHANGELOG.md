@@ -3,6 +3,23 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.32] - 2026-10-08
+
+### Changed
+
+- Adopt the published design system 1.2.11 and shared documentation kit 0.1.5.
+- Default deployments to Group by Server and use consistent entity icons,
+  favicons, environment chips, and secret input widths.
+- Show analytics storage separately in a stacked database storage chart, add
+  shorter analytics time ranges, and use gradient fills for server usage charts.
+- Align documentation buttons, theme colors, SEO metadata, OSS footer links,
+  and high-resolution dashboard screenshots with the shared documentation kit.
+
+### Fixed
+
+- Keep searchable dropdown inputs inside their popovers and improve chart axis
+  label spacing and yellow syntax-key contrast.
+
 ## [2.0.31] - 2026-10-08
 
 ### Changed
