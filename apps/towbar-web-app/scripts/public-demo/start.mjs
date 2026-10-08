@@ -4,7 +4,6 @@ import { createDemoServer } from "./gateway.mjs";
 
 const gateway = createDemoServer({
   origin: process.env.DEMO_ORIGIN,
-  trustedProxy: process.env.DEMO_TRUSTED_PROXY,
 });
 // Pass only the UI's minimal runtime configuration. Never inherit host credentials.
 const web = spawn(process.execPath, ["apps/towbar-web-app/server.js"], {

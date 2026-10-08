@@ -20,6 +20,9 @@ source "$repository/infra/towbar-cli/00-runtime.sh"
 # shellcheck source=../infra/towbar-cli/10-onboarding.sh
 # shellcheck disable=SC1091
 source "$repository/infra/towbar-cli/10-onboarding.sh"
+# shellcheck source=../infra/towbar-cli/15-config.sh
+# shellcheck disable=SC1091
+source "$repository/infra/towbar-cli/15-config.sh"
 # shellcheck source=../infra/towbar-cli/30-release.sh
 # shellcheck disable=SC1091
 source "$repository/infra/towbar-cli/30-release.sh"
@@ -33,6 +36,22 @@ INSTALL_MODE=local
 verify_public_prerequisites
 
 install -d "$TOWBAR_CONFIG_DIR"
+generate_config "$repository"
+[[ "$CONFIG_CREATED" == true ]]
+[[ -f "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_ENV_FILE" ]]
+prepare_runtime_config "$repository"
+[[ -f "$TOWBAR_PENDING_ENV_FILE" && ! -e "$TOWBAR_COMMITTED_ENV_FILE" ]]
+python3 "$repository/infra/runtime_config.py" compare --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
+commit_runtime_config
+postgres_password="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_POSTGRES_PASSWORD)"
+runtime_password="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_DATABASE_RUNTIME_PASSWORD)"
+hmac_secret="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INTERNAL_HMAC_SECRET)"
+[[ "$postgres_password" =~ ^[0-9a-f]{64}$ ]]
+[[ "$runtime_password" =~ ^[0-9a-f]{64}$ ]]
+[[ "$hmac_secret" =~ ^[0-9a-f]{64}$ ]]
+[[ "$postgres_password" != "$runtime_password" && "$postgres_password" != "$hmac_secret" && "$runtime_password" != "$hmac_secret" ]]
+[[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_CREDENTIALS_KEY | openssl base64 -d -A | wc -c | tr -d ' ')" == 32 ]]
+
 printf 'TOWBAR_INSTALL_MODE=local\n' >"$TOWBAR_ENV_FILE"
 generate_config "$temporary_root/release"
 [[ "$CONFIG_CREATED" == false ]]

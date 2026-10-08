@@ -22,7 +22,12 @@ source "$repository/infra/towbar-cli/15-config.sh"
 
 release_dir="$temporary_root/release"
 install -d "$TOWBAR_CONFIG_DIR" "$TOWBAR_ROOT" "$release_dir/infra"
-cp "$repository/.env.example" "$TOWBAR_ENV_FILE"
+cat >"$TOWBAR_ENV_FILE" <<'EOF'
+COMPOSE_PROFILES=local
+TOWBAR_INSTALL_MODE=local
+TOWBAR_PORT=4021
+TOWBAR_APP_BASE_URL=http://localhost:4021
+EOF
 cp "$repository/infra/runtime_config.py" "$release_dir/infra/runtime_config.py"
 printf '2.0.11\n' >"$VERSION_FILE"
 [[ "$(TOWBAR_CONFIG_DIR="$TOWBAR_CONFIG_DIR" "$repository/infra/towbar" config path)" == "$TOWBAR_ENV_FILE" ]]
@@ -49,6 +54,25 @@ import sys
 
 assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600
 PY
+python3 "$release_dir/infra/runtime_config.py" compare \
+  --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
+commit_runtime_config
+
+python3 - "$TOWBAR_YAML_FILE" <<'PY'
+import pathlib
+import sys
+import yaml
+
+path = pathlib.Path(sys.argv[1])
+config = yaml.safe_load(path.read_text())
+config.setdefault("security", {})["trustedProxyHops"] = 1
+path.write_text(yaml.safe_dump(config, sort_keys=False))
+PY
+prepare_runtime_config "$release_dir"
+if grep -q 'trustedProxyHops' "$TOWBAR_YAML_FILE"; then
+  printf 'Towbar CLI retained obsolete proxy trust.\n' >&2
+  exit 1
+fi
 python3 "$release_dir/infra/runtime_config.py" compare \
   --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
 commit_runtime_config

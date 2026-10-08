@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Convert Towbar's supported runtime settings between legacy dotenv and YAML."""
+"""Initialize and validate YAML configuration, and render its Compose environment."""
 
 import argparse
+import base64
 import json
 import os
 import re
+import secrets
 import shutil
 import stat
 import sys
@@ -37,7 +39,6 @@ FIELDS = {
     "TOWBAR_DATABASE_RUNTIME_PASSWORD": field("database.runtimePassword"),
     "TOWBAR_CREDENTIALS_KEY": field("security.credentialsKey"),
     "TOWBAR_INTERNAL_HMAC_SECRET": field("security.internalHmacSecret"),
-    "TOWBAR_TRUSTED_PROXY_HOPS": field("security.trustedProxyHops", "integer"),
     "TOWBAR_API_RATE_LIMIT_MAX": field("security.apiRateLimit.max", "integer"),
     "TOWBAR_API_RATE_LIMIT_WINDOW_SECONDS": field(
         "security.apiRateLimit.windowSeconds", "integer"
@@ -94,7 +95,7 @@ for provider, names in PROVIDER_FIELDS.items():
         )
 
 
-def parse_env(path):
+def parse_env(path, remove_legacy_proxy=False):
     values = {}
     for line_number, line in enumerate(path.read_text().splitlines(), 1):
         stripped = line.strip()
@@ -104,6 +105,8 @@ def parse_env(path):
         if not match:
             raise ConfigError(f"unsupported environment syntax on line {line_number}")
         key, raw = match.groups()
+        if remove_legacy_proxy and key == "TOWBAR_TRUSTED_PROXY_HOPS":
+            continue
         if key in values:
             raise ConfigError(f"duplicate environment key: {key}")
         if key not in FIELDS and key != "COMPOSE_PROFILES":
@@ -292,7 +295,7 @@ def to_env(config):
     return values
 
 
-def read_yaml(path):
+def read_yaml(path, remove_legacy_proxy=False):
     if path.is_symlink():
         raise ConfigError("YAML configuration must be a regular file")
     details = path.stat()
@@ -308,6 +311,12 @@ def read_yaml(path):
         line = getattr(getattr(error, "problem_mark", None), "line", None)
         suffix = f" near line {line + 1}" if line is not None else ""
         raise ConfigError(f"invalid YAML{suffix}") from None
+    if remove_legacy_proxy and isinstance(config, dict):
+        security = config.get("security")
+        if isinstance(security, dict) and "trustedProxyHops" in security:
+            del security["trustedProxyHops"]
+            to_env(config)
+            atomic_write(path, yaml.safe_dump(config, sort_keys=False, allow_unicode=True))
     to_env(config)
     return config
 
@@ -326,9 +335,36 @@ def atomic_write(path, content):
             os.unlink(temporary)
 
 
+def initialize(yaml_path):
+    if yaml_path.exists() or yaml_path.is_symlink():
+        raise ConfigError("runtime configuration already exists")
+    config = {
+        "version": 1,
+        "installation": {
+            "mode": "local",
+            "gatewayDomain": "",
+            "bindAddress": "127.0.0.1",
+            "port": 4021,
+            "temporalUiPort": 8233,
+            "networkName": "towbar-platform",
+            "appUrl": "http://localhost:4021",
+        },
+        "database": {
+            "postgresPassword": secrets.token_hex(32),
+            "runtimePassword": secrets.token_hex(32),
+        },
+        "security": {
+            "credentialsKey": base64.b64encode(secrets.token_bytes(32)).decode("ascii"),
+            "internalHmacSecret": secrets.token_hex(32),
+        },
+    }
+    to_env(config)
+    atomic_write(yaml_path, yaml.safe_dump(config, sort_keys=False, allow_unicode=True))
+
+
 def migrate(env_path, yaml_path, preserve_legacy):
     if yaml_path.exists():
-        read_yaml(yaml_path)
+        read_yaml(yaml_path, remove_legacy_proxy=True)
         return
     if env_path.is_symlink():
         raise ConfigError("legacy environment configuration must be a regular file")
@@ -339,7 +375,7 @@ def migrate(env_path, yaml_path, preserve_legacy):
         details.st_uid != 0 or stat.S_IMODE(details.st_mode) != 0o600
     ):
         raise ConfigError("legacy environment configuration must be owned by root with mode 600")
-    values = parse_env(env_path)
+    values = parse_env(env_path, remove_legacy_proxy=True)
     config = from_env(values)
     rendered = to_env(config)
     for key, value in values.items():
@@ -390,7 +426,7 @@ def compare(yaml_path, env_path):
             raise ConfigError("derived Compose configuration is out of date")
 
 
-def set_installation(yaml_path, mode, app_url, gateway_domain, proxy_hops):
+def set_installation(yaml_path, mode, app_url, gateway_domain):
     config = read_yaml(yaml_path)
     installation = config.setdefault("installation", {})
     installation.update(
@@ -401,7 +437,6 @@ def set_installation(yaml_path, mode, app_url, gateway_domain, proxy_hops):
             "bindAddress": "127.0.0.1",
         }
     )
-    config.setdefault("security", {})["trustedProxyHops"] = proxy_hops
     config.setdefault("integrations", {}).setdefault("gitlab", {})[
         "oauthRedirectUri"
     ] = f"{app_url}/v1/core/gitlab/oauth/callback"
@@ -412,7 +447,7 @@ def set_installation(yaml_path, mode, app_url, gateway_domain, proxy_hops):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=("migrate", "render", "validate", "compare", "set-installation")
+        "command", choices=("init", "migrate", "render", "validate", "compare", "set-installation")
     )
     parser.add_argument("--yaml", type=Path, required=True)
     parser.add_argument("--env", type=Path)
@@ -420,7 +455,6 @@ def main():
     parser.add_argument("--mode", choices=("local", "public"))
     parser.add_argument("--app-url")
     parser.add_argument("--gateway-domain")
-    parser.add_argument("--proxy-hops", type=int)
     args = parser.parse_args()
     if args.command in ("migrate", "render", "compare") and args.env is None:
         parser.error("--env is required")
@@ -428,20 +462,19 @@ def main():
         args.mode is None
         or args.app_url is None
         or args.gateway_domain is None
-        or args.proxy_hops is None
     ):
-        parser.error("set-installation needs --mode, --app-url, --gateway-domain, and --proxy-hops")
+        parser.error("set-installation needs --mode, --app-url, and --gateway-domain")
     try:
-        if args.command == "migrate":
+        if args.command == "init":
+            initialize(args.yaml)
+        elif args.command == "migrate":
             migrate(args.env, args.yaml, args.preserve_legacy)
         elif args.command == "render":
             render(args.yaml, args.env)
         elif args.command == "compare":
             compare(args.yaml, args.env)
         elif args.command == "set-installation":
-            set_installation(
-                args.yaml, args.mode, args.app_url, args.gateway_domain, args.proxy_hops
-            )
+            set_installation(args.yaml, args.mode, args.app_url, args.gateway_domain)
         else:
             read_yaml(args.yaml)
     except (ConfigError, OSError) as error:

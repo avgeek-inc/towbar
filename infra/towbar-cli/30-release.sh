@@ -77,7 +77,7 @@ download_release() {
   tar -xzf "$archive" -C "$staging"
   source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
   [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
-  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" && -f "$source_dir/infra/towbar" ]] ||
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/infra/runtime_config.py" && -f "$source_dir/infra/towbar" ]] ||
     fail "release archive is missing Towbar installation files"
 
   package_version="$(jq -r .version "$source_dir/package.json")"
@@ -112,26 +112,13 @@ EOF
 }
 
 generate_config() {
-  local release_dir="$1" pending_config
+  local release_dir="$1"
   CONFIG_CREATED=false
   [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_LEGACY_YAML_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
-  pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
-  awk \
-    -v postgres_password="$(openssl rand -hex 32)" \
-    -v runtime_password="$(openssl rand -hex 32)" \
-    -v credentials_key="$(openssl rand -base64 32 | tr -d '\n')" \
-    -v hmac_secret="$(openssl rand -hex 32)" \
-    'BEGIN { FS = OFS = "=" }
-      $1 == "TOWBAR_POSTGRES_PASSWORD" { $2 = postgres_password }
-      $1 == "TOWBAR_DATABASE_RUNTIME_PASSWORD" { $2 = runtime_password }
-      $1 == "TOWBAR_CREDENTIALS_KEY" { $2 = credentials_key }
-      $1 == "TOWBAR_INTERNAL_HMAC_SECRET" { $2 = hmac_secret }
-      { print }' \
-    "$release_dir/.env.example" >"$pending_config"
-  chmod 600 "$pending_config"
-  mv "$pending_config" "$TOWBAR_ENV_FILE"
+  ensure_yaml_tooling
+  python3 "$(config_helper_for "$release_dir")" init --yaml "$TOWBAR_YAML_FILE"
   CONFIG_CREATED=true
   log "Generated installation secrets"
 }

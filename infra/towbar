@@ -165,7 +165,6 @@ set_install_url() {
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
     INSTALL_HOSTNAME=
-    INSTALL_PROXY_HOPS=1
     return
   fi
 
@@ -177,22 +176,6 @@ set_install_url() {
   INSTALL_MODE=public
   INSTALL_APP_URL="$lowercase_url"
   INSTALL_HOSTNAME="${lowercase_url#https://}"
-  INSTALL_PROXY_HOPS=1
-}
-
-set_env_value() {
-  local env_file="$1" key="$2" value="$3" pending
-  pending="$(mktemp "${env_file}.XXXXXX")"
-  awk \
-    -v key="$key" \
-    -v value="$value" \
-    'BEGIN { FS = OFS = "="; found = 0 }
-      $1 == key { print key, value; found = 1; next }
-      { print }
-      END { if (!found) print key, value }' \
-    "$env_file" >"$pending"
-  chmod 600 "$pending"
-  mv "$pending" "$env_file"
 }
 
 env_value() {
@@ -229,19 +212,6 @@ collect_install_settings() {
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"
   fi
-}
-
-apply_install_settings() {
-  set_env_value "$TOWBAR_ENV_FILE" COMPOSE_PROFILES "$INSTALL_MODE"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE "$INSTALL_MODE"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN "$INSTALL_HOSTNAME"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
-  set_env_value \
-    "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
-    "$INSTALL_APP_URL/v1/core/gitlab/oauth/callback"
-  set_env_value \
-    "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
 }
 
 verify_public_dns() {
@@ -317,6 +287,9 @@ prepare_runtime_config() {
         --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE"
     fi
     ui_step "Converted runtime configuration to $TOWBAR_YAML_FILE"
+  else
+    python3 "$helper" migrate \
+      --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE"
   fi
   TOWBAR_PENDING_ENV_FILE="$(mktemp "$TOWBAR_CONFIG_DIR/.towbar.env.XXXXXX")"
   trap 'discard_runtime_config' EXIT
@@ -510,7 +483,7 @@ download_release() {
   tar -xzf "$archive" -C "$staging"
   source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
   [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
-  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" && -f "$source_dir/infra/towbar" ]] ||
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/infra/runtime_config.py" && -f "$source_dir/infra/towbar" ]] ||
     fail "release archive is missing Towbar installation files"
 
   package_version="$(jq -r .version "$source_dir/package.json")"
@@ -545,26 +518,13 @@ EOF
 }
 
 generate_config() {
-  local release_dir="$1" pending_config
+  local release_dir="$1"
   CONFIG_CREATED=false
   [[ ! -e "$TOWBAR_ENV_FILE" && ! -e "$TOWBAR_YAML_FILE" && ! -e "$TOWBAR_LEGACY_YAML_FILE" ]] || return 0
 
   install -d -m 0700 "$TOWBAR_CONFIG_DIR"
-  pending_config="$(mktemp "$TOWBAR_CONFIG_DIR/towbar.env.XXXXXX")"
-  awk \
-    -v postgres_password="$(openssl rand -hex 32)" \
-    -v runtime_password="$(openssl rand -hex 32)" \
-    -v credentials_key="$(openssl rand -base64 32 | tr -d '\n')" \
-    -v hmac_secret="$(openssl rand -hex 32)" \
-    'BEGIN { FS = OFS = "=" }
-      $1 == "TOWBAR_POSTGRES_PASSWORD" { $2 = postgres_password }
-      $1 == "TOWBAR_DATABASE_RUNTIME_PASSWORD" { $2 = runtime_password }
-      $1 == "TOWBAR_CREDENTIALS_KEY" { $2 = credentials_key }
-      $1 == "TOWBAR_INTERNAL_HMAC_SECRET" { $2 = hmac_secret }
-      { print }' \
-    "$release_dir/.env.example" >"$pending_config"
-  chmod 600 "$pending_config"
-  mv "$pending_config" "$TOWBAR_ENV_FILE"
+  ensure_yaml_tooling
+  python3 "$(config_helper_for "$release_dir")" init --yaml "$TOWBAR_YAML_FILE"
   CONFIG_CREATED=true
   log "Generated installation secrets"
 }
@@ -890,25 +850,21 @@ upgrade_release() {
     config_path_migrated=true
   fi
   generate_config "$release_dir"
+  prepare_runtime_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
-    if [[ -f "$TOWBAR_YAML_FILE" ]]; then
-      ensure_yaml_tooling
-      python3 "$(config_helper_for "$release_dir")" set-installation \
-        --yaml "$TOWBAR_YAML_FILE" \
-        --mode "$INSTALL_MODE" \
-        --app-url "$INSTALL_APP_URL" \
-        --gateway-domain "$INSTALL_HOSTNAME" \
-        --proxy-hops "$INSTALL_PROXY_HOPS"
-    else
-      apply_install_settings
-    fi
+    python3 "$(config_helper_for "$release_dir")" set-installation \
+      --yaml "$TOWBAR_YAML_FILE" \
+      --mode "$INSTALL_MODE" \
+      --app-url "$INSTALL_APP_URL" \
+      --gateway-domain "$INSTALL_HOSTNAME"
+    python3 "$(config_helper_for "$release_dir")" render \
+      --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
     if [[ "$CONFIG_CREATED" == true ]]; then
-      ui_step "Created the encrypted runtime configuration"
+      ui_step "Created the runtime configuration"
     else
       ui_step "Updated the installation access settings"
     fi
   fi
-  prepare_runtime_config "$release_dir"
   validate_config_for "$release_dir"
 
   if [[ -L "$CURRENT_LINK" ]]; then

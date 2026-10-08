@@ -24,35 +24,13 @@ export type AuthRateLimitCounter = (
   windowMs: number,
 ) => Promise<AttemptWindow>;
 
-export function resolveClientAddress(input: {
-  forwardedFor?: string;
-  peerAddress?: string;
-  trustedProxyHops: number;
-}) {
-  const peerAddress = input.peerAddress?.trim() || "unknown";
-  if (input.trustedProxyHops === 0) return peerAddress;
-
-  const forwarded = (input.forwardedFor ?? "")
-    .split(",")
-    .map((address) => address.trim())
-    .filter(Boolean)
-    .slice(-16);
-  const chain = [...forwarded, peerAddress];
-  return chain.at(-(input.trustedProxyHops + 1)) ?? peerAddress;
-}
-
 export function getClientAddress(context: Context) {
-  let peerAddress: string | undefined;
   try {
-    peerAddress = getConnInfo(context).remote.address;
+    return getConnInfo(context).remote.address || "unknown";
   } catch {
     // Hono's in-memory request helper has no Node socket. Production does.
+    return "unknown";
   }
-  return resolveClientAddress({
-    forwardedFor: context.req.header("x-forwarded-for"),
-    peerAddress,
-    trustedProxyHops: getEnv().TOWBAR_TRUSTED_PROXY_HOPS,
-  });
 }
 
 export async function checkPasswordLoginRateLimit(input: {

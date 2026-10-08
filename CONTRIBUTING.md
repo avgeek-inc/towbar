@@ -50,11 +50,14 @@ pnpm verify
 ```
 
 Prefer the narrowest package check while iterating. Run the root verification
-before opening a pull request. Validate Compose changes with:
+before opening a pull request. The installer manages operator configuration in `/etc/towbar/config.yml`.
+For contributor-only Compose checks, generate disposable YAML with Python 3
+and PyYAML, then render the container environment:
 
 ```bash
-cp .env.example .env
-# Replace placeholders with non-production test values.
+mkdir -p tmp
+python3 infra/runtime_config.py init --yaml tmp/config.yml
+python3 infra/runtime_config.py render --yaml tmp/config.yml --env .env
 docker compose config --quiet
 docker compose build
 ```

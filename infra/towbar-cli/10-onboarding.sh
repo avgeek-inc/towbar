@@ -61,7 +61,6 @@ set_install_url() {
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
     INSTALL_HOSTNAME=
-    INSTALL_PROXY_HOPS=1
     return
   fi
 
@@ -73,22 +72,6 @@ set_install_url() {
   INSTALL_MODE=public
   INSTALL_APP_URL="$lowercase_url"
   INSTALL_HOSTNAME="${lowercase_url#https://}"
-  INSTALL_PROXY_HOPS=1
-}
-
-set_env_value() {
-  local env_file="$1" key="$2" value="$3" pending
-  pending="$(mktemp "${env_file}.XXXXXX")"
-  awk \
-    -v key="$key" \
-    -v value="$value" \
-    'BEGIN { FS = OFS = "="; found = 0 }
-      $1 == key { print key, value; found = 1; next }
-      { print }
-      END { if (!found) print key, value }' \
-    "$env_file" >"$pending"
-  chmod 600 "$pending"
-  mv "$pending" "$env_file"
 }
 
 env_value() {
@@ -125,19 +108,6 @@ collect_install_settings() {
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"
   fi
-}
-
-apply_install_settings() {
-  set_env_value "$TOWBAR_ENV_FILE" COMPOSE_PROFILES "$INSTALL_MODE"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE "$INSTALL_MODE"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_BIND_ADDRESS 127.0.0.1
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN "$INSTALL_HOSTNAME"
-  set_env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL "$INSTALL_APP_URL"
-  set_env_value \
-    "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
-    "$INSTALL_APP_URL/v1/core/gitlab/oauth/callback"
-  set_env_value \
-    "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
 }
 
 verify_public_dns() {

@@ -319,25 +319,21 @@ upgrade_release() {
     config_path_migrated=true
   fi
   generate_config "$release_dir"
+  prepare_runtime_config "$release_dir"
   if [[ -n "${INSTALL_MODE:-}" ]]; then
-    if [[ -f "$TOWBAR_YAML_FILE" ]]; then
-      ensure_yaml_tooling
-      python3 "$(config_helper_for "$release_dir")" set-installation \
-        --yaml "$TOWBAR_YAML_FILE" \
-        --mode "$INSTALL_MODE" \
-        --app-url "$INSTALL_APP_URL" \
-        --gateway-domain "$INSTALL_HOSTNAME" \
-        --proxy-hops "$INSTALL_PROXY_HOPS"
-    else
-      apply_install_settings
-    fi
+    python3 "$(config_helper_for "$release_dir")" set-installation \
+      --yaml "$TOWBAR_YAML_FILE" \
+      --mode "$INSTALL_MODE" \
+      --app-url "$INSTALL_APP_URL" \
+      --gateway-domain "$INSTALL_HOSTNAME"
+    python3 "$(config_helper_for "$release_dir")" render \
+      --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
     if [[ "$CONFIG_CREATED" == true ]]; then
-      ui_step "Created the encrypted runtime configuration"
+      ui_step "Created the runtime configuration"
     else
       ui_step "Updated the installation access settings"
     fi
   fi
-  prepare_runtime_config "$release_dir"
   validate_config_for "$release_dir"
 
   if [[ -L "$CURRENT_LINK" ]]; then

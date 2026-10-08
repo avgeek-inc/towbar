@@ -37,7 +37,7 @@ function normalizeIp(ip) {
   if (ip?.startsWith("::ffff:")) return ip.slice(7);
   return ip;
 }
-function networkKey(ip) {
+export function networkKey(ip) {
   if (isIP(ip) !== 6) return ip;
   // Canonicalize compressed IPv6 and group privacy addresses by /64.
   const canonical = new URL(`http://[${ip}]/`).hostname.slice(1, -1);
@@ -57,7 +57,6 @@ export function createDemoServer({
   origin,
   webPort = 4021,
   workerUrl = new URL("./worker.mjs", import.meta.url),
-  trustedProxy,
   ttlMs = 10 * minute,
   maxSessions = 4,
   startsPerNetwork = 12,
@@ -78,8 +77,6 @@ export function createDemoServer({
     throw new Error(
       "Demo origin must be an HTTPS origin or loopback HTTP origin",
     );
-  if (trustedProxy && !isIP(trustedProxy))
-    throw new Error("Trusted proxy must be one exact IP address");
   const secure = publicUrl.protocol === "https:";
   const cookieName = secure ? "__Host-towbar-demo" : "towbar-demo-local";
   const sessions = new Map();
@@ -298,18 +295,7 @@ export function createDemoServer({
         "DEMO_ORIGIN",
         "Open the demo in its own tab and try again.",
       );
-    let clientIp = normalizeIp(request.socket.remoteAddress);
-    if (trustedProxy && clientIp === trustedProxy) {
-      const forwarded = request.headers["x-demo-client-ip"];
-      if (typeof forwarded !== "string" || !isIP(forwarded))
-        return fail(
-          response,
-          400,
-          "INVALID_CLIENT",
-          "Invalid proxy client address.",
-        );
-      clientIp = normalizeIp(forwarded);
-    }
+    const clientIp = normalizeIp(request.socket.remoteAddress);
     const key = createHmac("sha256", networkSalt)
       .update(networkKey(clientIp))
       .digest("hex");

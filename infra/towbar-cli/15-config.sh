@@ -42,6 +42,9 @@ prepare_runtime_config() {
         --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE"
     fi
     ui_step "Converted runtime configuration to $TOWBAR_YAML_FILE"
+  else
+    python3 "$helper" migrate \
+      --env "$TOWBAR_COMMITTED_ENV_FILE" --yaml "$TOWBAR_YAML_FILE"
   fi
   TOWBAR_PENDING_ENV_FILE="$(mktemp "$TOWBAR_CONFIG_DIR/.towbar.env.XXXXXX")"
   trap 'discard_runtime_config' EXIT

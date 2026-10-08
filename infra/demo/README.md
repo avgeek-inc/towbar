@@ -106,11 +106,10 @@ this origin and blocks framing. Third-party telemetry is unconfigured. Caddy's
 access log is off; do not enable raw cookie/body logging. Network limiter keys
 are salted hashes discarded after inactivity; visitor data is in memory only.
 
-Only the exact Caddy peer `172.30.44.2` may supply `X-Demo-Client-IP`. Caddy
-**overwrites** this header using the socket peer. Client-supplied forwarding
-headers cannot bypass limits. IPv6 addresses share a /64 rate bucket. Keep DNS
-in DNS-only mode: adding a CDN requires a separately reviewed trusted-proxy
-configuration, otherwise its shared IP receives the combined network limit.
+The gateway uses the socket peer for network limits and ignores client-supplied
+address headers. In this stack, that peer is Caddy at `172.30.44.2`, so visitors
+share one network bucket. Direct IPv6 peers share a /64 rate bucket. Keep DNS in
+DNS-only mode; review the network limit before placing another edge in front.
 
 Default limits are 4 active/starting workers, 60 starts globally per ten
 minutes, 12 starts per network per ten minutes, 360 API requests/session/minute,
@@ -184,7 +183,7 @@ TOWBAR_DEMO_IMAGE=towbar-demo:test docker compose --project-name towbar-demo-rev
 3. Provision a **dedicated arm64 Ubuntu 24.04+ host**, initially 2 vCPU, 2 GiB
    RAM, and 20 GiB disk. Install Docker Engine 28+ / Compose v2, Node 24+, Git,
    curl, and util-linux (`flock`). Reserve `172.30.44.0/29` for this stack; if it
-   collides, change the subnet, both static addresses, trusted proxy, and smoke
+   collides, change the subnet, both static addresses, and smoke
    host probe together in a reviewed change. Do not attach a cloud instance
    role or give the host routes/credentials to production services.
 4. Allow inbound TCP 80/443 from the internet and SSH only from operator
