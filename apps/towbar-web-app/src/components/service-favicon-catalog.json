@@ -6,5 +6,7 @@
   "nodejs.org": "/resource-logos/nodejs.svg",
   "www.python.org": "/resource-logos/python.svg",
   "directus.io": "/resource-logos/directus.webp",
-  "www.towbar.dev": "/brand/towbar-logo.png"
+  "www.towbar.dev": "/brand/towbar-logo.png",
+  "vitalog.praveent.com": "https://vitalog.praveent.com/brand/vitalog-favicon.png",
+  "vitalog-api.praveent.com": "https://vitalog.praveent.com/brand/vitalog-favicon.png"
 }

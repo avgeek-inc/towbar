@@ -54,7 +54,12 @@ export function SecretReferenceTooltip({
   return (
     <Tooltip isOpen={open} onOpenChange={(next) => void changeOpen(next)}>
       <Tooltip.Trigger
-        render={(props) => <div {...props} />}
+        render={(props) => (
+          <div
+            {...props}
+            className={`${props.className ?? ""} w-full min-w-0`}
+          />
+        )}
         aria-label={`Shared secret reference ${reference}`}
         onMouseEnter={() => void changeOpen(true)}
         onMouseLeave={() => void changeOpen(false)}

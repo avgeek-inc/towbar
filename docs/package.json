@@ -6,6 +6,6 @@
     "check": "oss-docs check --config site.json --dir ."
   },
   "devDependencies": {
-    "@avgeek-oss/docs": "github:avgeek-oss/oss-docs#8476de02f2895efac1d119f9392893b11b0277a4"
+    "@avgeek-oss/docs": "github:avgeek-oss/oss-docs#704cfbb6b952257e0b9d6a2ec0ec4bd66527475d"
   }
 }

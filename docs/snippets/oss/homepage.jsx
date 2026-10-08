@@ -11,12 +11,20 @@ export const Hero = ({ id, children }) => (
 export const Actions = ({ children }) => (
   <div className="oss-actions">{children}</div>
 );
+// Uses Mintlify's native header CTA markup and utility classes.
 export const ActionLink = ({ variant = "primary", children, ...props }) => (
   <a
     {...props}
-    className={variant === "secondary" ? "oss-secondary" : "oss-button"}
+    data-oss-action={variant}
+    className="group pl-3 pr-2 py-2 relative inline-flex items-center text-sm font-medium"
   >
-    {children}
+    <span
+      className="absolute inset-0 bg-primary-dark rounded-xl group-hover:opacity-[0.9]"
+      aria-hidden="true"
+    />
+    <div className="z-10 gap-1 flex items-center">
+      <span className="text-white">{children}</span>
+    </div>
   </a>
 );
 export const InlineLink = ({ children, ...props }) => (

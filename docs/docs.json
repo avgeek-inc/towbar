@@ -17,6 +17,26 @@
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude"]
   },
+  "seo": {
+    "indexing": "all",
+    "metatags": {
+      "og:type": "website",
+      "twitter:card": "summary_large_image",
+      "og:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:alt": "Towbar — Open-Source Git-native PaaS",
+      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png",
+      "canonical": "https://www.towbar.dev",
+      "twitter:image:alt": "Towbar — Open-Source Git-native PaaS"
+    },
+    "organization": {
+      "name": "Towbar",
+      "url": "https://www.towbar.dev",
+      "logo": "https://www.towbar.dev/assets/towbar-logo.png",
+      "sameAs": ["https://github.com/avgeek-oss/towbar"]
+    }
+  },
   "name": "Towbar",
   "description": "Open-source, Git-native PaaS for Services, Datastores, and previews. Deploy to servers you own.",
   "logo": {
@@ -27,8 +47,8 @@
   "favicon": "/assets/towbar-favicon.png",
   "colors": {
     "primary": "#A16207",
-    "light": "#B08505",
-    "dark": "#B9872C"
+    "light": "#F2CD51",
+    "dark": "#E0B84A"
   },
   "navigation": {
     "dropdowns": [
@@ -1007,25 +1027,6 @@
         ]
       }
     ]
-  },
-  "seo": {
-    "indexing": "all",
-    "metatags": {
-      "og:image": "https://www.towbar.dev/assets/towbar-og.png",
-      "og:image:width": "1200",
-      "og:image:height": "630",
-      "og:image:alt": "Towbar — Open-Source Git-native PaaS",
-      "twitter:card": "summary_large_image",
-      "twitter:image": "https://www.towbar.dev/assets/towbar-og.png",
-      "canonical": "https://www.towbar.dev",
-      "twitter:image:alt": "Towbar — Open-Source Git-native PaaS"
-    },
-    "organization": {
-      "name": "Towbar",
-      "url": "https://www.towbar.dev",
-      "logo": "https://www.towbar.dev/assets/towbar-logo.png",
-      "sameAs": ["https://github.com/avgeek-oss/towbar"]
-    }
   },
   "redirects": [
     {

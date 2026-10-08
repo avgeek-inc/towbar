@@ -36,7 +36,7 @@ for setup, backups, and help if an upgrade fails.
 
 ### Database storage
 
-**Database storage** charts two parts of Towbar's control-plane PostgreSQL tables and indexes: **Towbar Data** for the platform's other records, and **Monitoring Data** for Scout Agent measurements and alerts. A dedicated Temporal workflow records both sizes every two hours and keeps 90 days of readings. The chart plots the latest reading from each day. Its total excludes PostgreSQL system overhead, Temporal's database, backups, and data stored on workload servers. **Run checks** refreshes the control-plane checks; it does not take an extra storage reading.
+**Database storage** stacks three parts of Towbar's control-plane PostgreSQL tables and indexes: **Towbar Data** for the platform's other records, **Monitoring Data** for Scout Agent measurements and alerts, and **Analytics Data** for service traffic and browser analytics. A dedicated Temporal workflow records their sizes every two hours and keeps 90 days of readings. The chart plots the latest reading from each day. Older readings made before the Analytics split include Analytics Data in Monitoring Data; their Analytics series is unavailable. The total excludes PostgreSQL system overhead, Temporal's database, backups, and data stored on workload servers. **Run checks** refreshes the control-plane checks; it does not take an extra storage reading.
 
 | Section       | Checks                                     | What to investigate                                                                 |
 | ------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |

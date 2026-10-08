@@ -22,7 +22,9 @@ const tokens = new MatchDecorator({
     /(?:^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*(?=\s*=))|(?:\{\{\s*globals\.[A-Za-z_][A-Za-z0-9_]*\s*\}\})/g,
   decoration: (match) =>
     Decoration.mark({
-      class: match[0].includes("{{") ? "text-warning" : "text-accent",
+      class: match[0].includes("{{")
+        ? "text-warning"
+        : "text-accent-soft-foreground",
     }),
 });
 const highlighting = ViewPlugin.fromClass(
@@ -42,7 +44,7 @@ const yamlHighlighting = syntaxHighlighting(
   HighlightStyle.define([
     {
       tag: [tags.propertyName, tags.definition(tags.propertyName)],
-      color: "var(--accent)",
+      color: "var(--accent-soft-foreground)",
     },
     { tag: tags.string, color: "var(--success-soft-foreground)" },
     { tag: [tags.number, tags.bool, tags.null], color: "var(--warning)" },

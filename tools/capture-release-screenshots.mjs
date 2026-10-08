@@ -365,11 +365,14 @@ async function capture(browser, screenshot, theme) {
     browser,
     "({ x: window.scrollX, y: window.scrollY })",
   );
+  const target = screenshot.themes.find((item) => item.theme === theme);
+  if (!target) throw new Error(`${screenshot.name} has no ${theme} target`);
+  const format = target.file.endsWith(".png") ? "png" : "jpeg";
   const result = await browser.client.send(
     "Page.captureScreenshot",
     {
-      format: "jpeg",
-      quality: 100,
+      format,
+      ...(format === "jpeg" ? { quality: 100 } : {}),
       captureBeyondViewport: false,
       fromSurface: true,
       clip: {
@@ -382,8 +385,6 @@ async function capture(browser, screenshot, theme) {
     },
     browser.sessionId,
   );
-  const target = screenshot.themes.find((item) => item.theme === theme);
-  if (!target) throw new Error(`${screenshot.name} has no ${theme} target`);
   await writeFile(path.join(repository, target.file), result.data, "base64");
   target.width = viewport.width * deviceScaleFactor;
   target.height = viewport.height * deviceScaleFactor;

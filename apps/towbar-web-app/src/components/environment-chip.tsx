@@ -18,7 +18,7 @@ export function EnvironmentChip({
       className="inline-flex"
       tooltip={showTooltip ? tooltip : undefined}
     >
-      <Chip size="sm" color={name === "production" ? "danger" : "default"}>
+      <Chip color={name === "production" ? "danger" : "default"}>
         <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
           {showIcon ? (
             <EnvironmentIcon className="text-current" name={name} />

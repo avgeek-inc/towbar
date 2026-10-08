@@ -137,6 +137,7 @@ function DatabaseStorage({
     at: new Date(sample.sampledAt).getTime(),
     towbarBytes: sample.towbarBytes,
     monitoringBytes: sample.monitoringBytes,
+    analyticsBytes: sample.analyticsBytes,
   }));
   const first = data[0];
   const latest = data.at(-1);
@@ -150,7 +151,12 @@ function DatabaseStorage({
         endContent={
           latest ? (
             <span className="text-xs tabular-nums text-muted">
-              Total {formatBytes(latest.towbarBytes + latest.monitoringBytes)}
+              Total{" "}
+              {formatBytes(
+                latest.towbarBytes +
+                  latest.monitoringBytes +
+                  (latest.analyticsBytes ?? 0),
+              )}
             </span>
           ) : null
         }
@@ -162,8 +168,7 @@ function DatabaseStorage({
         {latest ? (
           <>
             <LineChart
-              aria-label="Towbar and Scout monitoring database storage over the last 90 days"
-              chartMargin={{ bottom: 0, left: -8 }}
+              aria-label="Towbar, monitoring, and analytics database storage over the last 90 days"
               data={data}
               height={240}
             >
@@ -181,22 +186,42 @@ function DatabaseStorage({
               <LineChart.YAxis
                 width={75}
                 domain={[0, "auto"]}
-                tickFormatter={(value) => formatBytes(Number(value))}
+                tickFormatter={(value) =>
+                  formatBytes(Number(value)).replace(" ", "\u00a0")
+                }
                 tick={{ fontSize: 11 }}
               />
-              <LineChart.Line
+              <LineChart.Area
                 dataKey="towbarBytes"
                 name="Towbar Data"
                 stroke="var(--chart-requested)"
+                fill="var(--chart-requested)"
+                fillOpacity={0.4}
+                stackId="storage"
                 strokeWidth={2}
                 dot={data.length === 1 ? { r: 3 } : false}
                 isAnimationActive={false}
                 type="monotone"
               />
-              <LineChart.Line
+              <LineChart.Area
                 dataKey="monitoringBytes"
                 name="Monitoring Data"
                 stroke="var(--warning)"
+                fill="var(--warning)"
+                fillOpacity={0.4}
+                stackId="storage"
+                strokeWidth={2}
+                dot={data.length === 1 ? { r: 3 } : false}
+                isAnimationActive={false}
+                type="monotone"
+              />
+              <LineChart.Area
+                dataKey="analyticsBytes"
+                name="Analytics Data"
+                stroke="var(--chart-succeeded)"
+                fill="var(--chart-succeeded)"
+                fillOpacity={0.4}
+                stackId="storage"
                 strokeWidth={2}
                 dot={data.length === 1 ? { r: 3 } : false}
                 isAnimationActive={false}
@@ -217,6 +242,9 @@ function DatabaseStorage({
               </Widget.LegendItem>
               <Widget.LegendItem color="var(--warning)">
                 Monitoring Data
+              </Widget.LegendItem>
+              <Widget.LegendItem color="var(--chart-succeeded)">
+                Analytics Data
               </Widget.LegendItem>
             </Widget.Legend>
           </>

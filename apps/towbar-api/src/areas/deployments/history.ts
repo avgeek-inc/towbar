@@ -79,7 +79,7 @@ export async function listDeploymentHistory({
         deployableName: apps.name,
         deployableDomain: sql<
           string | null
-        >`${deployments.appSnapshot}->'domains'->>'primary'`,
+        >`coalesce(nullif(${deployments.appSnapshot}->'domains'->>'primary', ''), ${apps.config}->'domains'->>'primary')`,
         deployableImage: sql<
           string | null
         >`${deployments.appSnapshot}->>'image'`,

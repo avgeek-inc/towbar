@@ -9,8 +9,8 @@
   "favicon": "/assets/towbar-favicon.png",
   "colors": {
     "primary": "#A16207",
-    "light": "#B08505",
-    "dark": "#B9872C"
+    "light": "#F2CD51",
+    "dark": "#E0B84A"
   },
   "navigation": {
     "dropdowns": [

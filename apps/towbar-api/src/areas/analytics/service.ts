@@ -132,6 +132,15 @@ function percentile(histogram: number[], fraction: number) {
   return null;
 }
 
+function trendStep(days: number) {
+  if (days <= 1 / 96) return 60;
+  if (days <= 1 / 24) return 120;
+  if (days <= 1 / 8) return 600;
+  if (days <= 1 / 2) return 1800;
+  if (days <= 1) return 3600;
+  return 86400;
+}
+
 export async function getAnalyticsReport(input: {
   appId: string;
   workspaceId: string;
@@ -175,7 +184,7 @@ export async function getAnalyticsReport(input: {
   const cells = analyticsCells(input.filters ?? []);
   const currentPeriod = sql`s.app_id=${app.id}::uuid and s.collected_at>=${start.toISOString()}::timestamptz and s.collected_at<${end.toISOString()}::timestamptz and c->>'kind'=${input.kind}`;
   const filter = sql`${currentPeriod} and ${conditions}`;
-  const step = input.days === 1 ? 3600 : 86400;
+  const step = trendStep(input.days);
   const includeIdentity = hasVisitorIdentity(config, input.kind);
   const { totals, trend } = await periodSummary(
     database,

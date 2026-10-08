@@ -13,7 +13,7 @@ Open **Manage → System health** and read each check's status and observed time
 
 Choose **Review upgrade** to upgrade Towbar. Standard CLI installs and upgrades enable this automatically on compatible hosts. Read the changelog, check that no deployments or operations are in progress, and confirm. The same modal shows progress and the final result, including any failure reason. See [Upgrades and recovery](/docs/self-hosting/upgrades#upgrade-from-system-health) for setup and help. If in-app upgrades are unavailable, use [`towbar upgrade`](/docs/self-hosting/cli/install-upgrade#towbar-upgrade) on the host. A failed release lookup does not change the other control-plane check results.
 
-The **Database storage** chart on the same page separates Towbar's other tables from Scout monitoring tables. Hover over either series to inspect its size at a recorded point. This chart is an observation of stored data, not a health threshold; see [Monitoring, health, and capacity](/docs/monitoring) for what it includes.
+The **Database storage** chart on the same page stacks Towbar, Scout monitoring, and Analytics table sizes. Hover over a series to inspect its size at a recorded point. Older readings include Analytics in Monitoring until the first reading after the split. This chart is an observation of stored data, not a health threshold; see [Monitoring, health, and capacity](/docs/monitoring) for what it includes.
 
 If the dashboard is unavailable, use the host CLI:
 

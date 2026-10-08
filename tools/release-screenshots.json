@@ -477,18 +477,18 @@
       "themes": [
         {
           "theme": "light",
-          "file": "docs/assets/release-v2/overview-light.jpg",
+          "file": "docs/assets/release-v2/overview-light.png",
           "width": 3200,
           "height": 2200
         },
         {
           "theme": "dark",
-          "file": "docs/assets/release-v2/overview-dark.jpg",
+          "file": "docs/assets/release-v2/overview-dark.png",
           "width": 3200,
           "height": 2200
         }
       ],
-      "capturedAt": "2026-09-28T08:01:47.047Z"
+      "capturedAt": "2026-10-08T08:20:15.152Z"
     },
     {
       "name": "performance",
