@@ -1,5 +1,4 @@
-import { createServer, request as proxyRequest } from "node:http";
-import { connect } from "node:net";
+import { createServer } from "node:http";
 import { createFixtureApiServer } from "./fixture-api.ts";
 import { fixtureJson } from "./fixture-localization.ts";
 
@@ -10,7 +9,6 @@ const fixture = createFixtureApiServer({
     : "authenticated",
 });
 const fixtureHandler = fixture.listeners("request")[0]!;
-const nextPort = 4038;
 const host = process.argv.includes("--ipv4") ? "127.0.0.1" : "::1";
 const empty = process.argv.includes("--empty-keys");
 const createdAt = new Date().toISOString();
@@ -58,6 +56,18 @@ const keys = [
 ];
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost:4420");
+  if (req.headers.origin === "http://localhost:4038") {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
   const send = (body: unknown, status = 200) => {
     res.writeHead(status, {
       "content-type": "application/json",
@@ -113,8 +123,8 @@ const server = createServer((req, res) => {
   ) {
     return send({
       keys: empty ? [] : keys,
-      apiUrl: "https://towbar.example/v1/api",
-      mcpUrl: "https://towbar.example/v1/mcp",
+      apiUrl: "https://towbar-api.example/v1/api",
+      mcpUrl: "https://towbar-api.example/v1/mcp",
       rateLimit: { requests: 60, windowSeconds: 60 },
     });
   }
@@ -136,42 +146,11 @@ const server = createServer((req, res) => {
     fixtureHandler(req, res);
     return;
   }
-  const upstream = proxyRequest(
-    {
-      hostname: "127.0.0.1",
-      port: nextPort,
-      path: req.url,
-      method: req.method,
-      headers: req.headers,
-    },
-    (response) => {
-      res.writeHead(response.statusCode ?? 502, response.headers);
-      response.pipe(res);
-    },
-  );
-  upstream.on("error", () => {
-    res.writeHead(502);
-    res.end("Start the Next review server on port " + nextPort);
-  });
-  req.pipe(upstream);
-});
-server.on("upgrade", (req, socket, head) => {
-  const upstream = connect(nextPort, "127.0.0.1", () => {
-    upstream.write(
-      `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n${Object.entries(
-        req.headers,
-      )
-        .map(([name, value]) => `${name}: ${value}`)
-        .join("\r\n")}\r\n\r\n`,
-    );
-    upstream.write(head);
-    socket.pipe(upstream).pipe(socket);
-  });
-  upstream.on("error", () => socket.destroy());
-  socket.on("error", () => upstream.destroy());
+  res.writeHead(404);
+  res.end("API review fixture: open the dashboard on http://localhost:4038");
 });
 server.listen(4420, host, () =>
   console.info(
-    "OAuth review: http://localhost:4420/oauth/consent?request=review",
+    "OAuth API fixture: http://localhost:4420; dashboard: http://localhost:4038/oauth/consent?request=review",
   ),
 );

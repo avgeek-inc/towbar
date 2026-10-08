@@ -228,7 +228,7 @@ doctor_check_services() {
 }
 
 doctor_check_local_access() {
-  local release_dir="$1" commit="$2" gateway_service="$3" container_id published
+  local release_dir="$1" commit="$2" gateway_service="$3" container_id published api_published
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
   published="$(docker port "$container_id" 4021/tcp 2>/dev/null || true)"
   if [[ "$published" == 127.0.0.1:4021 ]]; then
@@ -241,15 +241,28 @@ doctor_check_local_access() {
   else
     doctor_record fail "Local dashboard does not respond" "Check sudo towbar logs gateway web-app."
   fi
+  api_published="$(docker port "$container_id" 4020/tcp 2>/dev/null || true)"
+  if [[ "$api_published" == 127.0.0.1:4020 ]]; then
+    doctor_record pass "Local API is restricted to this host" "$api_published"
+  else
+    doctor_record fail "Local API binding is not isolated" "Expected 127.0.0.1:4020; found ${api_published:-no published port}."
+  fi
+  if curl --fail --silent --show-error --max-time 10 http://127.0.0.1:4020/health >/dev/null 2>&1; then
+    doctor_record pass "Local API responds"
+  else
+    doctor_record fail "Local API does not respond" "Check sudo towbar logs gateway api."
+  fi
   doctor_record pass "External API and MCP access are disabled" "Public automation access requires a Towbar HTTPS installation."
 }
 
 doctor_check_public_access() {
   local release_dir="$1" commit="$2" gateway_service="$3"
-  local container_id hostname app_url addresses published_http published_https api_status certificate issuer expiry
+  local container_id hostname api_hostname app_url api_url name url addresses published_http published_https api_status mcp_status certificate issuer expiry
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   published_http="$(docker port "$container_id" 80/tcp 2>/dev/null || true)"
   published_https="$(docker port "$container_id" 443/tcp 2>/dev/null || true)"
   if [[ -n "$published_http" && -n "$published_https" ]]; then
@@ -258,56 +271,74 @@ doctor_check_public_access() {
     doctor_record fail "HTTPS gateway ports are incomplete" "HTTP: ${published_http:-missing}; HTTPS: ${published_https:-missing}."
   fi
 
-  addresses="$(getent ahostsv4 "$hostname" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
+  for name in "$hostname" "$api_hostname"; do
+  addresses="$(getent ahostsv4 "$name" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
   if [[ -n "$addresses" ]]; then
-    doctor_record pass "Public hostname has an A record" "$hostname resolves to $addresses."
+    doctor_record pass "Public hostname has an A record" "$name resolves to $addresses."
   else
-    doctor_record fail "Public hostname does not resolve" "Create an A record for $hostname."
+    doctor_record fail "Public hostname does not resolve" "Create an A record for $name."
   fi
+  done
 
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   if curl \
     --fail --silent --show-error --location --connect-timeout 10 --max-time 20 \
-    --noproxy '*' --proto '=https' --resolve "$hostname:443:127.0.0.1" \
-    --tlsv1.2 "$app_url/health" >/dev/null 2>&1; then
-    doctor_record pass "Public HTTPS dashboard responds" "$app_url"
+    --noproxy '*' --proto '=https' --resolve "$name:443:127.0.0.1" \
+    --tlsv1.2 "$url/health" >/dev/null 2>&1; then
+    doctor_record pass "Public HTTPS origin responds" "$url"
   else
-    doctor_record fail "Public HTTPS dashboard verification failed" "Inspect sudo towbar logs $gateway_service."
+    doctor_record fail "Public HTTPS origin verification failed" "$url; inspect sudo towbar logs $gateway_service."
   fi
+  done
 
   api_status="$(curl \
     --silent --output /dev/null --write-out '%{http_code}' \
     --connect-timeout 10 --max-time 20 --noproxy '*' --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" --tlsv1.2 \
-    "$app_url/v1/core/session" 2>/dev/null || true)"
+    --resolve "$api_hostname:443:127.0.0.1" --tlsv1.2 \
+    "$api_url/v1/core/session" 2>/dev/null || true)"
   case "$api_status" in
     200 | 401 | 403)
-      doctor_record pass "REST API is routed through the HTTPS origin" "HTTP $api_status from $app_url/v1/core/session"
+      doctor_record pass "REST API is routed through the API origin" "HTTP $api_status from $api_url/v1/core/session"
       ;;
     *)
-      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public origin."
+      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public API origin."
       ;;
   esac
 
-  certificate="$(timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$hostname" </dev/null 2>/dev/null | openssl x509 -outform PEM 2>/dev/null || true)"
+  mcp_status="$(curl \
+    --silent --output /dev/null --write-out '%{http_code}' \
+    --connect-timeout 10 --max-time 20 --noproxy '*' --proto '=https' \
+    --resolve "$api_hostname:443:127.0.0.1" --tlsv1.2 \
+    "$api_url/v1/mcp" 2>/dev/null || true)"
+  if [[ "$mcp_status" == 401 ]]; then
+    doctor_record pass "MCP is routed through the API origin" "HTTP 401 without credentials from $api_url/v1/mcp"
+  else
+    doctor_record fail "MCP routing failed" "HTTP ${mcp_status:-000} from the public API origin."
+  fi
+
+  for name in "$hostname" "$api_hostname"; do
+  certificate="$(timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$name" </dev/null 2>/dev/null | openssl x509 -outform PEM 2>/dev/null || true)"
   if [[ -n "$certificate" ]]; then
     issuer="$(openssl x509 -noout -issuer <<<"$certificate" 2>/dev/null | sed 's/^issuer=//' || true)"
     expiry="$(openssl x509 -noout -enddate <<<"$certificate" 2>/dev/null | sed 's/^notAfter=//' || true)"
     if openssl x509 -checkend 604800 -noout <<<"$certificate" >/dev/null 2>&1; then
-      doctor_record pass "TLS certificate is valid for more than seven days" "Expires $expiry; issuer $issuer"
+      doctor_record pass "TLS certificate is valid for more than seven days" "$name expires $expiry; issuer $issuer"
     else
-      doctor_record fail "TLS certificate expires within seven days" "Expires ${expiry:-unknown}; inspect Caddy renewal logs."
+      doctor_record fail "TLS certificate expires within seven days" "$name expires ${expiry:-unknown}; inspect Caddy renewal logs."
     fi
   else
-    doctor_record fail "TLS certificate could not be inspected"
+    doctor_record fail "TLS certificate could not be inspected" "$name"
   fi
 
   if docker exec "$container_id" sh -eu -c \
     'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
-    sh "$hostname" >/dev/null 2>&1; then
-    doctor_record pass "Caddy certificate state is persisted"
+    sh "$name" >/dev/null 2>&1; then
+    doctor_record pass "Caddy certificate state is persisted" "$name"
   else
-    doctor_record fail "Caddy certificate state was not found" "A gateway replacement may need to issue a new certificate."
+    doctor_record fail "Caddy certificate state was not found" "$name may need a new certificate after gateway replacement."
   fi
+  done
 
   if curl --fail --silent --show-error --max-time 10 \
     https://api.github.com/rate_limit >/dev/null 2>&1; then

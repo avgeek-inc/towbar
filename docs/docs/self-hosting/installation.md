@@ -9,14 +9,14 @@ Towbar runs its dashboard, API, worker, PostgreSQL and Temporal in Docker Compos
 
 Use an Ubuntu or Debian host with persistent storage and outbound HTTPS access. Existing Docker installations need Compose v2; otherwise the installer installs Docker from its official APT repository.
 
-For public access, point a DNS A record at the host and open inbound ports 80 and 443. Towbar cannot configure your DNS or firewall.
+For public access, point DNS A records for both the dashboard and API hostnames at the host and open inbound ports 80 and 443. Towbar cannot configure your DNS or firewall.
 
 ## Choose the installation URL
 
 The installer accepts either:
 
-- `http://localhost:4021` for on-host access, the default.
-- A public HTTPS origin, such as `https://towbar.example.com`.
+- `http://localhost:4021` for on-host dashboard access, with the API on `http://localhost:4020`.
+- Two public HTTPS origins, such as `https://towbar.example.com` for the dashboard and `https://towbar-api.example.com` for the API and MCP.
 
 Custom ports, paths, fragments, HTTPS localhost and non-HTTPS remote URLs are rejected. Loopback mode disables external REST, MCP and API-key management. Public automation and provider webhooks require HTTPS.
 
@@ -52,9 +52,9 @@ sudo towbar restart
 
 Validation checks Compose, API, worker, integrations, notifications and Caddy. `restart` reuses installed images and replaces services only after preflight checks pass. If validation or service startup fails, run `sudo towbar doctor`.
 
-For public access, `installation.appUrl` sets the origin for the dashboard, API, MCP, webhooks and terminal transport. Caddy redirects HTTP to HTTPS and renews certificates automatically. Certificate and ACME data persist in Docker volumes. Local mode binds only `127.0.0.1:4021`.
+For public access, `installation.appUrl` sets the dashboard origin and `installation.apiBaseUrl` sets the API, MCP, webhook, and terminal transport origin. Caddy redirects HTTP to HTTPS and renews both certificates automatically. Certificate and ACME data persist in Docker volumes. Local mode binds only `127.0.0.1:4021` and `127.0.0.1:4020`.
 
-If public setup fails, fix the reported DNS, port or certificate issue and retry. The installer removes the incomplete stack and releases ports 80 and 443 without enabling an HTTP fallback. It preserves secrets, releases, database data and ACME state. A retry can use a different valid domain without replacing secrets.
+If public setup fails, fix the reported DNS, port or certificate issue and retry. The installer removes the incomplete stack and releases ports 80 and 443 without enabling an HTTP fallback. It preserves secrets, releases, database data and ACME state. A retry can use different valid hostnames without replacing secrets.
 
 Use the [runtime configuration reference](/docs/self-hosting/environment-variables) for integrations and [Configuration and restart](/docs/self-hosting/cli/configuration) for command details.
 

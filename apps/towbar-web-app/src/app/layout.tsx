@@ -6,6 +6,9 @@ import { designSystemViewportColors } from "@avgeek-oss/design-system/lib/design
 import { getTowbarBrandFaviconSource } from "@workspace/towbar-web-ui/brand-assets";
 
 import { ApplicationFrame } from "@/components/application-frame";
+import { publicApiOrigin } from "@/lib/public-api-origin";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { default: "Towbar", template: "%s · Towbar" },
@@ -23,6 +26,12 @@ export default function RootLayout({
 }) {
   return (
     <WorkspaceDocument config={{ scrollbar: "overlay" }}>
+      <meta
+        name="towbar-api-origin"
+        content={publicApiOrigin(
+          process.env.TOWBAR_API_BASE_URL ?? "http://localhost:4020",
+        )}
+      />
       <ApplicationFrame>{children}</ApplicationFrame>
     </WorkspaceDocument>
   );

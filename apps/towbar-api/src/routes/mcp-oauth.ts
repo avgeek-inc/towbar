@@ -28,6 +28,7 @@ import { requireHttpsExternalAccess } from "../http/external-access.js";
 import { sessionUser } from "../http/session-user.js";
 import { normalizeError } from "../http/error-response.js";
 import type { TowbarHonoEnvironment } from "../http/types.js";
+import { getAllowedOrigins, getEnv } from "../env.js";
 
 export const mcpOAuthRoutes = new Hono<TowbarHonoEnvironment>();
 for (const path of ["/.well-known/*", "/v1/oauth/*"]) {
@@ -120,7 +121,6 @@ for (const path of [
       resource_name: "Towbar MCP",
     }),
   );
-mcpOAuthRoutes.use("/v1/oauth/*", externalRateLimit);
 for (const path of [
   "/v1/oauth/register",
   "/v1/oauth/token",
@@ -134,6 +134,16 @@ for (const path of [
       allowHeaders: ["Content-Type", "Authorization"],
     }),
   );
+mcpOAuthRoutes.use(
+  "/v1/oauth/consent/:id",
+  cors({
+    origin: (origin) => (getAllowedOrigins().has(origin) ? origin : ""),
+    credentials: true,
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+  }),
+);
+mcpOAuthRoutes.use("/v1/oauth/*", externalRateLimit);
 mcpOAuthRoutes.post("/v1/oauth/register", async (c) => {
   if (!c.req.header("content-type")?.startsWith("application/json"))
     throw new OAuthError("invalid_request", "Use application/json");
@@ -151,7 +161,7 @@ mcpOAuthRoutes.get("/v1/oauth/authorize", async (c) => {
   );
   return c.redirect(
     result.redirectTo ??
-      `${oauthIssuer()}/oauth/consent?request=${result.requestId}`,
+      `${getEnv().TOWBAR_APP_BASE_URL}/oauth/consent?request=${result.requestId}`,
     302,
   );
 });

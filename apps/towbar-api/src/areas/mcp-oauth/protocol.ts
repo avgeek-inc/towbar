@@ -4,7 +4,7 @@ import { getEnv } from "../../env.js";
 
 export const tokenLifetimeSeconds = 30 * 86400;
 export const oauthIssuer = () =>
-  getEnv().TOWBAR_APP_BASE_URL.replace(/\/$/, "");
+  getEnv().TOWBAR_API_BASE_URL.replace(/\/$/, "");
 export const mcpResource = () => `${oauthIssuer()}/v1/mcp`;
 export const resourceMetadataUrl = () =>
   `${oauthIssuer()}/.well-known/oauth-protected-resource/v1/mcp`;

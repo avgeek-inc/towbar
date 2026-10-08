@@ -5,7 +5,7 @@ This fixture renders the real `/oauth/consent` and `/settings/api-keys` pages wi
 From the repository root, start Next in one terminal:
 
 ```sh
-NEXT_PUBLIC_TOWBAR_APP_BASE_URL=http://localhost:4420 pnpm --filter towbar-web-app exec next dev --hostname 127.0.0.1 --port 4038
+TOWBAR_API_BASE_URL=http://localhost:4420 pnpm --filter towbar-web-app exec next dev --hostname 127.0.0.1 --port 4038
 ```
 
 In another terminal:
@@ -14,7 +14,7 @@ In another terminal:
 pnpm --filter towbar-web-app exec node scripts/mcp-oauth-review.ts
 ```
 
-Open `http://localhost:4420`. The fixture binds IPv6 loopback (`::1`) so it can coexist with the standard fixture on `127.0.0.1:4420`. Use `--ipv4` if IPv6 is unavailable and port 4420 is free. Do not stop another review server to reuse its port.
+Open the dashboard at `http://localhost:4038`. It calls the API fixture directly at `http://localhost:4420`. The fixture binds IPv6 loopback (`::1`) so it can coexist with the standard fixture on `127.0.0.1:4420`. Use `--ipv4` if IPv6 is unavailable and port 4420 is free. Do not stop another review server to reuse its port.
 
 | Route                               | State                                           |
 | ----------------------------------- | ----------------------------------------------- |

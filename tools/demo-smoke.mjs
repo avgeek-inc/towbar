@@ -41,8 +41,11 @@ try {
   });
   assert.equal(prefetch.status, 200);
   assert.match(prefetch.headers.get("content-type"), /text\/x-component/);
-  assert.equal(prefetch.headers.get("x-nextjs-prerender"), "1");
-  assert.equal(prefetch.headers.get("x-nextjs-postponed"), "2");
+  assert.equal(prefetch.headers.get("cache-control"), "private, no-store");
+  assert.match(await prefetch.text(), /"children":\["services",/);
+  const dashboardHtml = await (await call("/services", a)).text();
+  assert.match(dashboardHtml, /name="towbar-api-origin"/);
+  assert(dashboardHtml.includes(`content="${origin}"`));
   const before = (await (await call(serverPath, b)).json()).server.name;
   assert.equal(
     (

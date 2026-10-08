@@ -1,19 +1,27 @@
+import { publicApiOrigin } from "./public-api-origin";
+
 export const config = {
-  get appBaseUrl() {
-    if (process.env.NEXT_PUBLIC_TOWBAR_APP_BASE_URL)
-      return process.env.NEXT_PUBLIC_TOWBAR_APP_BASE_URL;
-    if (typeof window !== "undefined") return window.location.origin;
-    return process.env.TOWBAR_APP_BASE_URL ?? "http://localhost:4021";
+  get apiBaseUrl() {
+    if (typeof document !== "undefined") {
+      const origin = document.querySelector<HTMLMetaElement>(
+        'meta[name="towbar-api-origin"]',
+      )?.content;
+      if (!origin) throw new Error("Towbar public API origin is missing");
+      return publicApiOrigin(origin);
+    }
+    return publicApiOrigin(
+      process.env.TOWBAR_API_BASE_URL ?? "http://localhost:4020",
+    );
   },
 } as const;
 
 export function canShowApiMcpSettings(
-  appBaseUrl = config.appBaseUrl,
+  apiBaseUrl = config.apiBaseUrl,
   isDevelopment = process.env.NODE_ENV === "development",
   isPublicDemo = process.env.NEXT_PUBLIC_TOWBAR_PUBLIC_DEMO === "true",
 ) {
   if (isPublicDemo) return true;
-  const url = new URL(appBaseUrl);
+  const url = new URL(apiBaseUrl);
   if (url.protocol === "https:") return true;
   return (
     isDevelopment &&

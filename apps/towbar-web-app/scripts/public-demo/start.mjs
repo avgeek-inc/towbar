@@ -9,6 +9,7 @@ const gateway = createDemoServer({
 const web = spawn(process.execPath, ["apps/towbar-web-app/server.js"], {
   env: {
     NODE_ENV: "production",
+    TOWBAR_API_BASE_URL: process.env.DEMO_ORIGIN,
     NEXT_TELEMETRY_DISABLED: "1",
     HOSTNAME: "127.0.0.1",
     PORT: "4021",

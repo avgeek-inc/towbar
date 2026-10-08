@@ -2,7 +2,7 @@
 # Generated from package.json and repository.json; run pnpm cli:build.
 set -Eeuo pipefail
 
-CLI_VERSION="2.0.34"
+CLI_VERSION="2.0.35"
 CLI_RELEASE="v$CLI_VERSION"
 TOWBAR_UPSTREAM_REPOSITORY="avgeek-oss/towbar"
 TOWBAR_DISTRIBUTION_URL="https://oss.avgeek.ltd/towbar"
@@ -164,7 +164,9 @@ set_install_url() {
   if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
+    INSTALL_API_BASE_URL=http://localhost:4020
     INSTALL_HOSTNAME=
+    INSTALL_API_HOSTNAME=
     return
   fi
 
@@ -178,6 +180,16 @@ set_install_url() {
   INSTALL_HOSTNAME="${lowercase_url#https://}"
 }
 
+set_install_api_url() {
+  local requested_url="${1%/}" lowercase_url
+  lowercase_url="$(printf '%s' "$requested_url" | tr '[:upper:]' '[:lower:]')"
+  validate_https_url "$lowercase_url" "Towbar API URL"
+  [[ "$lowercase_url" != "$INSTALL_APP_URL" ]] ||
+    fail "Towbar API URL must use a different hostname from the dashboard"
+  INSTALL_API_BASE_URL="$lowercase_url"
+  INSTALL_API_HOSTNAME="${lowercase_url#https://}"
+}
+
 env_value() {
   local env_file="$1" key="$2"
   awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' \
@@ -188,17 +200,17 @@ show_install_summary() {
   printf '\n'
   ui_success_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
-    printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
-    ui_note "Towbar will verify DNS and configure HTTPS automatically."
+    printf 'Dashboard: %s\nAPI and MCP: %s\n' "$INSTALL_APP_URL" "$INSTALL_API_BASE_URL"
+    ui_note "Towbar will verify DNS and configure HTTPS for both names."
   else
     printf 'Towbar will stay available only on this server.\n'
-    ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
+    ui_note "Dashboard: $INSTALL_APP_URL; API: $INSTALL_API_BASE_URL."
   fi
   printf '\n'
 }
 
 collect_install_settings() {
-  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}"
+  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}" requested_api_url
 
   if interactive_terminal; then
     ui_heading "Where will Towbar be available?"
@@ -208,6 +220,14 @@ collect_install_settings() {
   fi
 
   set_install_url "$requested_url"
+  if [[ "$INSTALL_MODE" == public ]]; then
+    requested_api_url="${TOWBAR_INSTALL_API_URL:-https://${INSTALL_HOSTNAME%%.*}-api.${INSTALL_HOSTNAME#*.}}"
+    if interactive_terminal; then
+      ui_heading "Where will the Towbar API and MCP be available?"
+      requested_api_url="$(prompt_install_url "$requested_api_url")"
+    fi
+    set_install_api_url "$requested_api_url"
+  fi
   show_install_summary
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"
@@ -240,6 +260,7 @@ verify_public_prerequisites() {
   [[ "$INSTALL_MODE" == public ]] || return 0
   ui_pending_step "Checking the domain and HTTPS ports"
   verify_public_dns "$INSTALL_HOSTNAME"
+  verify_public_dns "$INSTALL_API_HOSTNAME"
   verify_public_ports
 }
 
@@ -566,29 +587,37 @@ gateway_service_for() {
 }
 
 validate_config_for() {
-  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain app_url bind_address port
+  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain api_domain app_url api_url bind_address port api_port
   [[ -f "$env_file" ]] || fail "$env_file is missing"
   install_mode="$(env_value "$env_file" TOWBAR_INSTALL_MODE)"
   profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
   domain="$(env_value "$env_file" TOWBAR_GATEWAY_DOMAIN)"
+  api_domain="$(env_value "$env_file" TOWBAR_GATEWAY_API_DOMAIN)"
   app_url="$(env_value "$env_file" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$env_file" TOWBAR_API_BASE_URL)"
   bind_address="$(env_value "$env_file" TOWBAR_BIND_ADDRESS)"
   port="$(env_value "$env_file" TOWBAR_PORT)"
+  api_port="$(env_value "$env_file" TOWBAR_API_PORT)"
   case "${install_mode:-local}" in
     local)
       [[ "${profiles:-local}" == local ]] ||
         fail "COMPOSE_PROFILES must be local when TOWBAR_INSTALL_MODE is local"
       [[ "$app_url" == http://localhost:4021 ]] ||
         fail "a local installation must use http://localhost:4021"
-      [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 ]] ||
-        fail "a local installation must bind 127.0.0.1:4021"
+      [[ "$api_url" == http://localhost:4020 ]] ||
+        fail "a local installation must use http://localhost:4020 for the API"
+      [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 && "${api_port:-4020}" == 4020 ]] ||
+        fail "a local installation must bind 127.0.0.1:4021 and 127.0.0.1:4020"
       ;;
     public)
       [[ "$profiles" == public ]] ||
         fail "COMPOSE_PROFILES must be public when TOWBAR_INSTALL_MODE is public"
       validate_https_url "$app_url" "TOWBAR_APP_BASE_URL"
+      validate_https_url "$api_url" "TOWBAR_API_BASE_URL"
       [[ "$domain" == "${app_url#https://}" ]] ||
         fail "TOWBAR_GATEWAY_DOMAIN must match the public Towbar URL"
+      [[ "$api_domain" == "${api_url#https://}" && "$api_domain" != "$domain" ]] ||
+        fail "TOWBAR_GATEWAY_API_DOMAIN must match a separate public API URL"
       ;;
     *) fail "TOWBAR_INSTALL_MODE must be local or public" ;;
   esac
@@ -661,12 +690,16 @@ verify_running_release() {
 }
 
 verify_public_https() {
-  local release_dir="$1" commit="$2" app_url hostname gateway_service container_id
+  local release_dir="$1" commit="$2" app_url api_url hostname api_hostname gateway_service container_id url name
   [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]] || return 0
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
 
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   if ! curl \
     --fail \
     --silent \
@@ -679,37 +712,44 @@ verify_public_https() {
     --max-time 30 \
     --noproxy '*' \
     --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" \
+    --resolve "$name:443:127.0.0.1" \
     --tlsv1.2 \
-    "$app_url/health" >/dev/null; then
+    "$url/health" >/dev/null; then
     compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
       logs --tail 100 "$gateway_service" >&2 || true
     ui_failure_step "Let's Encrypt certificate issuance or HTTPS verification failed"
     printf \
       'Towbar: HTTPS verification failed. Confirm %s points to this server and ports 80 and 443 are reachable.\n' \
-      "$hostname" >&2
+      "$name" >&2
     return 1
   fi
+  done
 
   container_id="$(
     compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service"
   )"
   docker exec "$container_id" caddy validate \
     --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
-  docker exec "$container_id" sh -eu -c \
-    'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
-    sh "$hostname"
+  for name in "$hostname" "$api_hostname"; do
+    docker exec "$container_id" sh -eu -c \
+      'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
+      sh "$name" || return 1
+  done
 }
 
 rehearse_public_https_restart() {
-  local release_dir="$1" commit="$2" gateway_service app_url hostname
+  local release_dir="$1" commit="$2" gateway_service app_url api_url hostname api_hostname url name
   [[ "${CONFIG_CREATED:-false}" == true && "${INSTALL_MODE:-}" == public ]] || return 0
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" restart "$gateway_service"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     up --detach --wait "$gateway_service"
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   curl \
     --fail \
     --silent \
@@ -722,9 +762,10 @@ rehearse_public_https_restart() {
     --max-time 30 \
     --noproxy '*' \
     --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" \
+    --resolve "$name:443:127.0.0.1" \
     --tlsv1.2 \
-    "$app_url/health" >/dev/null
+    "$url/health" >/dev/null || return 1
+  done
 }
 
 install_cli_from_release() {
@@ -856,6 +897,7 @@ upgrade_release() {
       --yaml "$TOWBAR_YAML_FILE" \
       --mode "$INSTALL_MODE" \
       --app-url "$INSTALL_APP_URL" \
+      --api-base-url "$INSTALL_API_BASE_URL" \
       --gateway-domain "$INSTALL_HOSTNAME"
     python3 "$(config_helper_for "$release_dir")" render \
       --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
@@ -955,7 +997,7 @@ current_release_dir() {
 }
 
 preflight_runtime_configuration() {
-  local release_dir="$1" commit="$2" gateway_service gateway_image gateway_config gateway_domain
+  local release_dir="$1" commit="$2" gateway_service gateway_image gateway_config gateway_domain gateway_api_domain
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
 
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
@@ -983,12 +1025,14 @@ preflight_runtime_configuration() {
   fi
   gateway_config="$release_dir/infra/gateway/Caddyfile"
   gateway_domain="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  gateway_api_domain="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   if [[ "$gateway_service" == gateway-public ]]; then
     gateway_config="$release_dir/infra/gateway/Caddyfile.public"
   fi
   docker run --rm --interactive \
     --entrypoint caddy \
     --env "TOWBAR_GATEWAY_DOMAIN=$gateway_domain" \
+    --env "TOWBAR_GATEWAY_API_DOMAIN=$gateway_api_domain" \
     "$gateway_image" \
     validate --config - --adapter caddyfile <"$gateway_config" || return 1
 }
@@ -1362,7 +1406,7 @@ doctor_check_services() {
 }
 
 doctor_check_local_access() {
-  local release_dir="$1" commit="$2" gateway_service="$3" container_id published
+  local release_dir="$1" commit="$2" gateway_service="$3" container_id published api_published
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
   published="$(docker port "$container_id" 4021/tcp 2>/dev/null || true)"
   if [[ "$published" == 127.0.0.1:4021 ]]; then
@@ -1375,15 +1419,28 @@ doctor_check_local_access() {
   else
     doctor_record fail "Local dashboard does not respond" "Check sudo towbar logs gateway web-app."
   fi
+  api_published="$(docker port "$container_id" 4020/tcp 2>/dev/null || true)"
+  if [[ "$api_published" == 127.0.0.1:4020 ]]; then
+    doctor_record pass "Local API is restricted to this host" "$api_published"
+  else
+    doctor_record fail "Local API binding is not isolated" "Expected 127.0.0.1:4020; found ${api_published:-no published port}."
+  fi
+  if curl --fail --silent --show-error --max-time 10 http://127.0.0.1:4020/health >/dev/null 2>&1; then
+    doctor_record pass "Local API responds"
+  else
+    doctor_record fail "Local API does not respond" "Check sudo towbar logs gateway api."
+  fi
   doctor_record pass "External API and MCP access are disabled" "Public automation access requires a Towbar HTTPS installation."
 }
 
 doctor_check_public_access() {
   local release_dir="$1" commit="$2" gateway_service="$3"
-  local container_id hostname app_url addresses published_http published_https api_status certificate issuer expiry
+  local container_id hostname api_hostname app_url api_url name url addresses published_http published_https api_status mcp_status certificate issuer expiry
   container_id="$(compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service" 2>/dev/null || true)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   published_http="$(docker port "$container_id" 80/tcp 2>/dev/null || true)"
   published_https="$(docker port "$container_id" 443/tcp 2>/dev/null || true)"
   if [[ -n "$published_http" && -n "$published_https" ]]; then
@@ -1392,56 +1449,74 @@ doctor_check_public_access() {
     doctor_record fail "HTTPS gateway ports are incomplete" "HTTP: ${published_http:-missing}; HTTPS: ${published_https:-missing}."
   fi
 
-  addresses="$(getent ahostsv4 "$hostname" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
+  for name in "$hostname" "$api_hostname"; do
+  addresses="$(getent ahostsv4 "$name" 2>/dev/null | awk '$2 == "STREAM" { print $1 }' | sort -u | paste -sd, - || true)"
   if [[ -n "$addresses" ]]; then
-    doctor_record pass "Public hostname has an A record" "$hostname resolves to $addresses."
+    doctor_record pass "Public hostname has an A record" "$name resolves to $addresses."
   else
-    doctor_record fail "Public hostname does not resolve" "Create an A record for $hostname."
+    doctor_record fail "Public hostname does not resolve" "Create an A record for $name."
   fi
+  done
 
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   if curl \
     --fail --silent --show-error --location --connect-timeout 10 --max-time 20 \
-    --noproxy '*' --proto '=https' --resolve "$hostname:443:127.0.0.1" \
-    --tlsv1.2 "$app_url/health" >/dev/null 2>&1; then
-    doctor_record pass "Public HTTPS dashboard responds" "$app_url"
+    --noproxy '*' --proto '=https' --resolve "$name:443:127.0.0.1" \
+    --tlsv1.2 "$url/health" >/dev/null 2>&1; then
+    doctor_record pass "Public HTTPS origin responds" "$url"
   else
-    doctor_record fail "Public HTTPS dashboard verification failed" "Inspect sudo towbar logs $gateway_service."
+    doctor_record fail "Public HTTPS origin verification failed" "$url; inspect sudo towbar logs $gateway_service."
   fi
+  done
 
   api_status="$(curl \
     --silent --output /dev/null --write-out '%{http_code}' \
     --connect-timeout 10 --max-time 20 --noproxy '*' --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" --tlsv1.2 \
-    "$app_url/v1/core/session" 2>/dev/null || true)"
+    --resolve "$api_hostname:443:127.0.0.1" --tlsv1.2 \
+    "$api_url/v1/core/session" 2>/dev/null || true)"
   case "$api_status" in
     200 | 401 | 403)
-      doctor_record pass "REST API is routed through the HTTPS origin" "HTTP $api_status from $app_url/v1/core/session"
+      doctor_record pass "REST API is routed through the API origin" "HTTP $api_status from $api_url/v1/core/session"
       ;;
     *)
-      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public origin."
+      doctor_record fail "REST API routing failed" "HTTP ${api_status:-000} from the public API origin."
       ;;
   esac
 
-  certificate="$(timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$hostname" </dev/null 2>/dev/null | openssl x509 -outform PEM 2>/dev/null || true)"
+  mcp_status="$(curl \
+    --silent --output /dev/null --write-out '%{http_code}' \
+    --connect-timeout 10 --max-time 20 --noproxy '*' --proto '=https' \
+    --resolve "$api_hostname:443:127.0.0.1" --tlsv1.2 \
+    "$api_url/v1/mcp" 2>/dev/null || true)"
+  if [[ "$mcp_status" == 401 ]]; then
+    doctor_record pass "MCP is routed through the API origin" "HTTP 401 without credentials from $api_url/v1/mcp"
+  else
+    doctor_record fail "MCP routing failed" "HTTP ${mcp_status:-000} from the public API origin."
+  fi
+
+  for name in "$hostname" "$api_hostname"; do
+  certificate="$(timeout 15 openssl s_client -connect 127.0.0.1:443 -servername "$name" </dev/null 2>/dev/null | openssl x509 -outform PEM 2>/dev/null || true)"
   if [[ -n "$certificate" ]]; then
     issuer="$(openssl x509 -noout -issuer <<<"$certificate" 2>/dev/null | sed 's/^issuer=//' || true)"
     expiry="$(openssl x509 -noout -enddate <<<"$certificate" 2>/dev/null | sed 's/^notAfter=//' || true)"
     if openssl x509 -checkend 604800 -noout <<<"$certificate" >/dev/null 2>&1; then
-      doctor_record pass "TLS certificate is valid for more than seven days" "Expires $expiry; issuer $issuer"
+      doctor_record pass "TLS certificate is valid for more than seven days" "$name expires $expiry; issuer $issuer"
     else
-      doctor_record fail "TLS certificate expires within seven days" "Expires ${expiry:-unknown}; inspect Caddy renewal logs."
+      doctor_record fail "TLS certificate expires within seven days" "$name expires ${expiry:-unknown}; inspect Caddy renewal logs."
     fi
   else
-    doctor_record fail "TLS certificate could not be inspected"
+    doctor_record fail "TLS certificate could not be inspected" "$name"
   fi
 
   if docker exec "$container_id" sh -eu -c \
     'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
-    sh "$hostname" >/dev/null 2>&1; then
-    doctor_record pass "Caddy certificate state is persisted"
+    sh "$name" >/dev/null 2>&1; then
+    doctor_record pass "Caddy certificate state is persisted" "$name"
   else
-    doctor_record fail "Caddy certificate state was not found" "A gateway replacement may need to issue a new certificate."
+    doctor_record fail "Caddy certificate state was not found" "$name may need a new certificate after gateway replacement."
   fi
+  done
 
   if curl --fail --silent --show-error --max-time 10 \
     https://api.github.com/rate_limit >/dev/null 2>&1; then

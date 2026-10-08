@@ -60,7 +60,9 @@ set_install_url() {
   if [[ "$lowercase_url" == "http://localhost:4021" ]]; then
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
+    INSTALL_API_BASE_URL=http://localhost:4020
     INSTALL_HOSTNAME=
+    INSTALL_API_HOSTNAME=
     return
   fi
 
@@ -74,6 +76,16 @@ set_install_url() {
   INSTALL_HOSTNAME="${lowercase_url#https://}"
 }
 
+set_install_api_url() {
+  local requested_url="${1%/}" lowercase_url
+  lowercase_url="$(printf '%s' "$requested_url" | tr '[:upper:]' '[:lower:]')"
+  validate_https_url "$lowercase_url" "Towbar API URL"
+  [[ "$lowercase_url" != "$INSTALL_APP_URL" ]] ||
+    fail "Towbar API URL must use a different hostname from the dashboard"
+  INSTALL_API_BASE_URL="$lowercase_url"
+  INSTALL_API_HOSTNAME="${lowercase_url#https://}"
+}
+
 env_value() {
   local env_file="$1" key="$2"
   awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' \
@@ -84,17 +96,17 @@ show_install_summary() {
   printf '\n'
   ui_success_heading "Ready to install Towbar"
   if [[ "$INSTALL_MODE" == public ]]; then
-    printf 'Towbar will be available at %s.\n' "$INSTALL_APP_URL"
-    ui_note "Towbar will verify DNS and configure HTTPS automatically."
+    printf 'Dashboard: %s\nAPI and MCP: %s\n' "$INSTALL_APP_URL" "$INSTALL_API_BASE_URL"
+    ui_note "Towbar will verify DNS and configure HTTPS for both names."
   else
     printf 'Towbar will stay available only on this server.\n'
-    ui_note "Open the dashboard at $INSTALL_APP_URL after installation."
+    ui_note "Dashboard: $INSTALL_APP_URL; API: $INSTALL_API_BASE_URL."
   fi
   printf '\n'
 }
 
 collect_install_settings() {
-  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}"
+  local requested_url="${TOWBAR_INSTALL_URL:-http://localhost:4021}" requested_api_url
 
   if interactive_terminal; then
     ui_heading "Where will Towbar be available?"
@@ -104,6 +116,14 @@ collect_install_settings() {
   fi
 
   set_install_url "$requested_url"
+  if [[ "$INSTALL_MODE" == public ]]; then
+    requested_api_url="${TOWBAR_INSTALL_API_URL:-https://${INSTALL_HOSTNAME%%.*}-api.${INSTALL_HOSTNAME#*.}}"
+    if interactive_terminal; then
+      ui_heading "Where will the Towbar API and MCP be available?"
+      requested_api_url="$(prompt_install_url "$requested_api_url")"
+    fi
+    set_install_api_url "$requested_api_url"
+  fi
   show_install_summary
   if interactive_terminal && ! prompt_confirm "Continue with this installation?"; then
     fail "installation cancelled"
@@ -136,5 +156,6 @@ verify_public_prerequisites() {
   [[ "$INSTALL_MODE" == public ]] || return 0
   ui_pending_step "Checking the domain and HTTPS ports"
   verify_public_dns "$INSTALL_HOSTNAME"
+  verify_public_dns "$INSTALL_API_HOSTNAME"
   verify_public_ports
 }

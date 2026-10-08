@@ -53,6 +53,7 @@ class RuntimeConfigTests(unittest.TestCase):
             config = config_tool.read_yaml(path)
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
             self.assertEqual(config["installation"]["appUrl"], "http://localhost:4021")
+            self.assertEqual(config["installation"]["apiBaseUrl"], "http://localhost:4020")
             values = [
                 config["database"]["postgresPassword"],
                 config["database"]["runtimePassword"],
@@ -106,6 +107,7 @@ class RuntimeConfigTests(unittest.TestCase):
                 values[key] = "some-value"
         values["TOWBAR_INSTALL_MODE"] = "local"
         values["TOWBAR_APP_BASE_URL"] = "http://localhost:4021"
+        values["TOWBAR_API_BASE_URL"] = "http://localhost:4020"
         values["TOWBAR_NOTIFICATION_CONFIG_JSON"] = json.dumps(
             {"providers": {}, "routes": []}
         )
@@ -171,16 +173,22 @@ class RuntimeConfigTests(unittest.TestCase):
             env = root / "towbar.env"
             config_tool.initialize(yml)
             config_tool.set_installation(
-                yml, "public", "https://towbar.example.com", "towbar.example.com"
+                yml, "public", "https://towbar.example.com", "https://towbar-api.example.com", "towbar.example.com"
             )
             config_tool.render(yml, env)
             values = config_tool.parse_env(env)
             self.assertEqual(values["COMPOSE_PROFILES"], "public")
             self.assertEqual(values["TOWBAR_GATEWAY_DOMAIN"], "towbar.example.com")
+            self.assertEqual(values["TOWBAR_GATEWAY_API_DOMAIN"], "towbar-api.example.com")
+            self.assertEqual(values["TOWBAR_API_BASE_URL"], "https://towbar-api.example.com")
             self.assertEqual(
                 values["TOWBAR_GITLAB_OAUTH_REDIRECT_URI"],
-                "https://towbar.example.com/v1/core/gitlab/oauth/callback",
+                "https://towbar-api.example.com/v1/core/gitlab/oauth/callback",
             )
+            config = config_tool.read_yaml(yml)
+            config["installation"]["apiBaseUrl"] = config["installation"]["appUrl"]
+            with self.assertRaisesRegex(config_tool.ConfigError, "separate HTTPS origin"):
+                config_tool.to_env(config)
 
     def test_migration_removes_obsolete_proxy_trust_from_existing_config(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -203,6 +211,41 @@ class RuntimeConfigTests(unittest.TestCase):
             self.assertNotIn("trustedProxyHops", yml.read_text())
             config_tool.render(yml, env)
             self.assertNotIn("TOWBAR_TRUSTED_PROXY_HOPS", env.read_text())
+
+    def test_existing_public_yaml_migrates_api_origin_and_gitlab_redirect(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            yml = root / "config.yml"
+            env = root / "towbar.env"
+            yml.write_text(
+                "version: 1\ninstallation:\n  mode: public\n"
+                "  appUrl: https://towbar.example.com\n"
+                "  gatewayDomain: towbar.example.com\n"
+                "integrations:\n  gitlab:\n"
+                "    oauthRedirectUri: https://towbar.example.com/v1/core/gitlab/oauth/callback\n"
+            )
+            config_tool.migrate(env, yml, False)
+            config = config_tool.read_yaml(yml)
+            self.assertEqual(config["installation"]["apiBaseUrl"], "https://towbar-api.example.com")
+            self.assertEqual(
+                config["integrations"]["gitlab"]["oauthRedirectUri"],
+                "https://towbar-api.example.com/v1/core/gitlab/oauth/callback",
+            )
+            config_tool.render(yml, env)
+            config_tool.compare(yml, env)
+            legacy = root / "legacy.env"
+            migrated = root / "migrated.yml"
+            legacy.write_text(
+                "COMPOSE_PROFILES=public\nTOWBAR_INSTALL_MODE=public\n"
+                "TOWBAR_APP_BASE_URL=https://towbar.example.com\n"
+                "TOWBAR_GATEWAY_DOMAIN=towbar.example.com\n"
+                "TOWBAR_GITLAB_OAUTH_REDIRECT_URI=https://towbar.example.com/v1/core/gitlab/oauth/callback\n"
+            )
+            config_tool.migrate(legacy, migrated, False)
+            self.assertEqual(
+                config_tool.read_yaml(migrated)["integrations"]["gitlab"]["oauthRedirectUri"],
+                "https://towbar-api.example.com/v1/core/gitlab/oauth/callback",
+            )
 
 
 if __name__ == "__main__":

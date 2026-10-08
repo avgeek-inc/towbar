@@ -73,7 +73,7 @@ export function useDeploymentStream(deploymentId: string) {
       const generation = localizationGeneration();
       const target = new URL(
         `/v1/core/deployments/${deploymentId}/events`,
-        config.appBaseUrl,
+        config.apiBaseUrl,
       );
       events = new EventSource(target, { withCredentials: true });
       events.addEventListener("open", () => {

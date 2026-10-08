@@ -5,19 +5,19 @@ description: Automate your Towbar control plane with a REST API or connect an AI
 
 <Warning>
   The REST API, MCP, and API-key management are available only when Towbar is
-  installed at a public HTTPS URL. For security, they are disabled on
+  installed with a public HTTPS API origin. For security, they are disabled on
   localhost-only installations.
 </Warning>
 
 Towbar exposes infrastructure operations through REST and MCP. Manage repositories, services, datastores, servers, deployments, previews, secrets, integration settings, and your current identity using your current workspace permissions.
 
-| Interface             | Endpoint                          | Authentication     |
-| --------------------- | --------------------------------- | ------------------ |
-| REST API              | `https://YOUR_TOWBAR_HOST/v1/api` | API key            |
-| MCP                   | `https://YOUR_TOWBAR_HOST/v1/mcp` | Sign-in or API key |
-| OpenAPI specification | `GET /v1/api/openapi.json`        | API key            |
+| Interface             | Endpoint                              | Authentication     |
+| --------------------- | ------------------------------------- | ------------------ |
+| REST API              | `https://YOUR_TOWBAR_API_HOST/v1/api` | API key            |
+| MCP                   | `https://YOUR_TOWBAR_API_HOST/v1/mcp` | Sign-in or API key |
+| OpenAPI specification | `GET /v1/api/openapi.json`            | API key            |
 
-Reference examples use `towbar.example.com`; replace it with the hostname for your own Towbar installation. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
+Reference examples use `YOUR_TOWBAR_API_HOST`; replace it with the API hostname from `installation.apiBaseUrl`, such as `towbar-api.example.com`. The dashboard uses the separate `installation.appUrl` hostname. Your control plane shows its MCP endpoint in **My Settings → MCP Guide**.
 
 An MCP client that supports sign-in can connect through OAuth without copying
 an API key. Towbar asks you to approve the client and its access. Follow
@@ -28,10 +28,10 @@ an API key. Towbar asks you to approve the client and its access. Follow
     Open **Manage → My Settings → API Keys** and create an API key. Name it for its consumer, choose its permissions and expiry, then copy it. Towbar only shows the secret once.
   </Step>
   <Step title="Send a request">
-    Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_TOWBAR_HOST` below.
+    Set `TOWBAR_API_KEY` through your shell or secret manager and replace `YOUR_TOWBAR_API_HOST` below with the API hostname.
 
     ```bash
-    curl 'https://YOUR_TOWBAR_HOST/v1/api/apps' \
+    curl 'https://YOUR_TOWBAR_API_HOST/v1/api/apps' \
       -H "Authorization: Bearer $TOWBAR_API_KEY"
     ```
 

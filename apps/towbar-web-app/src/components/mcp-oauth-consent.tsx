@@ -27,7 +27,7 @@ function ConsentRequest({ id }: { id: string | null }) {
   const [error, setError] = useState<string>();
   const [login, setLogin] = useState(false);
   const [busy, setBusy] = useState(false);
-  const endpoint = `${config.appBaseUrl}/v1/oauth/consent/${encodeURIComponent(id ?? "")}`;
+  const endpoint = `${config.apiBaseUrl}/v1/oauth/consent/${encodeURIComponent(id ?? "")}`;
   const self = `/oauth/consent?request=${encodeURIComponent(id ?? "")}`;
   useEffect(() => {
     const controller = new AbortController();

@@ -9,6 +9,7 @@ process.env.TOWBAR_CREDENTIALS_KEY =
 process.env.TOWBAR_INTERNAL_HMAC_SECRET =
   "test-hmac-secret-that-is-long-enough";
 process.env.TOWBAR_APP_BASE_URL = "https://app.towbar.test";
+process.env.TOWBAR_API_BASE_URL = "https://api.towbar.test";
 
 let app: Awaited<ReturnType<typeof loadApp>>;
 let internalApp: Awaited<ReturnType<typeof loadInternalApp>>;
@@ -29,6 +30,44 @@ void before(async () => {
 });
 
 void describe("Towbar API boundaries", () => {
+  void it("publishes API-origin OAuth discovery and allows UI-origin consent preflights", async () => {
+    const response = await app.request(
+      "/.well-known/oauth-authorization-server",
+    );
+    assert.equal(response.status, 200);
+    const metadata = (await response.json()) as Record<string, unknown>;
+    assert.equal(metadata.issuer, "https://api.towbar.test");
+    assert.equal(
+      metadata.authorization_endpoint,
+      "https://api.towbar.test/v1/oauth/authorize",
+    );
+    const path = "/v1/oauth/consent/00000000-0000-4000-8000-000000000000";
+    const trusted = await app.request(path, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://app.towbar.test",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+    assert.equal(trusted.status, 204);
+    assert.equal(
+      trusted.headers.get("access-control-allow-origin"),
+      "https://app.towbar.test",
+    );
+    assert.equal(
+      trusted.headers.get("access-control-allow-credentials"),
+      "true",
+    );
+    const untrusted = await app.request(path, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://attacker.test",
+        "access-control-request-method": "POST",
+      },
+    });
+    assert.equal(untrusted.headers.get("access-control-allow-origin"), null);
+  });
   void it("does not expose a public signup route", async () => {
     const response = await app.request("/v1/public/signup", { method: "POST" });
     assert.equal(response.status, 404);

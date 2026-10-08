@@ -9,7 +9,7 @@ import {
 } from "./date-time-display";
 
 export const api = createTowbarClient({
-  baseUrl: config.appBaseUrl,
+  baseUrl: config.apiBaseUrl,
   requestContext: localizationGeneration,
   onResponse: (payload, generation) => {
     if (
