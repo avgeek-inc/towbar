@@ -237,8 +237,8 @@ importers:
   apps/towbar-web-app:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.8
-        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.9
+        version: 1.2.9(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@codemirror/commands":
         specifier: ^6.11.1
         version: 6.11.1
@@ -619,8 +619,8 @@ importers:
   packages/towbar-email:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.8
-        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.9
+        version: 1.2.9(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       react:
         specifier: "catalog:"
         version: 19.3.0
@@ -672,8 +672,8 @@ importers:
   packages/towbar-web-ui:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.8
-        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.9
+        version: 1.2.9(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
         version: 4.3.5
@@ -752,11 +752,11 @@ packages:
       }
     engines: { node: ">=10" }
 
-  "@avgeek-oss/design-system@1.2.8":
+  "@avgeek-oss/design-system@1.2.9":
     resolution:
       {
-        integrity: sha512-0pm+3Q+uUP74D1k2KPgwW1I7OxbByWpSQ0uLv3GlvjT3UyFAU7gKCIGw82XpKR711OJz5RdajjHUZlAr2mQ/tg==,
-        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.8/8dcdda9f4fd4d06880dc3ec6a27988b3cef3c850,
+        integrity: sha512-220W2wHB/pfkhPul2p2gBt63fEdKI6YrgrLa0hYTs9WHhdli3M8sYOAKo9TiHGZfqQGyaRN/7oVUeAmLM2KZkQ==,
+        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.9/c065adce2dbe62dbb5e5a9a9dd980581e4e9a747,
       }
     engines: { node: ">=24" }
     peerDependencies:
@@ -7897,7 +7897,7 @@ snapshots:
 
   "@alloc/quick-lru@5.2.0": {}
 
-  "@avgeek-oss/design-system@1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
+  "@avgeek-oss/design-system@1.2.9(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
     dependencies:
       "@fontsource-variable/geist-mono": 5.3.0
       "@fontsource-variable/inter": 5.3.0

@@ -3,17 +3,23 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.0.31] - 2026-10-08
 
 ### Changed
 
-- Adopt design system 1.2.1 for shared profile images, password changes, passkey recovery, and team settings tables and dialogs. Keep passkey verification cancellable until server verification begins.
+- Adopt design system 1.2.9 for shared authentication, account and team settings, profile images, password changes, passkey recovery, notification menus, and backend recovery.
+- Use a yellow accent theme, route-based breadcrumbs, consistent menu controls, and improved table and notification styling.
+
+- Keep passkey verification cancellable until server verification begins.
+- Keep the CLI, installer, MCP server and OpenAPI metadata aligned with the service release version.
 
 - Use the shared OSS documentation kit for Mintlify homepage layouts, header behavior and themed screenshots while keeping product content and navigation in Towbar.
 
-- Use design system 1.2.0 for shared application UI, including the notification menu, full-width account menu dividers, and bottom-center toasts on public authentication screens.
+- Require a name, Read-only/Edit/Administrative permissions and an explicit expiry for personal and team API keys. Enforce the selected grants across REST and MCP.
 
 ### Fixed
+
+- Reconnect automatically when the backend is unavailable during startup, while keeping authentication failures separate and preserving an existing session during background outages.
 
 - Show a retry state when the notification inbox cannot be loaded, and retain existing rows when pagination fails.
 
