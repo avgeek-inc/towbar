@@ -173,7 +173,7 @@ class RuntimeConfigTests(unittest.TestCase):
             env = root / "towbar.env"
             config_tool.initialize(yml)
             config_tool.set_installation(
-                yml, "public", "https://towbar.example.com", "https://towbar-api.example.com", "towbar.example.com"
+                yml, "public", "https://towbar.example.com", "https://towbar-api.example.com"
             )
             config_tool.render(yml, env)
             values = config_tool.parse_env(env)
@@ -189,6 +189,18 @@ class RuntimeConfigTests(unittest.TestCase):
             config["installation"]["apiBaseUrl"] = config["installation"]["appUrl"]
             with self.assertRaisesRegex(config_tool.ConfigError, "separate HTTPS origin"):
                 config_tool.to_env(config)
+
+    def test_gateway_domain_is_derived_and_cannot_be_overridden(self):
+        config = {"version": 1, "installation": {"mode": "public", "appUrl": "https://control.example.com", "apiBaseUrl": "https://api.example.com"}}
+        self.assertEqual(config_tool.to_env(config)["TOWBAR_GATEWAY_DOMAIN"], "control.example.com")
+        config["installation"]["gatewayDomain"] = "other.example.com"
+        with self.assertRaisesRegex(config_tool.ConfigError, "unknown YAML setting"):
+            config_tool.to_env(config)
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "config.yml"
+            config_tool.atomic_write(path, config_tool.yaml.safe_dump(config))
+            with self.assertRaisesRegex(config_tool.ConfigError, "must match"):
+                config_tool.read_yaml(path)
 
     def test_migration_removes_obsolete_proxy_trust_from_existing_config(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -231,6 +243,8 @@ class RuntimeConfigTests(unittest.TestCase):
                 config["integrations"]["gitlab"]["oauthRedirectUri"],
                 "https://towbar-api.example.com/v1/core/gitlab/oauth/callback",
             )
+            self.assertNotIn("gatewayDomain", yml.read_text())
+            self.assertEqual(config_tool.to_env(config)["TOWBAR_GATEWAY_DOMAIN"], "towbar.example.com")
             config_tool.render(yml, env)
             config_tool.compare(yml, env)
             legacy = root / "legacy.env"

@@ -20,7 +20,6 @@ version: 1
 installation:
   mode: public
   appUrl: https://towbar.example.com
-  gatewayDomain: towbar.example.com
   bindAddress: 127.0.0.1
   port: 4021
   temporalUiPort: 8233
@@ -77,6 +76,8 @@ and optional browser observability. Provider JSON documents become
 native YAML maps and lists. Values that are identifiers or secrets remain
 strings even when they contain only digits. Defaults may be omitted; the CLI
 must render the same effective values as the current release.
+
+The gateway hostname is derived from `installation.appUrl`; matching legacy `installation.gatewayDomain` values are removed during migration.
 
 `COMPOSE_PROFILES`, image references, and other installation mechanics are
 derived instead of exposed as duplicate editable settings. The GitLab OAuth
