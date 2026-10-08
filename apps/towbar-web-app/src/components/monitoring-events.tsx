@@ -91,7 +91,7 @@ export const MonitoringEvents = memo(function MonitoringEvents({
 });
 
 export const monitoringEventColor = (type: Event["type"]) =>
-  type === "deployment" ? "var(--accent)" : "var(--warning)";
+  type === "deployment" ? "var(--chart-accent)" : "var(--warning)";
 
 export function MonitoringEventMarker({
   event,
@@ -133,8 +133,13 @@ export function MonitoringEventMarker({
           className="flex size-5 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           <span
-            className="flex size-3.5 items-center justify-center rounded-full text-[9px] font-semibold text-accent-foreground"
-            style={{ background: monitoringEventColor(event.type) }}
+            className="flex size-3.5 items-center justify-center rounded-full text-[9px] font-semibold text-warning-foreground"
+            style={{
+              background:
+                event.type === "deployment"
+                  ? "var(--chart-requested)"
+                  : monitoringEventColor(event.type),
+            }}
           >
             {event.type === "deployment" ? "D" : "R"}
           </span>

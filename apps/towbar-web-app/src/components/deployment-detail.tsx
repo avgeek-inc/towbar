@@ -17,7 +17,7 @@ import {
   Rocket01Icon,
   SecurityCheckIcon,
   ServerStack01Icon,
-  StopCircleIcon,
+  BanIcon,
 } from "@hugeicons/core-free-icons";
 
 import { DeploymentDuration } from "./elapsed-time";
@@ -189,7 +189,7 @@ export function DeploymentDetail() {
     >
       <HugeiconsIcon
         aria-hidden="true"
-        icon={StopCircleIcon}
+        icon={BanIcon}
         className="size-4 shrink-0"
       />
       Cancel
@@ -271,7 +271,7 @@ export function DeploymentDetail() {
                       : item.state === "skipped"
                         ? InformationSquareIcon
                         : item.state === "cancelled"
-                          ? StopCircleIcon
+                          ? BanIcon
                           : AlertCircleIcon
                   }
                 />

@@ -5,7 +5,7 @@ import {
   PlayIcon,
   ReloadIcon,
   SourceCodeIcon,
-  StopIcon,
+  BanIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 
@@ -256,7 +256,7 @@ function actionIcon(action: DeployableAction) {
     case "restart":
       return ReloadIcon;
     case "stop":
-      return StopIcon;
+      return BanIcon;
     case "rollback":
       return Undo02Icon;
   }

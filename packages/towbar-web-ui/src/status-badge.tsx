@@ -8,7 +8,7 @@ import {
   PlayIcon,
   Rocket01Icon,
   ServerStack01Icon,
-  StopIcon,
+  BanIcon,
   RefreshIcon,
   CrownIcon,
   EyeIcon,
@@ -159,7 +159,7 @@ export function StatusBadge({
                 : status === "running" && context === "runtime"
                   ? PlayIcon
                   : status === "stopped" || status === "cancelled"
-                    ? StopIcon
+                    ? BanIcon
                     : variant === "success"
                       ? CheckmarkCircle01Icon
                       : variant === "danger"

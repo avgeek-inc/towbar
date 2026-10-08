@@ -8,7 +8,7 @@ import {
   ArrowRight02Icon,
   CheckmarkCircle01Icon,
   Clock01Icon,
-  StopCircleIcon,
+  BanIcon,
 } from "@hugeicons/core-free-icons";
 import { Accordion } from "@avgeek-oss/design-system/data-display/accordion";
 import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
@@ -71,7 +71,7 @@ export function ProgressChecklistItem({
                 : failed
                   ? AlertCircleIcon
                   : cancelled
-                    ? StopCircleIcon
+                    ? BanIcon
                     : Clock01Icon
             }
           />

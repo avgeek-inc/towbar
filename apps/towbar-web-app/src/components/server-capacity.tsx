@@ -15,6 +15,7 @@ import type {
 import { EmptyState } from "@avgeek-oss/design-system/data-display/empty-state";
 import { Table } from "@avgeek-oss/design-system/data-display/table";
 import { Widget } from "@avgeek-oss/design-system/data-display/widget";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
@@ -272,6 +273,43 @@ function AllocatedCapacityMeter({
   );
 }
 
+export function ServerCapacityCell({
+  label,
+  metric,
+  value,
+  usedPercent,
+  checkedAt,
+}: {
+  label: string;
+  metric: "cpu" | "memory";
+  value: string | null;
+  usedPercent: number | null | undefined;
+  checkedAt: string | null | undefined;
+}) {
+  const percent = checkedAt ? (usedPercent ?? null) : null;
+  return (
+    <CompactMeter
+      label={label}
+      value={percent}
+      valueLabel={
+        percent !== null && checkedAt ? (
+          <TooltipText tooltip={`Recorded ${formatDate(checkedAt)}`}>
+            {percent.toFixed(1)}%
+          </TooltipText>
+        ) : (
+          "Not measured"
+        )
+      }
+      endLabel={<span>{value ?? "Unknown"}</span>}
+      status={
+        metric === "cpu"
+          ? meterStatus(percent ?? 0, 75, 90)
+          : meterStatus(percent ?? 0, 85, 95)
+      }
+    />
+  );
+}
+
 function CapacityValue({
   detail,
   label,
@@ -327,7 +365,7 @@ function CompactMeter({
   label: string;
   status: MeterStatus;
   value: number | null;
-  valueLabel: string;
+  valueLabel: ReactNode;
   endLabel?: ReactNode;
 }) {
   return (

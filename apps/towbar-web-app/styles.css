@@ -7,6 +7,7 @@
   --accent-foreground: oklch(0.21 0.01 90);
   --accent-soft-foreground: oklch(0.45 0.09 90);
   --focus: oklch(0.55 0.105 90);
+  --chart-accent: oklch(0.6 0.12 90);
   --chart-requested: oklch(0.55 0.105 90);
 }
 
@@ -15,5 +16,6 @@
   --accent: oklch(0.86 0.16 90);
   --accent-soft-foreground: var(--accent);
   --focus: var(--accent);
+  --chart-accent: var(--accent);
   --chart-requested: oklch(0.8 0.16 90);
 }
