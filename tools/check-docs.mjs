@@ -193,9 +193,10 @@ async function checkReleaseScreenshots() {
   const names = new Set();
   for (const screenshot of manifest.screenshots) {
     const viewport = screenshot.viewport ?? { width: 1600, height: 900 };
+    const density = screenshot.deviceScaleFactor ?? 2;
     const requiredDimensions = {
-      width: viewport.width * 2,
-      height: viewport.height * 2,
+      width: viewport.width * density,
+      height: viewport.height * density,
     };
     if (names.has(screenshot.name))
       failures.push(`Duplicate release screenshot: ${screenshot.name}`);
@@ -224,7 +225,7 @@ async function checkReleaseScreenshots() {
           actual.height !== requiredDimensions.height
         )
           failures.push(
-            `${theme.file}: release screenshots must be 2x viewport captures (${requiredDimensions.width}x${requiredDimensions.height})`,
+            `${theme.file}: release screenshots must be ${density}x viewport captures (${requiredDimensions.width}x${requiredDimensions.height})`,
           );
       } catch (error) {
         failures.push(`${theme.file}: ${error.message}`);

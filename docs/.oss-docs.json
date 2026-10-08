@@ -2,7 +2,7 @@
   "package": "@avgeek-oss/docs",
   "version": "0.1.3",
   "files": {
-    "docs.json": "0bf62c07dbc85732b9800aec66d145fcc056d93973b088910b58414c5154e116",
+    "docs.json": "d29a225d0eb793d3b4576b62c57ca0c520994bda89e232ee23d14ec9503d3c83",
     "oss-docs.css": "f7ef498fd45df5cf16568117bd2f0367a2ac834289d02e03e1b035c4cddbded0",
     "oss-docs.js": "e917b84d4910df1f9d1fcb3f44ca54d6bdaa1b7655815837eb9ed61502f81fad",
     "snippets/oss/homepage.jsx": "71c40e2d0129a37d9065cb7623414797f5e289a8b4a97a35dfcb58830d981fbd",

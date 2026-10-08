@@ -1,7 +1,7 @@
 {
   "capturedAt": "2026-09-28T07:58:27.470Z",
   "environment": "Local Towbar fixture on localhost:4021; examples are not production results",
-  "viewport": "1600 × 900 CSS pixels by default, rendered at 2× density; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport",
+  "viewport": "1600 × 900 CSS pixels by default, rendered at 2× density unless a screenshot specifies otherwise; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport",
   "screenshots": [
     {
       "name": "analytics-exits",
@@ -473,22 +473,23 @@
       "name": "overview",
       "route": "/",
       "viewport": { "width": 1600, "height": 1100 },
+      "deviceScaleFactor": 4,
       "guides": ["docs/index.mdx", "docs/blog/introducing-towbar.mdx"],
       "themes": [
         {
           "theme": "light",
           "file": "docs/assets/release-v2/overview-light.png",
-          "width": 3200,
-          "height": 2200
+          "width": 6400,
+          "height": 4400
         },
         {
           "theme": "dark",
           "file": "docs/assets/release-v2/overview-dark.png",
-          "width": 3200,
-          "height": 2200
+          "width": 6400,
+          "height": 4400
         }
       ],
-      "capturedAt": "2026-10-08T08:20:15.152Z"
+      "capturedAt": "2026-10-08T09:16:37.590Z"
     },
     {
       "name": "performance",
