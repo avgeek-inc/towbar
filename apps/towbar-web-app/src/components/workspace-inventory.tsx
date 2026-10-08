@@ -78,12 +78,12 @@ function isApp(item: App | Resource): item is App {
   return item.kind === "app" || item.kind === "compose";
 }
 
+function useInventoryLayout() {
+  return useQueryChoice("layout", inventoryLayouts, "server");
+}
+
 function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
-  const [layout, setLayout] = useQueryChoice(
-    "layout",
-    inventoryLayouts,
-    "server",
-  );
+  const [layout, setLayout] = useInventoryLayout();
   return (
     <ToggleButtonGroup
       aria-label={`${kind} view`}
@@ -293,7 +293,7 @@ function DeployableInventoryTable({
   kind,
   servers,
 }: DeployableInventoryProps) {
-  const [layout] = useQueryChoice("layout", inventoryLayouts, "unified");
+  const [layout] = useInventoryLayout();
   const filtered = useInventoryQuery(
     kind === "app" ? "apps" : "resources",
   ).includes("?");
@@ -312,11 +312,26 @@ function DeployableInventoryTable({
         ),
       className:
         kind === "resource"
-          ? "resource-identity-cell w-full min-w-[22rem]"
+          ? "resource-identity-cell w-full min-w-64 2xl:min-w-[22rem]"
           : "w-full min-w-64",
       wrapRowLink: false,
       header: kind === "app" ? "Service" : "Datastore",
       key: "name",
+    },
+    {
+      cell: (item) => (
+        <StatusBadge
+          status={resolveInventoryStatus({
+            activeDeploymentState: activeDeploymentStates.get(item.id),
+            archived: Boolean(item.archivedAt),
+            healthStatus: item.runtimeState.healthStatus,
+            serverReady: item.serverReady,
+          })}
+        />
+      ),
+      className: "w-32",
+      header: "Status",
+      key: "status",
     },
     ...(kind === "app"
       ? [
@@ -374,21 +389,6 @@ function DeployableInventoryTable({
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "defined-memory",
-    },
-    {
-      cell: (item) => (
-        <StatusBadge
-          status={resolveInventoryStatus({
-            activeDeploymentState: activeDeploymentStates.get(item.id),
-            archived: Boolean(item.archivedAt),
-            healthStatus: item.runtimeState.healthStatus,
-            serverReady: item.serverReady,
-          })}
-        />
-      ),
-      className: "w-32",
-      header: "Status",
-      key: "status",
     },
     {
       cell: (item) => <LastSyncedTime value={item.updatedAt} />,
@@ -460,6 +460,16 @@ function ServerInventory({
       className: "w-full min-w-52",
       header: "Server",
       key: "server",
+    },
+    {
+      cell: (server) => (
+        <StatusBadge
+          status={server.archivedAt ? "archived" : server.setupStatus}
+        />
+      ),
+      className: "w-32 whitespace-nowrap",
+      header: "Status",
+      key: "status",
     },
     {
       cell: (server) => (
@@ -545,16 +555,6 @@ function ServerInventory({
       className: "min-w-36",
       header: "Workloads",
       key: "workloads",
-    },
-    {
-      cell: (server) => (
-        <StatusBadge
-          status={server.archivedAt ? "archived" : server.setupStatus}
-        />
-      ),
-      className: "w-32 whitespace-nowrap",
-      header: "Status",
-      key: "status",
     },
     {
       cell: (server) => (

@@ -55,6 +55,17 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     className: "min-w-40",
   },
   {
+    key: "status",
+    header: "Status",
+    cell: (item) => (
+      <StatusBadge
+        status={getDeploymentDisplayStatus(item)}
+        tooltip={deploymentStatusTooltip(item)}
+      />
+    ),
+    className: "w-32 whitespace-nowrap",
+  },
+  {
     key: "deployable",
     header: "Service / Datastore",
     cell: (item) => {
@@ -109,20 +120,17 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     className: "min-w-56",
   },
   {
-    key: "commit",
-    header: "Commit",
-    cell: (item) => (
-      <TypographyCode title={item.commitSha}>
-        {item.commitSha.slice(0, 8)}
-      </TypographyCode>
-    ),
-    className: "min-w-32 whitespace-nowrap",
-  },
-  {
     key: "requested",
     header: "Requested",
     cell: (item) => <RelativeTime label="Requested" value={item.createdAt} />,
     className: "min-w-40 whitespace-nowrap",
+  },
+  {
+    key: "duration",
+    header: "Duration",
+    cell: (item) => <DeploymentDuration deployment={item} />,
+    className: "hidden 2xl:table-cell",
+    headerClassName: "hidden 2xl:table-cell",
   },
   {
     key: "environment",
@@ -138,22 +146,14 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
     headerClassName: "hidden 2xl:table-cell",
   },
   {
-    key: "duration",
-    header: "Duration",
-    cell: (item) => <DeploymentDuration deployment={item} />,
-    className: "hidden 2xl:table-cell",
-    headerClassName: "hidden 2xl:table-cell",
-  },
-  {
-    key: "status",
-    header: "Status",
+    key: "commit",
+    header: "Commit",
     cell: (item) => (
-      <StatusBadge
-        status={getDeploymentDisplayStatus(item)}
-        tooltip={deploymentStatusTooltip(item)}
-      />
+      <TypographyCode title={item.commitSha}>
+        {item.commitSha.slice(0, 8)}
+      </TypographyCode>
     ),
-    className: "w-32 whitespace-nowrap",
+    className: "min-w-32 whitespace-nowrap",
   },
 ];
 

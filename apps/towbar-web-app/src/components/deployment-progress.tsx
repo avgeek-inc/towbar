@@ -111,11 +111,9 @@ export function DeploymentProgress({
             {hasLogs ? (
               <InlineLink
                 href={deploymentHref(deployment, "logs")}
-                className="group/log-link w-fit rounded-sm text-xs"
+                className="w-fit rounded-sm text-xs text-muted"
               >
-                <span className="text-muted underline decoration-dashed decoration-muted/20 underline-offset-2 group-hover/log-link:decoration-muted group-focus-visible/log-link:decoration-muted">
-                  View deployment logs
-                </span>
+                View deployment logs
               </InlineLink>
             ) : null}
           </ProgressChecklistItem>

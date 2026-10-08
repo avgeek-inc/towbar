@@ -49,6 +49,21 @@ function appColumns(
       key: "name",
     },
     {
+      cell: (app) => (
+        <StatusBadge
+          status={resolveInventoryStatus({
+            activeDeploymentState: activeDeploymentStates.get(app.id),
+            archived: Boolean(app.archivedAt),
+            healthStatus: app.runtimeState.healthStatus,
+            serverReady: app.serverReady,
+          })}
+        />
+      ),
+      className: "w-32",
+      header: "Status",
+      key: "status",
+    },
+    {
       cell: (app) => serviceTypeLabel(app),
       className: "min-w-28 whitespace-nowrap",
       header: "Type",
@@ -99,21 +114,6 @@ function appColumns(
       key: "memory",
     },
     {
-      cell: (app) => (
-        <StatusBadge
-          status={resolveInventoryStatus({
-            activeDeploymentState: activeDeploymentStates.get(app.id),
-            archived: Boolean(app.archivedAt),
-            healthStatus: app.runtimeState.healthStatus,
-            serverReady: app.serverReady,
-          })}
-        />
-      ),
-      className: "w-32",
-      header: "Status",
-      key: "status",
-    },
-    {
       cell: (app) => <LastSyncedTime value={app.updatedAt} />,
       className: "min-w-48 whitespace-nowrap",
       header: "Last synced",
@@ -130,10 +130,25 @@ function resourceColumns(
   return [
     {
       cell: (resource) => <ResourceIdentity resource={resource} />,
-      className: "resource-identity-cell min-w-[22rem]",
+      className: "resource-identity-cell min-w-64 2xl:min-w-[22rem]",
       wrapRowLink: false,
       header: "Datastore",
       key: "name",
+    },
+    {
+      cell: (resource) => (
+        <StatusBadge
+          status={resolveInventoryStatus({
+            activeDeploymentState: activeDeploymentStates.get(resource.id),
+            archived: Boolean(resource.archivedAt),
+            healthStatus: resource.runtimeState.healthStatus,
+            serverReady: resource.serverReady,
+          })}
+        />
+      ),
+      className: "w-32",
+      header: "Status",
+      key: "status",
     },
     {
       cell: (resource) => (
@@ -180,21 +195,6 @@ function resourceColumns(
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "memory",
-    },
-    {
-      cell: (resource) => (
-        <StatusBadge
-          status={resolveInventoryStatus({
-            activeDeploymentState: activeDeploymentStates.get(resource.id),
-            archived: Boolean(resource.archivedAt),
-            healthStatus: resource.runtimeState.healthStatus,
-            serverReady: resource.serverReady,
-          })}
-        />
-      ),
-      className: "w-32",
-      header: "Status",
-      key: "status",
     },
     {
       cell: (resource) => <LastSyncedTime value={resource.updatedAt} />,

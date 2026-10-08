@@ -197,6 +197,7 @@ export function NotificationDeliveries() {
         </TableCellStack>
       ),
     },
+    { key: "status", header: "Status", cell: deliveryStatus },
     {
       key: "entity",
       header: "Entity",
@@ -255,7 +256,6 @@ export function NotificationDeliveries() {
         <DeliveryCategory category={item.category} type={item.type} />
       ),
     },
-    { key: "status", header: "Status", cell: deliveryStatus },
     {
       key: "queued",
       header: "Queued",

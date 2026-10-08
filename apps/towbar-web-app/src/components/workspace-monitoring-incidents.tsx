@@ -68,6 +68,18 @@ export function WorkspaceIncidents() {
       ),
     },
     {
+      key: "status",
+      header: "State",
+      cell: ({ incident }) => <ScoutIncidentStateChip incident={incident} />,
+    },
+    {
+      key: "severity",
+      header: "Severity",
+      cell: ({ incident }) => (
+        <ScoutIncidentSeverityChip severity={incident.severity} />
+      ),
+    },
+    {
       key: "entity",
       header: "Entity",
       cell: (row) => (
@@ -83,18 +95,6 @@ export function WorkspaceIncidents() {
               : "Server"}
           </TableCellDescription>
         </TableCellStack>
-      ),
-    },
-    {
-      key: "status",
-      header: "State",
-      cell: ({ incident }) => <ScoutIncidentStateChip incident={incident} />,
-    },
-    {
-      key: "severity",
-      header: "Severity",
-      cell: ({ incident }) => (
-        <ScoutIncidentSeverityChip severity={incident.severity} />
       ),
     },
     {

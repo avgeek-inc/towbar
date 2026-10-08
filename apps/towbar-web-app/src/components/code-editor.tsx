@@ -116,7 +116,7 @@ export default function CodeEditor({
               backgroundColor: embedded
                 ? "transparent"
                 : "var(--surface-secondary)",
-              borderRadius: "var(--radius-lg)",
+              borderRadius: embedded ? "0" : "var(--radius-lg)",
               overflow: "hidden",
             },
             "&.cm-focused": {
@@ -132,7 +132,7 @@ export default function CodeEditor({
               maxHeight: "480px",
             },
             ".cm-content": {
-              padding: embedded ? "0" : "12px 0",
+              padding: embedded ? "16px 0" : "12px 0",
               caretColor: "var(--foreground)",
             },
             ".cm-line": { padding: "0 12px" },
@@ -142,7 +142,7 @@ export default function CodeEditor({
                 : "var(--surface-secondary)",
               color: "var(--muted)",
               border: "none",
-              paddingLeft: embedded ? "0" : "8px",
+              paddingLeft: "8px",
             },
             ".cm-activeLine": { backgroundColor: "var(--surface-tertiary)" },
             ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {

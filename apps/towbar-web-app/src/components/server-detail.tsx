@@ -266,6 +266,20 @@ export function ServerDetail() {
       className: "min-w-36",
     },
     {
+      key: "status",
+      header: "Status",
+      cell: (check) => (
+        <StatusBadge
+          status={check.status}
+          tooltip={
+            check.finishedAt
+              ? `Server check ${check.status}. Finished ${formatDate(check.finishedAt)}.`
+              : `Server check ${check.status} is still in progress.`
+          }
+        />
+      ),
+    },
+    {
       key: "category",
       header: "Category",
       cell: (check) =>
@@ -312,20 +326,6 @@ export function ServerDetail() {
           "In progress"
         ),
       className: "whitespace-nowrap",
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (check) => (
-        <StatusBadge
-          status={check.status}
-          tooltip={
-            check.finishedAt
-              ? `Server check ${check.status}. Finished ${formatDate(check.finishedAt)}.`
-              : `Server check ${check.status} is still in progress.`
-          }
-        />
-      ),
     },
   ];
   const orphanColumns: ResourceTableColumn<OrphanItem>[] = [

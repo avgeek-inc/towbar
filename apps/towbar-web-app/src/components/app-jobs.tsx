@@ -57,18 +57,6 @@ export function AppJobs({ appId }: { appId: string }) {
             ),
           },
           {
-            key: "schedule",
-            header: "Schedule (UTC)",
-            cell: (job) => <TypographyCode>{job.schedule.cron}</TypographyCode>,
-          },
-          {
-            key: "timeout",
-            header: "Time limit",
-            cell: (job) => (
-              <span className="tabular-nums">{job.timeoutSeconds}s</span>
-            ),
-          },
-          {
             key: "status",
             header: "Status",
             cell: (job) => (
@@ -92,6 +80,18 @@ export function AppJobs({ appId }: { appId: string }) {
                         : "Awaiting deployment"}
                 </Chip.Label>
               </Chip>
+            ),
+          },
+          {
+            key: "schedule",
+            header: "Schedule (UTC)",
+            cell: (job) => <TypographyCode>{job.schedule.cron}</TypographyCode>,
+          },
+          {
+            key: "timeout",
+            header: "Time limit",
+            cell: (job) => (
+              <span className="tabular-nums">{job.timeoutSeconds}s</span>
             ),
           },
           {
@@ -144,6 +144,11 @@ export function AppJobs({ appId }: { appId: string }) {
           columns={[
             { key: "job", header: "Job", cell: (run) => run.request.job.name },
             {
+              key: "status",
+              header: "Status",
+              cell: (run) => <StatusBadge status={run.state} />,
+            },
+            {
               key: "trigger",
               header: "Trigger",
               cell: (run) => (run.request.scheduledAt ? "Scheduled" : "Manual"),
@@ -156,11 +161,6 @@ export function AppJobs({ appId }: { appId: string }) {
                   {formatDate(run.createdAt)}
                 </span>
               ),
-            },
-            {
-              key: "status",
-              header: "Status",
-              cell: (run) => <StatusBadge status={run.state} />,
             },
             {
               key: "output",

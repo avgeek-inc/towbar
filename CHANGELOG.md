@@ -3,6 +3,23 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.33] - 2026-10-08
+
+### Changed
+
+- Show status immediately after the row identity across inventory, operation,
+  monitoring, and notification tables. Keep deployment duration beside the
+  requested time, and move commit details to the end of history tables.
+- Keep repository status visible below the wide-screen breakpoint and reduce
+  datastore identity column width on smaller desktop screens.
+
+### Fixed
+
+- Make the default service and datastore inventory actually group by server,
+  matching the selected view toggle.
+- Move manifest code padding inside the scrolling editor so the first and last
+  lines stay inset, and remove the permanent deployment-log link underline.
+
 ## [2.0.32] - 2026-10-08
 
 ### Changed

@@ -37,6 +37,17 @@ export function AppStorage({ appId }: { appId: string }) {
       columns={[
         { key: "name", header: "Volume", cell: (volume) => volume.name },
         {
+          key: "status",
+          header: "Status",
+          cell: (volume) => (
+            <Chip color={statuses[volume.status].color} size="sm">
+              <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
+                {statuses[volume.status].label}
+              </Chip.Label>
+            </Chip>
+          ),
+        },
+        {
           key: "path",
           header: "Container path",
           cell: (volume) => <TypographyCode>{volume.mountPath}</TypographyCode>,
@@ -48,17 +59,6 @@ export function AppStorage({ appId }: { appId: string }) {
             <InlineLink href={`/servers/${serverId}/overview`}>
               {serverIp}
             </InlineLink>
-          ),
-        },
-        {
-          key: "status",
-          header: "Status",
-          cell: (volume) => (
-            <Chip color={statuses[volume.status].color} size="sm">
-              <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
-                {statuses[volume.status].label}
-              </Chip.Label>
-            </Chip>
           ),
         },
       ]}
