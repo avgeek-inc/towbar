@@ -159,7 +159,7 @@ export function SourceEnvironmentManifest({
               <CodeBlock.Filename>{file.path}</CodeBlock.Filename>
               <CodeBlock.CopyButton code={file.content} />
             </CodeBlock.Header>
-            <Widget.Content>
+            <Widget.Content className="p-0">
               <CodeEditor
                 ariaLabel={`${file.path} code`}
                 language="yaml"

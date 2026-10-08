@@ -109,6 +109,12 @@ export function SourceIndex() {
       className: "w-full min-w-56",
     },
     {
+      key: "status",
+      header: "Status",
+      className: "whitespace-nowrap",
+      cell: (source) => <StatusBadge status={source.status} />,
+    },
+    {
       key: "inventory",
       header: "Manifest inventories",
       className: "min-w-60 whitespace-nowrap",
@@ -155,13 +161,6 @@ export function SourceIndex() {
       header: "Last synced",
       cell: (source) => <LastSyncedTime value={source.updatedAt} />,
       className: "min-w-40 whitespace-nowrap",
-    },
-    {
-      key: "status",
-      header: "Status",
-      headerClassName: "hidden 2xl:table-cell",
-      className: "hidden 2xl:table-cell",
-      cell: (source) => <StatusBadge status={source.status} />,
     },
   ];
 

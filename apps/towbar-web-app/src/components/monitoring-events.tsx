@@ -21,11 +21,6 @@ const columns: ResourceTableColumn<Event>[] = [
       event.type === "deployment" ? "Deployment" : "Container restart",
   },
   {
-    key: "reference",
-    header: "Reference",
-    cell: (event) => <TypographyCode>{event.id.slice(0, 8)}</TypographyCode>,
-  },
-  {
     key: "status",
     header: "Status",
     cell: (event) =>
@@ -34,6 +29,11 @@ const columns: ResourceTableColumn<Event>[] = [
       ) : (
         <StatusBadge status="restarted" />
       ),
+  },
+  {
+    key: "reference",
+    header: "Reference",
+    cell: (event) => <TypographyCode>{event.id.slice(0, 8)}</TypographyCode>,
   },
   {
     key: "time",

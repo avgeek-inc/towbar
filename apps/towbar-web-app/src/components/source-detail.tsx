@@ -145,20 +145,18 @@ export function SourceDetail() {
       className: "min-w-36",
     },
     {
-      key: "commit",
-      header: "Commit",
+      key: "status",
+      header: "Status",
       cell: (sync) => (
-        <TypographyCode
-          className="whitespace-nowrap"
-          title={sync.commitSha ?? undefined}
-        >
-          {sync.commitSha?.slice(0, 12) ??
-            (sync.status === "queued" || sync.status === "running"
-              ? "Resolving revision"
-              : "Revision not recorded")}
-        </TypographyCode>
+        <StatusBadge
+          status={sync.status}
+          tooltip={
+            sync.finishedAt
+              ? `Repository sync ${sync.status}. Finished ${formatDate(sync.finishedAt)}.`
+              : `Repository sync ${sync.status}. Requested ${formatDate(sync.createdAt)}.`
+          }
+        />
       ),
-      className: "w-full min-w-44",
     },
     {
       key: "result",
@@ -184,18 +182,20 @@ export function SourceDetail() {
       cell: (sync) => <ElapsedTime {...sync} />,
     },
     {
-      key: "status",
-      header: "Status",
+      key: "commit",
+      header: "Commit",
       cell: (sync) => (
-        <StatusBadge
-          status={sync.status}
-          tooltip={
-            sync.finishedAt
-              ? `Repository sync ${sync.status}. Finished ${formatDate(sync.finishedAt)}.`
-              : `Repository sync ${sync.status}. Requested ${formatDate(sync.createdAt)}.`
-          }
-        />
+        <TypographyCode
+          className="whitespace-nowrap"
+          title={sync.commitSha ?? undefined}
+        >
+          {sync.commitSha?.slice(0, 12) ??
+            (sync.status === "queued" || sync.status === "running"
+              ? "Resolving revision"
+              : "Revision not recorded")}
+        </TypographyCode>
       ),
+      className: "w-full min-w-44",
     },
   ];
 

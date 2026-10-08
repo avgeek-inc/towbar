@@ -49,14 +49,25 @@ export function DeploymentTable({
   );
   const columns: ResourceTableColumn<Deployment>[] = [
     {
-      key: "commit",
-      header: "Commit",
+      key: "id",
+      header: "Deployment ID",
       cell: (deployment) => (
-        <TypographyCode title={deployment.commitSha}>
-          {deployment.commitSha.slice(0, 12)}
+        <TypographyCode title={deployment.id}>
+          {deployment.id.slice(0, 8)}
         </TypographyCode>
       ),
-      className: "min-w-40",
+      className: "min-w-32",
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (deployment) => (
+        <StatusBadge
+          status={getDeploymentDisplayStatus(deployment)}
+          tooltip={deploymentStatusTooltip(deployment)}
+        />
+      ),
+      className: "whitespace-nowrap",
     },
     {
       key: "trigger",
@@ -84,15 +95,14 @@ export function DeploymentTable({
       headerClassName: "hidden md:table-cell",
     },
     {
-      key: "status",
-      header: "Status",
+      key: "commit",
+      header: "Commit",
       cell: (deployment) => (
-        <StatusBadge
-          status={getDeploymentDisplayStatus(deployment)}
-          tooltip={deploymentStatusTooltip(deployment)}
-        />
+        <TypographyCode title={deployment.commitSha}>
+          {deployment.commitSha.slice(0, 12)}
+        </TypographyCode>
       ),
-      className: "whitespace-nowrap",
+      className: "min-w-40",
     },
   ];
 

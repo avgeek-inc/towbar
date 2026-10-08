@@ -144,6 +144,15 @@ export function ResourceRestoreConfiguration({
       className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
+      key: "assurance",
+      header: "Restore assurance",
+      cell: (item) => (
+        <StatusBadge
+          status={assuranceByBackup.get(item.id)?.status ?? "unknown"}
+        />
+      ),
+    },
+    {
       key: "size",
       header: "Size",
       cell: (item) => formatBytes(item.result.sizeBytes),
@@ -162,15 +171,6 @@ export function ResourceRestoreConfiguration({
       key: "format",
       header: "Format",
       cell: (item) => formatBackupFormat(item.result.format),
-    },
-    {
-      key: "assurance",
-      header: "Restore assurance",
-      cell: (item) => (
-        <StatusBadge
-          status={assuranceByBackup.get(item.id)?.status ?? "unknown"}
-        />
-      ),
     },
     {
       key: "actions",
@@ -446,14 +446,6 @@ function RestoreHistory({
   );
   const restoreColumns: ResourceTableColumn<ResourceOperation>[] = [
     {
-      key: "created",
-      header: "Created",
-      cell: (operation) => (
-        <RelativeTime label="Created" value={operation.createdAt} />
-      ),
-      className: "min-w-48 whitespace-nowrap tabular-nums",
-    },
-    {
       key: "restore-id",
       header: "Restore ID",
       cell: (operation) => (
@@ -465,15 +457,22 @@ function RestoreHistory({
       headerClassName: "whitespace-nowrap",
     },
     {
-      key: "reason",
-      header: "Reason",
-      cell: (operation) => readString(operation.request.reason) ?? "—",
-      className: "min-w-64",
+      key: "status",
+      header: "Status",
+      cell: (operation) => <StatusBadge status={operation.state} />,
     },
     {
       key: "phase",
       header: "Phase",
       cell: (operation) => formatPhase(operation.phase),
+    },
+    {
+      key: "created",
+      header: "Created",
+      cell: (operation) => (
+        <RelativeTime label="Created" value={operation.createdAt} />
+      ),
+      className: "min-w-48 whitespace-nowrap tabular-nums",
     },
     {
       key: "duration",
@@ -483,9 +482,10 @@ function RestoreHistory({
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (operation) => <StatusBadge status={operation.state} />,
+      key: "reason",
+      header: "Reason",
+      cell: (operation) => readString(operation.request.reason) ?? "—",
+      className: "min-w-64",
     },
     {
       key: "rollback",

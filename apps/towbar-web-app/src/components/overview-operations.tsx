@@ -156,10 +156,15 @@ function deploymentColumns(
       },
     },
     {
-      key: "environment",
-      header: "Environment",
+      key: "status",
+      header: "Status",
       className: "whitespace-nowrap",
-      cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
+      cell: (item) => (
+        <StatusBadge
+          status={getDeploymentDisplayStatus(item)}
+          tooltip={deploymentStatusTooltip(item)}
+        />
+      ),
     },
     {
       key: "id",
@@ -170,15 +175,10 @@ function deploymentColumns(
       ),
     },
     {
-      key: "status",
-      header: "Status",
+      key: "environment",
+      header: "Environment",
       className: "whitespace-nowrap",
-      cell: (item) => (
-        <StatusBadge
-          status={getDeploymentDisplayStatus(item)}
-          tooltip={deploymentStatusTooltip(item)}
-        />
-      ),
+      cell: (item) => <DeploymentEnvironmentChip deployment={item} />,
     },
     {
       key: "requested",

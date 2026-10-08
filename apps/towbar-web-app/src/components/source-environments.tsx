@@ -76,6 +76,31 @@ export function SourceEnvironments({
             cell: (item) => <EnvironmentChip name={item.name} />,
           },
           {
+            key: "configuration",
+            header: "Last result",
+            cell: (item) => (
+              <StatusBadge
+                status={
+                  item.disconnectedAt
+                    ? "disconnected"
+                    : item.latestSyncStatus === "never"
+                      ? "pending"
+                      : item.latestSyncStatus
+                }
+                label={
+                  item.disconnectedAt
+                    ? "Disconnected"
+                    : item.latestSyncStatus === "never"
+                      ? "Not synced"
+                      : item.latestSyncStatus === "succeeded"
+                        ? "Succeeded"
+                        : undefined
+                }
+                tooltip={sourceEnvironmentStatusTooltip(item)}
+              />
+            ),
+          },
+          {
             key: "branch",
             header: "Branch",
             cell: (item) => (
@@ -112,31 +137,6 @@ export function SourceEnvironments({
               ) : (
                 <StatusBadge status="disabled" />
               ),
-          },
-          {
-            key: "configuration",
-            header: "Last result",
-            cell: (item) => (
-              <StatusBadge
-                status={
-                  item.disconnectedAt
-                    ? "disconnected"
-                    : item.latestSyncStatus === "never"
-                      ? "pending"
-                      : item.latestSyncStatus
-                }
-                label={
-                  item.disconnectedAt
-                    ? "Disconnected"
-                    : item.latestSyncStatus === "never"
-                      ? "Not synced"
-                      : item.latestSyncStatus === "succeeded"
-                        ? "Succeeded"
-                        : undefined
-                }
-                tooltip={sourceEnvironmentStatusTooltip(item)}
-              />
-            ),
           },
           {
             key: "lastSynced",

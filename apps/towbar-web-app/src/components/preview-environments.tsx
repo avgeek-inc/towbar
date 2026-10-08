@@ -44,6 +44,17 @@ export function PreviewEnvironments({
       ),
     },
     {
+      key: "status",
+      header: "Status",
+      className: "min-w-32 whitespace-nowrap",
+      cell: (preview) => (
+        <StatusBadge
+          status={preview.status}
+          tooltip={previewCleanupTooltip(preview)}
+        />
+      ),
+    },
+    {
       key: "url",
       header: "URL",
       className: "w-56 max-w-56",
@@ -78,16 +89,6 @@ export function PreviewEnvironments({
       ),
     },
     {
-      key: "commit",
-      header: "Commit",
-      className: "whitespace-nowrap",
-      cell: (preview) => (
-        <TypographyCode title={preview.latestCommitSha}>
-          {preview.latestCommitSha.slice(0, 12)}
-        </TypographyCode>
-      ),
-    },
-    {
       key: "deployment",
       header: "Deployment",
       className: "min-w-36 whitespace-nowrap",
@@ -118,14 +119,13 @@ export function PreviewEnvironments({
       ),
     },
     {
-      key: "status",
-      header: "Status",
-      className: "min-w-56",
+      key: "commit",
+      header: "Commit",
+      className: "whitespace-nowrap",
       cell: (preview) => (
-        <StatusBadge
-          status={preview.status}
-          tooltip={previewCleanupTooltip(preview)}
-        />
+        <TypographyCode title={preview.latestCommitSha}>
+          {preview.latestCommitSha.slice(0, 12)}
+        </TypographyCode>
       ),
     },
     {
