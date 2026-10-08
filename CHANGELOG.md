@@ -3,6 +3,26 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.35] - 2026-10-09
+
+### Changed
+
+- Show Scout Agent CPU and memory summaries as area charts with individual
+  tooltips and a 30-minute range in the column heading.
+- Keep CPU and memory meters compact across server, service, datastore and
+  repository tables. Show deployment type and environment in server workload
+  tables, place IP after memory capacity, and show sync status before branch.
+- Use the container-only Towbar logo, native Sketch favicon and social card,
+  and higher-resolution Scout artwork. Include the editable branding source.
+- Separate dashboard and public API origins, use YAML for runtime configuration,
+  and derive the gateway domain from the dashboard URL.
+
+### Fixed
+
+- Make AWS logos black in light mode and emphasize repository names after the
+  owner prefix.
+- Remove proxy trust configuration and initialize runtime YAML directly.
+
 ## [2.0.34] - 2026-10-08
 
 ### Changed

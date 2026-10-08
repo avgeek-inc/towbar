@@ -55,7 +55,11 @@ export function CloudProviderLogo({
       loading="eager"
       decoding="sync"
       unoptimized
-      className={cn("size-4 shrink-0 object-contain", className)}
+      className={cn(
+        "size-4 shrink-0 object-contain",
+        normalized === "aws" && "brightness-0 dark:brightness-100",
+        className,
+      )}
     />
   );
 }

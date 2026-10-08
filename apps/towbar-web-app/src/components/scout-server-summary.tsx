@@ -1,7 +1,8 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useId } from "react";
 import type { Server } from "@workspace/towbar-web-client";
+import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { InlineLink } from "./page-parts";
 
 type Summary = NonNullable<Server["scout"]>;
@@ -15,14 +16,19 @@ function Sparkline({
   metric: "cpuPercent" | "memoryPercent";
   label: string;
 }) {
+  const fillId = useId();
   const start = Date.parse(summary.start),
     end = Date.parse(summary.end);
   const paths = { normal: "", high: "" };
+  const areas = { normal: "", high: "" };
   type Point = { at: number; x: number; y: number; value: number };
   let previous: Point | null = null;
   const segment = (from: Point, to: Point, high: boolean) => {
-    paths[high ? "high" : "normal"] +=
+    const tone = high ? "high" : "normal";
+    paths[tone] +=
       `M${from.x.toFixed(2)},${from.y.toFixed(2)}L${to.x.toFixed(2)},${to.y.toFixed(2)} `;
+    areas[tone] +=
+      `M${from.x.toFixed(2)},20L${from.x.toFixed(2)},${from.y.toFixed(2)}L${to.x.toFixed(2)},${to.y.toFixed(2)}L${to.x.toFixed(2)},20Z `;
   };
   for (const point of summary.points) {
     const value = point[metric],
@@ -59,33 +65,59 @@ function Sparkline({
   const description = `${label} usage over the last 30 minutes`;
 
   return (
-    <svg
-      width="120"
-      height="22"
-      viewBox="0 0 120 22"
-      role="img"
-      aria-label={description}
-      className="block shrink-0"
-    >
-      <title>{description}</title>
-      <path d="M2,20 H118" stroke="var(--muted)" opacity="0.12" />
-      <path
-        d={paths.normal}
-        fill="none"
-        stroke="var(--success)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d={paths.high}
-        fill="none"
-        stroke="var(--danger)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <TooltipText tooltip={description} className="block w-fit" tabIndex={0}>
+      <svg
+        width="120"
+        height="22"
+        viewBox="0 0 120 22"
+        role="img"
+        aria-label={description}
+        className="block shrink-0"
+      >
+        <defs>
+          {(["normal", "high"] as const).map((tone) => (
+            <linearGradient
+              key={tone}
+              id={`${fillId}-${tone}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stopColor={tone === "high" ? "var(--danger)" : "var(--success)"}
+                stopOpacity="0.3"
+              />
+              <stop
+                offset="100%"
+                stopColor={tone === "high" ? "var(--danger)" : "var(--success)"}
+                stopOpacity="0.04"
+              />
+            </linearGradient>
+          ))}
+        </defs>
+        <path d={areas.normal} fill={`url(#${fillId}-normal)`} />
+        <path d={areas.high} fill={`url(#${fillId}-high)`} />
+        <path d="M2,20 H118" stroke="var(--muted)" opacity="0.12" />
+        <path
+          d={paths.normal}
+          fill="none"
+          stroke="var(--success)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d={paths.high}
+          fill="none"
+          stroke="var(--danger)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </TooltipText>
   );
 }
 
@@ -104,7 +136,7 @@ export const ScoutServerSummary = memo(function ScoutServerSummary({
   return (
     <InlineLink
       href={`/servers/${server.id}/performance`}
-      className="block min-w-30 no-underline"
+      className="grid min-w-30 gap-0 no-underline"
       aria-label={`Scout Agent for ${server.canonicalIp}: ${online ? "CPU and memory over the last 30 minutes" : "Inactive"}`}
     >
       {hasData ? (

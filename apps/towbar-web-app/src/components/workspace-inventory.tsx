@@ -372,7 +372,7 @@ function DeployableInventoryTable({
           runtime={runtimeById.get(item.id)}
         />
       ),
-      className: "hidden min-w-36 whitespace-nowrap 2xl:table-cell",
+      className: "hidden min-w-44 whitespace-nowrap 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "defined-cpu",
@@ -384,7 +384,7 @@ function DeployableInventoryTable({
           runtime={runtimeById.get(item.id)}
         />
       ),
-      className: "hidden min-w-40 whitespace-nowrap 2xl:table-cell",
+      className: "hidden min-w-44 whitespace-nowrap 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "defined-memory",
@@ -471,19 +471,9 @@ function ServerInventory({
       key: "status",
     },
     {
-      cell: (server) => (
-        <span className="whitespace-nowrap tabular-nums">
-          {server.canonicalIp}
-        </span>
-      ),
-      className: "min-w-40",
-      header: "IP",
-      key: "ip",
-    },
-    {
       cell: (server) => <ScoutServerSummary server={server} />,
       className: "min-w-40",
-      header: "Scout Agent",
+      header: "Scout Agent (30m)",
       key: "scout",
     },
     {
@@ -500,7 +490,7 @@ function ServerInventory({
           checkedAt={capacityByServer.get(server.id)?.checkedAt}
         />
       ),
-      className: "min-w-48 whitespace-nowrap tabular-nums",
+      className: "min-w-44 whitespace-nowrap tabular-nums",
       header: "CPU capacity",
       key: "max-cpu",
     },
@@ -518,9 +508,19 @@ function ServerInventory({
           checkedAt={capacityByServer.get(server.id)?.checkedAt}
         />
       ),
-      className: "min-w-48 whitespace-nowrap tabular-nums",
+      className: "min-w-44 whitespace-nowrap tabular-nums",
       header: "Memory capacity",
       key: "max-memory",
+    },
+    {
+      cell: (server) => (
+        <span className="whitespace-nowrap tabular-nums">
+          {server.canonicalIp}
+        </span>
+      ),
+      className: "min-w-40",
+      header: "IP",
+      key: "ip",
     },
     {
       cell: (server) => {

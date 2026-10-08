@@ -20,6 +20,8 @@ import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
 
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
+import { InstanceEnvironmentLabel } from "./instance-environment-label";
+import { serviceTypeLabel } from "./service-type";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
 import { useApiQuery } from "@/hooks/use-api-query";
 import {
@@ -153,6 +155,8 @@ export function ServerDeployableTable({
           <Table.Header>
             <Table.Column isRowHeader>{label}</Table.Column>
             <Table.Column>Health</Table.Column>
+            <Table.Column>Deployment type</Table.Column>
+            <Table.Column>Environment</Table.Column>
             <Table.Column>Allocated CPU</Table.Column>
             <Table.Column>Allocated Memory</Table.Column>
             <Table.Column className="text-right">Restarts</Table.Column>
@@ -177,6 +181,12 @@ export function ServerDeployableTable({
                   </Table.Cell>
                   <Table.Cell>
                     <StatusBadge status={healthStatus} />
+                  </Table.Cell>
+                  <Table.Cell className="min-w-36 whitespace-nowrap">
+                    {isApp(item) ? serviceTypeLabel(item) : "OCI image"}
+                  </Table.Cell>
+                  <Table.Cell className="min-w-32">
+                    <InstanceEnvironmentLabel environment={item.environment} />
                   </Table.Cell>
                   <Table.Cell>
                     <DefinedCpuCapacity
@@ -369,7 +379,7 @@ function CompactMeter({
   endLabel?: ReactNode;
 }) {
   return (
-    <div className="grid min-w-36 gap-1.5">
+    <div className="grid w-36 gap-1.5">
       <span className="flex items-center justify-between gap-3 whitespace-nowrap text-xs tabular-nums">
         <span>{valueLabel}</span>
         {endLabel}

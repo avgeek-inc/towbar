@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { CpuIcon, RamMemoryIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -92,7 +93,10 @@ function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
         height={16}
         loading="eager"
         decoding="sync"
-        className="h-[1em] w-auto object-contain"
+        className={cn(
+          "h-[1em] w-auto object-contain",
+          provider === "aws" && "brightness-0 dark:brightness-100",
+        )}
         unoptimized
       />
     </TooltipText>
