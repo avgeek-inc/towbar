@@ -83,7 +83,7 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
               <LineChart.ReferenceLine
                 key={index}
                 segment={segment}
-                stroke="var(--accent)"
+                stroke="var(--chart-accent)"
                 strokeDasharray="2 5"
                 strokeOpacity={0.6}
                 strokeWidth={2}
@@ -92,11 +92,11 @@ export const ScoutIncidentChart = memo(function ScoutIncidentChart({
             <LineChart.Line
               dataKey="value"
               name={metric.label}
-              stroke="var(--accent)"
+              stroke="var(--chart-accent)"
               strokeWidth={2}
               dot={
                 data.filter((point) => point.value !== null).length === 1
-                  ? { r: 4, fill: "var(--accent)", strokeWidth: 0 }
+                  ? { r: 4, fill: "var(--chart-accent)", strokeWidth: 0 }
                   : false
               }
               activeDot={{ r: 4 }}

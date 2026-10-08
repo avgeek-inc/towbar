@@ -34,10 +34,6 @@ import {
   type ResourceTableColumn,
 } from "@avgeek-oss/design-system/patterns/resource-table";
 import { StatusBadge } from "@workspace/towbar-web-ui/status-badge";
-import {
-  TableCellDescription,
-  TableCellStack,
-} from "@avgeek-oss/design-system/data-display/table-cell-text";
 import { ButtonLink } from "@avgeek-oss/design-system/buttons/button";
 import {
   ToggleButton,
@@ -51,7 +47,11 @@ import {
   getActiveDeploymentStates,
   resolveInventoryStatus,
 } from "@/lib/inventory-status";
-import { DefinedCpuCapacity, DefinedMemoryCapacity } from "./server-capacity";
+import {
+  DefinedCpuCapacity,
+  DefinedMemoryCapacity,
+  ServerCapacityCell,
+} from "./server-capacity";
 import {
   InventoryRuntimeCapacity,
   useInventoryRuntimeCapacity,
@@ -59,7 +59,6 @@ import {
 } from "./inventory-runtime-capacity";
 import { formatBytes } from "./runtime-operations";
 import { LastSyncedTime, RelativeTime } from "./last-synced-time";
-import { formatDate } from "./dashboard-overview";
 import { ScoutServerSummary } from "./scout-server-summary";
 import { InstanceEnvironmentLabel } from "./instance-environment-label";
 import { ServerIpLink } from "./source-inventory";
@@ -490,6 +489,8 @@ function ServerInventory({
     {
       cell: (server) => (
         <ServerCapacityCell
+          label={`${server.name ?? server.canonicalIp} CPU used`}
+          metric="cpu"
           value={
             server.hardware?.cpuCount
               ? `${server.hardware.cpuCount} vCPU`
@@ -499,13 +500,15 @@ function ServerInventory({
           checkedAt={capacityByServer.get(server.id)?.checkedAt}
         />
       ),
-      className: "min-w-32 whitespace-nowrap tabular-nums",
+      className: "min-w-48 whitespace-nowrap tabular-nums",
       header: "CPU capacity",
       key: "max-cpu",
     },
     {
       cell: (server) => (
         <ServerCapacityCell
+          label={`${server.name ?? server.canonicalIp} memory used`}
+          metric="memory"
           value={
             server.hardware?.memoryBytes
               ? formatBytes(server.hardware.memoryBytes)
@@ -515,7 +518,7 @@ function ServerInventory({
           checkedAt={capacityByServer.get(server.id)?.checkedAt}
         />
       ),
-      className: "min-w-36 whitespace-nowrap tabular-nums",
+      className: "min-w-48 whitespace-nowrap tabular-nums",
       header: "Memory capacity",
       key: "max-memory",
     },
@@ -583,37 +586,6 @@ function ServerInventory({
       tableClassName="min-w-[680px] 2xl:min-w-[1120px]"
     />
   );
-}
-
-function ServerCapacityCell({
-  value,
-  usedPercent,
-  checkedAt,
-}: {
-  value: string | null;
-  usedPercent: number | null | undefined;
-  checkedAt: string | null | undefined;
-}) {
-  const hasUsage =
-    usedPercent !== null && usedPercent !== undefined && checkedAt;
-  return (
-    <TableCellStack>
-      <span>{value ?? "Unknown"}</span>
-      <TableCellDescription>
-        {hasUsage ? (
-          <TooltipText tooltip={`Recorded ${formatDate(checkedAt)}`}>
-            {formatUsagePercent(usedPercent)}% used
-          </TooltipText>
-        ) : (
-          "Not measured"
-        )}
-      </TableCellDescription>
-    </TableCellStack>
-  );
-}
-
-function formatUsagePercent(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function countBy<T>(items: T[], getKey: (item: T) => string) {

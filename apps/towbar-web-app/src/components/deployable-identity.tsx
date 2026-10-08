@@ -50,9 +50,9 @@ export function AppIdentity({
   const primaryDomain = domains[0];
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-3">
+    <span className="flex w-full min-w-0 items-center gap-3">
       <ServiceLogo app={app} />
-      <TableCellStack className="justify-items-start">
+      <TableCellStack className="flex-1">
         <DeployableName
           autoDeploy={Boolean(app.config.autoDeploy)}
           name={app.name}
@@ -253,7 +253,7 @@ function DeployableName({
     },
   ];
   return (
-    <span className="inline-flex min-w-0 items-center gap-2">
+    <span className="flex max-w-full min-w-0 items-center gap-2">
       <InlineLink className="min-w-0" href={href}>
         <TooltipText className="block truncate" tabIndex={-1} tooltip={name}>
           {name}
@@ -285,9 +285,9 @@ export function ResourceIdentity({
 }) {
   const type = resourceImageBrand(resource.kind, resource.config.image);
   return (
-    <span className="inline-flex min-w-0 items-center gap-3">
+    <span className="flex w-full min-w-0 items-center gap-3">
       <ResourceLogo key={type.logo} brand={type} />
-      <TableCellStack>
+      <TableCellStack className="flex-1">
         <DeployableName
           autoDeploy={Boolean(resource.config.autoDeploy)}
           name={resource.name}

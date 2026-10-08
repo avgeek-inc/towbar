@@ -3,6 +3,27 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.34] - 2026-10-08
+
+### Changed
+
+- Group deployment progress into Validating setup, Preparing artifacts,
+  Deploying artifacts and Finishing up, with expandable detailed steps and
+  traffic switching inside Deploying artifacts.
+- Use progress meters for server CPU and memory usage and Ban icons for
+  cancellation, stopped workloads and cancelled progress.
+- Adopt design system 1.2.12 for a dedicated System Health update link and
+  clearer passkey confirmation actions.
+
+### Fixed
+
+- Keep service and datastore identities inside their table columns and cap
+  terminal action underlines to their content.
+- Darken yellow chart series in light mode and match deployment and restart
+  marker text to their fills in both themes.
+- Stop progress timers after failure or cancellation and distinguish missing
+  historical steps from work waiting to start.
+
 ## [2.0.33] - 2026-10-08
 
 ### Changed
