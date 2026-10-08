@@ -4,6 +4,10 @@ Bundled locally; displaying server metadata does not contact an external image h
 
 - `hetzner.svg`, `digitalocean.svg`, `alibaba.svg`, `linode.svg` (Akamai mark), and `cloudflare.svg`: [Simple Icons](https://github.com/simple-icons/simple-icons/tree/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons), revision `777807a262bb7384ff406fd4b35fdcd02e9514c3`, CC0. Brand colors applied to SVG fills.
 - `oracle.svg`: [Devicon v2.17.0](https://github.com/devicons/devicon/blob/v2.17.0/icons/oracle/oracle-original.svg), MIT. Uses the O symbol from the wordmark with a tight viewBox for legibility at text size.
-- Existing AWS, Azure, and Google Cloud assets are unchanged.
+- `aws.svg` uses black artwork for light surfaces; `aws-dark.svg` retains the
+  orange artwork for dark surfaces. The S3 identity uses the same assets.
+  `CloudProviderLogo` selects the visible asset for the application theme;
+  the SVG fills define their colors without CSS color filters.
+- Existing Azure and Google Cloud assets are unchanged.
 
 These marks identify the providers of observed server metadata; provider-only display does not imply an exact plan has been detected.

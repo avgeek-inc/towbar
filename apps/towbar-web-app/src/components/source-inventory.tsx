@@ -96,7 +96,7 @@ function appColumns(
           runtime={runtimeById.get(app.id)}
         />
       ),
-      className: "hidden min-w-40 2xl:table-cell",
+      className: "hidden min-w-44 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "cpu",
@@ -108,7 +108,7 @@ function appColumns(
           runtime={runtimeById.get(app.id)}
         />
       ),
-      className: "hidden min-w-56 2xl:table-cell",
+      className: "hidden min-w-44 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "memory",
@@ -179,7 +179,7 @@ function resourceColumns(
           runtime={runtimeById.get(resource.id)}
         />
       ),
-      className: "hidden min-w-40 2xl:table-cell",
+      className: "hidden min-w-44 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated CPU",
       key: "cpu",
@@ -191,7 +191,7 @@ function resourceColumns(
           runtime={runtimeById.get(resource.id)}
         />
       ),
-      className: "hidden min-w-56 2xl:table-cell",
+      className: "hidden min-w-44 2xl:table-cell",
       headerClassName: "hidden 2xl:table-cell",
       header: "Allocated Memory",
       key: "memory",

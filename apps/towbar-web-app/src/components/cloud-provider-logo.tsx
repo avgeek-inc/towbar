@@ -44,18 +44,34 @@ export function CloudProviderLogo({
   size?: number;
 }) {
   const normalized = normalizeCloudProvider(provider);
+  const variants =
+    normalized === "aws"
+      ? [
+          { name: "aws", visibility: "dark:hidden" },
+          { name: "aws-dark", visibility: "hidden dark:block" },
+        ]
+      : [{ name: normalized, visibility: "" }];
 
   return (
-    <Image
-      src={`/cloud-providers/${normalized}.svg`}
-      alt={alt}
-      aria-hidden={!alt}
-      width={size}
-      height={size}
-      loading="eager"
-      decoding="sync"
-      unoptimized
-      className={cn("size-4 shrink-0 object-contain", className)}
-    />
+    <>
+      {variants.map((variant) => (
+        <Image
+          key={variant.name}
+          src={`/cloud-providers/${variant.name}.svg`}
+          alt={alt}
+          aria-hidden={!alt}
+          width={size}
+          height={size}
+          loading="eager"
+          decoding="sync"
+          unoptimized
+          className={cn(
+            "size-4 shrink-0 object-contain",
+            className,
+            variant.visibility,
+          )}
+        />
+      ))}
+    </>
   );
 }

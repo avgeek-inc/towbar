@@ -102,7 +102,8 @@ export function SourceIndex() {
             className="truncate"
             tooltip={`${source.repositoryOwner}/${source.repositoryName}`}
           >
-            {source.repositoryOwner}/{source.repositoryName}
+            {source.repositoryOwner}/
+            <span className="font-medium">{source.repositoryName}</span>
           </TooltipText>
         </span>
       ),

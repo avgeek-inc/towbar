@@ -1,9 +1,9 @@
-import Image from "next/image";
 import { TooltipText } from "@avgeek-oss/design-system/overlays/tooltip";
 import { CpuIcon, RamMemoryIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { Server } from "@workspace/towbar-web-client";
 import { formatBytes } from "./runtime-operations";
+import { CloudProviderLogo } from "./cloud-provider-logo";
 
 export function ServerHardwareDescription({
   hardware,
@@ -85,15 +85,11 @@ function ProviderLogo({ provider }: { provider: keyof typeof providerNames }) {
       className="inline-flex shrink-0 items-center"
       tooltip={providerNames[provider]}
     >
-      <Image
+      <CloudProviderLogo
         alt={providerNames[provider]}
-        src={`/cloud-providers/${provider}.svg`}
-        width={provider === "aws" ? 24 : 16}
-        height={16}
-        loading="eager"
-        decoding="sync"
-        className="h-[1em] w-auto object-contain"
-        unoptimized
+        provider={provider}
+        size={provider === "aws" ? 24 : 16}
+        className="h-[1em] w-auto"
       />
     </TooltipText>
   );

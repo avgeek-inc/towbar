@@ -10,7 +10,7 @@ export function ScoutMascot({
   return (
     <Image
       src={
-        variant === "icon" ? "/scout/sidebar-icon-v2.png" : "/scout/mascot.webp"
+        variant === "icon" ? "/scout/sidebar-icon-v2.png" : "/scout/mascot.png"
       }
       alt=""
       aria-hidden="true"

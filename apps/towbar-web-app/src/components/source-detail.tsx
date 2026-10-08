@@ -132,19 +132,6 @@ export function SourceDetail() {
       className: "min-w-36",
     },
     {
-      key: "branch",
-      header: "Branch",
-      cell: (sync) =>
-        sync.environment ? (
-          <TypographyCode className="whitespace-nowrap">
-            {sync.environment.branch}
-          </TypographyCode>
-        ) : (
-          "Not recorded"
-        ),
-      className: "min-w-36",
-    },
-    {
       key: "status",
       header: "Status",
       cell: (sync) => (
@@ -157,6 +144,19 @@ export function SourceDetail() {
           }
         />
       ),
+    },
+    {
+      key: "branch",
+      header: "Branch",
+      cell: (sync) =>
+        sync.environment ? (
+          <TypographyCode className="whitespace-nowrap">
+            {sync.environment.branch}
+          </TypographyCode>
+        ) : (
+          "Not recorded"
+        ),
+      className: "min-w-36",
     },
     {
       key: "result",
