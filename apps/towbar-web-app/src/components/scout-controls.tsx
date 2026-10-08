@@ -180,11 +180,7 @@ export function ScoutSelect({
     >
       <Label
         isRequired={required}
-        className={
-          hideLabel
-            ? "sr-only"
-            : "[[data-secondary-menu]_&]:pl-2 [[data-secondary-menu]_&]:text-xs [[data-secondary-menu]_&]:text-muted"
-        }
+        className={hideLabel ? "sr-only" : undefined}
       >
         {label}
       </Label>

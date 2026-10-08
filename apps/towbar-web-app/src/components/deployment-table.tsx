@@ -163,7 +163,16 @@ export function DeploymentTriggerChip({
             : "Queued manually by a user or API client."
       }
     >
-      <Chip size="sm" color={trigger === "manual" ? "warning" : "default"}>
+      <Chip
+        size="sm"
+        color={
+          trigger === "auto_deploy"
+            ? "success"
+            : trigger === "manual"
+              ? "warning"
+              : "default"
+        }
+      >
         <Chip.Label className="inline-flex items-center gap-1.5 whitespace-nowrap [&_svg]:size-3.5">
           {
             <HugeiconsIcon

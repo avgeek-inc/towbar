@@ -81,6 +81,7 @@ const sidebar = {
   groups: [
     {
       id: "overview",
+      label: "Dashboard",
       items: [
         {
           kind: "link",
@@ -201,15 +202,17 @@ const sidebar = {
         {
           kind: "link",
           id: "account-settings",
-          label: "Account settings",
-          href: "/settings",
+          label: "Account Settings",
+          href: "/settings/profile",
+          activePath: "/settings",
           icon: sidebarIcons.profile,
         },
         {
           kind: "link",
           id: "team-settings",
           label: "Team Settings",
-          href: "/team-settings",
+          href: "/team-settings/general",
+          activePath: "/team-settings",
           icon: UserGroupIcon,
         },
       ],

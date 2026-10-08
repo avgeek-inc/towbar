@@ -1,6 +1,6 @@
 ---
 title: "Team settings"
-description: "Set your team name, add members, manage invitations, and create team API keys."
+description: "Set your team name, invite members, manage invitations, and create team API keys."
 ---
 
 import { Screenshot } from "/snippets/oss/screenshot.jsx";
@@ -36,15 +36,9 @@ Towbar keeps at least one Admin in the team. You cannot remove or demote the las
   caption="Manage members and pending invitations from separate tables."
 />
 
-### Add a user directly
-
-Choose **Add user**, enter their name and email, choose a role, and set a temporary password. Share it through a secure channel outside Towbar. Towbar does not email the password.
-
-The person must replace it on first sign-in before using the dashboard. This option works without SMTP. It does not prove ownership of the email address.
-
 ### Invite someone by email
 
-Choose **Create invite**, enter the recipient's email, and select a role. Invitations expire after seven days and only work for the specified email address.
+Choose **Create invitation**, enter the recipient's email, and select a role. Invitations expire after seven days and only work for the specified email address.
 
 The **Pending Invitations** table lets you copy a link, resend an invitation, or revoke it. Resend and Revoke ask for confirmation. Resending replaces the old invitation, so share the new link if you had copied the previous one.
 

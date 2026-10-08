@@ -74,6 +74,15 @@ try {
   const errorIllustration = await call("/scout/mascot-worried.png", a);
   assert.equal(errorIllustration.status, 200);
   assert.match(errorIllustration.headers.get("content-type"), /image\/png/);
+  assert.equal(
+    (
+      await call("/v1/core/settings/api-keys/personal", a, "POST", {
+        name: "Incomplete demo key",
+        access: "read",
+      })
+    ).status,
+    400,
+  );
   const createdKey = await call(
     "/v1/core/settings/api-keys/personal",
     a,
@@ -81,6 +90,8 @@ try {
     {
       name: "Demo smoke inert key",
       access: "read",
+      includeAdmin: false,
+      expiresAt: null,
     },
   );
   assert.equal(createdKey.status, 201);

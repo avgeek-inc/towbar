@@ -237,8 +237,8 @@ importers:
   apps/towbar-web-app:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.4
-        version: 1.2.4(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.8
+        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@codemirror/commands":
         specifier: ^6.11.1
         version: 6.11.1
@@ -618,18 +618,15 @@ importers:
 
   packages/towbar-email:
     dependencies:
-      "@workspace/towbar-access":
-        specifier: workspace:*
-        version: link:../towbar-access
+      "@avgeek-oss/design-system":
+        specifier: 1.2.8
+        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       react:
         specifier: "catalog:"
         version: 19.3.0
       react-dom:
         specifier: "catalog:"
         version: 19.3.0(react@19.3.0)
-      react-email:
-        specifier: 6.11.0
-        version: 6.11.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       "@types/node":
         specifier: "catalog:"
@@ -640,6 +637,9 @@ importers:
       "@workspace/typescript-config":
         specifier: workspace:*
         version: link:../typescript-config
+      react-email:
+        specifier: 6.11.0
+        version: 6.11.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
@@ -672,8 +672,8 @@ importers:
   packages/towbar-web-ui:
     dependencies:
       "@avgeek-oss/design-system":
-        specifier: 1.2.4
-        version: 1.2.4(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+        specifier: 1.2.8
+        version: 1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       "@hugeicons/core-free-icons":
         specifier: "catalog:"
         version: 4.3.5
@@ -752,11 +752,11 @@ packages:
       }
     engines: { node: ">=10" }
 
-  "@avgeek-oss/design-system@1.2.4":
+  "@avgeek-oss/design-system@1.2.8":
     resolution:
       {
-        integrity: sha512-hxzEfUW8ZwSmHlirz7o3OU4cJXhUa3EDLxpNleWW13mK8frwTBy3hAo1iInUqgw7xD9MUuAm/q/IqXjQMmFJJQ==,
-        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.4/0307bf04d890dfbad1c62308c4e88533e542d351,
+        integrity: sha512-0pm+3Q+uUP74D1k2KPgwW1I7OxbByWpSQ0uLv3GlvjT3UyFAU7gKCIGw82XpKR711OJz5RdajjHUZlAr2mQ/tg==,
+        tarball: https://npm.pkg.github.com/download/@avgeek-oss/design-system/1.2.8/8dcdda9f4fd4d06880dc3ec6a27988b3cef3c850,
       }
     engines: { node: ">=24" }
     peerDependencies:
@@ -7897,13 +7897,13 @@ snapshots:
 
   "@alloc/quick-lru@5.2.0": {}
 
-  "@avgeek-oss/design-system@1.2.4(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
+  "@avgeek-oss/design-system@1.2.8(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)":
     dependencies:
       "@fontsource-variable/geist-mono": 5.3.0
       "@fontsource-variable/inter": 5.3.0
       "@heroui/react": 3.2.6(@internationalized/date@3.12.4)(@react-aria/ssr@3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-aria/utils@3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@react-spectrum/provider@3.11.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-aria-components@1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-aria@3.52.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
       "@heroui/styles": 3.2.6(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
-      "@hookform/resolvers": 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.5.4)
+      "@hookform/resolvers": 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.6.5)
       "@hugeicons/core-free-icons": 4.3.5
       "@hugeicons/react": 1.1.10(react@19.3.0)
       "@internationalized/date": 3.12.4
@@ -7916,11 +7916,12 @@ snapshots:
       react-aria: 3.52.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-aria-components: 1.21.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-dom: 19.3.0(react@19.3.0)
+      react-email: 6.11.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-hook-form: 7.88.0(react@19.3.0)
       recharts: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
       tailwind-merge: 3.7.0
       tailwindcss: 4.3.3
-      zod: 4.5.4
+      zod: 4.6.5
     transitivePeerDependencies:
       - "@react-spectrum/provider"
       - "@sinclair/typebox"
@@ -7934,6 +7935,7 @@ snapshots:
       - ajv-formats
       - arktype
       - ata-validator
+      - bufferutil
       - class-transformer
       - class-validator
       - computed-types
@@ -7946,7 +7948,9 @@ snapshots:
       - react-is
       - redux
       - superstruct
+      - supports-color
       - typanion
+      - utf-8-validate
       - valibot
       - vest
       - yup
@@ -8201,7 +8205,7 @@ snapshots:
       jose: 6.2.12
       kysely: 0.29.5
       nanostores: 1.5.3
-      zod: 4.5.4
+      zod: 4.6.5
     optionalDependencies:
       "@opentelemetry/api": 1.9.1
 
@@ -8587,7 +8591,7 @@ snapshots:
     dependencies:
       hono: 4.13.12
 
-  "@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.5.4)":
+  "@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.88.0(react@19.3.0))(zod@4.6.5)":
     dependencies:
       "@standard-schema/utils": 0.3.0
       react-hook-form: 7.88.0(react@19.3.0)
@@ -8595,7 +8599,7 @@ snapshots:
       "@standard-schema/spec": 1.1.0
       ajv: 8.20.0
       ajv-formats: 2.1.1(ajv@8.20.0)
-      zod: 4.5.4
+      zod: 4.6.5
 
   "@hugeicons/core-free-icons@4.3.5": {}
 

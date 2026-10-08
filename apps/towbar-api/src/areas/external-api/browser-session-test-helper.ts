@@ -65,9 +65,37 @@ export async function assertBrowserSessionBoundary({
     body: JSON.stringify({
       name: "Browser",
       access: "read",
+      includeAdmin: false,
+      expiresAt: new Date(Date.now() + 30 * 86400_000).toISOString(),
     }),
   });
   assert.equal(created.status, 201);
+  const settings = {
+    name: "Explicit settings",
+    access: "read",
+    includeAdmin: false,
+    expiresAt: null,
+  };
+  for (const field of Object.keys(settings)) {
+    const incomplete = { ...settings } as Record<string, unknown>;
+    delete incomplete[field];
+    const response = await app.request("/v1/core/settings/api-keys/personal", {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json",
+        origin: "https://app.towbar.test",
+        "Idempotency-Key": randomUUID(),
+      },
+      body: JSON.stringify(incomplete),
+    });
+    assert.equal(
+      response.status,
+      400,
+      `Missing ${field} must not create a key`,
+    );
+  }
+
   const profile = await app.request("/v1/core/profile", {
     method: "PATCH",
     headers: {

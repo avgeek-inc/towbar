@@ -18,7 +18,8 @@ import type {
   SourceSync,
 } from "@workspace/towbar-web-client";
 import { Header } from "@avgeek-oss/design-system/collections/list-box";
-import { ListBox, Select } from "@avgeek-oss/design-system/forms/select";
+import { ListBox } from "@avgeek-oss/design-system/forms/select";
+import { BreadcrumbSelect as Select } from "@avgeek-oss/design-system/navigation/breadcrumbs";
 import {
   Autocomplete,
   SearchField,
@@ -267,7 +268,7 @@ export function BreadcrumbEntitySwitcher({
   }
 
   return (
-    <Select
+    <Select.Root
       aria-label={`Switch ${kind === "sources" ? "repository" : entityLabel.slice(0, -1)}`}
       selectedKey={currentId}
       onSelectionChange={(key) => {
@@ -281,9 +282,8 @@ export function BreadcrumbEntitySwitcher({
         }
       }}
     >
-      <Select.Trigger className="h-auto! min-h-0! max-w-40 gap-1 rounded-sm! border-0! bg-transparent! px-0! py-0! text-sm font-medium text-foreground shadow-none! hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:max-w-64">
+      <Select.Trigger>
         <Select.Value className="min-w-0 truncate">{label}</Select.Value>
-        <Select.Indicator className="static! size-3 shrink-0 text-muted" />
       </Select.Trigger>
       <Select.Popover
         className={`${kind === "syncs" ? "w-96" : "w-72"} max-w-[calc(100vw-2rem)] overflow-hidden`}
@@ -346,6 +346,6 @@ export function BreadcrumbEntitySwitcher({
           </ListBox>
         </Autocomplete.Filter>
       </Select.Popover>
-    </Select>
+    </Select.Root>
   );
 }

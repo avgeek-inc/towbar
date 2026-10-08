@@ -218,7 +218,7 @@ export const documentationTopics = {
   ),
   members: guide(
     "team-settings#members",
-    "Add users, invite people by email, and manage Admin, Member, or Viewer access.",
+    "Invite people by email and manage Admin, Member, or Viewer access.",
   ),
   profile: guide(
     "personal-settings#profile",

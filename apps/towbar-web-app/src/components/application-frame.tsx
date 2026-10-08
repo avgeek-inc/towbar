@@ -16,7 +16,7 @@ import {
 import { SecondarySidebarLayout } from "./secondary-sidebar";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Logout03Icon } from "@hugeicons/core-free-icons";
+import { Logout01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -428,7 +428,7 @@ function SignOutConfirmation({
               <HugeiconsIcon
                 aria-hidden="true"
                 className="size-4"
-                icon={Logout03Icon}
+                icon={Logout01Icon}
               />
               Sign out
             </Button>

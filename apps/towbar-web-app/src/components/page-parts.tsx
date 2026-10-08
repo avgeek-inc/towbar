@@ -42,6 +42,7 @@ import { Textarea } from "@avgeek-oss/design-system/forms/textarea";
 import { toast } from "@avgeek-oss/design-system/overlays/toast";
 import { Page, PageSection } from "@avgeek-oss/design-system/layouts/page";
 import { AppShellBreadcrumb } from "@avgeek-oss/design-system/layouts/app-shell-breadcrumb";
+import type { AppShellBreadcrumbItems } from "@avgeek-oss/design-system/layouts/application-shell-types";
 import { cn } from "@avgeek-oss/design-system/lib/utils";
 import { ApplicationPage } from "@avgeek-oss/design-system/patterns/pages/page";
 import type { BreadcrumbAncestors } from "@avgeek-oss/design-system/patterns/pages/page";
@@ -113,15 +114,16 @@ export function DashboardPage({
     ? `${breadcrumbSwitcher.kind}:${breadcrumbSwitcher.id}`
     : undefined;
   if (contentOwnsTitle) {
+    const [firstAncestor, ...otherAncestors] = breadcrumbAncestors;
+    const items: AppShellBreadcrumbItems = firstAncestor
+      ? [firstAncestor, ...otherAncestors, { label: title }]
+      : [{ label: title }];
     return (
       <>
-        <AppShellBreadcrumb
-          items={[...breadcrumbAncestors, { label: title }]}
-          title={title}
-        />
+        <AppShellBreadcrumb items={items} title={title} />
         <Page>
           <PageSection
-            className="content-grid pt-0 sm:pt-0"
+            className="pt-0 sm:pt-0"
             xPadding="none"
             yPadding="compact"
           >

@@ -13,16 +13,16 @@
     "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
-    "@workspace/towbar-access": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-email": "6.11.0"
+    "@avgeek-oss/design-system": "1.2.8"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "tsx": "^4.23.15",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "react-email": "6.11.0"
   }
 }

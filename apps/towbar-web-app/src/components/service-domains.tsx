@@ -92,13 +92,7 @@ export function ServiceDomains({ config }: { config: App["config"] }) {
                   Redirect
                 </span>
                 <TableCellDescription>
-                  <span
-                    className={
-                      row.target.status === 301
-                        ? "font-mono tabular-nums text-yellow-700 dark:text-yellow-400"
-                        : "font-mono tabular-nums text-orange-700 dark:text-orange-400"
-                    }
-                  >
+                  <span className="font-mono tabular-nums text-warning">
                     {row.target.status}
                   </span>{" "}
                   / {row.target.status === 301 ? "Permanent" : "Temporary"}

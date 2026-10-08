@@ -7,6 +7,7 @@ import {
 } from "./inventory-sidebar";
 import {
   Add01Icon,
+  CloudIcon,
   DashboardCircleIcon,
   CubeIcon,
   ServerStack01Icon,
@@ -65,7 +66,6 @@ import { ServerIpLink } from "./source-inventory";
 import { DeployableInventoryTable as GroupedDeployableTable } from "./deployable-inventory-table";
 import { AppIdentity, ResourceIdentity } from "./deployable-identity";
 import { serviceTypeLabel } from "./service-type";
-import { EnvironmentIcon } from "./environment-icon";
 
 const inventoryLayouts = [
   "grouped",
@@ -94,15 +94,10 @@ function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
         const selected = inventoryLayouts.find((choice) => keys.has(choice));
         if (selected) setLayout(selected);
       }}
-      size="sm"
     >
       <Tooltip>
         <ToggleButton id="grouped" isIconOnly aria-label="Group by ID">
-          <HugeiconsIcon
-            icon={Layers01Icon}
-            className="size-4"
-            aria-hidden="true"
-          />
+          <HugeiconsIcon icon={Layers01Icon} aria-hidden="true" />
         </ToggleButton>
         <Tooltip.Content>Group by ID</Tooltip.Content>
       </Tooltip>
@@ -112,27 +107,19 @@ function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
           isIconOnly
           aria-label="Group by environment"
         >
-          <EnvironmentIcon />
+          <HugeiconsIcon icon={CloudIcon} aria-hidden="true" />
         </ToggleButton>
         <Tooltip.Content>Group by environment</Tooltip.Content>
       </Tooltip>
       <Tooltip>
         <ToggleButton id="server" isIconOnly aria-label="Group by server">
-          <HugeiconsIcon
-            icon={ServerStack01Icon}
-            className="size-4"
-            aria-hidden="true"
-          />
+          <HugeiconsIcon icon={ServerStack01Icon} aria-hidden="true" />
         </ToggleButton>
         <Tooltip.Content>Group by server</Tooltip.Content>
       </Tooltip>
       <Tooltip>
         <ToggleButton id="unified" isIconOnly aria-label="Unified view">
-          <HugeiconsIcon
-            icon={LeftToRightListBulletIcon}
-            className="size-4"
-            aria-hidden="true"
-          />
+          <HugeiconsIcon icon={LeftToRightListBulletIcon} aria-hidden="true" />
         </ToggleButton>
         <Tooltip.Content>Unified view</Tooltip.Content>
       </Tooltip>

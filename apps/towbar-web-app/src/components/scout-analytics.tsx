@@ -36,11 +36,9 @@ import {
 import {
   FilterDialog,
   type FilterField,
-} from "@workspace/towbar-web-ui/filter-dialog";
+} from "@avgeek-oss/design-system/patterns/filters/filter-dialog";
 import { CodePanel } from "@workspace/towbar-web-ui/code-panel";
 import { QueryError, QueryLoading } from "@workspace/towbar-web-ui/query-state";
-import { Checkbox } from "@avgeek-oss/design-system/forms/checkbox";
-import { Label } from "@avgeek-oss/design-system/forms/label";
 import { Button } from "@avgeek-oss/design-system/buttons/button";
 import { Widget } from "@avgeek-oss/design-system/data-display/widget";
 import { LineChart } from "@avgeek-oss/design-system/charts/line-chart";
@@ -152,7 +150,12 @@ export function ScoutAnalytics({
           label: filterLabels[field],
           icon: filterIcon(filterIcons[field]),
           operators: [
-            { value: "in", label: "is one of", icon: filterIcon(ListViewIcon) },
+            {
+              value: "in",
+              label: "is one of",
+              icon: filterIcon(ListViewIcon),
+              multiple: true,
+            },
           ],
           searchable: true,
         },
@@ -543,7 +546,7 @@ export function AnalyticsView({
       ) : null}
       {hasTrend ? (
         <div
-          className={`grid gap-4 ${pageviews ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"}`}
+          className={`grid grid-cols-2 gap-4 ${pageviews ? "xl:grid-cols-4" : "sm:grid-cols-3"}`}
         >
           {metrics.map(
             ({ label, value, previous, lowerIsBetter, ...metric }) => (
@@ -614,20 +617,14 @@ export function AnalyticsView({
                     : undefined
                 }
               >
-                <Checkbox
+                <Widget.Action
                   className="shrink-0"
-                  variant="secondary"
-                  isSelected={compareEnabled}
-                  onChange={setCompareEnabled}
+                  aria-pressed={showComparison}
+                  onPress={() => setCompareEnabled((value) => !value)}
                   isDisabled={!report.comparison}
                 >
-                  <Checkbox.Content className="gap-2">
-                    <Checkbox.Control>
-                      <Checkbox.Indicator />
-                    </Checkbox.Control>
-                    <Label className="text-xs">Enable Compare</Label>
-                  </Checkbox.Content>
-                </Checkbox>
+                  {showComparison ? "Disable compare" : "Enable compare"}
+                </Widget.Action>
               </TooltipText>
             }
           >

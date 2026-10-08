@@ -1130,7 +1130,6 @@
     "team.ts:get:\"/\"": {},
     "team.ts:patch:\"/\"": {},
     "team.ts:get:\"/members\"": {},
-    "team.ts:post:\"/members\"": {},
     "team.ts:patch:\"/members/:memberId\"": {},
     "team.ts:delete:\"/members/:memberId\"": {},
     "team.ts:get:\"/invitations\"": {},

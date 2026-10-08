@@ -19,7 +19,9 @@ for (const template of transactionalTemplates) {
     const preview = mail.html.match(/data-skip-in-text="true">([^<]+)/)?.[1];
     assert.match(preview ?? "", /[.!?]$/);
     assert.notEqual(preview, mail.subject.replace(/^\[Towbar\] /, ""));
-    assert.match(mail.text.split("\n", 1)[0] ?? "", /[.!?]$/);
+    if (!template.startsWith("team-key-"))
+      assert.match(mail.text, /Hello <script>alert\("user"\)<\/script>,/);
+    else assert.match(mail.text.split("\n", 1)[0] ?? "", /[.!?]$/);
     assert(mail.html.includes("Product &amp; &lt;Research&gt;"));
     assert(!mail.html.includes("<script>"));
     assert(!mail.html.includes("<img src=x"));

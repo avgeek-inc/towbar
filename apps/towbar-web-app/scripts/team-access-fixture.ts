@@ -824,6 +824,18 @@ export function createTeamAccessFixture(
           access = input.access as KeyAccess,
           includeAdmin = input.includeAdmin === true;
         if (
+          typeof input.name !== "string" ||
+          !input.name.trim() ||
+          typeof input.includeAdmin !== "boolean" ||
+          !(
+            input.expiresAt === null ||
+            (typeof input.expiresAt === "string" &&
+              Number.isFinite(Date.parse(input.expiresAt)))
+          ) ||
+          (includeAdmin && access !== "edit")
+        )
+          return fail(response, "Enter a name, permissions and expiry", 400);
+        if (
           !["read", "edit"].includes(access) ||
           !canCreateKey(selected.role, { scope, access, includeAdmin })
         )
@@ -838,7 +850,7 @@ export function createTeamAccessFixture(
           return send(response, { key: replay, token: null, replayed: true });
         const key: Key = {
           id: randomUUID(),
-          name: String(input.name),
+          name: String(input.name).trim(),
           scope,
           access,
           includeAdmin,
@@ -846,10 +858,7 @@ export function createTeamAccessFixture(
           prefix: "twb_fixture",
           ownerUserId: scope === "team" ? null : selected.userId,
           createdAt: now(),
-          expiresAt:
-            input.expiresAt === null
-              ? null
-              : String(input.expiresAt ?? expiry(90)),
+          expiresAt: input.expiresAt === null ? null : String(input.expiresAt),
           lastUsedAt: null,
           revokedAt: null,
         };

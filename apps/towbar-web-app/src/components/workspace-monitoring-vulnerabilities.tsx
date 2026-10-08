@@ -2,6 +2,7 @@
 
 import {
   TableCellStack,
+  TableCellDescription,
   tableCellDescriptionClassName,
 } from "@avgeek-oss/design-system/data-display/table-cell-text";
 
@@ -9,7 +10,6 @@ import { SecondaryItems } from "./secondary-sidebar";
 import { ScoutIcon } from "./scout-icons";
 import { useState } from "react";
 import { useQueryChoice } from "@/hooks/use-page-query";
-import Link from "next/link";
 import Image from "next/image";
 import { SecurityCheckIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@avgeek-oss/design-system/buttons/button";
@@ -22,7 +22,8 @@ import {
   type ResourceTableColumn,
 } from "@avgeek-oss/design-system/patterns/resource-table";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { DashboardPage } from "./page-parts";
+import { DashboardPage, InlineLink } from "./page-parts";
+import { AppLogo, ServiceLogo } from "./deployable-identity";
 import {
   hasNoAdvisories,
   severityVariant,
@@ -31,6 +32,7 @@ import {
 } from "./vulnerability-severity-widgets";
 import { RelativeTime } from "./last-synced-time";
 import type {
+  App,
   VulnerabilityFindingSummary,
   WorkspaceVulnerabilityFindings,
 } from "@workspace/towbar-web-client";
@@ -51,6 +53,7 @@ export function WorkspaceVulnerabilities() {
     30_000,
     { keepPreviousData: true },
   );
+  const apps = useApiQuery<{ apps: App[] }>("/v1/core/apps", 30_000);
   const columns: ResourceTableColumn<VulnerabilityFindingSummary>[] = [
     {
       key: "advisory",
@@ -115,28 +118,35 @@ export function WorkspaceVulnerabilities() {
     {
       key: "entity",
       header: "Entity",
-      cell: (finding) => (
-        <TableCellStack>
-          <Link
-            className="focus-visible:ring-focus inline-flex items-center rounded-sm text-muted outline-none hover:text-foreground focus-visible:ring-2"
-            href={deploymentHref(
-              {
-                appId: finding.appId,
-                deployableKind: "app",
-                id: finding.deploymentId,
-              },
-              "vulnerabilities",
-            )}
-          >
-            {finding.appName}
-          </Link>
-          {finding.scannedAt ? (
-            <span className="2xl:hidden">
-              <RelativeTime label="Scanned" value={finding.scannedAt} />
-            </span>
-          ) : null}
-        </TableCellStack>
-      ),
+      cell: (finding) => {
+        const app = apps.data?.apps.find((app) => app.id === finding.appId);
+        return (
+          <span className="inline-flex min-w-0 items-center gap-3">
+            {app ? <ServiceLogo app={app} /> : <AppLogo domain={undefined} />}
+            <TableCellStack>
+              <InlineLink
+                className="text-foreground"
+                href={deploymentHref(
+                  {
+                    appId: finding.appId,
+                    deployableKind: "app",
+                    id: finding.deploymentId,
+                  },
+                  "vulnerabilities",
+                )}
+              >
+                {finding.appName}
+              </InlineLink>
+              <TableCellDescription>Service</TableCellDescription>
+              {finding.scannedAt ? (
+                <span className="2xl:hidden">
+                  <RelativeTime label="Scanned" value={finding.scannedAt} />
+                </span>
+              ) : null}
+            </TableCellStack>
+          </span>
+        );
+      },
       className: "whitespace-nowrap",
     },
     {

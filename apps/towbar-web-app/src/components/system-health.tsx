@@ -96,7 +96,8 @@ export function SystemHealthPage() {
         <ActionButton<SystemHealth>
           confirm={{
             title: "Run system checks?",
-            description: "Run fresh checks against the Towbar control plane.",
+            description:
+              "Verify that the API and database are responding and Temporal can accept maintenance work, then refresh the latest worker health status on this page.",
             actionLabel: "Run checks",
           }}
           action={() => api.post("/v1/core/system-health/actions/check")}
