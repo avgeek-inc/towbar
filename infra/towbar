@@ -509,7 +509,7 @@ download_release() {
   tar -xzf "$archive" -C "$staging"
   source_dir="$(find "$staging" -mindepth 1 -maxdepth 1 -type d -print -quit)"
   [[ -n "$source_dir" ]] || fail "release archive did not contain a source directory"
-  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/.env.example" && -f "$source_dir/infra/towbar" ]] ||
+  [[ -f "$source_dir/docker-compose.yml" && -f "$source_dir/infra/compose.env.template" && -f "$source_dir/infra/towbar" ]] ||
     fail "release archive is missing Towbar installation files"
 
   package_version="$(jq -r .version "$source_dir/package.json")"
@@ -561,7 +561,7 @@ generate_config() {
       $1 == "TOWBAR_CREDENTIALS_KEY" { $2 = credentials_key }
       $1 == "TOWBAR_INTERNAL_HMAC_SECRET" { $2 = hmac_secret }
       { print }' \
-    "$release_dir/.env.example" >"$pending_config"
+    "$release_dir/infra/compose.env.template" >"$pending_config"
   chmod 600 "$pending_config"
   mv "$pending_config" "$TOWBAR_ENV_FILE"
   CONFIG_CREATED=true

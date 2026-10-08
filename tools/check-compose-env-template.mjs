@@ -11,7 +11,7 @@ const compose = await readFile(
   "utf8",
 );
 const template = await readFile(
-  path.join(repositoryRoot, ".env.example"),
+  path.join(repositoryRoot, "infra/compose.env.template"),
   "utf8",
 );
 
@@ -54,7 +54,7 @@ for (const [index, line] of template.split("\n").entries()) {
   const existing = entries.get(name);
   if (existing) {
     throw new Error(
-      `.env.example defines ${name} on both lines ${existing.line} and ${index + 1}`,
+      `infra/compose.env.template defines ${name} on both lines ${existing.line} and ${index + 1}`,
     );
   }
   entries.set(name, { active: !comment, line: index + 1 });
@@ -64,7 +64,7 @@ const failures = [];
 for (const name of [...expectedVariables].sort()) {
   const entry = entries.get(name);
   if (!entry) {
-    failures.push(`${name} is missing from .env.example`);
+    failures.push(`${name} is missing from infra/compose.env.template`);
     continue;
   }
   const shouldBeActive = activeVariables.has(name);
@@ -88,6 +88,6 @@ if (failures.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `.env.example lists all ${expectedVariables.size} operator configuration variables; optional values are commented out.`,
+    `infra/compose.env.template lists all ${expectedVariables.size} internal Compose configuration variables; optional values are commented out.`,
   );
 }

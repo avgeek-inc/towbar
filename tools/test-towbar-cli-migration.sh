@@ -22,7 +22,7 @@ source "$repository/infra/towbar-cli/15-config.sh"
 
 release_dir="$temporary_root/release"
 install -d "$TOWBAR_CONFIG_DIR" "$TOWBAR_ROOT" "$release_dir/infra"
-cp "$repository/.env.example" "$TOWBAR_ENV_FILE"
+cp "$repository/infra/compose.env.template" "$TOWBAR_ENV_FILE"
 cp "$repository/infra/runtime_config.py" "$release_dir/infra/runtime_config.py"
 printf '2.0.11\n' >"$VERSION_FILE"
 [[ "$(TOWBAR_CONFIG_DIR="$TOWBAR_CONFIG_DIR" "$repository/infra/towbar" config path)" == "$TOWBAR_ENV_FILE" ]]

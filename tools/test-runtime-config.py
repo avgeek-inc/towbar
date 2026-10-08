@@ -39,7 +39,7 @@ class RuntimeConfigTests(unittest.TestCase):
         self.assertGreaterEqual(checked, 10)
 
     def test_supported_environment_inventory_is_complete(self):
-        template = (ROOT / ".env.example").read_text()
+        template = (ROOT / "infra/compose.env.template").read_text()
         keys = set(
             re.findall(
                 r"^#? ?((?:TOWBAR|NEXT_PUBLIC)_[A-Z0-9_]+|COMPOSE_PROFILES)=",
@@ -54,7 +54,7 @@ class RuntimeConfigTests(unittest.TestCase):
             root = pathlib.Path(directory)
             env = root / "towbar.env"
             yml = root / "config.yml"
-            env.write_text((ROOT / ".env.example").read_text())
+            env.write_text((ROOT / "infra/compose.env.template").read_text())
             original = config_tool.parse_env(env)
             config_tool.migrate(env, yml, True)
             config_tool.migrate(env, yml, True)
@@ -66,7 +66,7 @@ class RuntimeConfigTests(unittest.TestCase):
             )
             self.assertEqual(
                 (root / "towbar.env.legacy").read_text(),
-                (ROOT / ".env.example").read_text(),
+                (ROOT / "infra/compose.env.template").read_text(),
             )
             self.assertEqual(stat.S_IMODE(yml.stat().st_mode), 0o600)
             self.assertEqual(stat.S_IMODE(env.stat().st_mode), 0o600)
@@ -150,7 +150,7 @@ class RuntimeConfigTests(unittest.TestCase):
             root = pathlib.Path(directory)
             yml = root / "config.yml"
             env = root / "towbar.env"
-            env.write_text((ROOT / ".env.example").read_text())
+            env.write_text((ROOT / "infra/compose.env.template").read_text())
             config_tool.migrate(env, yml, False)
             config_tool.set_installation(
                 yml, "public", "https://towbar.example.com", "towbar.example.com"

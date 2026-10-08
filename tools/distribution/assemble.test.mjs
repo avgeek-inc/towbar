@@ -22,7 +22,7 @@ test("assembly pins committed bytes and rejects a tag that differs from HEAD", a
     "install.sh": "#!/bin/bash\necho installer\n",
     "infra/towbar": "#!/bin/bash\necho cli\n",
     "docker-compose.yml": "services: {}\n",
-    ".env.example": "TOWBAR_URL=http://localhost:4021\n",
+    "infra/compose.env.template": "TOWBAR_URL=http://localhost:4021\n",
     ...Object.fromEntries(
       ["repository", "app", "compose", "resource"].map((name) => [
         `packages/towbar-core/schemas/${name}.v2.json`,

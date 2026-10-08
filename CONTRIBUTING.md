@@ -50,10 +50,11 @@ pnpm verify
 ```
 
 Prefer the narrowest package check while iterating. Run the root verification
-before opening a pull request. Validate Compose changes with:
+before opening a pull request. The installer manages operator configuration in `/etc/towbar/config.yml`.
+For contributor-only Compose checks, use the internal bootstrap template:
 
 ```bash
-cp .env.example .env
+cp infra/compose.env.template .env
 # Replace placeholders with non-production test values.
 docker compose config --quiet
 docker compose build
