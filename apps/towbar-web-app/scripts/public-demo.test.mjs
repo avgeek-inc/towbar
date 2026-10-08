@@ -5,7 +5,7 @@ import { createServer, request as httpRequest } from "node:http";
 import { Readable } from "node:stream";
 import { connect } from "node:net";
 import test from "node:test";
-import { createDemoServer } from "./public-demo/gateway.mjs";
+import { createDemoServer, networkKey } from "./public-demo/gateway.mjs";
 
 const origin = "https://try.towbar.dev";
 const serverId = "21111111-1111-4111-8111-111111111111";
@@ -215,18 +215,18 @@ test("capacity reservation survives concurrent starts and reset", async (t) => {
   assert.equal((await call("/__demo/start", { method: "POST" })).status, 503);
 });
 
-test("network start limits cannot be bypassed by client forwarding headers or cookie removal", async (t) => {
+test("network start limits use the socket peer despite supplied client addresses", async (t) => {
   const { call, start } = await setup(t, { startsPerNetwork: 1 });
   await start();
-  const denied = await call("/__demo/start", {
-    method: "POST",
-    headers: {
-      "x-forwarded-for": "192.0.2.44",
-      "x-demo-client-ip": "192.0.2.44",
-    },
-  });
-  assert.equal(denied.status, 429);
-  assert.equal(denied.headers.get("retry-after"), "60");
+  for (const headers of [
+    { "x-forwarded-for": "192.0.2.44", "x-demo-client-ip": "192.0.2.44" },
+    { forwarded: "for=198.51.100.12", "x-real-ip": "198.51.100.12" },
+    { "cf-connecting-ip": "203.0.113.52", "x-demo-client-ip": "invalid" },
+  ]) {
+    const denied = await call("/__demo/start", { method: "POST", headers });
+    assert.equal(denied.status, 429);
+    assert.equal(denied.headers.get("retry-after"), "60");
+  }
 });
 
 test("origins, body limits, denied endpoints, WebSockets, and unreviewed routes fail closed", async (t) => {
@@ -440,23 +440,12 @@ test("preferences and pause controls use the current dashboard API contract", as
   assert.equal((await pause.json()).autoDeploy.paused, true);
 });
 
-test("only the exact proxy peer can supply an address; IPv6 privacy addresses share a start budget", async (t) => {
-  const { call } = await setup(t, {
-    trustedProxy: "127.0.0.1",
-    startsPerNetwork: 1,
-  });
-  const start = (ip) =>
-    call("/__demo/start", {
-      method: "POST",
-      headers: { "x-demo-client-ip": ip },
-    });
-  assert.equal((await start("2001:db8:1:2::1")).status, 201);
+test("IPv6 privacy addresses share a network key", () => {
   assert.equal(
-    (await start("2001:0db8:0001:0002:ffff:ffff:ffff:ffff")).status,
-    429,
+    networkKey("2001:db8:1:2::1"),
+    networkKey("2001:0db8:0001:0002:ffff:ffff:ffff:ffff"),
   );
-  assert.equal((await start("2001:db8:1:3::1")).status, 201);
-  assert.equal((await start("attacker.example")).status, 400);
+  assert.notEqual(networkKey("2001:db8:1:2::1"), networkKey("2001:db8:1:3::1"));
 });
 
 test("open streams consume the per-session request allowance", async (t) => {

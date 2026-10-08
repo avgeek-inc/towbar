@@ -7,7 +7,6 @@
 		max_size 16KB
 	}
 	reverse_proxy demo:8080 {
-		header_up X-Demo-Client-IP {remote_host}
 		header_up -Authorization
 		flush_interval -1
 	}
