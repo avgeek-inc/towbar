@@ -36,6 +36,7 @@ import {
   ApplicationSidebar,
   usePersistentAppSidebar,
 } from "@avgeek-oss/design-system/layouts/app-shell";
+import { BackendUnavailable } from "@avgeek-oss/design-system/patterns/feedback/backend-unavailable";
 import { Spinner } from "@avgeek-oss/design-system/feedback/spinner";
 import { Toast } from "@avgeek-oss/design-system/overlays/toast";
 
@@ -217,12 +218,14 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
     const refresh = () => void session.refresh();
     void refresh();
     window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     window.addEventListener("towbar:access-error", refresh);
     window.addEventListener("towbar:identity-changed", refresh);
     window.addEventListener("towbar:refresh", refresh);
     return () => {
       session.stop();
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
       window.removeEventListener("towbar:access-error", refresh);
       window.removeEventListener("towbar:identity-changed", refresh);
       window.removeEventListener("towbar:refresh", refresh);
@@ -254,21 +257,12 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
         <Toast.Provider placement="bottom" />
       </AccessContext.Provider>
     );
+  if ((!user || user.mustChangePassword) && sessionUnavailable)
+    return <BackendUnavailable appName="Towbar" />;
   if (!user || user.mustChangePassword) {
     return (
       <div className="grid min-h-dvh place-items-center p-6" aria-busy="true">
-        <div
-          className="grid w-full max-w-sm justify-items-center gap-3 text-center"
-          role="status"
-        >
-          <Spinner aria-label="Loading Towbar" color="warning" />
-          {sessionUnavailable ? (
-            <p className="text-sm text-muted">
-              Towbar is temporarily unavailable.
-              <span className="block">Reconnecting automatically…</span>
-            </p>
-          ) : null}
-        </div>
+        <Spinner aria-label="Loading Towbar" color="warning" />
       </div>
     );
   }

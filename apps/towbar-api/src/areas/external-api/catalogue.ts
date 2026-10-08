@@ -1,3 +1,4 @@
+import { getReleaseVersion } from "../../release-version.js";
 import responseSchemas from "./response-schemas.json" with { type: "json" };
 import { z } from "zod";
 import {
@@ -193,7 +194,7 @@ export function createOpenApiDocument(baseUrl: string) {
     openapi: "3.1.0",
     info: {
       title: "Towbar API",
-      version: "2.0.0",
+      version: getReleaseVersion(),
       description:
         "Manage your Towbar control plane with a bearer API key. Keys inherit current workspace permissions.",
     },

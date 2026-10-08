@@ -1,3 +1,4 @@
+import { getReleaseVersion } from "../../release-version.js";
 import { resourceMetadataUrl } from "../../areas/mcp-oauth/protocol.js";
 import { actorAllows } from "@workspace/towbar-access";
 import {
@@ -41,7 +42,7 @@ mcpRoutes.all("/", async (context) => {
     actorAllows(context.get("actor"), op.permissions),
   );
   const server = new Server(
-    { name: "towbar", version: "2.0.0" },
+    { name: "towbar", version: getReleaseVersion() },
     {
       capabilities: { tools: {} },
       instructions:
