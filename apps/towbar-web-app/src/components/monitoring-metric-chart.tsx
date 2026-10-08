@@ -7,7 +7,7 @@ import {
 } from "@/lib/date-time-display";
 import { useLocalizedChartTicks } from "@/hooks/use-localized-timestamps";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useId, useMemo, useState } from "react";
 import type {
   MonitoringAggregates,
   MonitoringHistory as History,
@@ -81,6 +81,16 @@ export const MetricChart = memo(function MetricChart({
     [history.startAt, history.endAt],
   );
   const [eventActive, setEventActive] = useState(false);
+  const areaId = useId().replaceAll(":", "");
+  const filled =
+    metrics.length === 1 &&
+    [
+      "cpuPercent",
+      "memoryPercent",
+      "memoryUsedBytes",
+      "diskPercent",
+      "load1",
+    ].includes(metrics[0]!.key);
   const data = useMemo(() => {
     const start =
       Math.floor(
@@ -281,22 +291,54 @@ export const MetricChart = memo(function MetricChart({
               }
             />
           ))}
-          {lines.map((line) => (
-            <LineChart.Line
-              key={line.key}
-              dataKey={line.key}
-              name={line.label}
-              type="linear"
-              stroke={line.color}
-              strokeWidth={1.8}
-              strokeDasharray={
-                line.key.endsWith("TxBytesPerSecond") ? "5 3" : undefined
-              }
-              dot={false}
-              connectNulls={false}
-              isAnimationActive={false}
-            />
-          ))}
+          {filled ? (
+            <defs>
+              {lines.map((line, index) => (
+                <linearGradient
+                  key={line.key}
+                  id={`${areaId}-${index}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor={line.color} stopOpacity={0.28} />
+                  <stop
+                    offset="100%"
+                    stopColor={line.color}
+                    stopOpacity={0.02}
+                  />
+                </linearGradient>
+              ))}
+            </defs>
+          ) : null}
+          {lines.map((line, index) =>
+            filled ? (
+              <LineChart.Area
+                key={line.key}
+                dataKey={line.key}
+                name={line.label}
+                type="linear"
+                stroke={line.color}
+                fill={`url(#${areaId}-${index})`}
+              />
+            ) : (
+              <LineChart.Line
+                key={line.key}
+                dataKey={line.key}
+                name={line.label}
+                type="linear"
+                stroke={line.color}
+                strokeWidth={1.8}
+                strokeDasharray={
+                  line.key.endsWith("TxBytesPerSecond") ? "5 3" : undefined
+                }
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            ),
+          )}
           {onRangeSelect ? (
             <LineChart.Selection domain={timeDomain} onSelect={onRangeSelect} />
           ) : null}

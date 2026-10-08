@@ -1635,6 +1635,9 @@ let systemHealth: SystemHealth = {
     monitoringBytes: Math.round(
       12_000_000 + index * 340_000 + Math.sin(index / 5) * 2_000_000,
     ),
+    analyticsBytes: Math.round(
+      6_000_000 + index * 260_000 + Math.sin(index / 6) * 1_000_000,
+    ),
   })),
   status: "healthy",
   version: packageManifest.version,

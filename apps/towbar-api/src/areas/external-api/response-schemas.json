@@ -20596,9 +20596,17 @@
       "properties": {
         "sampledAt": { "type": "string" },
         "towbarBytes": { "type": "number" },
-        "monitoringBytes": { "type": "number" }
+        "monitoringBytes": { "type": "number" },
+        "analyticsBytes": {
+          "anyOf": [{ "type": "null" }, { "type": "number" }]
+        }
       },
-      "required": ["sampledAt", "towbarBytes", "monitoringBytes"]
+      "required": [
+        "sampledAt",
+        "towbarBytes",
+        "monitoringBytes",
+        "analyticsBytes"
+      ]
     },
     "SystemHealth_420": {
       "type": "object",

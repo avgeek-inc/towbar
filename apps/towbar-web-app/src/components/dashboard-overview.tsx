@@ -248,7 +248,6 @@ function OverviewActivity() {
         ) : deploymentItems.length ? (
           <LineChart
             aria-label="Deployment activity over the last 7 days"
-            chartMargin={{ bottom: 0, left: -8 }}
             className={`${illustrationStyles.activityChart} min-w-0`}
             data={activity}
             height={220}

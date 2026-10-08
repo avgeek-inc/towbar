@@ -77,7 +77,9 @@ const columns: ResourceTableColumn<DeploymentHistoryItem>[] = [
           >
             {item.deployableKind === "app" ||
             item.deployableKind === "compose" ? (
-              <AppLogo domain={item.deployableDomain ?? undefined} />
+              <AppLogo
+                domain={item.deployableDomain ?? item.hostname ?? undefined}
+              />
             ) : (
               <ResourceLogo
                 brand={resourceImageBrand(

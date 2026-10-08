@@ -56,8 +56,23 @@ void test("request payloads reject IP addresses, identities, queries, and incons
 });
 
 void test("analytics filters validate bounded AND conditions", async () => {
-  const { analyticsQuerySchema } = await import("./analytics.js");
+  const { analyticsQuerySchema, analyticsFilterOptionsQuerySchema } =
+    await import("./analytics.js");
   assert.deepEqual(analyticsQuerySchema.parse({}).filters, []);
+  for (const days of [1 / 96, 1 / 24, 1 / 8, 1 / 2, 1]) {
+    assert.equal(analyticsQuerySchema.parse({ days: String(days) }).days, days);
+    assert.equal(
+      analyticsFilterOptionsQuerySchema.parse({
+        days: String(days),
+        field: "country",
+      }).days,
+      days,
+    );
+  }
+  assert.equal(
+    analyticsQuerySchema.safeParse({ days: "0.001" }).success,
+    false,
+  );
   const filters = [
     { field: "path", operator: "startsWith", value: "/docs" },
     { field: "path", operator: "equals", value: "/docs/api" },

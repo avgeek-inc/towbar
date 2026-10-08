@@ -168,6 +168,21 @@ function jpegDimensions(image) {
   throw new Error("missing JPEG frame dimensions");
 }
 
+function imageDimensions(image, file) {
+  if (file.endsWith(".png")) {
+    if (
+      image.length < 24 ||
+      !image
+        .subarray(0, 8)
+        .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
+      image.toString("ascii", 12, 16) !== "IHDR"
+    )
+      throw new Error("not a PNG image");
+    return { width: image.readUInt32BE(16), height: image.readUInt32BE(20) };
+  }
+  return jpegDimensions(image);
+}
+
 async function checkReleaseScreenshots() {
   const manifest = JSON.parse(
     await readFile(
@@ -178,9 +193,10 @@ async function checkReleaseScreenshots() {
   const names = new Set();
   for (const screenshot of manifest.screenshots) {
     const viewport = screenshot.viewport ?? { width: 1600, height: 900 };
+    const density = screenshot.deviceScaleFactor ?? 2;
     const requiredDimensions = {
-      width: viewport.width * 2,
-      height: viewport.height * 2,
+      width: viewport.width * density,
+      height: viewport.height * density,
     };
     if (names.has(screenshot.name))
       failures.push(`Duplicate release screenshot: ${screenshot.name}`);
@@ -199,7 +215,7 @@ async function checkReleaseScreenshots() {
     for (const theme of screenshot.themes) {
       const file = path.join(repository, theme.file);
       try {
-        const actual = jpegDimensions(await readFile(file));
+        const actual = imageDimensions(await readFile(file), theme.file);
         if (actual.width !== theme.width || actual.height !== theme.height)
           failures.push(
             `${theme.file}: manifest says ${theme.width}x${theme.height}, image is ${actual.width}x${actual.height}`,
@@ -209,7 +225,7 @@ async function checkReleaseScreenshots() {
           actual.height !== requiredDimensions.height
         )
           failures.push(
-            `${theme.file}: release screenshots must be 2x viewport captures (${requiredDimensions.width}x${requiredDimensions.height})`,
+            `${theme.file}: release screenshots must be ${density}x viewport captures (${requiredDimensions.width}x${requiredDimensions.height})`,
           );
       } catch (error) {
         failures.push(`${theme.file}: ${error.message}`);

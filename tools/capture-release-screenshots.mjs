@@ -315,9 +315,10 @@ async function capture(browser, screenshot, theme) {
       "Start the fixture with upgradeScenario enabled for screenshot capture",
     );
   const viewport = screenshot.viewport ?? defaultViewport;
+  const density = screenshot.deviceScaleFactor ?? deviceScaleFactor;
   await browser.client.send(
     "Emulation.setDeviceMetricsOverride",
-    { ...viewport, deviceScaleFactor, mobile: false },
+    { ...viewport, deviceScaleFactor: density, mobile: false },
     browser.sessionId,
   );
   const url = new URL(screenshot.route, appOrigin).toString();
@@ -365,11 +366,14 @@ async function capture(browser, screenshot, theme) {
     browser,
     "({ x: window.scrollX, y: window.scrollY })",
   );
+  const target = screenshot.themes.find((item) => item.theme === theme);
+  if (!target) throw new Error(`${screenshot.name} has no ${theme} target`);
+  const format = target.file.endsWith(".png") ? "png" : "jpeg";
   const result = await browser.client.send(
     "Page.captureScreenshot",
     {
-      format: "jpeg",
-      quality: 100,
+      format,
+      ...(format === "jpeg" ? { quality: 100 } : {}),
       captureBeyondViewport: false,
       fromSurface: true,
       clip: {
@@ -382,11 +386,9 @@ async function capture(browser, screenshot, theme) {
     },
     browser.sessionId,
   );
-  const target = screenshot.themes.find((item) => item.theme === theme);
-  if (!target) throw new Error(`${screenshot.name} has no ${theme} target`);
   await writeFile(path.join(repository, target.file), result.data, "base64");
-  target.width = viewport.width * deviceScaleFactor;
-  target.height = viewport.height * deviceScaleFactor;
+  target.width = viewport.width * density;
+  target.height = viewport.height * density;
   console.log(
     `${theme.padEnd(5)} ${screenshot.name} ${target.width}x${target.height}`,
   );
@@ -462,7 +464,7 @@ else {
 manifest.environment =
   "Local Towbar fixture on localhost:4021; examples are not production results";
 manifest.viewport =
-  "1600 × 900 CSS pixels by default, rendered at 2× density; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport";
+  "1600 × 900 CSS pixels by default, rendered at 2× density unless a screenshot specifies otherwise; individual screenshots may specify a taller viewport. Every image is limited to the visible viewport";
 await updateDocumentDimensions({ screenshots });
 await writeFile(
   manifestPath,

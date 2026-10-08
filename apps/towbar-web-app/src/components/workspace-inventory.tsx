@@ -82,7 +82,7 @@ function InventoryViewToggle({ kind }: { kind: "Services" | "Datastores" }) {
   const [layout, setLayout] = useQueryChoice(
     "layout",
     inventoryLayouts,
-    "unified",
+    "server",
   );
   return (
     <ToggleButtonGroup

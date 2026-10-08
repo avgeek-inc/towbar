@@ -9,8 +9,8 @@
   "favicon": "/assets/towbar-favicon.png",
   "colors": {
     "primary": "#A16207",
-    "light": "#B08505",
-    "dark": "#B9872C"
+    "light": "#F2CD51",
+    "dark": "#AA8228"
   },
   "navigation": {
     "dropdowns": [
@@ -949,13 +949,47 @@
             "href": "/docs/self-hosting/installation"
           },
           {
+            "label": "Connect a repository",
+            "href": "/docs/repositories/connect"
+          },
+          {
             "label": "Manifest reference",
             "href": "/docs/deployment-manifest"
           }
         ]
       },
       {
-        "header": "Project",
+        "header": "Our OSS Philosophy",
+        "items": [
+          {
+            "label": "Why we build open source",
+            "href": "https://github.com/avgeek-oss/.github/blob/main/profile/README.md"
+          },
+          {
+            "label": "Towbar on GitHub",
+            "href": "https://github.com/avgeek-oss/towbar"
+          },
+          {
+            "label": "Report an issue",
+            "href": "https://github.com/avgeek-oss/towbar/issues"
+          }
+        ]
+      },
+      {
+        "header": "Other OSS Apps",
+        "items": [
+          {
+            "label": "Vitalog · Keep your health ledger",
+            "href": "https://www.vitalog.dev"
+          },
+          {
+            "label": "All OSS projects",
+            "href": "https://github.com/avgeek-oss/.github/blob/main/profile/README.md#whats-in-the-list"
+          }
+        ]
+      },
+      {
+        "header": "Project & Legal",
         "items": [
           {
             "label": "GitHub",
@@ -968,12 +1002,7 @@
           {
             "label": "Security",
             "href": "/docs/self-hosting/security"
-          }
-        ]
-      },
-      {
-        "header": "Legal",
-        "items": [
+          },
           {
             "label": "Privacy",
             "href": "/privacy"

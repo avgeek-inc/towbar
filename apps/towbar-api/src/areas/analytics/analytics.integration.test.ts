@@ -6,6 +6,7 @@ import { verifyPageEngagement } from "./engagement-test-support.js";
 import { verifyAnalyticsDeploymentMarkers } from "./deployment-test-support.js";
 import { verifyAnalyticsCities } from "./city-test-support.js";
 import { verifyFilterOptionsResponse } from "./filter-options-test-support.js";
+import { verifyReportRanges } from "./short-ranges-test-support.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -44,8 +45,13 @@ void test(
     const { getTowbarDatabase, closeDatabase } =
       await import("../../infrastructure/database.js");
     const { ingestMonitoringSample } = await import("../monitoring/ingest.js");
-    const { getAnalyticsReport, maintainAnalytics, getAnalyticsConfiguration } =
-      await import("./service.js");
+    const service = await import("./service.js");
+    const {
+      getAnalyticsReport,
+      getAnalyticsFilterOptions,
+      maintainAnalytics,
+      getAnalyticsConfiguration,
+    } = service;
     const db = getTowbarDatabase(),
       workspaceId = randomUUID(),
       serverId = randomUUID(),
@@ -177,16 +183,7 @@ void test(
         sourceId,
         config,
       });
-      assert.equal(report.total, 2);
-      assert.equal(report.errors, 2);
-      assert.equal(report.meanMs, 10);
-      assert.equal(report.p95Ms, 10);
-      assert.equal(report.dimensions.path?.[0]?.value, "/docs");
-      assert.equal(
-        report.comparison,
-        null,
-        "previous period exceeds configured retention",
-      );
+      await verifyReportRanges({ appId, workspaceId, report, service });
       await db.insert(analyticsSamples).values({
         serverId,
         appId,
@@ -449,7 +446,6 @@ void test(
           },
         ],
       });
-      const { getAnalyticsFilterOptions } = await import("./service.js");
       const optionInput = {
         appId,
         workspaceId,

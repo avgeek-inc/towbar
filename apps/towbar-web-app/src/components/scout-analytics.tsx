@@ -73,6 +73,17 @@ const labels: Record<string, string> = {
   device: "Devices",
 };
 const latencyLabels = analyticsResponseTimeRanges;
+const analyticsRanges = [
+  { days: 1 / 96, label: "Last 15 mins" },
+  { days: 1 / 24, label: "Last 1 hour" },
+  { days: 1 / 8, label: "Last 3 hours" },
+  { days: 1 / 2, label: "Last 12 hours" },
+  { days: 1, label: "Last 24 hours" },
+  { days: 7, label: "Last 7 days" },
+  { days: 14, label: "Last 14 days" },
+  { days: 30, label: "Last 30 days" },
+  { days: 90, label: "Last 90 days" },
+] as const;
 const format = (n: number) => n.toLocaleString();
 const filterIcons = {
   path: Route01Icon,
@@ -281,11 +292,13 @@ export function ScoutAnalytics({
             label="Time range"
             value={String(days)}
             onChange={(value) => setDays(Number(value))}
-            options={[1, 7, 14, 30, 90]
-              .filter((n) => n <= (query.data?.config?.retentionDays ?? 30))
-              .map((n) => ({
-                id: String(n),
-                label: `Last ${n === 1 ? "24 hours" : `${n} days`}`,
+            options={analyticsRanges
+              .filter(
+                ({ days }) => days <= (query.data?.config?.retentionDays ?? 30),
+              )
+              .map(({ days, label }) => ({
+                id: String(days),
+                label,
               }))}
           />
         </div>
@@ -346,9 +359,8 @@ export function AnalyticsView({
       </EmptyState>
     );
   const pageviews = report.kind === "pageview";
-  const reportDays = Math.round(
-    (Date.parse(report.end) - Date.parse(report.start)) / 86_400_000,
-  );
+  const reportDuration = Date.parse(report.end) - Date.parse(report.start);
+  const reportDays = Math.round(reportDuration / 86_400_000);
   const metrics = pageviews
     ? [
         {
@@ -508,7 +520,15 @@ export function AnalyticsView({
       (breakdown.rows.length > 10 ? 1 : 0);
   }
   const hasTrend = report.total > 0 || (report.comparison?.total ?? 0) > 0;
-  const comparisonLabel = `Prev. ${reportDays === 1 ? "24 hours" : `${reportDays} days`}`;
+  const comparisonLabel = `Prev. ${
+    reportDuration < 86_400_000
+      ? reportDuration < 3_600_000
+        ? `${Math.round(reportDuration / 60_000)} mins`
+        : `${Math.round(reportDuration / 3_600_000)} hours`
+      : reportDays === 1
+        ? "24 hours"
+        : `${reportDays} days`
+  }`;
   return (
     <div className="space-y-6" aria-busy={updating}>
       {updating ? (
@@ -670,7 +690,9 @@ export function AnalyticsView({
                   new Date(Number(value)).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
-                    ...(reportDays === 1 ? { hour: "numeric" } : {}),
+                    ...(reportDuration <= 86_400_000
+                      ? { hour: "numeric" }
+                      : {}),
                   })
                 }
               />
@@ -708,7 +730,9 @@ export function AnalyticsView({
                       labelFormatter={(value) =>
                         new Date(Number(value)).toLocaleString(undefined, {
                           dateStyle: "medium",
-                          ...(reportDays === 1 ? { timeStyle: "short" } : {}),
+                          ...(reportDuration <= 86_400_000
+                            ? { timeStyle: "short" }
+                            : {}),
                         })
                       }
                       valueFormatter={(value, key) => {

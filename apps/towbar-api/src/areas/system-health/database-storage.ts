@@ -9,6 +9,7 @@ export async function recordDatabaseStorageSample() {
   const [size] = await database.execute<{
     towbarBytes: string;
     monitoringBytes: string;
+    analyticsBytes: string;
   }>(sql`
     select
       coalesce(sum(pg_total_relation_size(c.oid)) filter (
@@ -19,8 +20,10 @@ export async function recordDatabaseStorageSample() {
       coalesce(sum(pg_total_relation_size(c.oid)) filter (
         where left(c.relname, length('towbar_monitoring_')) = 'towbar_monitoring_'
           or left(c.relname, length('towbar_scout_')) = 'towbar_scout_'
-          or left(c.relname, length('towbar_analytics_')) = 'towbar_analytics_'
-      ), 0)::text as "monitoringBytes"
+      ), 0)::text as "monitoringBytes",
+      coalesce(sum(pg_total_relation_size(c.oid)) filter (
+        where left(c.relname, length('towbar_analytics_')) = 'towbar_analytics_'
+      ), 0)::text as "analyticsBytes"
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = current_schema()
@@ -30,15 +33,17 @@ export async function recordDatabaseStorageSample() {
   if (!size) throw new Error("Could not read the Towbar table sizes");
   const towbarBytes = Number(size.towbarBytes);
   const monitoringBytes = Number(size.monitoringBytes);
+  const analyticsBytes = Number(size.analyticsBytes);
   if (
     !Number.isSafeInteger(towbarBytes) ||
-    !Number.isSafeInteger(monitoringBytes)
+    !Number.isSafeInteger(monitoringBytes) ||
+    !Number.isSafeInteger(analyticsBytes)
   )
     throw new Error("Towbar database size exceeds the supported range");
 
   const [sample] = await database
     .insert(databaseStorageSamples)
-    .values({ towbarBytes, monitoringBytes })
+    .values({ towbarBytes, monitoringBytes, analyticsBytes })
     .returning();
   await database
     .delete(databaseStorageSamples)
@@ -60,5 +65,6 @@ export async function getDatabaseStorage() {
     sampledAt: sample.sampledAt.toISOString(),
     towbarBytes: sample.towbarBytes,
     monitoringBytes: sample.monitoringBytes,
+    analyticsBytes: sample.analyticsBytes,
   }));
 }

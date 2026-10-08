@@ -243,7 +243,11 @@ export const analyticsFilterSchema = z
 export type AnalyticsFilter = z.infer<typeof analyticsFilterSchema>;
 export const analyticsFiltersSchema = z.array(analyticsFilterSchema).max(8);
 export const analyticsFilterOptionsQuerySchema = z.object({
-  days: z.coerce.number().int().min(1).max(90).default(7),
+  days: z.coerce
+    .number()
+    .min(1 / 96)
+    .max(90)
+    .default(7),
   kind: z.enum(["request", "pageview"]).default("request"),
   field: z.enum([
     "referrer",
@@ -275,7 +279,11 @@ const encodedAnalyticsFiltersSchema = z
   })
   .pipe(analyticsFiltersSchema);
 export const analyticsQuerySchema = z.object({
-  days: z.coerce.number().int().min(1).max(90).default(7),
+  days: z.coerce
+    .number()
+    .min(1 / 96)
+    .max(90)
+    .default(7),
   kind: z.enum(["request", "pageview"]).default("request"),
   filters: encodedAnalyticsFiltersSchema,
 });
