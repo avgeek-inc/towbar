@@ -1,44 +1,42 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
 
 import {
   type AuthRateLimitCounter,
   checkPasswordLoginRateLimit,
-  resolveClientAddress,
+  getClientAddress,
 } from "./rate-limit.js";
 
 void describe("authentication rate limiting", () => {
-  void it("ignores spoofed forwarding headers when no proxy is trusted", () => {
-    assert.equal(
-      resolveClientAddress({
-        forwardedFor: "198.51.100.200",
-        peerAddress: "203.0.113.10",
-        trustedProxyHops: 0,
-      }),
-      "203.0.113.10",
+  void it("uses the connection peer despite supplied forwarding headers", async () => {
+    const app = new Hono();
+    app.get("/client-address", (context) =>
+      context.text(getClientAddress(context)),
     );
-  });
-
-  void it("uses the rightmost untrusted address for an explicit proxy hop", () => {
-    assert.equal(
-      resolveClientAddress({
-        forwardedFor: "198.51.100.200, 203.0.113.40",
-        peerAddress: "10.0.0.5",
-        trustedProxyHops: 1,
-      }),
-      "203.0.113.40",
-    );
-  });
-
-  void it("resolves the client through the internal and host gateways", () => {
-    assert.equal(
-      resolveClientAddress({
-        forwardedFor: "198.51.100.200, 203.0.113.40",
-        peerAddress: "10.0.0.5",
-        trustedProxyHops: 2,
-      }),
-      "198.51.100.200",
-    );
+    const server = serve({ fetch: app.fetch, hostname: "127.0.0.1", port: 0 });
+    try {
+      await new Promise<void>((resolve) => server.once("listening", resolve));
+      const address = server.address();
+      assert(address && typeof address !== "string");
+      const url = `http://127.0.0.1:${address.port}/client-address`;
+      for (const headers of [
+        {},
+        { "x-forwarded-for": "198.51.100.200, 203.0.113.40" },
+        {
+          forwarded: "for=198.51.100.200",
+          "x-real-ip": "203.0.113.40",
+          "cf-connecting-ip": "192.0.2.44",
+        },
+      ]) {
+        const response = await fetch(url, { headers });
+        assert.equal(response.status, 200);
+        assert.equal(await response.text(), "127.0.0.1");
+      }
+    } finally {
+      server.close();
+    }
   });
 
   void it("blocks one account even when attempts rotate client addresses", async () => {

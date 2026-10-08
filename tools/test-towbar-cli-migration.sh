@@ -53,6 +53,22 @@ python3 "$release_dir/infra/runtime_config.py" compare \
   --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
 commit_runtime_config
 
+python3 - "$TOWBAR_YAML_FILE" <<'PY'
+import pathlib
+import sys
+import yaml
+
+path = pathlib.Path(sys.argv[1])
+config = yaml.safe_load(path.read_text())
+config.setdefault("security", {})["trustedProxyHops"] = 1
+path.write_text(yaml.safe_dump(config, sort_keys=False))
+PY
+prepare_runtime_config "$release_dir"
+! grep -q 'trustedProxyHops' "$TOWBAR_YAML_FILE"
+python3 "$release_dir/infra/runtime_config.py" compare \
+  --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
+commit_runtime_config
+
 cp "$TOWBAR_YAML_FILE" "$TOWBAR_LEGACY_YAML_FILE"
 if (migrate_runtime_config_path) >"$temporary_root/conflict.log" 2>&1; then
   printf 'Towbar CLI accepted conflicting runtime configuration files.\n' >&2

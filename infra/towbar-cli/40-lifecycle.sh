@@ -326,8 +326,7 @@ upgrade_release() {
         --yaml "$TOWBAR_YAML_FILE" \
         --mode "$INSTALL_MODE" \
         --app-url "$INSTALL_APP_URL" \
-        --gateway-domain "$INSTALL_HOSTNAME" \
-        --proxy-hops "$INSTALL_PROXY_HOPS"
+        --gateway-domain "$INSTALL_HOSTNAME"
     else
       apply_install_settings
     fi

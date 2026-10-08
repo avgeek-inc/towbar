@@ -153,7 +153,7 @@ class RuntimeConfigTests(unittest.TestCase):
             env.write_text((ROOT / ".env.example").read_text())
             config_tool.migrate(env, yml, False)
             config_tool.set_installation(
-                yml, "public", "https://towbar.example.com", "towbar.example.com", 1
+                yml, "public", "https://towbar.example.com", "towbar.example.com"
             )
             config_tool.render(yml, env)
             values = config_tool.parse_env(env)
@@ -163,6 +163,28 @@ class RuntimeConfigTests(unittest.TestCase):
                 values["TOWBAR_GITLAB_OAUTH_REDIRECT_URI"],
                 "https://towbar.example.com/v1/core/gitlab/oauth/callback",
             )
+
+    def test_migration_removes_obsolete_proxy_trust_from_existing_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            env = root / "towbar.env"
+            yml = root / "config.yml"
+            env.write_text("TOWBAR_INSTALL_MODE=local\nTOWBAR_TRUSTED_PROXY_HOPS=1\n")
+            with self.assertRaisesRegex(config_tool.ConfigError, "TOWBAR_TRUSTED_PROXY_HOPS"):
+                config_tool.parse_env(env)
+            config_tool.migrate(env, yml, True)
+            self.assertNotIn("trustedProxyHops", yml.read_text())
+            self.assertIn(
+                "TOWBAR_TRUSTED_PROXY_HOPS=1",
+                (root / "towbar.env.legacy").read_text(),
+            )
+            yml.write_text(yml.read_text() + "security:\n  trustedProxyHops: 1\n")
+            with self.assertRaisesRegex(config_tool.ConfigError, "security.trustedProxyHops"):
+                config_tool.read_yaml(yml)
+            config_tool.migrate(env, yml, True)
+            self.assertNotIn("trustedProxyHops", yml.read_text())
+            config_tool.render(yml, env)
+            self.assertNotIn("TOWBAR_TRUSTED_PROXY_HOPS", env.read_text())
 
 
 if __name__ == "__main__":

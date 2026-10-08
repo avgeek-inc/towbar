@@ -64,9 +64,7 @@ the on-host dashboard without exposing those automation interfaces.
 
 The local profile binds `127.0.0.1:4021`. The public profile binds ports 80 and
 443, obtains and renews a Let's Encrypt certificate for `installation.gatewayDomain`,
-and persists Caddy's certificate state. The installer selects the profile and
-sets `security.trustedProxyHops: 1` for the bundled gateway. Change the hop count
-only if you place another controlled proxy such as a CDN in front of Towbar.
+and persists Caddy's certificate state. The installer selects the profile.
 
 ## Runtime integrations
 
@@ -195,7 +193,7 @@ Towbar installation and upgrades run on the control-plane host. See [Install Tow
 
 `security.apiRateLimit.max` defaults to `60` requests and
 `security.apiRateLimit.windowSeconds` defaults to `60` seconds. The API and
-MCP share persistent per-key and per-IP limits. Set both YAML values and
-restart after changes. Configure `security.trustedProxyHops` for your trusted
-proxy topology so clients are counted correctly. See [API authentication and rate
+MCP share persistent per-key and per-IP limits. The per-IP limit uses the API's
+connection peer, which is the bundled gateway for self-hosted installs. Set both
+YAML values and restart after changes. See [API authentication and rate
 limits](/docs/api/authentication) for bounds, response headers, and examples.

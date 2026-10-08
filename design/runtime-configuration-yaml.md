@@ -33,7 +33,6 @@ database:
 security:
   credentialsKey: "..."
   internalHmacSecret: "..."
-  trustedProxyHops: 1
   passwordBreachCheck: true
 
 worker:

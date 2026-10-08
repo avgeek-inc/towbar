@@ -61,7 +61,6 @@ set_install_url() {
     INSTALL_MODE=local
     INSTALL_APP_URL=http://localhost:4021
     INSTALL_HOSTNAME=
-    INSTALL_PROXY_HOPS=1
     return
   fi
 
@@ -73,7 +72,6 @@ set_install_url() {
   INSTALL_MODE=public
   INSTALL_APP_URL="$lowercase_url"
   INSTALL_HOSTNAME="${lowercase_url#https://}"
-  INSTALL_PROXY_HOPS=1
 }
 
 set_env_value() {
@@ -136,8 +134,6 @@ apply_install_settings() {
   set_env_value \
     "$TOWBAR_ENV_FILE" TOWBAR_GITLAB_OAUTH_REDIRECT_URI \
     "$INSTALL_APP_URL/v1/core/gitlab/oauth/callback"
-  set_env_value \
-    "$TOWBAR_ENV_FILE" TOWBAR_TRUSTED_PROXY_HOPS "$INSTALL_PROXY_HOPS"
 }
 
 verify_public_dns() {
