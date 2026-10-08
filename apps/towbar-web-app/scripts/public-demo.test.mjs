@@ -351,6 +351,7 @@ test("UI proxy never forwards caller credentials or accepts writes; all response
     response.setHeader("set-cookie", "unsafe=fixture");
     response.setHeader("x-nextjs-stale-time", "300");
     response.setHeader("x-nextjs-prerender", "1");
+    response.setHeader("x-nextjs-postponed", "2");
     response.end("UI");
   });
   web.listen(0, "127.0.0.1");
@@ -373,6 +374,7 @@ test("UI proxy never forwards caller credentials or accepts writes; all response
   assert.equal(observed["next-router-segment-prefetch"], "/_tree");
   assert.equal(response.headers.get("x-nextjs-stale-time"), "300");
   assert.equal(response.headers.get("x-nextjs-prerender"), "1");
+  assert.equal(response.headers.get("x-nextjs-postponed"), "2");
   assert.equal(observed["x-forwarded-host"], undefined);
   assert.equal(response.headers.get("set-cookie"), null);
   assert.equal(response.headers.get("cache-control"), "private, no-store");

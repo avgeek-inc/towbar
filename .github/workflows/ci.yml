@@ -122,8 +122,6 @@ jobs:
         env:
           TOWBAR_DOCKER_TESTS: "1"
       - run: pnpm build
-        env:
-          NEXT_PUBLIC_TOWBAR_APP_BASE_URL: http://localhost:4021
 
   compose:
     runs-on: ubuntu-latest
