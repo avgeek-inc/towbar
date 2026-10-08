@@ -3,7 +3,7 @@
 import {
   Delete02Icon,
   Shield01Icon,
-  StopCircleIcon,
+  BanIcon,
   Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -635,11 +635,7 @@ function RestoreOperationAction({
       success="Restore cancellation requested"
       variant="danger"
     >
-      <HugeiconsIcon
-        aria-hidden="true"
-        icon={StopCircleIcon}
-        className="shrink-0"
-      />
+      <HugeiconsIcon aria-hidden="true" icon={BanIcon} className="shrink-0" />
       Cancel
     </ActionButton>
   ) : (

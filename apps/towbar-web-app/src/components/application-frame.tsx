@@ -304,6 +304,7 @@ function AuthenticatedFrame({ children }: { children: React.ReactNode }) {
       ),
     })),
     ...(version.data ? { brandVersion: version.data.installedVersion } : {}),
+    brandUpdateHref: "/system-health",
     brandUpdateVersion:
       !version.error && version.data?.status === "available"
         ? (version.data.latestVersion ?? undefined)

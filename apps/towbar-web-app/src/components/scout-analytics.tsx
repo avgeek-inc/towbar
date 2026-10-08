@@ -426,7 +426,7 @@ export function AnalyticsView({
       key: "count",
       previousKey: "previous",
       label: "Page views",
-      color: "var(--accent)",
+      color: "var(--chart-accent)",
     },
     {
       key: "visitors",
@@ -446,7 +446,7 @@ export function AnalyticsView({
       key: "count",
       previousKey: "previous",
       label: "Requests",
-      color: "var(--accent)",
+      color: "var(--chart-accent)",
     },
     {
       key: "errors",

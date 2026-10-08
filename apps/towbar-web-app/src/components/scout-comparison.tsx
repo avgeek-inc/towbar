@@ -428,7 +428,7 @@ function ComparisonChart({
           <LineChart.Line
             dataKey="candidate"
             name="Compared"
-            stroke="var(--accent)"
+            stroke="var(--chart-accent)"
             strokeWidth={1.8}
             dot={false}
             type="linear"

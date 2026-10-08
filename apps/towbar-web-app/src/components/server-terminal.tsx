@@ -241,7 +241,7 @@ export function ServerTerminal({
         <div className="ml-auto flex items-center gap-3">
           {status === "connected" || status === "connecting" ? (
             <Button
-              className="h-6! gap-1.5 px-2.5 text-xs font-normal before:absolute before:inset-x-0 before:-inset-y-2 [&_svg]:size-3.5!"
+              className="h-6! gap-1.5 text-xs font-normal before:absolute before:inset-x-0 before:-inset-y-2 [&_svg]:size-3.5!"
               variant="danger"
               onPress={() => setIsConfirmingDisconnect(true)}
             >
@@ -250,7 +250,7 @@ export function ServerTerminal({
             </Button>
           ) : (
             <Button
-              className="h-6! gap-1.5 px-2.5 text-xs font-normal before:absolute before:inset-x-0 before:-inset-y-2 [&_svg]:size-3.5!"
+              className="h-6! gap-1.5 text-xs font-normal before:absolute before:inset-x-0 before:-inset-y-2 [&_svg]:size-3.5!"
               isDisabled={!loaded || credentialsPending}
               onPress={() => void connect()}
             >

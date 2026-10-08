@@ -26,7 +26,7 @@ const axisTick = { fill: "var(--muted)", fontSize: 10 };
 const percentageDomain = [0, 100] as const;
 const automaticDomain = [0, "auto"] as const;
 const palette = [
-  "var(--accent)",
+  "var(--chart-accent)",
   "#a67c00",
   "#16a34a",
   "#a855f7",
