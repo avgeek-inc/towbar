@@ -17,7 +17,7 @@ const { createOpenApiDocument, operations } =
   await import("../src/areas/external-api/catalogue.js");
 const { mcpTools } = await import("../src/areas/external-api/mcp-tools.js");
 const root = resolve(import.meta.dirname, "../../..");
-const doc = createOpenApiDocument("https://towbar.example.com/v1/api");
+const doc = createOpenApiDocument("https://towbar-api.example.com/v1/api");
 const output = await format(JSON.stringify(doc), { parser: "json" });
 const target = resolve(root, "docs/api-reference/openapi.json");
 if (process.argv.includes("--check")) {

@@ -9,6 +9,19 @@ function optionalEnvironmentString(schema: z.ZodString) {
   );
 }
 
+const publicOrigin = z
+  .string()
+  .url()
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      url.origin === value &&
+      (url.protocol === "https:" ||
+        (url.protocol === "http:" &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+    );
+  }, "Expected an HTTPS origin or loopback HTTP origin");
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -35,7 +48,8 @@ const envSchema = z.object({
     }
   }),
   TOWBAR_INTERNAL_HMAC_SECRET: z.string().min(32),
-  TOWBAR_APP_BASE_URL: z.string().url().default("http://localhost:4021"),
+  TOWBAR_APP_BASE_URL: publicOrigin.default("http://localhost:4021"),
+  TOWBAR_API_BASE_URL: publicOrigin.default("http://localhost:4020"),
   TOWBAR_VULNERABILITY_SCANNING_ENABLED: z
     .enum(["true", "false"])
     .default("false")

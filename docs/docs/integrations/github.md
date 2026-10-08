@@ -20,7 +20,7 @@ Towbar configures one GitHub App per Towbar installation and can connect it to m
 
    ![Set the GitHub App name and homepage URL.](/assets/guides/github-app/app-name-and-homepage.png)
 
-3. Set **Setup URL** to `https://towbar.example.com/manage/integrations/github` and enable **Redirect on update**. Keep the webhook active, set **Webhook URL** to `https://towbar.example.com/v1/public/webhooks/github`, and leave SSL verification enabled. Replace `towbar.example.com` in both URLs with your `installation.appUrl` origin. The webhook secret is optional. If you set one in GitHub, enter the same value as `integrations.github.webhookSecret` in Towbar.
+3. Set **Setup URL** to `https://towbar.example.com/manage/integrations/github` and enable **Redirect on update**. Keep the webhook active, set **Webhook URL** to `https://towbar-api.example.com/v1/public/webhooks/github`, and leave SSL verification enabled. Use `installation.appUrl` for the Setup URL and `installation.apiBaseUrl` for the Webhook URL. The webhook secret is optional. If you set one in GitHub, enter the same value as `integrations.github.webhookSecret` in Towbar.
 
    ![Set the GitHub App setup and webhook URLs.](/assets/guides/github-app/setup-and-webhook.png)
 
@@ -93,7 +93,7 @@ The connected accounts table shows each account, account type, connection status
 
 ## Maintain the connection
 
-Use **Review access** after adding App permissions or repositories. Use **Reconnect** when GitHub suspends or removes an installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the callback URL uses `installation.appUrl`. Rotate the private key or configured webhook secret in `config.yml`, then validate and restart Towbar.
+Use **Review access** after adding App permissions or repositories. Use **Reconnect** when GitHub suspends or removes an installation. If webhooks stop arriving, inspect the App’s recent deliveries in GitHub and confirm that the webhook URL uses `installation.apiBaseUrl`. Rotate the private key or configured webhook secret in `config.yml`, then validate and restart Towbar.
 
 ## Connect multiple GitHub accounts
 

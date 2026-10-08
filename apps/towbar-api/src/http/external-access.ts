@@ -4,9 +4,9 @@ import { getEnv } from "../env.js";
 import { notFound } from "./errors.js";
 
 export function hasHttpsExternalAccess(
-  appBaseUrl = getEnv().TOWBAR_APP_BASE_URL,
+  apiBaseUrl = getEnv().TOWBAR_API_BASE_URL,
 ) {
-  return new URL(appBaseUrl).protocol === "https:";
+  return new URL(apiBaseUrl).protocol === "https:";
 }
 
 export async function requireHttpsExternalAccess(

@@ -16,6 +16,7 @@ for (const endpoint of [api, app]) {
   );
   assert.equal(url.protocol, "http:");
 }
+assert.notEqual(api, app, "API and dashboard must have separate origins");
 const cookies = new Map();
 async function request(path, data, origin = app) {
   const response = await fetch(`${api}${path}`, {
@@ -33,12 +34,13 @@ async function request(path, data, origin = app) {
     signal: AbortSignal.timeout(15_000),
     redirect: "error",
   });
-  for (const cookie of response.headers.getSetCookie()) {
+  const setCookies = response.headers.getSetCookie();
+  for (const cookie of setCookies) {
     const pair = cookie.split(";", 1)[0];
     const separator = pair.indexOf("=");
     cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
   }
-  return { status: response.status, body: await response.json() };
+  return { status: response.status, body: await response.json(), setCookies };
 }
 function check(name, condition) {
   assert.ok(condition, name);
@@ -48,9 +50,55 @@ function check(name, condition) {
 const setupPage = await fetch(`${app}/setup`, {
   signal: AbortSignal.timeout(15_000),
 });
+const setupHtml = await setupPage.text();
 check(
   "Production web application renders setup",
-  setupPage.status === 200 && (await setupPage.text()).includes("Towbar"),
+  setupPage.status === 200 && setupHtml.includes("Towbar"),
+);
+check(
+  "Dashboard advertises the separate API origin",
+  setupHtml.includes('name="towbar-api-origin"') && setupHtml.includes(api),
+);
+const [
+  webHealth,
+  apiHealth,
+  webApiRoute,
+  apiSetupRoute,
+  webMcpRoute,
+  apiMcpRoute,
+] = await Promise.all([
+  fetch(`${app}/health`, { signal: AbortSignal.timeout(15_000) }),
+  fetch(`${api}/health`, { signal: AbortSignal.timeout(15_000) }),
+  fetch(`${app}/v1/public/auth/setup-status`, {
+    signal: AbortSignal.timeout(15_000),
+  }),
+  fetch(`${api}/setup`, { signal: AbortSignal.timeout(15_000) }),
+  fetch(`${app}/v1/mcp`, { signal: AbortSignal.timeout(15_000) }),
+  fetch(`${api}/v1/mcp`, { signal: AbortSignal.timeout(15_000) }),
+]);
+check(
+  "Dashboard and API health endpoints respond separately",
+  webHealth.ok && apiHealth.ok,
+);
+check("Dashboard does not route API requests", webApiRoute.status === 404);
+check("API does not route dashboard pages", apiSetupRoute.status === 404);
+check(
+  "MCP belongs to the API origin",
+  webMcpRoute.status === 404 &&
+    apiMcpRoute.status === 404 &&
+    webMcpRoute.headers.get("content-type")?.includes("text/html") &&
+    apiMcpRoute.headers.get("content-type")?.includes("application/json"),
+);
+const preflight = await fetch(`${api}/v1/public/auth/setup-status`, {
+  method: "OPTIONS",
+  headers: { Origin: app, "Access-Control-Request-Method": "GET" },
+  signal: AbortSignal.timeout(15_000),
+});
+check(
+  "API permits credentialed requests from the dashboard origin",
+  preflight.ok &&
+    preflight.headers.get("access-control-allow-origin") === app &&
+    preflight.headers.get("access-control-allow-credentials") === "true",
 );
 let response = await request("/v1/public/auth/setup-status");
 check(
@@ -83,6 +131,15 @@ response = await request("/v1/public/auth/setup", data);
 check(
   "Production setup creates the first administrator",
   response.status === 201,
+);
+check(
+  "Session cookies stay on the API host",
+  response.setCookies.some(
+    (cookie) =>
+      /httponly/i.test(cookie) &&
+      /samesite=lax/i.test(cookie) &&
+      !/\bdomain=/i.test(cookie),
+  ),
 );
 response = await request("/v1/public/auth/state");
 check(

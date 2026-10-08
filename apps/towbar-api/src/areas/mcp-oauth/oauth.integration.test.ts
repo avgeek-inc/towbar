@@ -26,6 +26,7 @@ void test(
   async (t) => {
     configureSettingsTestEnv(databaseUrl);
     process.env.TOWBAR_APP_BASE_URL = "https://oauth.towbar.test";
+    process.env.TOWBAR_API_BASE_URL = "https://oauth-api.towbar.test";
     process.env.TOWBAR_API_RATE_LIMIT_MAX = "1000";
     const { runTowbarMigrations } =
       await import("@workspace/towbar-database/migrate");
@@ -42,8 +43,9 @@ void test(
     const { recordAuditEvent } = await import("../../infrastructure/audit.js");
     const db = getTowbarDatabase(),
       app = createApp(),
-      origin = process.env.TOWBAR_APP_BASE_URL;
-    const { cookies, request, ok } = settingsTestClient(app, origin);
+      origin = process.env.TOWBAR_API_BASE_URL,
+      uiOrigin = process.env.TOWBAR_APP_BASE_URL;
+    const { cookies, request, ok } = settingsTestClient(app, uiOrigin);
     const signup = await auth.createInitialAdmin({
       teamName: "OAuth tests",
       displayName: "OAuth admin",
@@ -100,6 +102,10 @@ void test(
     const consent = async (extra: Record<string, string> = {}) => {
       const started = await start(extra);
       assert.equal(started.response.status, 302, await started.response.text());
+      assert.equal(
+        new URL(started.response.headers.get("location")!).origin,
+        uiOrigin,
+      );
       const response = await ok(
         await request(`/v1/oauth/consent/${started.id}`, headers, {
           allow: true,

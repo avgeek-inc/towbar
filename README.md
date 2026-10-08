@@ -59,8 +59,8 @@ monitoring data stay on your Towbar instance.
 ## Install Towbar
 
 Run Towbar on a dedicated Ubuntu or Debian server. The installer asks whether
-you want a local-only setup or a public HTTPS domain. If you choose a domain,
-point its DNS A record to the server first.
+you want a local-only setup or public HTTPS dashboard and API domains. If you
+choose public domains, point both DNS A records to the server first.
 
 Run the installer:
 

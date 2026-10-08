@@ -37,6 +37,7 @@ prepare_runtime_config "$release_dir"
 [[ "$(TOWBAR_CONFIG_DIR="$TOWBAR_CONFIG_DIR" "$repository/infra/towbar" config path)" == "$TOWBAR_YAML_FILE" ]]
 python3 "$release_dir/infra/runtime_config.py" compare \
   --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_ENV_FILE"
+grep -qx 'TOWBAR_API_BASE_URL=http://localhost:4020' "$TOWBAR_ENV_FILE"
 commit_runtime_config
 python3 "$release_dir/infra/runtime_config.py" compare \
   --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_COMMITTED_ENV_FILE"

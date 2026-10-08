@@ -135,6 +135,7 @@ services:
       <<: *backend-environment
       DATABASE_TOWBAR_URL: postgres://towbar_app:${TOWBAR_DATABASE_RUNTIME_PASSWORD:?set TOWBAR_DATABASE_RUNTIME_PASSWORD}@postgres:5432/towbar
       TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+      TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
       TOWBAR_CREDENTIALS_KEY: ${TOWBAR_CREDENTIALS_KEY:?set TOWBAR_CREDENTIALS_KEY}
       TOWBAR_PASSWORD_BREACH_CHECK: ${TOWBAR_PASSWORD_BREACH_CHECK:-true}
       TOWBAR_PASSWORD_VERIFY_CONCURRENCY: ${TOWBAR_PASSWORD_VERIFY_CONCURRENCY:-2}
@@ -236,11 +237,8 @@ services:
       args:
         SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
     environment:
-      TOWBAR_APP_BASE_URL: ${TOWBAR_APP_BASE_URL:-http://localhost:4021}
+      TOWBAR_API_BASE_URL: ${TOWBAR_API_BASE_URL:-http://localhost:4020}
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
     networks: [platform]
 
   gateway:
@@ -248,8 +246,6 @@ services:
     profiles: [local]
     restart: unless-stopped
     depends_on:
-      api:
-        condition: service_healthy
       web-app:
         condition: service_healthy
     healthcheck:
@@ -272,18 +268,18 @@ services:
     networks: [platform]
     ports:
       - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_PORT:-4021}:4021"
+      - "${TOWBAR_BIND_ADDRESS:-127.0.0.1}:${TOWBAR_API_PORT:-4020}:4020"
 
   gateway-public:
     image: caddy:2.11.4-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
     profiles: [public]
     restart: unless-stopped
     depends_on:
-      api:
-        condition: service_healthy
       web-app:
         condition: service_healthy
     environment:
       TOWBAR_GATEWAY_DOMAIN: ${TOWBAR_GATEWAY_DOMAIN:-localhost.invalid}
+      TOWBAR_GATEWAY_API_DOMAIN: ${TOWBAR_GATEWAY_API_DOMAIN:-api.localhost.invalid}
     healthcheck:
       test:
         [

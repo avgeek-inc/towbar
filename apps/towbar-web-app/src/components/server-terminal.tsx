@@ -156,7 +156,7 @@ export function ServerTerminal({
       );
       if (current !== generation.current) return;
       fit.current?.fit();
-      const url = new URL(result.websocketPath, config.appBaseUrl);
+      const url = new URL(result.websocketPath, config.apiBaseUrl);
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
       const ws = new WebSocket(url);
       ws.binaryType = "arraybuffer";

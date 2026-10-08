@@ -3,7 +3,12 @@
 		issuer acme
 	}
 
-	@api path /v1/* /.well-known/oauth-authorization-server /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/*
-	reverse_proxy @api api:4020
 	reverse_proxy web-app:4021
+}
+
+{$TOWBAR_GATEWAY_API_DOMAIN} {
+	tls {
+		issuer acme
+	}
+	reverse_proxy api:4020
 }

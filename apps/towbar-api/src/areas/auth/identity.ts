@@ -43,9 +43,10 @@ export const identityProvisioning = new AsyncLocalStorage<{
 export const identityBasePath = "/v1/public/auth/identity";
 function identityOptions(database: AuthDatabase) {
   const env = getEnv();
+  const secureCookies = new URL(env.TOWBAR_API_BASE_URL).protocol === "https:";
   return {
     appName: "Towbar",
-    baseURL: env.TOWBAR_APP_BASE_URL,
+    baseURL: env.TOWBAR_API_BASE_URL,
     basePath: identityBasePath,
     secret: createHmac("sha256", env.TOWBAR_INTERNAL_HMAC_SECRET)
       .update("towbar:identity:v2")
@@ -106,15 +107,12 @@ function identityOptions(database: AuthDatabase) {
     },
     advanced: {
       database: { generateId: () => randomUUID() },
-      useSecureCookies: env.NODE_ENV === "production",
+      useSecureCookies: secureCookies,
       cookiePrefix: "towbar",
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
       cookies: {
         session_token: {
-          name:
-            env.NODE_ENV === "production"
-              ? "__Host-towbar-session"
-              : "towbar-session",
+          name: secureCookies ? "__Host-towbar-session" : "towbar-session",
         },
       },
     },

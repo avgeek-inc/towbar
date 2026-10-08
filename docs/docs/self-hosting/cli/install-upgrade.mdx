@@ -17,7 +17,7 @@ If the CLI is already installed:
 sudo towbar install
 ```
 
-Choose `http://localhost:4021` for loopback access or a public HTTPS origin. Public access requires a DNS A record pointing to the host and inbound ports 80 and 443. Custom ports, paths, fragments, HTTPS localhost and non-HTTPS remote URLs are rejected.
+Choose `http://localhost:4021` for loopback dashboard access (API at `http://localhost:4020`) or separate public HTTPS origins for dashboard and API. Public access requires an A record for each hostname pointing to the host and inbound ports 80 and 443. The installer suggests an API hostname and lets you change it. Custom ports, paths, fragments, HTTPS localhost and non-HTTPS remote URLs are rejected.
 
 The installer verifies and downloads the versioned CLI. The CLI checks release metadata and artifact checksums, prepares Docker, generates `/etc/towbar/config.yml`, pulls images, applies schemas and verifies services. Public installations also obtain a Let's Encrypt certificate and test gateway recovery.
 

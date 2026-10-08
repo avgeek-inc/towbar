@@ -45,7 +45,19 @@ try {
     "--format",
     "{{.ServerVersion}}",
   ]);
-  const [towbarPort, temporalPort, temporalApiPort] = await availablePorts(3);
+  if (!run.env.NODE_AUTH_TOKEN) {
+    try {
+      run.env.NODE_AUTH_TOKEN = await run.capture("gh", ["auth", "token"]);
+    } catch {
+      throw new Error(
+        "Production image verification needs NODE_AUTH_TOKEN or an authenticated gh CLI for GitHub Packages",
+      );
+    }
+  }
+  if (!run.env.NODE_AUTH_TOKEN)
+    throw new Error("GitHub Packages authentication token is empty");
+  const [towbarPort, apiPort, temporalPort, temporalApiPort] =
+    await availablePorts(4);
   const override = path.join(run.directory, "test-ports.json");
   await writeFile(
     override,
@@ -61,8 +73,10 @@ try {
     TOWBAR_NETWORK_NAME: `${project}-platform`,
     TOWBAR_BIND_ADDRESS: "127.0.0.1",
     TOWBAR_PORT: String(towbarPort),
+    TOWBAR_API_PORT: String(apiPort),
     TOWBAR_TEMPORAL_UI_PORT: String(temporalPort),
     TOWBAR_APP_BASE_URL: `http://127.0.0.1:${towbarPort}`,
+    TOWBAR_API_BASE_URL: `http://127.0.0.1:${apiPort}`,
     TOWBAR_POSTGRES_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_DATABASE_RUNTIME_PASSWORD: randomBytes(32).toString("hex"),
     TOWBAR_INTERNAL_HMAC_SECRET: randomBytes(32).toString("hex"),
@@ -93,12 +107,41 @@ try {
     ["tools/verification/production-smoke.mjs"],
     {
       extra: {
-        VERIFY_API_URL: run.env.TOWBAR_APP_BASE_URL,
+        VERIFY_API_URL: run.env.TOWBAR_API_BASE_URL,
         VERIFY_APP_URL: run.env.TOWBAR_APP_BASE_URL,
       },
       timeoutMs: 120_000,
     },
   );
+  await run.step("api-outage", "docker", [...compose, "stop", "api"]);
+  try {
+    await run.step(
+      "dashboard-during-api-outage",
+      "node",
+      [
+        "--input-type=module",
+        "--eval",
+        `import assert from "node:assert/strict";
+         const app = process.env.VERIFY_APP_URL;
+         const [health, page] = await Promise.all([
+           fetch(new URL("/health", app), { signal: AbortSignal.timeout(15_000) }),
+           fetch(new URL("/setup", app), { signal: AbortSignal.timeout(15_000) }),
+         ]);
+         assert.equal(health.status, 200);
+         assert.equal(page.status, 200);
+         assert.match(await page.text(), /Towbar/);
+         console.log("Dashboard remains available during API outage");`,
+      ],
+      { extra: { VERIFY_APP_URL: run.env.TOWBAR_APP_BASE_URL } },
+    );
+  } finally {
+    await run.step(
+      "api-recovery",
+      "docker",
+      [...compose, "up", "--detach", "--wait", "--wait-timeout", "120", "api"],
+      { timeoutMs: 150_000 },
+    );
+  }
   await run.step("compose-state", "docker", [...compose, "ps", "--all"]);
   await run.step(
     "temporal-recovery",
@@ -139,7 +182,7 @@ try {
         "temporal-namespace",
       ]);
       for (const [name, value] of Object.entries(run.env)) {
-        if (/PASSWORD|SECRET|CREDENTIALS_KEY/.test(name) && value)
+        if (/PASSWORD|SECRET|TOKEN|CREDENTIALS_KEY/.test(name) && value)
           diagnostics = diagnostics.replaceAll(value, "[redacted]");
       }
       await writeFile(

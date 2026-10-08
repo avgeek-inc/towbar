@@ -30,6 +30,18 @@ source "$repository/infra/towbar-cli/30-release.sh"
 # shellcheck disable=SC1091
 source "$repository/infra/towbar-cli/40-lifecycle.sh"
 
+set_install_url https://towbar.example.com
+set_install_api_url https://towbar-api.example.com
+[[ "$INSTALL_MODE" == public && "$INSTALL_APP_URL" == https://towbar.example.com ]]
+[[ "$INSTALL_API_BASE_URL" == https://towbar-api.example.com ]]
+[[ "$INSTALL_API_HOSTNAME" == towbar-api.example.com ]]
+if (set_install_api_url https://towbar.example.com) >/dev/null 2>&1; then
+  printf 'Towbar CLI accepted identical UI and API origins.\n' >&2
+  exit 1
+fi
+set_install_url http://localhost:4021
+[[ "$INSTALL_API_BASE_URL" == http://localhost:4020 ]]
+
 # Referenced by verify_public_prerequisites.
 # shellcheck disable=SC2034
 INSTALL_MODE=local

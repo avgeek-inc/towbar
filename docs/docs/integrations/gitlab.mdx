@@ -27,11 +27,11 @@ integrations:
     allowPrivateNetwork: false
     oauthClientId: <application-id>
     oauthClientSecret: <application-secret>
-    oauthRedirectUri: https://towbar.example/v1/core/gitlab/oauth/callback
+    oauthRedirectUri: https://towbar-api.example.com/v1/core/gitlab/oauth/callback
     webhookSecret: <shared-webhook-secret>
 ```
 
-Private-network access must be enabled deliberately for an internal self-managed GitLab instance. Validate and restart Towbar after changing these values.
+Use the `installation.apiBaseUrl` origin for `oauthRedirectUri` and register that exact URL in GitLab. Private-network access must be enabled deliberately for an internal self-managed GitLab instance. Validate and restart Towbar after changing these values.
 
 ## Authorize and connect repositories
 
@@ -43,7 +43,7 @@ When adding a Repository, select GitLab, then the project and branch. Towbar rea
 
 Open **Repositories → Add repository**, select GitLab, and confirm that the intended project appears. Map an environment to a branch containing `towbar.yml` and at least one service or datastore manifest, then inspect the first sync. The project connection proves repository access; a successful sync proves that Towbar can read and validate that commit. Deployment remains a separate action.
 
-Push a harmless manifest change to a mapped branch and check the resulting sync. If nothing arrives, inspect the GitLab project's webhook deliveries and the public Towbar origin. If authorization expires or project access changes, reconnect the account from **Manage → Integrations → GitLab** and verify the project again. Keep `allowPrivateNetwork` disabled unless the configured self-managed GitLab host intentionally needs private-network access.
+Push a harmless manifest change to a mapped branch and check the resulting sync. If nothing arrives, inspect the GitLab project's webhook deliveries and the `installation.apiBaseUrl` origin. If authorization expires or project access changes, reconnect the account from **Manage → Integrations → GitLab** and verify the project again. Keep `allowPrivateNetwork` disabled unless the configured self-managed GitLab host intentionally needs private-network access.
 
 <Screenshot
   light="/assets/release-v2/gitlab-setup-light.jpg"

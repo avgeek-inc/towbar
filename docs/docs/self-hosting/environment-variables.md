@@ -14,6 +14,7 @@ version: 1
 installation:
   mode: public
   appUrl: https://towbar.example.com
+  apiBaseUrl: https://towbar-api.example.com
   gatewayDomain: towbar.example.com
 database:
   postgresPassword: "..."
@@ -51,20 +52,23 @@ length.
 The web app reads the Towbar origin at runtime. One prebuilt dashboard image can
 therefore serve localhost and public HTTPS installations.
 
-| YAML setting          | Example                  |
-| --------------------- | ------------------------ |
-| `installation.appUrl` | `https://towbar.example` |
+| YAML setting              | Example                          |
+| ------------------------- | -------------------------------- |
+| `installation.appUrl`     | `https://towbar.example.com`     |
+| `installation.apiBaseUrl` | `https://towbar-api.example.com` |
 
-`installation.appUrl` is Towbar's single public origin. The bundled gateway
-routes dashboard, API, MCP, webhook, streaming, and terminal requests through it.
-Login is rendered by the web app and sends credentialed requests to that same origin.
-External REST, MCP, and API-key management are enabled only when
-`installation.appUrl` uses HTTPS. The default local HTTP installation supports
-the on-host dashboard without exposing those automation interfaces.
+`installation.appUrl` is the dashboard origin. `installation.apiBaseUrl` is the
+separate origin for REST, MCP, webhooks, streaming, terminal transport, and
+credentialed dashboard requests. Both must use HTTPS in public mode. The API
+domain is derived from `apiBaseUrl` for Caddy; do not edit the generated
+Compose environment file. The API and dashboard images are upgraded together.
+The local profile serves the dashboard at `http://localhost:4021` and the API
+at `http://localhost:4020`, both bound to loopback. External REST, MCP, and
+API-key management require a public HTTPS installation.
 
-The local profile binds `127.0.0.1:4021`. The public profile binds ports 80 and
-443, obtains and renews a Let's Encrypt certificate for `installation.gatewayDomain`,
-and persists Caddy's certificate state. The installer selects the profile.
+The public profile binds ports 80 and 443, obtains and renews a Let's Encrypt
+certificate for each hostname, and persists Caddy's certificate state. The
+installer selects the profile.
 
 ## Runtime integrations
 
@@ -179,7 +183,8 @@ Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers
 | `worker.maxConcurrentActivities` | `4`                        | Global worker activity capacity                          |
 | `worker.appId`                   | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
 | `installation.bindAddress`       | `127.0.0.1`                | Published Compose port binding                           |
-| `installation.port`              | `4021`                     | Unified dashboard and API port on the host               |
+| `installation.port`              | `4021`                     | Dashboard port on the host in local mode                 |
+| `installation.apiPort`           | `4020`                     | API port on the host in local mode                       |
 | `installation.temporalUiPort`    | `8233`                     | Temporal UI port on the host                             |
 | `installation.networkName`       | `towbar-platform`          | Compose network name                                     |
 

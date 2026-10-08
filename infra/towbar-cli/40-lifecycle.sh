@@ -35,29 +35,37 @@ gateway_service_for() {
 }
 
 validate_config_for() {
-  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain app_url bind_address port
+  local release_dir="$1" env_file="${2:-$TOWBAR_ENV_FILE}" commit install_mode profiles domain api_domain app_url api_url bind_address port api_port
   [[ -f "$env_file" ]] || fail "$env_file is missing"
   install_mode="$(env_value "$env_file" TOWBAR_INSTALL_MODE)"
   profiles="$(env_value "$env_file" COMPOSE_PROFILES)"
   domain="$(env_value "$env_file" TOWBAR_GATEWAY_DOMAIN)"
+  api_domain="$(env_value "$env_file" TOWBAR_GATEWAY_API_DOMAIN)"
   app_url="$(env_value "$env_file" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$env_file" TOWBAR_API_BASE_URL)"
   bind_address="$(env_value "$env_file" TOWBAR_BIND_ADDRESS)"
   port="$(env_value "$env_file" TOWBAR_PORT)"
+  api_port="$(env_value "$env_file" TOWBAR_API_PORT)"
   case "${install_mode:-local}" in
     local)
       [[ "${profiles:-local}" == local ]] ||
         fail "COMPOSE_PROFILES must be local when TOWBAR_INSTALL_MODE is local"
       [[ "$app_url" == http://localhost:4021 ]] ||
         fail "a local installation must use http://localhost:4021"
-      [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 ]] ||
-        fail "a local installation must bind 127.0.0.1:4021"
+      [[ "$api_url" == http://localhost:4020 ]] ||
+        fail "a local installation must use http://localhost:4020 for the API"
+      [[ "${bind_address:-127.0.0.1}" == 127.0.0.1 && "${port:-4021}" == 4021 && "${api_port:-4020}" == 4020 ]] ||
+        fail "a local installation must bind 127.0.0.1:4021 and 127.0.0.1:4020"
       ;;
     public)
       [[ "$profiles" == public ]] ||
         fail "COMPOSE_PROFILES must be public when TOWBAR_INSTALL_MODE is public"
       validate_https_url "$app_url" "TOWBAR_APP_BASE_URL"
+      validate_https_url "$api_url" "TOWBAR_API_BASE_URL"
       [[ "$domain" == "${app_url#https://}" ]] ||
         fail "TOWBAR_GATEWAY_DOMAIN must match the public Towbar URL"
+      [[ "$api_domain" == "${api_url#https://}" && "$api_domain" != "$domain" ]] ||
+        fail "TOWBAR_GATEWAY_API_DOMAIN must match a separate public API URL"
       ;;
     *) fail "TOWBAR_INSTALL_MODE must be local or public" ;;
   esac
@@ -130,12 +138,16 @@ verify_running_release() {
 }
 
 verify_public_https() {
-  local release_dir="$1" commit="$2" app_url hostname gateway_service container_id
+  local release_dir="$1" commit="$2" app_url api_url hostname api_hostname gateway_service container_id url name
   [[ "$(env_value "$TOWBAR_ENV_FILE" TOWBAR_INSTALL_MODE)" == public ]] || return 0
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
 
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   if ! curl \
     --fail \
     --silent \
@@ -148,37 +160,44 @@ verify_public_https() {
     --max-time 30 \
     --noproxy '*' \
     --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" \
+    --resolve "$name:443:127.0.0.1" \
     --tlsv1.2 \
-    "$app_url/health" >/dev/null; then
+    "$url/health" >/dev/null; then
     compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
       logs --tail 100 "$gateway_service" >&2 || true
     ui_failure_step "Let's Encrypt certificate issuance or HTTPS verification failed"
     printf \
       'Towbar: HTTPS verification failed. Confirm %s points to this server and ports 80 and 443 are reachable.\n' \
-      "$hostname" >&2
+      "$name" >&2
     return 1
   fi
+  done
 
   container_id="$(
     compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" ps -q "$gateway_service"
   )"
   docker exec "$container_id" caddy validate \
     --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
-  docker exec "$container_id" sh -eu -c \
-    'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
-    sh "$hostname"
+  for name in "$hostname" "$api_hostname"; do
+    docker exec "$container_id" sh -eu -c \
+      'test -n "$(find /data/caddy/certificates -type f -name "$1.crt" -print -quit)"' \
+      sh "$name" || return 1
+  done
 }
 
 rehearse_public_https_restart() {
-  local release_dir="$1" commit="$2" gateway_service app_url hostname
+  local release_dir="$1" commit="$2" gateway_service app_url api_url hostname api_hostname url name
   [[ "${CONFIG_CREATED:-false}" == true && "${INSTALL_MODE:-}" == public ]] || return 0
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
   app_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_APP_BASE_URL)"
+  api_url="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_API_BASE_URL)"
   hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  api_hostname="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" restart "$gateway_service"
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
     up --detach --wait "$gateway_service"
+  for url in "$app_url" "$api_url"; do
+  name="${url#https://}"
   curl \
     --fail \
     --silent \
@@ -191,9 +210,10 @@ rehearse_public_https_restart() {
     --max-time 30 \
     --noproxy '*' \
     --proto '=https' \
-    --resolve "$hostname:443:127.0.0.1" \
+    --resolve "$name:443:127.0.0.1" \
     --tlsv1.2 \
-    "$app_url/health" >/dev/null
+    "$url/health" >/dev/null || return 1
+  done
 }
 
 install_cli_from_release() {
@@ -325,6 +345,7 @@ upgrade_release() {
       --yaml "$TOWBAR_YAML_FILE" \
       --mode "$INSTALL_MODE" \
       --app-url "$INSTALL_APP_URL" \
+      --api-base-url "$INSTALL_API_BASE_URL" \
       --gateway-domain "$INSTALL_HOSTNAME"
     python3 "$(config_helper_for "$release_dir")" render \
       --yaml "$TOWBAR_YAML_FILE" --env "$TOWBAR_PENDING_ENV_FILE"
@@ -424,7 +445,7 @@ current_release_dir() {
 }
 
 preflight_runtime_configuration() {
-  local release_dir="$1" commit="$2" gateway_service gateway_image gateway_config gateway_domain
+  local release_dir="$1" commit="$2" gateway_service gateway_image gateway_config gateway_domain gateway_api_domain
   gateway_service="$(gateway_service_for "$TOWBAR_ENV_FILE")"
 
   compose_for "$release_dir" "$commit" "$TOWBAR_ENV_FILE" \
@@ -452,12 +473,14 @@ preflight_runtime_configuration() {
   fi
   gateway_config="$release_dir/infra/gateway/Caddyfile"
   gateway_domain="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_DOMAIN)"
+  gateway_api_domain="$(env_value "$TOWBAR_ENV_FILE" TOWBAR_GATEWAY_API_DOMAIN)"
   if [[ "$gateway_service" == gateway-public ]]; then
     gateway_config="$release_dir/infra/gateway/Caddyfile.public"
   fi
   docker run --rm --interactive \
     --entrypoint caddy \
     --env "TOWBAR_GATEWAY_DOMAIN=$gateway_domain" \
+    --env "TOWBAR_GATEWAY_API_DOMAIN=$gateway_api_domain" \
     "$gateway_image" \
     validate --config - --adapter caddyfile <"$gateway_config" || return 1
 }
