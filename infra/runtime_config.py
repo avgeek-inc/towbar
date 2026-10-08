@@ -29,7 +29,6 @@ def field(path, kind="string"):
 
 FIELDS = {
     "TOWBAR_INSTALL_MODE": field("installation.mode"),
-    "TOWBAR_GATEWAY_DOMAIN": field("installation.gatewayDomain"),
     "TOWBAR_BIND_ADDRESS": field("installation.bindAddress"),
     "TOWBAR_PORT": field("installation.port", "integer"),
     "TOWBAR_API_PORT": field("installation.apiPort", "integer"),
@@ -111,7 +110,7 @@ def parse_env(path, remove_legacy_proxy=False):
             continue
         if key in values:
             raise ConfigError(f"duplicate environment key: {key}")
-        if key not in FIELDS and key not in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_API_DOMAIN"):
+        if key not in FIELDS and key not in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_DOMAIN", "TOWBAR_GATEWAY_API_DOMAIN"):
             raise ConfigError(f"unsupported environment key: {key}")
         if raw.startswith("'"):
             if not raw.endswith("'") or len(raw) < 2:
@@ -183,6 +182,10 @@ def from_env(values):
         else:
             nested_set(config, path, value, key)
     installation = config.setdefault("installation", {})
+    if "TOWBAR_GATEWAY_DOMAIN" in values:
+        expected_domain = gateway_domain(installation)
+        if values["TOWBAR_GATEWAY_DOMAIN"] != expected_domain:
+            raise ConfigError("TOWBAR_GATEWAY_DOMAIN must match installation.appUrl")
     installation.setdefault("apiBaseUrl", default_api_base_url(installation.get("appUrl", "http://localhost:4021")))
     gitlab = config.get("integrations", {}).get("gitlab", {})
     old_redirect = f"{installation.get('appUrl', 'http://localhost:4021')}/v1/core/gitlab/oauth/callback"
@@ -198,6 +201,15 @@ def default_api_base_url(app_url):
     if not match:
         raise ConfigError("installation.apiBaseUrl is required for this appUrl")
     return f"https://{match[1]}-api.{match[2]}"
+
+
+def gateway_domain(installation):
+    if installation.get("mode", "local") == "local":
+        return ""
+    match = re.fullmatch(r"https://([A-Za-z0-9.-]+)", installation.get("appUrl", ""))
+    if not match:
+        raise ConfigError("installation.appUrl must be an exact HTTPS origin")
+    return match[1]
 
 
 class UniqueLoader(yaml.SafeLoader):
@@ -308,6 +320,7 @@ def to_env(config):
     mode = values.get("TOWBAR_INSTALL_MODE", "local")
     if mode not in ("local", "public"):
         raise ConfigError("installation.mode must be local or public")
+    values["TOWBAR_GATEWAY_DOMAIN"] = gateway_domain(config.get("installation", {}))
     api_url = values.get("TOWBAR_API_BASE_URL")
     if api_url is None:
         api_url = default_api_base_url(values.get("TOWBAR_APP_BASE_URL", "http://localhost:4021"))
@@ -339,8 +352,15 @@ def read_yaml(path, remove_legacy_proxy=False):
         line = getattr(getattr(error, "problem_mark", None), "line", None)
         suffix = f" near line {line + 1}" if line is not None else ""
         raise ConfigError(f"invalid YAML{suffix}") from None
+    gateway_removed = False
+    if isinstance(config, dict):
+        installation = config.get("installation")
+        if isinstance(installation, dict) and "gatewayDomain" in installation:
+            if installation.pop("gatewayDomain") != gateway_domain(installation):
+                raise ConfigError("legacy installation.gatewayDomain must match installation.appUrl")
+            gateway_removed = True
     if remove_legacy_proxy and isinstance(config, dict):
-        changed = False
+        changed = gateway_removed
         security = config.get("security")
         if isinstance(security, dict) and "trustedProxyHops" in security:
             del security["trustedProxyHops"]
@@ -384,7 +404,6 @@ def initialize(yaml_path):
         "version": 1,
         "installation": {
             "mode": "local",
-            "gatewayDomain": "",
             "bindAddress": "127.0.0.1",
             "port": 4021,
             "apiPort": 4020,
@@ -423,7 +442,7 @@ def migrate(env_path, yaml_path, preserve_legacy):
     config = from_env(values)
     rendered = to_env(config)
     for key, value in values.items():
-        if key in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_API_DOMAIN"):
+        if key in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_DOMAIN", "TOWBAR_GATEWAY_API_DOMAIN"):
             continue
         if (
             key == "TOWBAR_GITLAB_OAUTH_REDIRECT_URI"
@@ -466,7 +485,7 @@ def compare(yaml_path, env_path):
     if set(actual) != set(expected):
         raise ConfigError("derived Compose configuration is out of date")
     for key, value in expected.items():
-        if key in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_API_DOMAIN"):
+        if key in ("COMPOSE_PROFILES", "TOWBAR_GATEWAY_DOMAIN", "TOWBAR_GATEWAY_API_DOMAIN"):
             if actual[key] != value:
                 raise ConfigError("derived Compose configuration is out of date")
             continue
@@ -475,7 +494,7 @@ def compare(yaml_path, env_path):
             raise ConfigError("derived Compose configuration is out of date")
 
 
-def set_installation(yaml_path, mode, app_url, api_base_url, gateway_domain):
+def set_installation(yaml_path, mode, app_url, api_base_url):
     config = read_yaml(yaml_path)
     installation = config.setdefault("installation", {})
     installation.update(
@@ -483,7 +502,6 @@ def set_installation(yaml_path, mode, app_url, api_base_url, gateway_domain):
             "mode": mode,
             "appUrl": app_url,
             "apiBaseUrl": api_base_url,
-            "gatewayDomain": gateway_domain,
             "bindAddress": "127.0.0.1",
         }
     )
@@ -505,7 +523,6 @@ def main():
     parser.add_argument("--mode", choices=("local", "public"))
     parser.add_argument("--app-url")
     parser.add_argument("--api-base-url")
-    parser.add_argument("--gateway-domain")
     args = parser.parse_args()
     if args.command in ("migrate", "render", "compare") and args.env is None:
         parser.error("--env is required")
@@ -513,9 +530,8 @@ def main():
         args.mode is None
         or args.app_url is None
         or args.api_base_url is None
-        or args.gateway_domain is None
     ):
-        parser.error("set-installation needs --mode, --app-url, --api-base-url, and --gateway-domain")
+        parser.error("set-installation needs --mode, --app-url, and --api-base-url")
     try:
         if args.command == "init":
             initialize(args.yaml)
@@ -526,7 +542,7 @@ def main():
         elif args.command == "compare":
             compare(args.yaml, args.env)
         elif args.command == "set-installation":
-            set_installation(args.yaml, args.mode, args.app_url, args.api_base_url, args.gateway_domain)
+            set_installation(args.yaml, args.mode, args.app_url, args.api_base_url)
         else:
             read_yaml(args.yaml)
     except (ConfigError, OSError) as error:

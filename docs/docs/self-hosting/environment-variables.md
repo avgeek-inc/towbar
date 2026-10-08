@@ -15,7 +15,6 @@ installation:
   mode: public
   appUrl: https://towbar.example.com
   apiBaseUrl: https://towbar-api.example.com
-  gatewayDomain: towbar.example.com
 database:
   postgresPassword: "..."
   runtimePassword: "..."
@@ -60,8 +59,8 @@ therefore serve localhost and public HTTPS installations.
 `installation.appUrl` is the dashboard origin. `installation.apiBaseUrl` is the
 separate origin for REST, MCP, webhooks, streaming, terminal transport, and
 credentialed dashboard requests. Both must use HTTPS in public mode. The API
-domain is derived from `apiBaseUrl` for Caddy; do not edit the generated
-Compose environment file. The API and dashboard images are upgraded together.
+domain is derived from `apiBaseUrl` for Caddy; the UI gateway domain is derived from `appUrl`; do not edit the generated
+Compose environment file. Matching legacy `installation.gatewayDomain` values are removed during configuration migration. The API and dashboard images are upgraded together.
 The local profile serves the dashboard at `http://localhost:4021` and the API
 at `http://localhost:4020`, both bound to loopback. External REST, MCP, and
 API-key management require a public HTTPS installation.
@@ -179,7 +178,6 @@ Register IP addresses, SSH access, and concurrency under [Servers](/docs/servers
 | YAML setting                     | Default                    | Purpose                                                  |
 | -------------------------------- | -------------------------- | -------------------------------------------------------- |
 | `installation.mode`              | `local`                    | Selects the `local` or `public` gateway                  |
-| `installation.gatewayDomain`     | empty                      | Public hostname managed by Caddy and Let's Encrypt       |
 | `worker.maxConcurrentActivities` | `4`                        | Global worker activity capacity                          |
 | `worker.appId`                   | `towbar-worker` in Compose | Manifest app identity for worker self-deployment cleanup |
 | `installation.bindAddress`       | `127.0.0.1`                | Published Compose port binding                           |
