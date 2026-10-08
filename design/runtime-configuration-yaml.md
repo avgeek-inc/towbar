@@ -71,7 +71,7 @@ observability:
 ```
 
 The example shows the hierarchy, not a complete field inventory. The
-implementation must map every supported active key from `infra/compose.env.template`,
+implementation maps supported container settings through `infra/runtime_config.py`,
 including rate limits, vulnerability scanning, integrations, notifications,
 and optional browser observability. Provider JSON documents become
 native YAML maps and lists. Values that are identifiers or secrets remain

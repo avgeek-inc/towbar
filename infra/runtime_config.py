@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Convert Towbar's supported runtime settings between legacy dotenv and YAML."""
+"""Initialize and validate YAML configuration, and render its Compose environment."""
 
 import argparse
+import base64
 import json
 import os
 import re
+import secrets
 import shutil
 import stat
 import sys
@@ -333,6 +335,33 @@ def atomic_write(path, content):
             os.unlink(temporary)
 
 
+def initialize(yaml_path):
+    if yaml_path.exists() or yaml_path.is_symlink():
+        raise ConfigError("runtime configuration already exists")
+    config = {
+        "version": 1,
+        "installation": {
+            "mode": "local",
+            "gatewayDomain": "",
+            "bindAddress": "127.0.0.1",
+            "port": 4021,
+            "temporalUiPort": 8233,
+            "networkName": "towbar-platform",
+            "appUrl": "http://localhost:4021",
+        },
+        "database": {
+            "postgresPassword": secrets.token_hex(32),
+            "runtimePassword": secrets.token_hex(32),
+        },
+        "security": {
+            "credentialsKey": base64.b64encode(secrets.token_bytes(32)).decode("ascii"),
+            "internalHmacSecret": secrets.token_hex(32),
+        },
+    }
+    to_env(config)
+    atomic_write(yaml_path, yaml.safe_dump(config, sort_keys=False, allow_unicode=True))
+
+
 def migrate(env_path, yaml_path, preserve_legacy):
     if yaml_path.exists():
         read_yaml(yaml_path, remove_legacy_proxy=True)
@@ -418,7 +447,7 @@ def set_installation(yaml_path, mode, app_url, gateway_domain):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=("migrate", "render", "validate", "compare", "set-installation")
+        "command", choices=("init", "migrate", "render", "validate", "compare", "set-installation")
     )
     parser.add_argument("--yaml", type=Path, required=True)
     parser.add_argument("--env", type=Path)
@@ -436,7 +465,9 @@ def main():
     ):
         parser.error("set-installation needs --mode, --app-url, and --gateway-domain")
     try:
-        if args.command == "migrate":
+        if args.command == "init":
+            initialize(args.yaml)
+        elif args.command == "migrate":
             migrate(args.env, args.yaml, args.preserve_legacy)
         elif args.command == "render":
             render(args.yaml, args.env)

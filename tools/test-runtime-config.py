@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import base64
 import importlib.util
 import json
 import os
@@ -16,6 +17,13 @@ SPEC = importlib.util.spec_from_file_location(
 )
 config_tool = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(config_tool)
+
+
+LEGACY_ENV = """COMPOSE_PROFILES=local
+TOWBAR_INSTALL_MODE=local
+TOWBAR_PORT=4021
+TOWBAR_APP_BASE_URL=http://localhost:4021
+"""
 
 
 class RuntimeConfigTests(unittest.TestCase):
@@ -38,23 +46,34 @@ class RuntimeConfigTests(unittest.TestCase):
                 checked += 1
         self.assertGreaterEqual(checked, 10)
 
-    def test_supported_environment_inventory_is_complete(self):
-        template = (ROOT / "infra/compose.env.template").read_text()
-        keys = set(
-            re.findall(
-                r"^#? ?((?:TOWBAR|NEXT_PUBLIC)_[A-Z0-9_]+|COMPOSE_PROFILES)=",
-                template,
-                re.MULTILINE,
-            )
-        )
-        self.assertEqual(keys, set(config_tool.FIELDS) | {"COMPOSE_PROFILES"})
+    def test_initialization_creates_private_yaml_with_independent_secrets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "config.yml"
+            config_tool.initialize(path)
+            config = config_tool.read_yaml(path)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(config["installation"]["appUrl"], "http://localhost:4021")
+            values = [
+                config["database"]["postgresPassword"],
+                config["database"]["runtimePassword"],
+                config["security"]["internalHmacSecret"],
+            ]
+            for value in values:
+                self.assertRegex(value, r"^[0-9a-f]{64}$")
+            self.assertEqual(len(set(values)), 3)
+            self.assertEqual(len(base64.b64decode(config["security"]["credentialsKey"], validate=True)), 32)
+            self.assertEqual(list(path.parent.iterdir()), [path])
+            original = path.read_bytes()
+            with self.assertRaisesRegex(config_tool.ConfigError, "already exists"):
+                config_tool.initialize(path)
+            self.assertEqual(path.read_bytes(), original)
 
-    def test_example_migrates_without_changing_effective_values(self):
+    def test_legacy_env_migrates_without_changing_effective_values(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             env = root / "towbar.env"
             yml = root / "config.yml"
-            env.write_text((ROOT / "infra/compose.env.template").read_text())
+            env.write_text(LEGACY_ENV)
             original = config_tool.parse_env(env)
             config_tool.migrate(env, yml, True)
             config_tool.migrate(env, yml, True)
@@ -66,7 +85,7 @@ class RuntimeConfigTests(unittest.TestCase):
             )
             self.assertEqual(
                 (root / "towbar.env.legacy").read_text(),
-                (ROOT / "infra/compose.env.template").read_text(),
+                LEGACY_ENV,
             )
             self.assertEqual(stat.S_IMODE(yml.stat().st_mode), 0o600)
             self.assertEqual(stat.S_IMODE(env.stat().st_mode), 0o600)
@@ -150,8 +169,7 @@ class RuntimeConfigTests(unittest.TestCase):
             root = pathlib.Path(directory)
             yml = root / "config.yml"
             env = root / "towbar.env"
-            env.write_text((ROOT / "infra/compose.env.template").read_text())
-            config_tool.migrate(env, yml, False)
+            config_tool.initialize(yml)
             config_tool.set_installation(
                 yml, "public", "https://towbar.example.com", "towbar.example.com"
             )

@@ -91,6 +91,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes python3-yaml
+          python3 tools/check-runtime-config.py
           python3 tools/test-runtime-config.py
           bash tools/test-towbar-cli-migration.sh
       - run: pnpm install --frozen-lockfile
