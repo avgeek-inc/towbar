@@ -18,7 +18,7 @@ Read-only grants permitted operational reads, not credential reveal. Edit adds r
 
 Personal keys intersect saved grants with current active membership. Demotion permanently narrows the key; subsequent promotion does not widen it. Removal revokes personal keys and sessions. Team keys are service identities with explicit team grants and survive their creator's departure. Missing or revoked policy records fail closed. Queued effects recheck authority before execution; revocation does not undo effects already performed.
 
-## Authentication
+## REST API authentication
 
 ```http
 Authorization: Bearer twb_YOUR_KEY
@@ -30,7 +30,7 @@ API and MCP require Bearer tokens and do not accept browser cookies. Browser ses
 
 ## MCP OAuth tokens
 
-OAuth authorization creates a separate personal token with a fixed 30-day expiry and an MCP-only audience. Existing API keys are unchanged. A separate **MCP Connections** table on your personal API Keys page shows the app name, publishing domain when available, and logo. The consent screen warns when an app is unverified. See [MCP setup](/docs/api/mcp) for browser authorization, scopes, discovery, and client compatibility.
+OAuth authorization creates a separate personal token with a fixed 30-day expiry and an MCP-only audience. MCP accepts only these OAuth tokens; personal and team API keys work only with the REST API. The **MCP Connections** page in Account Settings shows the app name, publishing domain when available, and logo. The consent screen warns when an app is unverified. See [MCP setup](/docs/api/mcp) for browser authorization, scopes, discovery, and client compatibility.
 
 ## Rotation
 
@@ -52,7 +52,7 @@ security:
 | `security.apiRateLimit.max`           | `60`    | 1–100000 requests |
 | `security.apiRateLimit.windowSeconds` | `60`    | 1–86400 seconds   |
 
-The fixed window starts at the first request after expiry. Each key has its own persistent limit. All API and MCP keys from the same connection peer also share an address window. Changing keys or alternating interfaces does not create a new allowance. The browser control plane and GitHub webhook have their own authentication behavior and are not part of this bucket.
+The fixed window starts at the first request after expiry. Each key has its own persistent limit. All REST API keys and MCP OAuth tokens from the same connection peer also share an address window. Changing keys or alternating interfaces does not create a new allowance. The browser control plane and GitHub webhook have their own authentication behavior and are not part of this bucket.
 
 The API uses its connection peer for address limits and ignores forwarding headers. In self-hosted installations, that peer is the bundled gateway, so requests through the gateway share its address window.
 

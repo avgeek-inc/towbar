@@ -4,6 +4,7 @@ import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import {
+  apiKeyPolicies,
   apiKeys,
   auditEvents,
   mcpOAuthClients,
@@ -21,7 +22,7 @@ import { digest, secret, tokenLifetimeSeconds } from "./protocol.js";
 
 const databaseUrl = process.env.TOWBAR_OAUTH_TEST_DATABASE_URL;
 void test(
-  "MCP OAuth discovery, consent, token lifecycle, and API-key compatibility",
+  "MCP OAuth discovery, consent, token lifecycle, and OAuth-only access",
   { skip: !databaseUrl, timeout: 120000 },
   async (t) => {
     configureSettingsTestEnv(databaseUrl);
@@ -185,6 +186,78 @@ void test(
           );
           assert.deepEqual(body.code_challenge_methods_supported, ["S256"]);
           assert.deepEqual(body.grant_types_supported, ["authorization_code"]);
+        },
+      );
+      await t.test(
+        "MCP rejects personal and team API keys at every protocol entry point while REST accepts them",
+        async () => {
+          for (const scope of ["personal", "team"] as const) {
+            for (const permission of ["read", "edit", "admin"] as const) {
+              const created = await keys.createApiKey(user, {
+                name: `${scope} ${permission} REST`,
+                scope,
+                access: permission === "read" ? "read" : "edit",
+                includeAdmin: permission === "admin",
+              });
+              assert(created.token);
+              for (const method of ["GET", "POST", "DELETE"]) {
+                const response = await app.request("/v1/mcp", {
+                  method,
+                  headers: {
+                    authorization: `Bearer ${created.token}`,
+                    "content-type": "application/json",
+                  },
+                  ...(method === "POST"
+                    ? {
+                        body: JSON.stringify({
+                          jsonrpc: "2.0",
+                          id: 1,
+                          method: "tools/list",
+                        }),
+                      }
+                    : {}),
+                });
+                assert.equal(response.status, 401);
+                assert.match(
+                  response.headers.get("www-authenticate")!,
+                  /invalid_token/,
+                );
+                assert.match(
+                  response.headers.get("www-authenticate")!,
+                  /oauth-protected-resource/,
+                );
+              }
+              assert.equal(
+                (
+                  await app.request("/v1/api/identity", {
+                    headers: { authorization: `Bearer ${created.token}` },
+                  })
+                ).status,
+                200,
+              );
+              await keys.revokeApiKey(user, created.key.id, scope);
+            }
+          }
+          assert.equal((await app.request("/v1/mcp", { headers })).status, 401);
+        },
+      );
+      await t.test(
+        "OAuth tokens with another resource audience are rejected by MCP and REST",
+        async () => {
+          const issued = await issue();
+          const principal = await keys.findApiKey(issued.access_token);
+          assert(principal);
+          await db
+            .update(apiKeyPolicies)
+            .set({ oauthResource: "https://another.example/v1/mcp" })
+            .where(eq(apiKeyPolicies.keyId, principal.key.id));
+          for (const path of ["/v1/mcp", "/v1/api/identity"]) {
+            const response = await app.request(path, {
+              headers: { authorization: `Bearer ${issued.access_token}` },
+            });
+            assert.equal(response.status, 401);
+          }
+          await keys.revokeApiKey(user, principal.key.id);
         },
       );
       await t.test(
@@ -434,7 +507,7 @@ void test(
         },
       );
       await t.test(
-        "role changes, expiry, and account disable immediately constrain tokens; legacy keys stay unchanged",
+        "role changes, expiry, and account disable immediately constrain tokens; REST API keys are rejected by MCP",
         async () => {
           const legacy = await keys.createApiKey(user, {
             name: "Existing automation",
@@ -475,10 +548,17 @@ void test(
             .set({ expiresAt: new Date(0) })
             .where(eq(apiKeys.id, principal.key.id));
           assert.equal(await keys.findApiKey(issued.access_token), null);
-          const mcp = await connectTestMcpClient(legacy.token, (r) =>
-            app.fetch(r),
+          await assert.rejects(() =>
+            connectTestMcpClient(legacy.token!, (r) => app.fetch(r)),
           );
-          await mcp.close();
+          assert.equal(
+            (
+              await app.request("/v1/api/identity", {
+                headers: { authorization: `Bearer ${legacy.token}` },
+              })
+            ).status,
+            200,
+          );
           assert(await keys.findApiKey(legacy.token));
           const active = await issue();
           await db

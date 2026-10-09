@@ -250,7 +250,7 @@ export const documentationTopics = {
   ),
   mcp: guide(
     "api/mcp",
-    "Connect an MCP client using a personal API key. Its tools follow the same permissions as the REST API.",
+    "Connect an MCP client by signing in to Towbar and approving its OAuth access. Tools follow the approved permissions and your current team role.",
   ),
 } satisfies Record<string, HeadingDocumentation>;
 

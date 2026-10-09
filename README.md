@@ -54,7 +54,7 @@ monitoring data stay on your Towbar instance.
 | Operations    | Logs, server and container monitoring, alerts, incidents, scheduled jobs, and vulnerability scans                |
 | Backups       | Scheduled backups, restores, retention rules, and common cloud-storage destinations                              |
 | Team access   | Admin, Member, and Viewer roles, invitations, passkeys, authenticator 2FA, sessions, API keys, and audit history |
-| Automation    | REST API and MCP access for HTTPS installations                                                                  |
+| Automation    | REST API keys and OAuth-authorized MCP access for HTTPS installations                                            |
 
 ## Install Towbar
 

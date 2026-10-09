@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import {
   externalRateLimit,
-  requireApiKey,
+  requireRestApiKey,
 } from "../../http/api-authentication.js";
 import { controlPlaneRoutes } from "./core/index.js";
 import { createOpenApiDocument } from "../../areas/external-api/catalogue.js";
@@ -11,7 +11,7 @@ import type { TowbarHonoEnvironment } from "../../http/types.js";
 export const externalApiRoutes = new Hono<TowbarHonoEnvironment>();
 externalApiRoutes.use("*", requireHttpsExternalAccess);
 externalApiRoutes.use("*", externalRateLimit);
-externalApiRoutes.use("*", requireApiKey("api"));
+externalApiRoutes.use("*", requireRestApiKey);
 externalApiRoutes.get("/openapi.json", (context) =>
   context.json(createOpenApiDocument(`${getEnv().TOWBAR_API_BASE_URL}/v1/api`)),
 );

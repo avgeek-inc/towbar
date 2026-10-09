@@ -23,6 +23,7 @@ export async function assertServerConfigReadback({
   connect,
   read,
   write,
+  mcpRead,
   ownedServerId,
   foreignServerId,
 }: {
@@ -35,11 +36,11 @@ export async function assertServerConfigReadback({
   connect: (token: string) => Promise<Client>;
   read: { token: string };
   write: { token: string };
+  mcpRead: { token: string };
   ownedServerId: string;
   foreignServerId: string;
 }) {
-  const client = await connect(write.token);
-  const reader = await connect(read.token);
+  const client = await connect(mcpRead.token);
   const path = `/servers/${ownedServerId}`;
   try {
     const initial = (await (
@@ -56,24 +57,9 @@ export async function assertServerConfigReadback({
         arguments: {},
       }),
     );
-    assert.deepEqual(mcpIdentity.identity.capabilities, identity.capabilities);
-    const readerIdentity = resultData<{ identity: Identity }>(
-      await reader.callTool({
-        name: "towbar_workspace_inspect",
-        arguments: {},
-      }),
-    );
-    assert(
-      !readerIdentity.identity.capabilities.includes("server.collectLogs"),
-    );
+    assert(!mcpIdentity.identity.capabilities.includes("server.collectLogs"));
     const tools = await client.listTools();
-    assert.equal(
-      (
-        tools.tools.find(({ name }) => name === "towbar_server_configure")!
-          .inputSchema.properties!.hostLogCollection as { type: string }
-      ).type,
-      "boolean",
-    );
+    assert(!tools.tools.some(({ name }) => name === "towbar_server_configure"));
     for (const hostLogCollection of [true, false, true]) {
       const response = await request(path, write.token, "PATCH", {
         ...initial.server.config,
@@ -105,32 +91,6 @@ export async function assertServerConfigReadback({
         hostLogCollection,
       );
     }
-    // A connection/capacity save submits the settings it loaded from the API.
-    const loaded = (await (
-      await request(path, write.token)
-    ).json()) as ServerResponse;
-    const preserved = resultData<ServerResponse>(
-      await client.callTool({
-        name: "towbar_server_configure",
-        arguments: {
-          serverId: ownedServerId,
-          ...loaded.server.config,
-          buildConcurrency: 2,
-        },
-      }),
-    );
-    assert.equal(preserved.server.config.hostLogCollection, true);
-    const disabled = resultData<ServerResponse>(
-      await client.callTool({
-        name: "towbar_server_configure",
-        arguments: {
-          serverId: ownedServerId,
-          ...preserved.server.config,
-          hostLogCollection: false,
-        },
-      }),
-    );
-    assert.equal(disabled.server.config.hostLogCollection, false);
     assert.equal(
       (
         await request(path, read.token, "PATCH", {
@@ -151,17 +111,7 @@ export async function assertServerConfigReadback({
       ).status,
       404,
     );
-    const forbidden = await reader.callTool({
-      name: "towbar_server_configure",
-      arguments: {
-        serverId: ownedServerId,
-        ...initial.server.config,
-        hostLogCollection: true,
-      },
-    });
-    assert.equal(forbidden.isError, true);
   } finally {
     await client.close();
-    await reader.close();
   }
 }

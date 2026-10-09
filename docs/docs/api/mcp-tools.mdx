@@ -3,7 +3,7 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes 54 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your key and workspace role.
+Towbar exposes 54 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your approved OAuth permissions and current workspace role. MCP connections support Read-only or Edit access; entries requiring Administrative permissions are unavailable through MCP. Use the REST API for administrative automation.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
 
