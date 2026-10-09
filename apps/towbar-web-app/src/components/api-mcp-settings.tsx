@@ -365,25 +365,15 @@ function McpSetup({ url }: { url: string }) {
     other: "Other clients",
   };
   return (
-    <div className="grid gap-4">
-      <p className="text-sm leading-relaxed text-muted">
-        Add Towbar to your MCP client, sign in, and approve the requested
-        access. In Codex, run <code>codex mcp login towbar</code> after adding
-        the server. In Claude Code, use <code>/mcp</code> to authenticate.
-        Connections expire after 30 days and can be revoked in Account Settings
-        → MCP Connections. MCP requires OAuth sign-in; API keys are for the REST
-        API.
-      </p>
-      <McpGuideSettings
-        configurations={Object.entries(configs).map(([id, config]) => ({
-          id,
-          label: labels[id as keyof typeof labels],
-          filename: config.title,
-          code: config.code,
-          icon: <McpClientLogo client={id} />,
-        }))}
-        documentationUrl="https://www.towbar.dev/docs/api/mcp"
-      />
-    </div>
+    <McpGuideSettings
+      configurations={Object.entries(configs).map(([id, config]) => ({
+        id,
+        label: labels[id as keyof typeof labels],
+        filename: config.title,
+        code: config.code,
+        icon: <McpClientLogo client={id} />,
+      }))}
+      documentationUrl="https://www.towbar.dev/docs/api/mcp"
+    />
   );
 }
