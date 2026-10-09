@@ -11,15 +11,14 @@ import {
   assertScoutApiAccess,
   connectTestMcpClient,
 } from "./scout-access-test-helper.js";
+import { issueTestMcpToken } from "../mcp-oauth/token-test-helper.js";
+import { actorAllows } from "@workspace/towbar-access";
 import { defaultKeyHasher } from "@better-auth/api-key";
 import {
   normalizeDeploymentManifest,
   normalizeServerConfiguration,
 } from "@workspace/towbar-core";
-import {
-  assertServerConfigReadback,
-  resultData,
-} from "./server-config-test-helper.js";
+import { assertServerConfigReadback } from "./server-config-test-helper.js";
 import assert from "node:assert/strict";
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -121,6 +120,8 @@ void test(
       name: "Read",
       access: "read",
     });
+    const mcpRead = await issueTestMcpToken(user, "read");
+    const mcpWrite = await issueTestMcpToken(user, "edit");
     const request = async (
       path: string,
       token?: string,
@@ -142,7 +143,7 @@ void test(
     let connectedEnvironment:
       Awaited<ReturnType<typeof seedConnectedEnvironment>> | undefined;
     const clearRateBucket = async () => {
-      for (const key of [read.key, write.key])
+      for (const key of [read.key, write.key, mcpRead.key, mcpWrite.key])
         await db
           .update(apiKeys)
           .set({ requestCount: 0, lastRequest: null, rateLimitMax: 1000 })
@@ -154,11 +155,12 @@ void test(
     t.beforeEach(clearRateBucket);
     try {
       await t.test(
-        "server settings round trip across REST and MCP with effective capabilities",
+        "REST server configuration and OAuth MCP readback enforce effective capabilities",
         async () => {
           await assertServerConfigReadback({
             request,
             connect,
+            mcpRead,
             read,
             write,
             ownedServerId,
@@ -190,20 +192,6 @@ void test(
                 await request("/identity", credential.token)
               ).json()) as { capabilities: string[] };
               assert(identity.capabilities.includes("server.collectLogs"));
-              const client = await connect(credential.token);
-              try {
-                const result = await client.callTool({
-                  name: "towbar_workspace_inspect",
-                  arguments: {},
-                });
-                assert.deepEqual(
-                  resultData<{ identity: { capabilities: string[] } }>(result)
-                    .identity.capabilities,
-                  identity.capabilities,
-                );
-              } finally {
-                await client.close();
-              }
               await db
                 .update(apiKeyPolicies)
                 .set({ permissionMode: "scoped" })
@@ -214,20 +202,6 @@ void test(
               assert(
                 !restrictedIdentity.capabilities.includes("server.collectLogs"),
               );
-              const restrictedClient = await connect(credential.token);
-              try {
-                const result = await restrictedClient.callTool({
-                  name: "towbar_workspace_inspect",
-                  arguments: {},
-                });
-                assert.deepEqual(
-                  resultData<{ identity: { capabilities: string[] } }>(result)
-                    .identity.capabilities,
-                  restrictedIdentity.capabilities,
-                );
-              } finally {
-                await restrictedClient.close();
-              }
             } finally {
               await db
                 .update(apiKeyPolicies)
@@ -378,7 +352,7 @@ void test(
             ],
           ];
           connectedEnvironment = await seedConnectedEnvironment(workspaceId);
-          const client = await connect(write.token);
+          const client = await connect(mcpWrite.token);
           try {
             const tools = await client.listTools();
             const spec = createOpenApiDocument("https://api.test/v1/api");
@@ -499,7 +473,7 @@ void test(
               (await request("/integrations", write.token)).status,
               403,
             );
-            const memberClient = await connect(write.token);
+            const memberClient = await connect(mcpWrite.token);
             try {
               const available = await memberClient.listTools();
               assert(
@@ -507,9 +481,9 @@ void test(
                   (tool) => tool.name === "towbar_secrets_update",
                 ),
               );
-              assert.equal(
-                (
-                  await memberClient.callTool({
+              await assert.rejects(
+                () =>
+                  memberClient.callTool({
                     name: "towbar_secrets_update",
                     arguments: {
                       scope: "workspace",
@@ -518,9 +492,8 @@ void test(
                       expectedRevision: null,
                       set: { DENIED: "No" },
                     },
-                  })
-                ).isError,
-                true,
+                  }),
+                /403|insufficient_scope/,
               );
             } finally {
               await memberClient.close();
@@ -548,6 +521,7 @@ void test(
           assertScoutApiAccess({
             request,
             connect,
+            mcpWrite,
             read,
             write,
             ownedServerId,
@@ -678,7 +652,7 @@ void test(
               ).status,
               404,
             );
-            const client = await connect(write.token);
+            const client = await connect(mcpWrite.token);
             try {
               const inspection = await client.callTool({
                 name: "towbar_workload_inspect",
@@ -710,10 +684,15 @@ void test(
       await t.test(
         "official MCP client initializes, lists tools, reads and mutates through shared handlers",
         async () => {
-          const client = await connect(write.token);
+          const client = await connect(mcpWrite.token);
           try {
             const list = await client.listTools();
-            assert.equal(list.tools.length, mcpTools.length);
+            assert.deepEqual(
+              list.tools.map((tool) => tool.name),
+              mcpTools
+                .filter((tool) => actorAllows(mcpWrite.actor, tool.permissions))
+                .map((tool) => tool.name),
+            );
             assert(!list.tools.some((tool) => tool.name === "get_apps"));
             const profile = await client.callTool({
               name: "towbar_inventory_search",
@@ -779,13 +758,13 @@ void test(
           } finally {
             await client.close();
           }
-          const reader = await connect(read.token);
+          const reader = await connect(mcpRead.token);
           try {
             const tools = await reader.listTools();
             assert(tools.tools.every((tool) => tool.annotations?.readOnlyHint));
-            assert.equal(
-              (
-                await reader.callTool({
+            await assert.rejects(
+              () =>
+                reader.callTool({
                   name: "towbar_secrets_update",
                   arguments: {
                     scope: "workspace",
@@ -794,11 +773,10 @@ void test(
                     expectedRevision: null,
                     set: { DENIED: "No" },
                   },
-                })
-              ).isError,
-              true,
+                }),
+              /403|insufficient_scope/,
             );
-            await revokeApiKey(user, read.key.id);
+            await revokeApiKey(user, mcpRead.key.id);
             await assert.rejects(() => reader.listTools());
           } finally {
             await reader.close();

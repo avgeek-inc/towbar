@@ -72,13 +72,13 @@ Passkeys require HTTPS in production and belong to the site's domain. Changing t
 
 ## Personal API keys
 
-Open **API Keys** to create and revoke keys for scripts or an MCP client. Choose the narrowest access and a suitable expiry. Copy the token when it is created; Towbar cannot show it again.
+Open **API Keys** to create and revoke keys for REST API scripts. Choose the narrowest access and a suitable expiry. Copy the token when it is created; Towbar cannot show it again.
 
 Your role limits what each key can do. Viewer keys are read-only. A role change can reduce an existing key's access. Read [API key permissions](/docs/api/authentication#keys-and-permissions) before choosing access for automation.
 
 ## MCP Guide
 
-The **MCP Guide** page shows the endpoint and client configuration for this Towbar installation. Connect by signing in when your client supports it, or use a personal API key with the access your client needs. Signed-in connections appear on the separate **MCP Connections** page below API Keys and expire after 30 days. This page shows client details and approved permissions, with a revoke action for each connection. See [Connect an MCP client](/docs/api/mcp).
+The **MCP Guide** page shows the endpoint and client configuration for this Towbar installation. Connect by signing in and approving access through OAuth. MCP does not accept API keys. Signed-in connections appear on the separate **MCP Connections** page below API Keys and expire after 30 days. This page shows client details and approved permissions, with a revoke action for each connection. See [Connect an MCP client](/docs/api/mcp).
 
 ## If you cannot sign in
 

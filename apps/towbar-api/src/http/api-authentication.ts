@@ -42,7 +42,7 @@ export const externalRateLimit: MiddlewareHandler<
     );
   await next();
 };
-export function requireApiKey(
+function requireExternalToken(
   surface: "api" | "mcp",
 ): MiddlewareHandler<TowbarHonoEnvironment> {
   return async (context, next) => {
@@ -56,8 +56,9 @@ export function requireApiKey(
     const identity = match ? await findApiKey(match[1]!) : null;
     if (
       !identity ||
-      (identity.key.tokenType === "mcp-oauth" &&
-        (surface !== "mcp" || identity.key.resource !== mcpResource()))
+      identity.key.tokenType !==
+        (surface === "mcp" ? "mcp-oauth" : "api-key") ||
+      (surface === "mcp" && identity.key.resource !== mcpResource())
     ) {
       context.header(
         "WWW-Authenticate",
@@ -65,7 +66,11 @@ export function requireApiKey(
           ? `Bearer resource_metadata="${resourceMetadataUrl()}", scope="mcp:read"${match ? ', error="invalid_token"' : ""}`
           : 'Bearer realm="Towbar"',
       );
-      throw unauthorized("Provide a valid, unexpired Towbar API key");
+      throw unauthorized(
+        surface === "mcp"
+          ? "Sign in to Towbar to authorize this MCP connection"
+          : "Provide a valid, unexpired Towbar API key",
+      );
     }
     context.set("user", identity.user);
     context.set("actor", identity.actor);
@@ -81,3 +86,6 @@ export function requireApiKey(
     await next();
   };
 }
+
+export const requireRestApiKey = requireExternalToken("api");
+export const requireMcpOAuth = requireExternalToken("mcp");

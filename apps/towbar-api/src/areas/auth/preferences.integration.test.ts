@@ -57,6 +57,8 @@ void test(
       await import("../../http/localization.js");
     const { seedApiServers } =
       await import("../external-api/environment-test-helper.js");
+    const { issueTestMcpToken } =
+      await import("../mcp-oauth/token-test-helper.js");
     const { connectTestMcpClient } =
       await import("../external-api/scout-access-test-helper.js");
     const { createApp } = await import("../../app.js");
@@ -212,35 +214,37 @@ void test(
           (await request(token, "/profile/preferences")).status,
           404,
         );
-        const mcp = await connectTestMcpClient(token, (request) =>
-          app.fetch(request),
-        );
-        try {
-          const tools = await mcp.listTools();
-          assert.match(
-            JSON.stringify(
-              tools.tools.find((tool) => tool.name === "towbar_server_inspect")
-                ?.outputSchema,
-            ),
-            /localization/,
-          );
-          const result = await mcp.callTool({
-            name: "towbar_server_inspect",
-            arguments: { serverId },
-          });
-          assert.equal(result.isError, false, JSON.stringify(result.content));
-          const structured = result.structuredContent as {
-            result: { localization: unknown };
-          };
-          assert.equal(
-            dateTimeLocalizationSchema.parse(structured.result.localization)
-              .timestamps[timestamp]?.dateTime,
-            expected,
-          );
-        } finally {
-          await mcp.close();
-        }
       }
+      const oauth = await issueTestMcpToken(user, "read");
+      const mcp = await connectTestMcpClient(oauth.token, (request) =>
+        app.fetch(request),
+      );
+      try {
+        const tools = await mcp.listTools();
+        assert.match(
+          JSON.stringify(
+            tools.tools.find((tool) => tool.name === "towbar_server_inspect")
+              ?.outputSchema,
+          ),
+          /localization/,
+        );
+        const result = await mcp.callTool({
+          name: "towbar_server_inspect",
+          arguments: { serverId },
+        });
+        assert.equal(result.isError, false, JSON.stringify(result.content));
+        const structured = result.structuredContent as {
+          result: { localization: unknown };
+        };
+        assert.equal(
+          dateTimeLocalizationSchema.parse(structured.result.localization)
+            .timestamps[timestamp]?.dateTime,
+          "5:00:45 AM, 2026-09-17",
+        );
+      } finally {
+        await mcp.close();
+      }
+
       assert.equal(
         (
           await browser("/profile/preferences", "PUT", {

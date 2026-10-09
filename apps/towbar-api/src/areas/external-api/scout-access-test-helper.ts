@@ -7,6 +7,7 @@ export async function assertScoutApiAccess({
   connect,
   read,
   write,
+  mcpWrite,
   ownedServerId,
   foreignServerId,
   setRole,
@@ -20,6 +21,7 @@ export async function assertScoutApiAccess({
   connect: (token: string) => Promise<Client>;
   read: { token: string };
   write: { token: string };
+  mcpWrite: { token: string };
   ownedServerId: string;
   foreignServerId: string;
   setRole: (role: "admin" | "member") => Promise<unknown>;
@@ -47,7 +49,7 @@ export async function assertScoutApiAccess({
   await setRole("member");
   try {
     assert.equal((await request(path, write.token)).status, 200);
-    const client = await connect(write.token);
+    const client = await connect(mcpWrite.token);
     try {
       const inspect = await client.callTool({
         name: "towbar_alerts_inspect",

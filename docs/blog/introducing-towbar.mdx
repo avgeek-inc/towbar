@@ -158,7 +158,7 @@ Accounts support password and passkey sign-in, with passkey verification require
 
 The audit log records who performed an operation, what it targeted, how the actor authenticated, and when it happened. It avoids recording secret values. Filters for event type and user, searchable targets, and stable event identifiers make it useful during an investigation rather than merely present for compliance.
 
-For automation, HTTPS installations expose a REST API and a task-oriented MCP interface. Personal and team API keys are restricted by both their stored grants and the actor's current role. Local HTTP installations keep REST, MCP, and API-key management unavailable by design.
+For automation, HTTPS installations expose a REST API and a task-oriented MCP interface. REST uses personal and team API keys; MCP requires OAuth sign-in and explicit consent. Access is restricted by both saved permissions and the actor's current role. Local HTTP installations keep REST, MCP, and API-key management unavailable by design.
 
 ## Installing and operating Towbar itself
 

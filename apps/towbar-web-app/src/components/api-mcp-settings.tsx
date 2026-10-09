@@ -1,11 +1,6 @@
 "use client";
 
 import {
-  TableCellStack,
-  TableCellDescription,
-} from "@avgeek-oss/design-system/data-display/table-cell-text";
-
-import {
   type KeyScope,
   type KeyAccess,
   type KeyPermissionMode,
@@ -80,7 +75,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
   const visibleKeys = (query.data?.keys ?? []).filter(
     (key) => !key.revokedAt && !revokedKeyIds.has(key.id),
   );
-  const apiKeys = visibleKeys.filter((key) => key.tokenType !== "mcp-oauth");
+  const apiKeys = visibleKeys.filter((key) => key.tokenType === "api-key");
   const mcpConnections = visibleKeys.filter(
     (key) => key.tokenType === "mcp-oauth",
   );
@@ -119,23 +114,7 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
       key: "name",
       header: "Key",
       className: "min-w-52",
-      cell: (key) => (
-        <TableCellStack as="div">
-          <span className="flex items-center gap-2">
-            {key.tokenType === "mcp-oauth" && (
-              <McpClientLogo client={key.oauthClientLogo ?? "unknown"} />
-            )}
-            {key.oauthClientName ?? key.name}
-          </span>
-          {key.tokenType === "mcp-oauth" && (
-            <TableCellDescription>
-              {key.oauthClientTrust === "metadata-document" && key.oauthClientId
-                ? new URL(key.oauthClientId).hostname
-                : "Unknown client"}
-            </TableCellDescription>
-          )}
-        </TableCellStack>
-      ),
+      cell: (key) => key.name,
     },
     {
       key: "access",
@@ -186,22 +165,13 @@ export function ApiMcpSettings({ section }: { section: KeyStoreSection }) {
               query.refresh();
             }}
             confirm={{
-              title: `Revoke ${key.oauthClientName ?? key.name}?`,
+              title: `Revoke ${key.name}?`,
               description:
-                key.tokenType === "mcp-oauth"
-                  ? "This app will lose access immediately. Sign in again from the app to reconnect."
-                  : "Any script or app using this key will lose access immediately. Create a replacement key to reconnect.",
-              actionLabel:
-                key.tokenType === "mcp-oauth"
-                  ? "Revoke connection"
-                  : "Revoke key",
+                "Any REST API script using this key will lose access immediately. Create a replacement key to reconnect.",
+              actionLabel: "Revoke key",
             }}
             variant="danger"
-            success={
-              key.tokenType === "mcp-oauth"
-                ? "Connection revoked"
-                : "Key revoked"
-            }
+            success="Key revoked"
           >
             <HugeiconsIcon
               aria-hidden="true"
@@ -364,54 +334,27 @@ function McpSetup({ url }: { url: string }) {
   const configs = {
     codex: {
       title: "~/.codex/config.toml",
-      code: `[mcp_servers.towbar]\nurl = ${JSON.stringify(url)}\nbearer_token_env_var = "TOWBAR_API_KEY"`,
+      code: `[mcp_servers.towbar]\nurl = ${JSON.stringify(url)}`,
     },
     cursor: {
       title: ".cursor/mcp.json",
-      code: JSON.stringify(
-        {
-          mcpServers: {
-            towbar: {
-              url,
-              headers: { Authorization: "Bearer YOUR_TOWBAR_API_KEY" },
-            },
-          },
-        },
-        null,
-        2,
-      ),
+      code: JSON.stringify({ mcpServers: { towbar: { url } } }, null, 2),
     },
     vscode: {
       title: ".vscode/mcp.json",
       code: JSON.stringify(
-        {
-          inputs: [
-            {
-              type: "promptString",
-              id: "towbar-key",
-              description: "Towbar API key",
-              password: true,
-            },
-          ],
-          servers: {
-            towbar: {
-              type: "http",
-              url,
-              headers: { Authorization: "Bearer ${input:towbar-key}" },
-            },
-          },
-        },
+        { servers: { towbar: { type: "http", url } } },
         null,
         2,
       ),
     },
     claude: {
       title: "Claude Code",
-      code: `claude mcp add --transport http towbar '${url}' \\\n  --header "Authorization: Bearer $TOWBAR_API_KEY"`,
+      code: `claude mcp add --transport http towbar '${url}'`,
     },
     other: {
       title: "Connection details",
-      code: `Transport: Streamable HTTP\nURL: ${url}\nAuthorization: Bearer YOUR_TOWBAR_API_KEY`,
+      code: `Transport: Streamable HTTP\nURL: ${url}\nAuthentication: OAuth`,
     },
   };
   const labels = {
@@ -422,15 +365,25 @@ function McpSetup({ url }: { url: string }) {
     other: "Other clients",
   };
   return (
-    <McpGuideSettings
-      configurations={Object.entries(configs).map(([id, config]) => ({
-        id,
-        label: labels[id as keyof typeof labels],
-        filename: config.title,
-        code: config.code,
-        icon: <McpClientLogo client={id} />,
-      }))}
-      documentationUrl="https://www.towbar.dev/docs/api/mcp"
-    />
+    <div className="grid gap-4">
+      <p className="text-sm leading-relaxed text-muted">
+        Add Towbar to your MCP client, sign in, and approve the requested
+        access. In Codex, run <code>codex mcp login towbar</code> after adding
+        the server. In Claude Code, use <code>/mcp</code> to authenticate.
+        Connections expire after 30 days and can be revoked in Account Settings
+        → MCP Connections. MCP requires OAuth sign-in; API keys are for the REST
+        API.
+      </p>
+      <McpGuideSettings
+        configurations={Object.entries(configs).map(([id, config]) => ({
+          id,
+          label: labels[id as keyof typeof labels],
+          filename: config.title,
+          code: config.code,
+          icon: <McpClientLogo client={id} />,
+        }))}
+        documentationUrl="https://www.towbar.dev/docs/api/mcp"
+      />
+    </div>
   );
 }
