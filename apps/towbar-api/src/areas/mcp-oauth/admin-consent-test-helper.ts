@@ -1,0 +1,232 @@
+import assert from "node:assert/strict";
+import type { TestContext } from "node:test";
+import { eq } from "drizzle-orm";
+import {
+  apiKeyPolicies,
+  mcpOAuthRequests,
+  sessions,
+  workspaceMembers,
+} from "@workspace/towbar-database/schema";
+import type { getTowbarDatabase } from "../../infrastructure/database.js";
+import type { createApp } from "../../app.js";
+import type { AuthenticatedUser } from "../../http/types.js";
+import { connectTestMcpClient } from "../external-api/scout-access-test-helper.js";
+import type { settingsTestClient } from "../team/settings-test-client.js";
+import * as keys from "../api-keys/service.js";
+
+export async function assertAdminConsent(
+  t: TestContext,
+  context: {
+    app: ReturnType<typeof createApp>;
+    db: ReturnType<typeof getTowbarDatabase>;
+    user: AuthenticatedUser;
+    headers: Headers;
+    request: ReturnType<typeof settingsTestClient>["request"];
+    ok: ReturnType<typeof settingsTestClient>["ok"];
+    issue: (scope: string) => Promise<{ access_token: string }>;
+    start: () => Promise<{ id: string }>;
+    grant: () => Promise<() => Promise<Response>>;
+  },
+) {
+  const { app, db, user, headers, request, ok, issue, start, grant } = context;
+  await t.test(
+    "ordinary edit consent excludes deployments; explicit admin consent exposes deployment tools and stays scoped",
+    async () => {
+      for (const scope of ["mcp:write", "mcp:admin"]) {
+        const issued = await issue(scope);
+        const principal = await keys.findApiKey(issued.access_token);
+        assert(principal);
+        const admin = scope === "mcp:admin";
+        assert.equal(
+          principal.user.capabilities.includes("deployment.create"),
+          admin,
+        );
+        assert.equal(
+          principal.user.capabilities.includes("repository.sync"),
+          admin,
+        );
+        for (const permission of [
+          "server.terminal",
+          "secret.reveal",
+          "sharedSecret.reveal",
+          "member.delete",
+          "apikey.create",
+        ] as const)
+          assert(!principal.user.capabilities.includes(permission), permission);
+        const key = (await keys.listApiKeys(user)).find(
+          (key) => key.id === principal.key.id,
+        )!;
+        assert.equal(key.includeAdmin, admin);
+        assert.equal(key.permissionMode, "scoped");
+        if (admin) {
+          await db
+            .update(apiKeyPolicies)
+            .set({
+              grants: key.grants.filter(
+                (permission) => permission !== "deployment.create",
+              ),
+            })
+            .where(eq(apiKeyPolicies.keyId, key.id));
+          const narrowed = await keys.findApiKey(issued.access_token);
+          assert(narrowed);
+          assert(!narrowed.user.capabilities.includes("deployment.create"));
+          await db
+            .update(apiKeyPolicies)
+            .set({ grants: key.grants })
+            .where(eq(apiKeyPolicies.keyId, key.id));
+        }
+        const mcp = await connectTestMcpClient(issued.access_token, (r) =>
+          app.fetch(r),
+        );
+        try {
+          const list = await mcp.listTools();
+          assert.equal(
+            list.tools.some((tool) => tool.name === "towbar_workload_deploy"),
+            admin,
+          );
+          if (!admin) {
+            const response = await app.request("/v1/mcp", {
+              method: "POST",
+              headers: {
+                authorization: `Bearer ${issued.access_token}`,
+                "content-type": "application/json",
+                accept: "application/json, text/event-stream",
+              },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "tools/call",
+                params: { name: "towbar_workload_deploy", arguments: {} },
+              }),
+            });
+            assert.equal(response.status, 403);
+            assert.match(
+              response.headers.get("www-authenticate")!,
+              /mcp:admin/,
+            );
+          }
+        } finally {
+          await mcp.close();
+        }
+        await keys.revokeApiKey(user, principal.key.id);
+      }
+    },
+  );
+  await t.test(
+    "admin consent requires recent authentication and non-admins cannot approve or exchange it",
+    async () => {
+      const started = await start();
+      const [session] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.userId, user.id));
+      assert(session);
+      await db
+        .update(sessions)
+        .set({ authenticatedAt: new Date(0) })
+        .where(eq(sessions.id, session.id));
+      try {
+        const response = await request(
+          `/v1/oauth/consent/${started.id}`,
+          headers,
+          { allow: true },
+        );
+        assert.equal(response.status, 403);
+        assert.equal(
+          ((await response.json()) as { code: string }).code,
+          "REAUTHENTICATION_REQUIRED",
+        );
+        const [pending] = await db
+          .select()
+          .from(mcpOAuthRequests)
+          .where(eq(mcpOAuthRequests.id, started.id));
+        assert.equal(pending!.codeHash, null);
+        assert.equal(
+          (
+            await request("/v1/core/session/reauthenticate", headers, {
+              password: "OAuth integration password 91 unique",
+            })
+          ).status,
+          200,
+        );
+        const approved = await ok(
+          await request(`/v1/oauth/consent/${started.id}`, headers, {
+            allow: true,
+          }),
+        );
+        assert(
+          new URL(
+            ((await approved.json()) as { redirectTo: string }).redirectTo,
+          ).searchParams.get("code"),
+        );
+      } finally {
+        await db
+          .update(sessions)
+          .set({ authenticatedAt: new Date() })
+          .where(eq(sessions.id, session.id));
+      }
+      for (const role of ["member", "viewer"] as const) {
+        const exchange = await grant();
+        await db
+          .update(workspaceMembers)
+          .set({ role })
+          .where(eq(workspaceMembers.userId, user.id));
+        try {
+          const denied = await start();
+          assert.equal(
+            (
+              await request(`/v1/oauth/consent/${denied.id}`, headers, {
+                allow: true,
+              })
+            ).status,
+            400,
+          );
+          assert.equal((await exchange()).status, 400);
+          assert.equal(
+            (
+              await request(`/v1/oauth/consent/${denied.id}`, headers, {
+                allow: false,
+              })
+            ).status,
+            200,
+          );
+        } finally {
+          await db
+            .update(workspaceMembers)
+            .set({ role: "admin" })
+            .where(eq(workspaceMembers.userId, user.id));
+        }
+      }
+      const issued = await issue("mcp:admin");
+      const principal = await keys.findApiKey(issued.access_token);
+      assert(principal);
+      await db
+        .update(workspaceMembers)
+        .set({ role: "member" })
+        .where(eq(workspaceMembers.userId, user.id));
+      try {
+        const current = await keys.findApiKey(issued.access_token);
+        assert(current);
+        assert(!current.user.capabilities.includes("deployment.create"));
+        const mcp = await connectTestMcpClient(issued.access_token, (r) =>
+          app.fetch(r),
+        );
+        try {
+          assert(
+            !(await mcp.listTools()).tools.some(
+              (tool) => tool.name === "towbar_workload_deploy",
+            ),
+          );
+        } finally {
+          await mcp.close();
+        }
+      } finally {
+        await db
+          .update(workspaceMembers)
+          .set({ role: "admin" })
+          .where(eq(workspaceMembers.userId, user.id));
+      }
+      await keys.revokeApiKey(user, principal.key.id);
+    },
+  );
+}

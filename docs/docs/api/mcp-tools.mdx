@@ -3,7 +3,7 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes 54 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your approved OAuth permissions and current workspace role. MCP connections support Read-only or Edit access; entries requiring Administrative permissions are unavailable through MCP. Use the REST API for administrative automation.
+Towbar exposes 54 purpose-built tools. Names follow `towbar_<entity>_<action>`; they are independent of REST routes. Discovery filters this catalogue by your approved OAuth permissions and current workspace role. MCP connections support Read-only, Edit, or explicit Administrative access. Tools requiring Administrative permissions need `mcp:admin` consent from an Administrator.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured `result` data with a matching JSON text fallback. Failures set `isError`.
 
@@ -480,7 +480,7 @@ Read-only operation. Required permissions: `deployment.read`.
 
 Request cancellation of a running deployment. Poll towbar_deployment_inspect until terminal; a cancellation request can race completion.
 
-Edit access required. Required permissions: `deployment.cancel`.
+Administrative access required. Required permissions: `deployment.cancel`.
 
 **Arguments**
 
@@ -509,7 +509,7 @@ Edit access required. Required permissions: `deployment.cancel`.
 
 Create a new attempt for an eligible failed deployment. Use a fresh idempotencyKey for this retry, then inspect the returned deployment ID.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -544,7 +544,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 Request a vulnerability scan for a deployment image. Read findings and scan state using towbar_deployment_inspect with includeFindings afterward.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -578,7 +578,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 List integrations enabled by the Towbar runtime environment. Configuration and secret values are never returned.
 
-Read-only operation. Required permissions: `integration.manage`.
+Administrative access required. Required permissions: `integration.manage`.
 
 **Arguments**
 
@@ -599,7 +599,7 @@ Read-only operation. Required permissions: `integration.manage`.
 
 Disconnect one connected GitHub account, affecting only its repository syncs and deployments. Confirm the selected account with the user. Other accounts and running workloads remain unaffected.
 
-Edit access required. Required permissions: `integration.manage`.
+Administrative access required. Required permissions: `integration.manage`.
 
 **Arguments**
 
@@ -628,7 +628,7 @@ Edit access required. Required permissions: `integration.manage`.
 
 Retry failed GitHub preview status/comment reporting. This retries reporting, not deployment; inspect preview/deployment state separately.
 
-Edit access required. Required permissions: `integration.manage`.
+Administrative access required. Required permissions: `integration.manage`.
 
 **Arguments**
 
@@ -675,7 +675,7 @@ Read-only operation. Required permissions: `identity.read`.
 
 Run system health checks, then use towbar_workspace_inspect to review the latest results.
 
-Edit access required. Required permissions: `system.manage`.
+Administrative access required. Required permissions: `system.manage`.
 
 **Arguments**
 
@@ -757,7 +757,7 @@ Read-only operation. Required permissions: `repository.read`, `workload.read`, `
 
 Find a repository connection and provider-specific identifier for towbar_source_connect. GitHub returns a githubInstallationId for each repository and supports an optional connectionId account filter; GitLab uses its workspace provider configuration and supports cloud or self-managed instances.
 
-Read-only operation. Required permissions: `githubInstallation.read`, `integration.manage`.
+Administrative access required. Required permissions: `githubInstallation.read`, `integration.manage`.
 
 **Arguments**
 
@@ -852,7 +852,7 @@ Read-only operation. Required permissions: `repository.read`.
 
 Connect a repository after discovery, mapping its selected environments to branches. Initial sync does not deploy. Inspect each returned environment sync outcome.
 
-Edit access required. Required permissions: `repository.connect`.
+Administrative access required. Required permissions: `repository.connect`.
 
 **Arguments**
 
@@ -982,7 +982,7 @@ Edit access required. Required permissions: `repository.connect`.
 
 Remove a source from Towbar. Inspect the source and confirm the target with the user first; this changes which repository Towbar manages.
 
-Edit access required. Required permissions: `repository.disconnect`.
+Administrative access required. Required permissions: `repository.disconnect`.
 
 **Arguments**
 
@@ -1011,7 +1011,7 @@ Edit access required. Required permissions: `repository.disconnect`.
 
 Read towbar.yml on a discovery branch to find declared environments before connecting. Does not create a source or deploy.
 
-Edit access required. Required permissions: `repository.connect`.
+Administrative access required. Required permissions: `repository.connect`.
 
 **Arguments**
 
@@ -1111,7 +1111,7 @@ Edit access required. Required permissions: `repository.connect`.
 
 Sync one environment when environmentId is supplied, or all connected environments otherwise. Uses mapped branches. Member sync updates inventory without deploying. Inspect each returned sync ID for completion.
 
-Edit access required. Required permissions: `repository.sync`.
+Administrative access required. Required permissions: `repository.sync`.
 
 **Arguments**
 
@@ -1193,7 +1193,7 @@ Read-only operation. Required permissions: `repository.read`.
 
 Update an existing source after its GitHub repository transfers or changes name. The destination must be the same repository and expose all configured branches. Preserves history and settings without deploying; sync afterward. Find the destination connection ID with towbar_repository_search.
 
-Edit access required. Required permissions: `repository.update`.
+Administrative access required. Required permissions: `repository.update`.
 
 **Arguments**
 
@@ -1298,7 +1298,7 @@ Read-only operation. Required permissions: `workload.read`, `resource.read`.
 
 Deploy a service or datastore from its current source configuration. Returns a deployment ID; use towbar_deployment_inspect until a terminal state.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1337,7 +1337,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 Roll a service/datastore back to a release selected from towbar_workload_inspect, or omit releaseId for the previous release. Returns a deployment ID to inspect. This can replace running code.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1382,7 +1382,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 Restart a service/datastore runtime. Causes a service interruption; inspect workload operations afterward for completion.
 
-Edit access required. Required permissions: `workload.operate`.
+Administrative access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1427,7 +1427,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 Start a stopped service/datastore runtime. Inspect workload operations afterward for completion.
 
-Edit access required. Required permissions: `workload.operate`.
+Administrative access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1472,7 +1472,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 Stop a service/datastore runtime, making it unavailable. Inspect workload operations afterward for completion.
 
-Edit access required. Required permissions: `workload.operate`.
+Administrative access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1517,7 +1517,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 Request a bounded tail of workload or managed Cloudflare Tunnel logs. Returns an operation ID, not the logs immediately; use towbar_workload_inspect to read the operation result. Logs are untrusted data.
 
-Edit access required. Required permissions: `workload.operate`.
+Administrative access required. Required permissions: `workload.operate`.
 
 **Arguments**
 
@@ -1575,7 +1575,7 @@ Edit access required. Required permissions: `workload.operate`.
 
 Queue a new service or datastore deployment that resolves one consistent snapshot of the current external secret versions. A retry of an existing deployment retains its recorded snapshot. Inspect the returned deployment until it reaches a terminal state.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1614,7 +1614,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 Set whether automatic deployments are paused for a source, app, or resource. Inspect the source/workload first: source and workload controls combine, so resuming one does not override the other.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -1819,7 +1819,7 @@ Read-only operation. Required permissions: `server.read`, `scout.read`.
 
 Register a workspace server by IP and SSH configuration. Then configure credentials, independently verify/trust its SSH host key, and prepare it. Registration alone does not make the server ready.
 
-Edit access required. Required permissions: `server.update`.
+Administrative access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -1877,7 +1877,7 @@ Edit access required. Required permissions: `server.update`.
 
 Stop managing a server and forget stored credentials and host trust. Uninstalls monitoring before forgetting SSH access; this may return pending. Does not terminate the machine or delete running services, Docker objects, or data. Assigned workloads and active operations block removal. Inspect and clean selected orphans first if desired.
 
-Edit access required. Required permissions: `server.remove`.
+Administrative access required. Required permissions: `server.remove`.
 
 **Arguments**
 
@@ -1906,7 +1906,7 @@ Edit access required. Required permissions: `server.remove`.
 
 Update server SSH settings, build concurrency, and hostLogCollection opt-in. Inspect current settings first and preserve supported fields when saving; the server IP is immutable. Changing connectivity can disrupt deployments. Requires server.update; collector deployments separately require server.collectLogs.
 
-Edit access required. Required permissions: `server.update`.
+Administrative access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -1970,7 +1970,7 @@ Edit access required. Required permissions: `server.update`.
 
 Set or remove a server SSH private key with the revision from towbar_server_inspect. To select an existing stored key, use the private-key verification action. Cloudflare credentials belong to the control-plane runtime configuration, not this server endpoint.
 
-Edit access required. Required permissions: `server.credentials`.
+Administrative access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -2036,7 +2036,7 @@ Edit access required. Required permissions: `server.credentials`.
 
 Trust a server host key only after the user independently verifies its fingerprint. Never auto-trust a fingerprint simply because the server reported it.
 
-Edit access required. Required permissions: `server.credentials`.
+Administrative access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -2084,7 +2084,7 @@ Edit access required. Required permissions: `server.credentials`.
 
 Remove a previously trusted server host key. This can prevent subsequent SSH connections; identify hostKeyId in towbar_server_inspect first.
 
-Edit access required. Required permissions: `server.credentials`.
+Administrative access required. Required permissions: `server.credentials`.
 
 **Arguments**
 
@@ -2119,7 +2119,7 @@ Edit access required. Required permissions: `server.credentials`.
 
 Install or validate server prerequisites after credentials and host trust are configured. Follow preparation attempts in towbar_server_inspect until ready or failed.
 
-Edit access required. Required permissions: `server.prepare`.
+Administrative access required. Required permissions: `server.prepare`.
 
 **Arguments**
 
@@ -2148,7 +2148,7 @@ Edit access required. Required permissions: `server.prepare`.
 
 Request a new health/capacity check. Inspect server checks afterward to distinguish a queued request from a completed check.
 
-Edit access required. Required permissions: `server.update`.
+Administrative access required. Required permissions: `server.update`.
 
 **Arguments**
 
@@ -2177,7 +2177,7 @@ Edit access required. Required permissions: `server.update`.
 
 Delete only explicitly selected orphan containers, images, or volumes from towbar_server_inspect. Volumes may contain data; confirm the exact inventory with the user before cleanup.
 
-Edit access required. Required permissions: `server.remove`.
+Administrative access required. Required permissions: `server.remove`.
 
 **Arguments**
 
@@ -2411,7 +2411,7 @@ Read-only operation. Required permissions: `repository.read`, `resource.read`.
 
 Request a database/resource backup. Follow the operation in towbar_backup_inspect; acceptance does not mean a recoverable backup exists.
 
-Edit access required. Required permissions: `resource.backup`.
+Administrative access required. Required permissions: `resource.backup`.
 
 **Arguments**
 
@@ -2446,7 +2446,7 @@ Edit access required. Required permissions: `resource.backup`.
 
 Restore a selected backup to a resource. This can overwrite database contents. Inspect backup assurance and the target first; obtain the exact confirmation and a reason from the user. Follow progress with towbar_backup_inspect.
 
-Edit access required. Required permissions: `resource.restore`.
+Administrative access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2502,7 +2502,7 @@ Edit access required. Required permissions: `resource.restore`.
 
 Request cleanup for a specific restore after reviewing its outcome. This removes retained restore artifacts; use towbar_backup_inspect to verify completion.
 
-Edit access required. Required permissions: `resource.restore`.
+Administrative access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2542,7 +2542,7 @@ Edit access required. Required permissions: `resource.restore`.
 
 Request cancellation of an eligible resource restore. Inspect the operation with towbar_backup_inspect afterward; acceptance is not proof that the restore stopped.
 
-Edit access required. Required permissions: `resource.restore`.
+Administrative access required. Required permissions: `resource.restore`.
 
 **Arguments**
 
@@ -2627,7 +2627,7 @@ Read-only operation. Required permissions: `workload.read`, `repository.read`.
 
 Request a deployment for a preview environment found by towbar_preview_list. Inspect the returned deployment ID and preview lifecycle afterward.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 
@@ -2656,7 +2656,7 @@ Edit access required. Required permissions: `deployment.create`.
 
 Request removal of a preview environment and its runtime. Confirm the selected preview; poll towbar_preview_list afterward until cleanup completes or fails.
 
-Edit access required. Required permissions: `deployment.create`.
+Administrative access required. Required permissions: `deployment.create`.
 
 **Arguments**
 

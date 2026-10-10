@@ -35,7 +35,12 @@ void test("OAuth redirects, scopes, and parameters are validated without trustin
     assert(!validRedirectUri(value), value);
   assert.equal(parseScope(), "mcp:read");
   assert.equal(parseScope("mcp:write"), "mcp:read mcp:write");
-  assert.throws(() => parseScope("mcp:admin"));
+  assert.equal(parseScope("mcp:admin"), "mcp:read mcp:write mcp:admin");
+  assert.equal(
+    parseScope("mcp:admin mcp:read mcp:admin"),
+    "mcp:read mcp:write mcp:admin",
+  );
+  assert.throws(() => parseScope("mcp:unknown"));
   assert.throws(() =>
     uniqueParameters(new URLSearchParams("client_id=a&client_id=b")),
   );

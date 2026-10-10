@@ -5,7 +5,9 @@ import { api } from "@/lib/api";
 import { passkeyError, verifyPasskeySecondFactor } from "@/lib/passkeys";
 import { useAccess } from "./access-context";
 
-export function ReauthenticationDialog() {
+export function ReauthenticationDialog({
+  twoFactorEnabled,
+}: { twoFactorEnabled?: boolean } = {}) {
   const { user } = useAccess();
   const [open, setOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -37,7 +39,7 @@ export function ReauthenticationDialog() {
       if (!value) finish(false);
     },
   };
-  return user?.twoFactorEnabled ? (
+  return (twoFactorEnabled ?? user?.twoFactorEnabled) ? (
     <ConfirmIdentityDialog
       {...shared}
       method="passkey"

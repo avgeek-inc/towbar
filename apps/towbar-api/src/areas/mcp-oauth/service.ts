@@ -14,6 +14,7 @@ import {
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { recordAuditEvent } from "../../infrastructure/audit.js";
 import { createApiKey } from "../api-keys/service.js";
+import { requireRecentAuthentication } from "../auth/recent-authentication.js";
 import { currentMembership, lockTeam } from "../team/authorization.js";
 import type { AuthenticatedUser } from "../../http/types.js";
 import { resolveClient } from "./clients.js";
@@ -23,6 +24,7 @@ import {
   digest,
   equalSecret,
   mcpResource,
+  oauthKeyPermissions,
   parseScope,
   requireResource,
   secret,
@@ -133,6 +135,7 @@ export function decideConsent(
   id: string,
   user: AuthenticatedUser,
   allow: boolean,
+  sessionId: string | null = null,
 ) {
   return getTowbarDatabase().transaction(async (tx) => {
     await lockTeam(tx, user.workspaceId);
@@ -159,25 +162,26 @@ export function decideConsent(
         .where(eq(mcpOAuthRequests.id, id));
       return authorizationResponse(request, { error: "access_denied" });
     }
-    const access = request.scope.includes("mcp:write") ? "edit" : "read";
+    const { access, includeAdmin } = oauthKeyPermissions(request.scope);
     if (
       !canCreateKey(member.role, {
         scope: "personal",
         access,
-        includeAdmin: false,
+        includeAdmin,
       })
     )
       throw new OAuthError(
         "access_denied",
         "Requested access exceeds your Towbar role",
       );
+    if (includeAdmin) await requireRecentAuthentication(user.id, sessionId);
     const code = secret();
     await tx
       .update(mcpOAuthRequests)
       .set({
         userId: user.id,
         workspaceId: user.workspaceId,
-        grants: keyCeiling(member.role, access, false),
+        grants: keyCeiling(member.role, access, includeAdmin),
         codeHash: digest(code),
         expiresAt: new Date(Date.now() + 120_000),
       })
@@ -274,6 +278,11 @@ export async function exchangeCode(
       !isWorkspaceRole(user.workspaceRole)
     )
       return null;
+    const permissions = oauthKeyPermissions(request.scope);
+    if (
+      !canCreateKey(user.workspaceRole, { scope: "personal", ...permissions })
+    )
+      return null;
     const created = await createApiKey(
       {
         ...user,
@@ -282,7 +291,7 @@ export async function exchangeCode(
       },
       {
         name: request.clientName,
-        access: request.scope.includes("mcp:write") ? "edit" : "read",
+        ...permissions,
         expiresAt: new Date(
           Date.now() + tokenLifetimeSeconds * 1000,
         ).toISOString(),

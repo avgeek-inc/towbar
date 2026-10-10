@@ -87,3 +87,38 @@ export async function assertSdkOAuthFlow(
     await client.close();
   }
 }
+
+export async function assertOAuthDiscovery(
+  app: ReturnType<typeof createApp>,
+  origin: string,
+  resource: string,
+) {
+  const challenge = await app.request("/v1/mcp");
+  assert.equal(challenge.status, 401);
+  assert.match(
+    challenge.headers.get("www-authenticate")!,
+    /resource_metadata=.*oauth-protected-resource\/v1\/mcp/,
+  );
+  for (const path of [
+    "/.well-known/oauth-protected-resource/v1/mcp",
+    "/.well-known/oauth-protected-resource",
+  ]) {
+    const response = await app.request(path);
+    assert.equal(
+      ((await response.json()) as { resource: string }).resource,
+      resource,
+    );
+  }
+  const response = await app.request("/.well-known/oauth-authorization-server");
+  const body = (await response.json()) as Record<string, unknown>;
+  assert.equal(body.issuer, origin);
+  assert.equal(body.client_id_metadata_document_supported, true);
+  assert.equal(body.authorization_response_iss_parameter_supported, true);
+  assert.deepEqual(body.code_challenge_methods_supported, ["S256"]);
+  assert.deepEqual(body.grant_types_supported, ["authorization_code"]);
+  assert.deepEqual(body.scopes_supported, [
+    "mcp:read",
+    "mcp:write",
+    "mcp:admin",
+  ]);
+}
