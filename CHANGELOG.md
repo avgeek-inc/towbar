@@ -3,6 +3,15 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.39] - 2026-10-10
+
+### Fixed
+
+- Allow administrators to explicitly authorize MCP deployment and infrastructure
+  operations with the `mcp:admin` OAuth scope and password or passkey confirmation.
+- Preserve the permissions of existing OAuth connections; administrator access
+  requires a new consent grant and remains limited by the user's current role.
+
 ## [2.0.38] - 2026-10-10
 
 ### Fixed
