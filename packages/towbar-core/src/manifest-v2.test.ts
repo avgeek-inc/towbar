@@ -61,6 +61,42 @@ function resolve(
   });
 }
 
+void test("resolves PostgreSQL 18 as a managed datastore with initialization files", () => {
+  const image = `postgres:18-alpine@sha256:${"a".repeat(64)}`;
+  const { manifest } = resolve(app, "production", {
+    id: "database",
+    name: "PostgreSQL 18",
+    type: "postgres",
+    image,
+    container: {
+      network: "platform",
+      networkAlias: "database",
+      configFiles: [
+        {
+          source: ".towbar/config/init.sh",
+          mountPath: "/docker-entrypoint-initdb.d/init.sh",
+        },
+      ],
+    },
+    secrets: { runtime: ["POSTGRES_DB", "POSTGRES_PASSWORD"] },
+    environments: { production: { server: "192.0.2.10" } },
+  });
+  const database = manifest.resources?.[0];
+  assert.equal(database?.kind, "postgres");
+  assert.equal(database?.image, image);
+  assert.deepEqual(database?.container.volumes, [
+    { name: "data", mountPath: "/var/lib/postgresql" },
+  ]);
+  assert.equal(
+    database?.container.configFiles?.[0]?.mountPath,
+    "/docker-entrypoint-initdb.d/init.sh",
+  );
+  assert.deepEqual(manifest.requiredSecrets["resource:database"]?.runtime, [
+    "POSTGRES_DB",
+    "POSTGRES_PASSWORD",
+  ]);
+});
+
 void test("root rejects Git branch mappings and configurable entity directories", () => {
   assert.throws(() =>
     parseRepositoryManifest(

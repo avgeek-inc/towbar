@@ -1,6 +1,6 @@
 ---
 title: "PostgreSQL"
-description: "Declare a PostgreSQL 17 datastore, its initialization variables, networking, persistence, and recovery policy."
+description: "Declare a PostgreSQL 17 or 18 datastore, its initialization variables, networking, persistence, and recovery policy."
 icon: "/assets/database-logos/postgresql.webp"
 ---
 
@@ -15,6 +15,10 @@ Towbar's `postgres` preset runs the reviewed PostgreSQL 17 Alpine image on amd64
 or arm64. It listens on port `5432`, stores data in a managed volume at
 `/var/lib/postgresql/data`, and uses `pg_isready` to check whether the server
 accepts connections. That probe does not validate the saved password.
+
+PostgreSQL 18 is also supported through an explicit, digest-pinned `image`.
+The default remains PostgreSQL 17 so existing declarations keep their current
+version and data layout.
 
 ## Declare the datastore
 
@@ -62,6 +66,32 @@ password to either manifest.
 The SSH tunnel port is bound only to `127.0.0.1` on the server. Forward
 `15432` over SSH when an operator needs to use a local database client.
 
+## Choose PostgreSQL 18
+
+For a new PostgreSQL 18 datastore, add this image to the declaration above:
+
+```yaml title=".towbar/datastores/postgres.datastore.yml (image override)"
+image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+```
+
+Towbar chooses the managed volume mount from the image's major version:
+
+| Major version | Default volume mount       | Image data directory            |
+| ------------- | -------------------------- | ------------------------------- |
+| 17            | `/var/lib/postgresql/data` | `/var/lib/postgresql/data`      |
+| 18            | `/var/lib/postgresql`      | `/var/lib/postgresql/18/docker` |
+
+Keep these defaults unless you deliberately configure a different storage layout.
+Both versions support amd64 and arm64. Custom images still require an immutable
+digest and a tag identifying major version 17 or 18.
+
+Changing an existing datastore's image from 17 to 18 does not upgrade its data.
+The [official PostgreSQL image](https://hub.docker.com/_/postgres) refuses the old
+layout instead of silently initializing a replacement database. Plan a
+[PostgreSQL major-version migration](https://www.postgresql.org/docs/18/upgrading.html)
+separately, with a verified backup and a new datastore. Towbar's restore flow is
+for recovery within the same major version.
+
 ## Initialization and password changes
 
 The official image consumes these variables only when the data directory is
@@ -73,5 +103,7 @@ secret so health checks, backups, and restores use the new credential.
 ## Back up and restore
 
 Towbar exports PostgreSQL with `pg_dump` and restores with `pg_restore` into a
-fresh target volume. Recovery requires PostgreSQL major version 17. Continue
+fresh target volume using the datastore's image and volume layout. Recovery
+requires the same PostgreSQL major version as the backup: a PostgreSQL 17 backup
+restores to 17, and a PostgreSQL 18 backup restores to 18. Continue
 with [Database backups](/docs/backups) and [Database restores](/docs/restores).

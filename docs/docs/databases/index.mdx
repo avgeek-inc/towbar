@@ -21,7 +21,8 @@ environment under **Datastore → Settings → Secrets**.
     icon="/assets/database-logos/postgresql.webp"
     href="/docs/databases/postgresql"
   >
-    PostgreSQL 17 on amd64 or arm64, with `pg_dump` and `pg_restore` recovery.
+    PostgreSQL 17 and 18 on amd64 or arm64, with `pg_dump` and `pg_restore`
+    recovery.
   </Card>
   <Card
     title="MySQL"
@@ -78,7 +79,7 @@ environment under **Datastore → Settings → Secrets**.
 
 | Type         | Supported major | Default image          | Architectures | Backup tool                  |
 | ------------ | --------------- | ---------------------- | ------------- | ---------------------------- |
-| `postgres`   | 17              | PostgreSQL 17 Alpine   | amd64, arm64  | `pg_dump` / `pg_restore`     |
+| `postgres`   | 17, 18          | PostgreSQL 17 Alpine   | amd64, arm64  | `pg_dump` / `pg_restore`     |
 | `mysql`      | 8.4             | MySQL 8.4              | amd64, arm64  | `mysqldump` / `mysql`        |
 | `mariadb`    | 11.8            | MariaDB 11.8           | amd64, arm64  | `mariadb-dump` / `mariadb`   |
 | `mongodb`    | 8.0             | MongoDB 8.0            | amd64, arm64  | `mongodump` / `mongorestore` |

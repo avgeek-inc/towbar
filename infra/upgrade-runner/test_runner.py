@@ -288,7 +288,11 @@ class RunnerTests(unittest.TestCase):
                 connection = http.client.HTTPConnection('localhost')
                 connection.sock = socket.socket(socket.AF_UNIX)
                 connection.sock.connect(endpoint)
-                connection.request('GET' if body is None else 'POST', path, body=json.dumps(body) if body is not None else None, headers={'Authorization': 'Bearer ' + token})
+                try:
+                    connection.request('GET' if body is None else 'POST', path, body=json.dumps(body) if body is not None else None, headers={'Authorization': 'Bearer ' + token})
+                except BrokenPipeError:
+                    # An early authorization rejection can close before the body is sent.
+                    pass
                 response = connection.getresponse()
                 response.read()
                 connection.close()
