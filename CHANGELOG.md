@@ -3,6 +3,23 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.36] - 2026-10-10
+
+### Added
+
+- Support PostgreSQL 18 as a managed datastore using an immutable image override.
+  PostgreSQL 17 remains the default. PostgreSQL 18 mounts its data volume at
+  `/var/lib/postgresql`, matching the upstream image layout.
+
+### Changed
+
+- Require OAuth authorization for MCP connections. Personal and team API keys
+  remain available for the REST API.
+
+### Fixed
+
+- Reject mutable and unsupported PostgreSQL image tags before deployment.
+
 ## [2.0.35] - 2026-10-09
 
 ### Changed
