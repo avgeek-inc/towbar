@@ -85,7 +85,7 @@ for (const path of files.filter(
         `${path} refers to obsolete repository ${match[1]}; update the reference explicitly`,
       );
   for (const registry of previousRegistries)
-    if (source.includes(`${registry}/${identity.releasePrefix}-`))
+    if (source.includes(`${registry}/towbar-`))
       failures.push(
         `${path} refers to obsolete image registry ${registry}; update image ownership explicitly`,
       );

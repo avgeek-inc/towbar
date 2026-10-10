@@ -20,20 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     outputs:
       commit: ${{ steps.release.outputs.commit }}
       created: ${{ steps.release.outputs.created }}
       tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
       registry: ${{ steps.release.outputs.registry }}
-      distribution_url: ${{ steps.release.outputs.distribution_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
       - id: release
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
@@ -45,6 +45,13 @@ jobs:
           commit="$(git rev-parse 'HEAD^{commit}')"
           tag_commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
           test "$tag_commit" = "$commit"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = "true"
+          fi
+          latest="$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '.[].tagName' | sort -V | tail -1)"
+          if [[ -n "$latest" ]]; then
+            test "$(printf '%s\n' "$latest" "$RELEASE_TAG" | sort -V | tail -1)" = "$RELEASE_TAG"
+          fi
           created="$(git show -s --format=%cI HEAD)"
           {
             echo "commit=$commit"
@@ -52,18 +59,7 @@ jobs:
             echo "tag=$RELEASE_TAG"
             echo "version=$version"
             echo "registry=$(jq -r .imageRegistry repository.json)"
-            echo "distribution_url=$(jq -r .distributionUrl repository.json)"
           } >>"$GITHUB_OUTPUT"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: tools/distribution/package-lock.json
-      - run: npm ci --prefix tools/distribution --ignore-scripts
-      - name: Verify publication credential isolation
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: node tools/distribution/check-scope.mjs "${{ steps.release.outputs.commit }}"
 
   build:
     needs: prepare
@@ -137,7 +133,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -146,9 +141,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: tools/distribution/package-lock.json
-      - run: npm ci --prefix tools/distribution --ignore-scripts
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           pattern: release-image-*
@@ -191,24 +183,16 @@ jobs:
               --target "$RELEASE_COMMIT" \
               --title "$RELEASE_TAG"
           fi
-      - name: Attach image manifest to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release upload "$RELEASE_TAG" towbar-images.json --clobber
-      - name: Assemble and upload immutable release artifacts
+      - name: Assemble and attach release assets
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
           RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           gh release view "$RELEASE_TAG" --json body --jq .body > release-notes.md
           node tools/distribution/assemble.mjs release-artifacts "$RELEASE_TAG" "$RELEASE_COMMIT" towbar-images.json release-notes.md
-          node tools/distribution/publish.mjs upload release-artifacts
-          node tools/distribution/publish.mjs verify release-artifacts
+          gh release upload "$RELEASE_TAG" release-artifacts/* --clobber
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: release-distribution-artifacts
@@ -220,7 +204,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -228,23 +211,29 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: tools/distribution/package-lock.json
-      - run: npm ci --prefix tools/distribution --ignore-scripts
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: release-distribution-artifacts
           path: release-artifacts
-      - name: Promote the validated release
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-        run: node tools/distribution/publish.mjs promote release-artifacts
-      - name: Publish assembled release
+      - name: Publish the verified GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --latest
+        run: |
+          set -euo pipefail
+          test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = "true"
+          jq '. + {validated: true}' release-artifacts/release.json > release-artifacts/validated.json
+          mv release-artifacts/validated.json release-artifacts/release.json
+          gh release upload "$RELEASE_TAG" release-artifacts/release.json --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+      - name: Verify anonymous release downloads
+        run: |
+          node --input-type=module <<'JS'
+          import { readFile } from 'node:fs/promises';
+          import { verifyPublicRelease } from './tools/distribution/release.mjs';
+          await verifyPublicRelease(JSON.parse(await readFile('release-artifacts/release.json', 'utf8')));
+          JS
 
   local-installation-smoke:
     needs: [prepare, manifest]
@@ -253,30 +242,35 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: release-distribution-artifacts
+          path: ${{ runner.temp }}/release-artifacts
+      - name: Verify draft release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/github-assets"
+          diff --recursive "$RUNNER_TEMP/release-artifacts" "$RUNNER_TEMP/github-assets"
+          cd "$RUNNER_TEMP/github-assets"
+          sha256sum --check SHA256SUMS
       - name: Install the candidate release locally
         env:
-          INSTALLER_URL: ${{ needs.prepare.outputs.distribution_url }}/releases/${{ needs.prepare.outputs.tag }}/install.sh
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           set -euo pipefail
           evidence="$RUNNER_TEMP/towbar-local-installation"
           mkdir -p "$evidence"
 
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --location \
-            --retry 4 \
-            --retry-all-errors \
-            --proto '=https' \
-            --tlsv1.2 \
-            "$INSTALLER_URL" |
-            sudo env \
-              TOWBAR_INSTALL_URL=http://localhost:4021 \
-              TOWBAR_NON_INTERACTIVE=1 \
-              TOWBAR_RELEASE_SMOKE=true \
-              bash | tee "$evidence/install.log"
+          sudo env \
+            TOWBAR_INSTALL_URL=http://localhost:4021 \
+            TOWBAR_NON_INTERACTIVE=1 \
+            TOWBAR_RELEASE_SMOKE=true \
+            TOWBAR_RELEASE_DIRECTORY="$RUNNER_TEMP/github-assets" \
+            bash "$RUNNER_TEMP/github-assets/install.sh" | tee "$evidence/install.log"
 
           curl \
             --fail \

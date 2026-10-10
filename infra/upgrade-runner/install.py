@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Install the runner from the verified current release without stopping a job."""
+"""Install the runner from this verified release without stopping a job."""
 import os
 from pathlib import Path
 import subprocess
 
 from upgrade_permissions import atomic_write, ensure_group
 
-CURRENT = Path('/opt/towbar/current')
 LIBRARY = Path('/usr/local/lib/towbar-upgrade')
 CONFIG = Path('/etc/towbar')
 UNIT = Path('/etc/systemd/system/towbar-upgrade.service')
@@ -31,8 +30,12 @@ def install_release(release, library=LIBRARY, config=CONFIG, unit=UNIT):
     atomic_write(config / 'upgrade-compose.yml', compose.replace('@TOWBAR_UPGRADE_GID@', str(gid)).encode(), 0o600)
 
 
-if __name__ == '__main__':
+def main():
     if os.geteuid() != 0:
         raise ValueError('Install the upgrade service as root.')
-    install_release(CURRENT.resolve())
+    install_release(Path(__file__).resolve().parents[2])
     subprocess.run(['systemctl', 'daemon-reload'], check=True, timeout=30)
+
+
+if __name__ == '__main__':
+    main()

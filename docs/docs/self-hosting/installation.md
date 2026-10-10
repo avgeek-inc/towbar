@@ -25,7 +25,7 @@ Custom ports, paths, fragments, HTTPS localhost and non-HTTPS remote URLs are re
 Review and run the installer:
 
 ```bash
-curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
+curl -fsSL https://github.com/avgeek-oss/towbar/releases/latest/download/install.sh | sudo bash
 ```
 
 The installer verifies the CLI checksum and places it at `/usr/local/bin/towbar`. The CLI verifies the validated release, source archive and image manifest, then:

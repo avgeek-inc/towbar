@@ -1,33 +1,23 @@
 # Towbar release publication
 
-Towbar publishes downloads under `https://oss.avgeek.ltd/towbar`. The [oss-releases](https://github.com/avgeek-oss/oss-releases) repository owns the shared Worker and publication broker. Towbar owns artifact assembly, verification and promotion.
-
-## Credentials and dependencies
-
-Release jobs request a signed GitHub Actions OIDC token. The broker checks the repository and owner IDs, exact main release workflow, event and commit, then returns a 15-minute R2 session restricted to `towbar/`. Jobs need `id-token: write` and the organization variable `CLOUDFLARE_ACCOUNT_ID`. They do not read the parent R2 credentials or Worker deployment token.
-
-The publisher has a separate lockfile and one dependency:
-
-```sh
-npm ci --prefix tools/distribution --ignore-scripts
-pnpm distribution:test
-```
-
-Deploy and configure the reviewed broker before publication. The release preflight checks an actual workflow session: reads within `towbar/` must be authorized; outside reads, writes and bucket listing must be denied. Remove Towbar access to the parent organization secrets after this check passes. Other products keep their current access until they migrate.
+Towbar publishes its API, worker, and UI images to GHCR with the same version. GitHub Releases hosts the installer, CLI, source archive, image manifest, JSON schemas, and checksums.
 
 ## Publication
 
-**Publish release images** requires a stable tag at exact `main` HEAD and matching package, CLI and installer versions.
+**Publish release images** requires a stable tag at exact `main` HEAD and matching package, CLI, and installer versions. GitHub Actions uses its built-in token with `packages: write` for images and `contents: write` for release assets. No external storage credentials or publication service are required.
 
-1. Build AMD64/ARM64 images and record their digests.
-2. Assemble committed artifacts and checksums. Upload the manifest last using create-only writes. Retries require identical bytes.
-3. Verify public downloads and install the candidate in a disposable Linux host. Health, version, doctor, upgrade support and restart checks must pass. `TOWBAR_RELEASE_SMOKE=true` allows this candidate while GitHub keeps the release draft.
-4. Recheck downloads, write the validation record and conditionally update `towbar/latest.json`. Reject older versions and changed commits for an existing version.
-5. Verify stable downloads, then publish GitHub release notes.
+1. Build AMD64/ARM64 images, record their digests, and verify anonymous pulls.
+2. Assemble assets from the tagged commit, generate `SHA256SUMS` and `release.json`, and attach them to a draft GitHub release.
+3. Download the draft assets with the workflow token, compare them to the assembled assets, verify checksums, and install them on a disposable Linux host. Health, version, doctor, upgrade support, and restart checks must pass.
+4. Mark `release.json` validated and publish the GitHub release as latest. Verify anonymous downloads against the recorded checksums.
 
-Metadata uses `schemaVersion: 1`; the shared [release contract](https://oss.avgeek.ltd/contracts/release.v1.json) defines its fields. Towbar additionally requires its complete artifact set.
+Draft assets are downloaded before installation because GitHub keeps drafts private. Only the disposable smoke test uses `TOWBAR_RELEASE_SMOKE=true` together with `TOWBAR_RELEASE_DIRECTORY` to read those local files. Normal installations require a published stable GitHub release and validated metadata. Images remain pinned by digest.
 
-An installation failure removes the draft and leaves latest unchanged. Candidate objects remain for investigation. A failed final GitHub publication can be retried.
+An installation failure removes the draft and leaves the previous latest release available. Published releases cannot be overwritten by this workflow. A new version requires a new tag.
+
+## Downloads and upgrades
+
+The latest installer is available at `https://github.com/avgeek-oss/towbar/releases/latest/download/install.sh`. Each installer pins the matching CLI, source, and image manifest to its own version. CLI and System Health update discovery use the GitHub Releases API. Schemas are flat release assets, such as `repository.v2.json`, with latest download links for editors.
 
 ## Repository transfers
 
@@ -40,4 +30,8 @@ pnpm docs:sync
 pnpm repository:check
 ```
 
-Generation only writes declared outputs. Update documentation and image references explicitly; CI rejects obsolete aliases. Keep the distribution URL stable across transfers and change the GHCR namespace only when image ownership changes.
+Generation only writes declared outputs. Update documentation and image references explicitly; CI rejects obsolete aliases. Download and update URLs are derived from the repository identity.
+
+## Retire the previous release host
+
+Release this change and upgrade existing installations using the transition steps in `docs/docs/self-hosting/upgrades.md` before shutting down the previous download Worker. Older CLI and host-runner versions still need that host. Once every installation has switched, the Worker and its publication broker are no longer needed by Towbar. Retain or archive the old artifacts according to the operator's retention policy.

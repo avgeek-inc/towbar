@@ -133,5 +133,5 @@
   },
   "required": ["version", "environments"],
   "additionalProperties": false,
-  "$id": "https://oss.avgeek.ltd/towbar/schemas/repository.v2.json"
+  "$id": "https://github.com/avgeek-oss/towbar/releases/latest/download/repository.v2.json"
 }

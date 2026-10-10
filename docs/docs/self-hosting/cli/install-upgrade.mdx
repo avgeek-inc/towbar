@@ -8,7 +8,7 @@ description: "Install Towbar or select a stable release for an existing installa
 Install the release bundled with the CLI. Run as root on Ubuntu or Debian. The command accepts no arguments and stops if `/opt/towbar/current` already exists.
 
 ```bash
-curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
+curl -fsSL https://github.com/avgeek-oss/towbar/releases/latest/download/install.sh | sudo bash
 ```
 
 If the CLI is already installed:
@@ -34,7 +34,7 @@ sudo towbar upgrade v2.1.0   # Selected stable release
 
 `update` is an alias for `upgrade`. Versions use `vMAJOR.MINOR.PATCH` and must match the CLI's supported major version.
 
-The CLI reads validated metadata from `oss.avgeek.ltd/towbar/releases/`, verifies source and image-manifest checksums, validates configuration, pulls images by digest, applies migrations and checks service health and the running commit. Back up the database and configuration before upgrading; service rollback cannot reverse database migrations.
+The CLI reads published stable releases and validated release metadata from GitHub Releases, verifies source and image-manifest checksums, validates configuration, pulls images by digest, applies migrations and checks service health and the running commit. Back up the database and configuration before upgrading; service rollback cannot reverse database migrations.
 
 On success, Towbar keeps the current and previous release directories and application images. It removes older unreferenced Towbar releases without pruning data volumes or unrelated workloads.
 

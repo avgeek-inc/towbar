@@ -18,7 +18,6 @@ const identity = JSON.parse(
 );
 if (
   !/^[a-z0-9-]+\/[a-z0-9-]+$/.test(identity.repository) ||
-  !/^https:\/\/[a-z0-9.-]+\/[a-z0-9-]+$/.test(identity.distributionUrl) ||
   !/^ghcr\.io\/[a-z0-9-]+$/.test(identity.imageRegistry)
 )
   throw new Error("Invalid repository.json identity");
@@ -29,7 +28,8 @@ set -Eeuo pipefail
 CLI_VERSION="${version}"
 CLI_RELEASE="v$CLI_VERSION"
 TOWBAR_UPSTREAM_REPOSITORY="${identity.repository}"
-TOWBAR_DISTRIBUTION_URL="${identity.distributionUrl}"
+TOWBAR_RELEASES_URL="https://github.com/${identity.repository}/releases"
+TOWBAR_RELEASES_API_URL="https://api.github.com/repos/${identity.repository}/releases"
 TOWBAR_IMAGE_REGISTRY="${identity.imageRegistry}"
 `;
 const fragments = [
@@ -65,8 +65,7 @@ const installer = installerTemplate
     "#!/usr/bin/env bash\n# Generated from infra/install.sh.in and package.json; run pnpm cli:build.\n",
   )
   .replace("@TOWBAR_VERSION@", version)
-  .replaceAll("@TOWBAR_REPOSITORY@", identity.repository)
-  .replaceAll("@TOWBAR_DISTRIBUTION_URL@", identity.distributionUrl);
+  .replaceAll("@TOWBAR_REPOSITORY@", identity.repository);
 const outputs = [
   ["infra/towbar-cli/00-version.sh", versionContent],
   ["infra/towbar", content],

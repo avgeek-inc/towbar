@@ -1,23 +1,47 @@
+download_release_artifact() {
+  local version="$1" name="$2" output="${3:-}"
+  if [[ "${TOWBAR_RELEASE_SMOKE:-false}" == true && -n "${TOWBAR_RELEASE_DIRECTORY:-}" ]]; then
+    if [[ -n "$output" ]]; then
+      cp "$TOWBAR_RELEASE_DIRECTORY/$name" "$output"
+    else
+      cat "$TOWBAR_RELEASE_DIRECTORY/$name"
+    fi
+  else
+    set --
+    if [[ -n "$output" ]]; then set -- --output "$output"; fi
+    curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+      --proto '=https' --proto-redir '=https' --tlsv1.2 \
+      "$TOWBAR_RELEASES_URL/download/$version/$name" "$@"
+  fi
+}
+
 fetch_release_manifest() {
-  local version="$1"
-  curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
-    --proto '=https' --proto-redir '=https' --tlsv1.2 \
-    "$TOWBAR_DISTRIBUTION_URL/releases/$version/release.json"
+  download_release_artifact "$1" release.json
 }
 
 resolve_latest_version() {
   local version
   version="$(curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
-    "$TOWBAR_DISTRIBUTION_URL/releases/latest.json" | jq -er 'select(.validated == true) | .version')"
+    "$TOWBAR_RELEASES_API_URL/latest" | jq -er 'select(.draft == false and .prerelease == false) | .tag_name')"
   validate_version "$version"
   printf '%s\n' "$version"
 }
 
 verify_release() {
-  local version="$1"
+  local version="$1" candidate=false
+  if [[ "${TOWBAR_RELEASE_SMOKE:-false}" == true && -n "${TOWBAR_RELEASE_DIRECTORY:-}" ]]; then
+    candidate=true
+  else
+    if ! curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
+      --proto '=https' --proto-redir '=https' --tlsv1.2 \
+      "$TOWBAR_RELEASES_API_URL/tags/$version" | jq -e --arg version "$version" \
+      '.tag_name == $version and .draft == false and .prerelease == false' >/dev/null; then
+      fail "$version is not a published stable GitHub release"
+    fi
+  fi
   if ! fetch_release_manifest "$version" | jq -e --arg version "$version" \
-    --argjson candidate "${TOWBAR_RELEASE_SMOKE:-false}" \
-    '.version == $version and (.validated == true or $candidate == true) and (.commit | test("^[0-9a-f]{40}$"))' >/dev/null; then
+    --argjson candidate "$candidate" \
+    '.schemaVersion == 1 and .version == $version and (.validated == true or $candidate == true) and (.commit | test("^[0-9a-f]{40}$"))' >/dev/null; then
     fail "$version is not a validated stable release"
   fi
 }
@@ -65,9 +89,7 @@ download_release() {
   for artifact in source.tar.gz towbar-images.json; do
     expected="$(jq -er --arg artifact "$artifact" '.artifacts[$artifact]' "$release_manifest")"
     [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || fail "release is missing the $artifact checksum"
-    curl --fail --silent --show-error --location --retry 4 --retry-all-errors \
-      --proto '=https' --proto-redir '=https' --tlsv1.2 \
-      "$TOWBAR_DISTRIBUTION_URL/releases/$version/$artifact" --output "$staging/$artifact"
+    download_release_artifact "$version" "$artifact" "$staging/$artifact"
     printf '%s  %s\n' "$expected" "$staging/$artifact" | sha256sum --check --status || fail "$artifact checksum verification failed"
   done
 

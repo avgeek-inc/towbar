@@ -10,10 +10,7 @@ if (
   !/^[a-z0-9-]+\/[a-z0-9-]+$/.test(identity.repository) ||
   !Number.isSafeInteger(identity.repositoryId) ||
   identity.repositoryId <= 0 ||
-  !/^ghcr\.io\/[a-z0-9-]+$/.test(identity.imageRegistry) ||
-  !/^https:\/\/[a-z0-9.-]+\/[a-z0-9-]+$/.test(identity.distributionUrl) ||
-  !/^[a-z0-9-]+$/.test(identity.releaseBucket) ||
-  !/^[a-z0-9-]+$/.test(identity.releasePrefix)
+  !/^ghcr\.io\/[a-z0-9-]+$/.test(identity.imageRegistry)
 ) {
   throw new Error("Invalid repository.json identity or distribution settings");
 }
@@ -43,7 +40,7 @@ await output(
   await format(
     `// Generated from repository.json; run pnpm repository:sync.
 export const repositoryUrl = ${JSON.stringify("https://github.com/" + identity.repository)};
-export const distributionUrl = ${JSON.stringify(identity.distributionUrl)};
+export const releasesApiUrl = ${JSON.stringify("https://api.github.com/repos/" + identity.repository + "/releases")};
 `,
     { parser: "typescript" },
   ),
@@ -52,8 +49,8 @@ await output(
   "infra/upgrade-runner/repository_identity.py",
   `# Generated from repository.json; run pnpm repository:sync.
 REPOSITORY = ${JSON.stringify(identity.repository)}
-DISTRIBUTION_URL = ${JSON.stringify(identity.distributionUrl)}
 REPOSITORY_URL = "https://github.com/" + REPOSITORY
+RELEASES_API_URL = "https://api.github.com/repos/" + REPOSITORY + "/releases"
 `,
 );
 const packagePath = "package.json";

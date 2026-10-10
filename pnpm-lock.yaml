@@ -106,9 +106,6 @@ overrides:
 importers:
   .:
     devDependencies:
-      "@aws-sdk/client-s3":
-        specifier: "catalog:"
-        version: 3.1146.0
       "@types/node":
         specifier: "catalog:"
         version: 26.6.4

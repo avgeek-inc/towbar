@@ -57,7 +57,7 @@ test("a package version bump updates the standalone CLI and pinned installer", a
   assert.match(installer, /INSTALLER_VERSION="v2\.45\.7"/);
   assert.match(
     installer,
-    /\$TOWBAR_DISTRIBUTION_URL\/releases\/\$INSTALLER_VERSION\/towbar/,
+    /\$TOWBAR_RELEASES_URL\/download\/\$INSTALLER_VERSION\/\$name/,
   );
   assert(!installer.includes("@TOWBAR_VERSION@"));
   execFileSync("/bin/bash", ["-n", path.join(root, "install.sh"), cli]);

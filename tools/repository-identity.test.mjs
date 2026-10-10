@@ -35,9 +35,6 @@ async function fixture(t) {
     repository: "old-org/old-name",
     repositoryId: 123,
     imageRegistry: "ghcr.io/old-org",
-    distributionUrl: "https://example.com/towbar",
-    releaseBucket: "release-bucket",
-    releasePrefix: "towbar",
     previousRepositories: [],
     previousImageRegistries: [],
   };

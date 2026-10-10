@@ -65,7 +65,7 @@ choose public domains, point both DNS A records to the server first.
 Run the installer:
 
 ```bash
-curl -fsSL https://oss.avgeek.ltd/towbar/install.sh | sudo bash
+curl -fsSL https://github.com/avgeek-oss/towbar/releases/latest/download/install.sh | sudo bash
 ```
 
 The installer prepares the server, downloads Towbar, creates the required
