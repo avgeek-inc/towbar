@@ -17,6 +17,7 @@ import {
   OAuthError,
   mcpResource,
   oauthIssuer,
+  oauthScopes,
   uniqueParameters,
 } from "../areas/mcp-oauth/protocol.js";
 import { externalRateLimit } from "../http/api-authentication.js";
@@ -59,7 +60,12 @@ mcpOAuthRoutes.onError((error, c) => {
     if (error.status === 401)
       c.header("WWW-Authenticate", 'Basic realm="Towbar OAuth"');
     return c.json(
-      { error: error.code, error_description: error.message },
+      {
+        error: error.code,
+        error_description: error.message,
+        code: error.code,
+        message: error.message,
+      },
       error.status,
     );
   }
@@ -76,6 +82,8 @@ mcpOAuthRoutes.onError((error, c) => {
             ? "access_denied"
             : "server_error",
       error_description: normalized.message,
+      code: normalized.code,
+      message: normalized.message,
     },
     normalized.status,
   );
@@ -93,7 +101,7 @@ mcpOAuthRoutes.get("/.well-known/oauth-authorization-server", (c) =>
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256"],
-    scopes_supported: ["mcp:read", "mcp:write"],
+    scopes_supported: oauthScopes,
     token_endpoint_auth_methods_supported: [
       "none",
       "client_secret_basic",
@@ -182,6 +190,7 @@ mcpOAuthRoutes.get("/v1/oauth/consent/:id", async (c) => {
       email: user.email,
       teamName: user.teamName,
       role: user.workspaceRole,
+      twoFactorEnabled: user.twoFactorEnabled === true,
     },
   });
 });
@@ -198,7 +207,12 @@ mcpOAuthRoutes.post("/v1/oauth/consent/:id", async (c) => {
   if (!body.success)
     throw new OAuthError("invalid_request", "Choose whether to allow access");
   return c.json({
-    redirectTo: await decideConsent(id.data, sessionUser(c), body.data.allow),
+    redirectTo: await decideConsent(
+      id.data,
+      sessionUser(c),
+      body.data.allow,
+      c.get("currentSessionId"),
+    ),
   });
 });
 async function readForm(request: Request) {

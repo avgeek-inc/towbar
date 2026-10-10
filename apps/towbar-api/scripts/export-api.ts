@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { keyCeiling } from "@workspace/towbar-access";
 import { format } from "prettier";
 import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -144,7 +145,7 @@ for (const tool of mcpTools) {
 
 ${tool.description}
 
-${tool.readOnly ? "Read-only operation." : "Edit access required."} Required permissions: ${tool.permissions.map((permission) => `\`${permission}\``).join(", ")}.
+${tool.permissions.some((permission) => !keyCeiling("admin", "edit", false).includes(permission)) ? "Administrative access required." : tool.readOnly ? "Read-only operation." : "Edit access required."} Required permissions: ${tool.permissions.map((permission) => `\`${permission}\``).join(", ")}.
 
 **Arguments**
 
@@ -163,7 +164,7 @@ title: MCP tool catalogue
 description: Task-oriented Towbar tools for discovery, deployment, diagnostics, backups, servers, previews, and secrets.
 ---
 
-Towbar exposes ${mcpTools.length} purpose-built tools. Names follow \`towbar_<entity>_<action>\`; they are independent of REST routes. Discovery filters this catalogue by your approved OAuth permissions and current workspace role. MCP connections support Read-only or Edit access; entries requiring Administrative permissions are unavailable through MCP. Use the REST API for administrative automation.
+Towbar exposes ${mcpTools.length} purpose-built tools. Names follow \`towbar_<entity>_<action>\`; they are independent of REST routes. Discovery filters this catalogue by your approved OAuth permissions and current workspace role. MCP connections support Read-only, Edit, or explicit Administrative access. Tools requiring Administrative permissions need \`mcp:admin\` consent from an Administrator.
 
 Use [MCP setup](/docs/api/mcp) for connection details and worked examples. Mutation tools carry risk annotations; client approval is still required for consequential actions. Successful calls return structured \`result\` data with a matching JSON text fallback. Failures set \`isError\`.
 

@@ -3,7 +3,7 @@ import {
   mcpResource,
   resourceMetadataUrl,
 } from "../../areas/mcp-oauth/protocol.js";
-import { actorAllows } from "@workspace/towbar-access";
+import { actorAllows, keyCeiling } from "@workspace/towbar-access";
 import {
   dateTimeLocalizationSchema,
   defaultDateTimePreferences,
@@ -241,9 +241,17 @@ mcpRoutes.all("/", async (context) => {
       ? mcpTools.find((tool) => tool.name === call.data.params.name)
       : undefined;
     if (tool && !actorAllows(context.get("actor"), tool.permissions)) {
+      const editPermissions = keyCeiling("admin", "edit", false);
+      const requiredScope = tool.permissions.some(
+        (permission) => !editPermissions.includes(permission),
+      )
+        ? "mcp:read mcp:write mcp:admin"
+        : key.access === "read" && !tool.readOnly
+          ? "mcp:read mcp:write"
+          : undefined;
       context.header(
         "WWW-Authenticate",
-        `Bearer error="insufficient_scope", resource_metadata="${resourceMetadataUrl()}"${key.access === "read" && !tool.readOnly ? ', scope="mcp:read mcp:write"' : ""}`,
+        `Bearer error="insufficient_scope", resource_metadata="${resourceMetadataUrl()}"${requiredScope ? `, scope="${requiredScope}"` : ""}`,
       );
       return context.json(
         {

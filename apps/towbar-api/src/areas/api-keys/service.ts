@@ -119,8 +119,7 @@ export async function createApiKey(
   },
   database: AuthDatabase = getTowbarDatabase(),
 ) {
-  if (input.oauth && (input.scope === "team" || input.includeAdmin))
-    throw forbidden();
+  if (input.oauth && input.scope === "team") throw forbidden();
   const tokenMetadata = oauthTokenMetadata(input.oauth);
   const requestId = input.requestId ?? randomUUID();
   const creationDigest = createHash("sha256")

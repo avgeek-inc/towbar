@@ -86,6 +86,18 @@ const server = createServer((req, res) => {
         400,
       );
     if (state === "signed-out") return send({}, 401);
+    if (
+      req.method === "POST" &&
+      (state === "admin-stale" || state === "admin-passkey")
+    )
+      return send(
+        {
+          error: "access_denied",
+          code: "REAUTHENTICATION_REQUIRED",
+          message: "Confirm your identity to continue",
+        },
+        403,
+      );
     if (req.method === "POST")
       return send(
         {
@@ -106,14 +118,26 @@ const server = createServer((req, res) => {
         ? "http://127.0.0.1:51873/callback"
         : "https://chatgpt.com/connector/oauth/callback",
       scope:
-        state === "edit" || state === "viewer"
-          ? "mcp:read mcp:write"
-          : "mcp:read",
+        state === "admin" ||
+        state === "admin-stale" ||
+        state === "admin-member" ||
+        state === "admin-viewer" ||
+        state === "admin-passkey"
+          ? "mcp:read mcp:write mcp:admin"
+          : state === "edit" || state === "viewer"
+            ? "mcp:read mcp:write"
+            : "mcp:read",
       user: {
         name: "Alex Morgan",
         email: "alex@example.com",
         teamName: "Example workspace",
-        role: state === "viewer" ? "viewer" : "admin",
+        role:
+          state === "viewer" || state === "admin-viewer"
+            ? "viewer"
+            : state === "admin-member"
+              ? "member"
+              : "admin",
+        twoFactorEnabled: state === "admin-passkey",
       },
     });
   }

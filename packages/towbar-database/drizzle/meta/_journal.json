@@ -169,6 +169,13 @@
       "when": 1791632870096,
       "tag": "0024_server_lifecycle_events",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791650000000,
+      "tag": "0025_mcp_admin_consent",
+      "breakpoints": true
     }
   ]
 }

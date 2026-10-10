@@ -536,7 +536,7 @@ export const apiKeyPolicies = pgTable(
     ),
     check(
       "towbar_api_policy_oauth",
-      sql`${table.tokenType} = 'api-key' or (${table.scope} = 'personal' and not ${table.includeAdmin} and ${table.oauthClientId} is not null and ${table.oauthResource} is not null and ${table.oauthClientTrust} in ('metadata-document', 'unverified'))`,
+      sql`${table.tokenType} = 'api-key' or (${table.scope} = 'personal' and (not ${table.includeAdmin} or ${table.access} = 'edit') and ${table.oauthClientId} is not null and ${table.oauthResource} is not null and ${table.oauthClientTrust} in ('metadata-document', 'unverified'))`,
     ),
     check(
       "towbar_api_policy_scope",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getEnv } from "../../env.js";
 
 export const tokenLifetimeSeconds = 30 * 86400;
+export const oauthScopes = ["mcp:read", "mcp:write", "mcp:admin"];
 export const oauthIssuer = () =>
   getEnv().TOWBAR_API_BASE_URL.replace(/\/$/, "");
 export const mcpResource = () => `${oauthIssuer()}/v1/mcp`;
@@ -57,15 +58,22 @@ export const clientMetadataSchema = z.object({
 });
 export function parseScope(value = "mcp:read") {
   const scopes = [...new Set(value.split(" "))];
-  if (
-    !scopes.length ||
-    scopes.some((s) => !["mcp:read", "mcp:write"].includes(s))
-  )
+  if (!scopes.length || scopes.some((s) => !oauthScopes.includes(s)))
     throw new OAuthError(
       "invalid_scope",
-      "Supported scopes are mcp:read and mcp:write",
+      "Supported scopes are mcp:read, mcp:write and mcp:admin",
     );
+  if (scopes.includes("mcp:admin")) return "mcp:read mcp:write mcp:admin";
   return scopes.includes("mcp:write") ? "mcp:read mcp:write" : "mcp:read";
+}
+export function oauthKeyPermissions(scope: string) {
+  const scopes = scope.split(" ");
+  return {
+    access: scopes.includes("mcp:write")
+      ? ("edit" as const)
+      : ("read" as const),
+    includeAdmin: scopes.includes("mcp:admin"),
+  };
 }
 export function requireResource(value: string | undefined) {
   let resource: string | undefined;

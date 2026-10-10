@@ -8,6 +8,8 @@ import { AuthFrame, AuthBrand } from "./auth-frame";
 import { McpAuthorization } from "@avgeek-oss/design-system";
 import { McpClientLogo } from "./mcp-client-logo";
 import { config } from "@/lib/config";
+import { api } from "@/lib/api";
+import { ReauthenticationDialog } from "./reauthentication-dialog";
 
 type Consent = {
   clientName: string;
@@ -16,7 +18,13 @@ type Consent = {
   clientTrust: "metadata-document" | "unverified";
   redirectUri: string;
   scope: string;
-  user: { name: string; email: string; teamName?: string; role: string };
+  user: {
+    name: string;
+    email: string;
+    teamName?: string;
+    role: string;
+    twoFactorEnabled: boolean;
+  };
 };
 export function McpOAuthConsent() {
   const id = useSearchParams().get("request");
@@ -59,15 +67,10 @@ function ConsentRequest({ id }: { id: string | null }) {
     setBusy(true);
     setError(undefined);
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ allow }),
-      });
-      const body = await response.json();
-      if (!response.ok)
-        throw new Error(body.error_description ?? "Unable to connect this app");
+      const body = await api.post<{ redirectTo: string }>(
+        new URL(endpoint).pathname,
+        { allow },
+      );
       window.location.assign(body.redirectTo);
     } catch (cause) {
       setError(
@@ -77,42 +80,57 @@ function ConsentRequest({ id }: { id: string | null }) {
     }
   }
   const write = details?.scope.includes("mcp:write");
+  const admin = details?.scope.includes("mcp:admin");
   if (details && !login)
     return (
-      <McpAuthorization
-        brand={<AuthBrand />}
-        productName="Towbar"
-        isPending={busy}
-        error={error}
-        approvalBlockedReason={
-          write && details.user.role === "viewer"
-            ? "Your Viewer role cannot grant edit access. Reconnect with read-only access."
-            : undefined
-        }
-        onAllow={() => void decide(true)}
-        onDeny={() => void decide(false)}
-        details={{
-          ...details,
-          clientLogo: (
-            <McpClientLogo client={details.clientLogo ?? "unknown"} />
-          ),
-          account: details.user,
-          permissionSummary: `Wants to ${write ? "read and edit" : "read"} your Towbar data.`,
-          accessDescription: `${write ? "Can view and make changes allowed by your Towbar role, including updating secrets." : "Can only view data allowed by your Towbar role."} Cannot manage accounts or reveal stored credentials.`,
-          accessLifetime: "30 days",
-          revocationDescription: "Revoke it anytime in your personal API keys.",
-          restrictions: "Administrative access is excluded.",
-          identityDescription:
-            details.clientTrust === "metadata-document"
-              ? `App details published by ${new URL(details.clientId).hostname}. This does not verify the app making this request.`
-              : "The app supplied its own name. Towbar has not verified its identity.",
-          deviceConnectionNotice: ["localhost", "127.0.0.1", "[::1]"].includes(
-            new URL(details.redirectUri).hostname,
-          )
-            ? "This opens an app on your device. Only continue if you started this connection yourself."
-            : undefined,
-        }}
-      />
+      <>
+        <ReauthenticationDialog
+          twoFactorEnabled={details.user.twoFactorEnabled}
+        />
+        <McpAuthorization
+          brand={<AuthBrand />}
+          productName="Towbar"
+          isPending={busy}
+          error={error}
+          approvalBlockedReason={
+            admin && details.user.role !== "admin"
+              ? "Only an Administrator can grant administrative access. Reconnect with a lower access level."
+              : write && details.user.role === "viewer"
+                ? "Your Viewer role cannot grant edit access. Reconnect with read-only access."
+                : undefined
+          }
+          onAllow={() => void decide(true)}
+          onDeny={() => void decide(false)}
+          details={{
+            ...details,
+            clientLogo: (
+              <McpClientLogo client={details.clientLogo ?? "unknown"} />
+            ),
+            account: details.user,
+            permissionSummary: admin
+              ? "Wants administrative access to Towbar."
+              : `Wants to ${write ? "read and edit" : "read"} your Towbar data.`,
+            accessDescription: `${admin ? "Can deploy and operate services, sync repositories, manage servers, change secrets, and create or restore backups. These actions can change or remove infrastructure." : write ? "Can view and make changes allowed by your Towbar role, including updating secrets." : "Can only view data allowed by your Towbar role."} Cannot manage accounts, open SSH terminals, or reveal stored credentials.`,
+            accessLifetime: "30 days",
+            revocationDescription:
+              "Revoke it anytime in Account Settings → MCP Connections.",
+            restrictions: admin
+              ? "Only your approved permissions are granted. They remain limited by your current team role. Confirm your identity if prompted."
+              : "Administrative access is excluded.",
+            identityDescription:
+              details.clientTrust === "metadata-document"
+                ? `App details published by ${new URL(details.clientId).hostname}. This does not verify the app making this request.`
+                : "The app supplied its own name. Towbar has not verified its identity.",
+            deviceConnectionNotice: [
+              "localhost",
+              "127.0.0.1",
+              "[::1]",
+            ].includes(new URL(details.redirectUri).hostname)
+              ? "This opens an app on your device. Only continue if you started this connection yourself."
+              : undefined,
+          }}
+        />
+      </>
     );
   return (
     <AuthFrame

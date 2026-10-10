@@ -161,6 +161,13 @@ test(
         client`update towbar_api_key_policies set permission_mode='unknown'`,
         { code: "23514" },
       );
+      await client`update towbar_api_key_policies p set include_admin=true from towbar_api_keys k where k.id=p.key_id and k.name='oauth'`;
+      for (const mutation of [
+        client`update towbar_api_key_policies p set access='read' from towbar_api_keys k where k.id=p.key_id and k.name='oauth'`,
+        client`update towbar_api_key_policies p set permission_mode='full-admin' from towbar_api_keys k where k.id=p.key_id and k.name='oauth'`,
+        client`update towbar_api_key_policies p set scope='team', owner_user_id=null from towbar_api_keys k where k.id=p.key_id and k.name='oauth'`,
+      ])
+        await assert.rejects(mutation, { code: "23514" });
     } finally {
       await client?.end();
       await admin.unsafe(`DROP DATABASE IF EXISTS "${name}"`);
