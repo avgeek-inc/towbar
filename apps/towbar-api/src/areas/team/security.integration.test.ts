@@ -1,3 +1,4 @@
+import { installationSetupSecret } from "../auth/setup-secret.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -75,6 +76,7 @@ void test(
         "This suite requires a fresh test schema",
       );
       const setupInput = {
+        setupSecret: installationSetupSecret(),
         teamName: "Test team",
         displayName: "Admin",
         email: "admin@example.test",
@@ -119,10 +121,10 @@ void test(
           }
           await assert.rejects(
             auth.createInitialAdmin({
+              ...setupInput,
               teamName: "Other",
               displayName: "Attacker",
               email: "attacker@example.test",
-              password,
             }),
           );
         },

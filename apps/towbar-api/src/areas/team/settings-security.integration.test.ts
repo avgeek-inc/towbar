@@ -1,3 +1,4 @@
+import { installationSetupSecret } from "../auth/setup-secret.js";
 import {
   configureSettingsTestEnv,
   settingsTestClient,
@@ -33,6 +34,7 @@ void test(
     try {
       assert((await auth.getInitialSetupStatus()).setupRequired);
       const setup = await auth.createInitialAdmin({
+        setupSecret: installationSetupSecret(),
         teamName: "Settings test",
         displayName: "Admin",
         email: "admin@settings.test",
