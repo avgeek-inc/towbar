@@ -62,7 +62,6 @@
     "repository:test": "node --test tools/repository-identity.test.mjs"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "catalog:",
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "prettier": "catalog:",

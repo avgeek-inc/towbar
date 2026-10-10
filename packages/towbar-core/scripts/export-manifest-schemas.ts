@@ -10,7 +10,7 @@ import {
   resourceRequiredSecretsSchema,
 } from "../src/manifest-v2.js";
 
-import { distributionUrl } from "../src/repository-identity.js";
+import { repositoryUrl } from "../src/repository-identity.js";
 
 type Schema = Record<string, unknown>;
 const environmentNames = {
@@ -81,7 +81,7 @@ for (const [name, schema] of Object.entries(schemas)) {
   const output = await format(
     JSON.stringify({
       ...schema,
-      $id: `${distributionUrl}/schemas/${name}.json`,
+      $id: `${repositoryUrl}/releases/latest/download/${name}.json`,
     }),
     { ...(await resolveConfig(file)), parser: "json" },
   );

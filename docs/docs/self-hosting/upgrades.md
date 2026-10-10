@@ -27,7 +27,7 @@ To install a reviewed version explicitly, pass its release tag:
 sudo towbar upgrade v2.1.0
 ```
 
-The CLI accepts validated stable releases in its supported major version. It verifies artifacts from `oss.avgeek.ltd`, pulls images by digest, validates configuration, applies migrations and checks health and the running commit. Update discovery uses `/towbar/releases/latest.json`; pending or failed candidates leave latest unchanged.
+The CLI accepts validated stable releases in its supported major version. It verifies GitHub Release assets by checksum, pulls images by digest, validates configuration, applies migrations and checks health and the running commit. Update discovery uses GitHub’s latest published stable release; draft and failed candidates leave latest unchanged.
 
 If service replacement fails, the CLI attempts to restore the previous release and images. It cannot reverse database migrations. Review migration compatibility before reverting. See [Install and upgrade](/docs/self-hosting/cli/install-upgrade) for command details.
 
@@ -112,6 +112,35 @@ Use **Forgot password** when SMTP and the account's mailbox are available. Host 
 ## Command-line operations
 
 Run installation and upgrade commands on the control-plane host. See the [CLI reference](/docs/self-hosting/cli) for commands and diagnostics.
+
+## Switch an older installation to GitHub Releases
+
+Older versions read a separate release host. Before the first upgrade to a GitHub-only release, refresh the CLI and the host upgrade service on the control-plane host. Finish any active upgrade and follow the preparation steps above first.
+
+Download the CLI from the target GitHub release and verify its checksum:
+
+```bash
+version="$(curl -fsSL https://api.github.com/repos/avgeek-oss/towbar/releases/latest | jq -er .tag_name)"
+release_dir="$(mktemp -d)"
+base="https://github.com/avgeek-oss/towbar/releases/download/$version"
+curl -fsSL "$base/towbar" -o "$release_dir/towbar"
+curl -fsSL "$base/SHA256SUMS" -o "$release_dir/SHA256SUMS"
+(cd "$release_dir" && grep '  towbar$' SHA256SUMS | sha256sum --check) &&
+sudo install -o root -g root -m 0755 "$release_dir/towbar" /usr/local/bin/towbar
+rm -rf "$release_dir"
+```
+
+For an installation with host-managed upgrades enabled, prepare the verified target release, then replace the idle runner before starting the upgrade:
+
+```bash
+sudo towbar upgrade-service plan "$version"
+sudo systemctl stop towbar-upgrade
+sudo python3 "/opt/towbar/releases/$version/infra/upgrade-runner/install.py"
+sudo systemctl start towbar-upgrade
+sudo towbar upgrade "$version"
+```
+
+If host-managed upgrades are disabled, run `sudo towbar upgrade "$version"` after refreshing the CLI. The configuration and database stay in place. After this transition, later CLI and System Health upgrades use GitHub Releases directly.
 
 ## Upgrade from System Health
 

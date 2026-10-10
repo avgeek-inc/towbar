@@ -46,6 +46,13 @@ class InstallTests(unittest.TestCase):
             self.assertNotIn('@TOWBAR_UPGRADE_GID@', compose)
             self.assertEqual(stat.S_IMODE((self.config / 'upgrade-compose.yml').stat().st_mode), 0o600)
 
+    def test_entrypoint_installs_the_verified_release_it_was_run_from(self):
+        target = self.root / 'verified-target'
+        with patch.object(installer, '__file__', str(target / 'infra/upgrade-runner/install.py')), patch.object(installer.os, 'geteuid', return_value=0), patch.object(installer, 'install_release') as install, patch.object(installer.subprocess, 'run') as reload:
+            installer.main()
+            install.assert_called_once_with(target.resolve())
+            reload.assert_called_once_with(['systemctl', 'daemon-reload'], check=True, timeout=30)
+
     def test_existing_host_group_is_not_adopted(self):
         unrelated = SimpleNamespace(gr_name='towbar-upgrade', gr_gid=1001, gr_mem=['unrelated'])
         dedicated = SimpleNamespace(gr_name='towbar-upgrade-abcd1234', gr_gid=43210, gr_mem=[])

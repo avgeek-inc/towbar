@@ -88,7 +88,7 @@ environment under **Datastore → Settings → Secrets**.
 | `keydb`      | 6               | KeyDB 6.3              | amd64 only    | verified RDB snapshot        |
 | `clickhouse` | 25              | ClickHouse 25.8 Alpine | amd64, arm64  | native archive               |
 
-The generated [datastore JSON Schema](https://oss.avgeek.ltd/towbar/schemas/resource.v2.json) contains the
+The generated [datastore JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/resource.v2.json) contains the
 reviewed image digests. Custom images must use an immutable digest and match the
 supported major version. Towbar rejects KeyDB on arm64 during admission.
 

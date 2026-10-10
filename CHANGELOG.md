@@ -3,6 +3,15 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Changed
+
+- Publish installers, CLI downloads, schemas, checksums, and validated release
+  metadata as GitHub Release assets. Keep API, worker, and UI images in GHCR.
+- Use GitHub Releases for CLI and System Health update discovery, removing the
+  separate download host and publication broker from future releases.
+
 ## [2.0.36] - 2026-10-10
 
 ### Added

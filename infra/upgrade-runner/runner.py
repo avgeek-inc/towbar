@@ -18,7 +18,7 @@ import time
 import traceback
 import urllib.request
 import uuid
-from repository_identity import REPOSITORY, DISTRIBUTION_URL, REPOSITORY_URL
+from repository_identity import REPOSITORY, RELEASES_API_URL, REPOSITORY_URL
 from upgrade_permissions import prepare_runtime, runtime_group
 
 STATE = Path('/var/lib/towbar-upgrade')
@@ -130,15 +130,29 @@ def unpause(job_id):
         raise ValueError("Admission belongs to another attempt. Inspect the host before recovery.")
 
 
+def github_release(path):
+    request = urllib.request.Request(RELEASES_API_URL + path,
+        headers={'User-Agent': 'towbar-upgrade', 'Accept': 'application/vnd.github+json'})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        release = json.load(response)
+    version(release.get('tag_name', ''))
+    if release.get('draft') is not False or release.get('prerelease') is not False:
+        raise ValueError('The target is not a published stable release.')
+    return release
+
+
 def published_release(target):
     version(target)
-    url = DISTRIBUTION_URL + '/releases/' + target + '/release.json'
+    published = github_release('/tags/' + target)
+    if published['tag_name'] != target:
+        raise ValueError('The release tag does not match the target.')
+    url = REPOSITORY_URL + '/releases/download/' + target + '/release.json'
     request = urllib.request.Request(url, headers={'User-Agent': 'towbar-upgrade', 'Accept': 'application/json'})
     with urllib.request.urlopen(request, timeout=15) as response:
         release = json.load(response)
-    if release.get('version') != target or release.get('validated') is not True or not re.fullmatch('[0-9a-f]{40}', release.get('commit', '')):
-        raise ValueError('The target is not a published stable release.')
-    return release
+    if release.get('schemaVersion') != 1 or release.get('version') != target or release.get('validated') is not True or not re.fullmatch('[0-9a-f]{40}', release.get('commit', '')):
+        raise ValueError('The target is not a validated stable release.')
+    return {**release, 'body': published.get('body', '')}
 
 
 class Runner:
@@ -415,11 +429,7 @@ def main():
     if sys.argv[1:2] == ['--upgrade']:
         target = sys.argv[2]
         if target == 'latest':
-            with urllib.request.urlopen(DISTRIBUTION_URL + '/releases/latest.json', timeout=15) as response:
-                latest = json.load(response)
-                if latest.get('validated') is not True:
-                    raise ValueError('No validated release is available.')
-                target = latest['version']
+            target = github_release('/latest')['tag_name']
         plan = local_request('/plan', {'targetVersion': target})
         if plan['blockers']:
             raise ValueError(', '.join(plan['blockers']))

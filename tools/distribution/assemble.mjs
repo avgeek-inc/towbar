@@ -39,7 +39,7 @@ const release = {
 };
 const images = await readFile(imageFile);
 validateImages(JSON.parse(images), release);
-await mkdir(`${directory}/schemas`, { recursive: true });
+await mkdir(directory, { recursive: true });
 for (const name of artifactNames) {
   let body;
   if (name === "source.tar.gz")
@@ -48,7 +48,7 @@ for (const name of artifactNames) {
   else
     body = git(
       "show",
-      `${commit}:${name === "towbar" ? "infra/towbar" : name.startsWith("schemas/") ? "packages/towbar-core/" + name : name}`,
+      `${commit}:${name === "towbar" ? "infra/towbar" : name.endsWith(".v2.json") ? "packages/towbar-core/schemas/" + name : name}`,
     );
   release.artifacts[name] = sha256(body);
   await writeFile(`${directory}/${name}`, body);

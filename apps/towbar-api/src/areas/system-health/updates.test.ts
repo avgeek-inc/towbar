@@ -9,7 +9,7 @@ import {
 
 const release = (version: string) =>
   new Response(
-    JSON.stringify({ version, validated: true, commit: "a".repeat(40) }),
+    JSON.stringify({ tag_name: version, draft: false, prerelease: false }),
     {
       status: 200,
     },
@@ -36,6 +36,18 @@ void test("the latest stable release is available when it is newer", async () =>
   });
 });
 
+void test("update discovery requests the public GitHub Releases API", async () => {
+  const requests: unknown[] = [];
+  const updates = await checkTowbarUpdates("2.0.14", (url) => {
+    requests.push(url);
+    return Promise.resolve(release("v2.0.15"));
+  });
+  assert.deepEqual(requests, [
+    "https://api.github.com/repos/avgeek-oss/towbar/releases/latest",
+  ]);
+  assert.equal(updates.status, "available");
+});
+
 void test("an unreachable or invalid release does not report an update", async () => {
   for (const fetcher of [
     () => Promise.resolve(new Response(null, { status: 503 })),
@@ -44,9 +56,9 @@ void test("an unreachable or invalid release does not report an update", async (
       Promise.resolve(
         new Response(
           JSON.stringify({
-            version: "v2.0.15",
-            validated: false,
-            commit: "a".repeat(40),
+            tag_name: "v2.0.15",
+            draft: true,
+            prerelease: false,
           }),
         ),
       ),
@@ -54,9 +66,9 @@ void test("an unreachable or invalid release does not report an update", async (
       Promise.resolve(
         new Response(
           JSON.stringify({
-            version: "v2.0.15",
-            validated: true,
-            commit: "invalid",
+            tag_name: "v2.0.15",
+            draft: false,
+            prerelease: true,
           }),
         ),
       ),

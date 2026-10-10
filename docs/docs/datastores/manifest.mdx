@@ -38,7 +38,7 @@ Register the server, save each declared secret value under **Datastore → Setti
 | `autoDeploy`, `notifications`   | Deployment automation and extra event destinations.                         | [Sync and automation](/docs/repositories/sync), [Notifications](/docs/integrations/notifications) |
 | `domains`, `ingress`, `tls`     | Routing for Datastores that expose a public endpoint.                       | [Domains and TLS](/docs/domains-tls)                                                              |
 
-The [datastore JSON Schema](https://oss.avgeek.ltd/towbar/schemas/resource.v2.json) describes exact shapes and constraints. Repository sync validates the merged environment and cross-workload conflicts, while deployment checks runtime readiness and required secret values.
+The [datastore JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/resource.v2.json) describes exact shapes and constraints. Repository sync validates the merged environment and cross-workload conflicts, while deployment checks runtime readiness and required secret values.
 
 Objects merge recursively across common and environment settings; arrays replace. Identity, `type`, and secret declarations stay at entity level. A successful sync can change a datastore's desired configuration without replacing its running container until a deployment occurs.
 

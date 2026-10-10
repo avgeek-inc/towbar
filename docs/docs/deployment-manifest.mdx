@@ -18,7 +18,7 @@ environments:
       enabled: true
 ```
 
-See [Repositories](/docs/repositories), [environment branches](/docs/repositories/environments), and [sync](/docs/repositories/sync) for the connection and validation flow. The [root JSON Schema](https://oss.avgeek.ltd/towbar/schemas/repository.v2.json) lists the accepted fields.
+See [Repositories](/docs/repositories), [environment branches](/docs/repositories/environments), and [sync](/docs/repositories/sync) for the connection and validation flow. The [root JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/repository.v2.json) lists the accepted fields.
 
 ## Services
 
@@ -40,7 +40,7 @@ environments:
     server: 192.0.2.10
 ```
 
-Read the [Service manifest](/docs/services/manifest) for every field, [deployment modes](/docs/platform-deployments) for build choices, and [Compose](/docs/services/modes/compose) for multi-container projects. The [Service JSON Schema](https://oss.avgeek.ltd/towbar/schemas/app.v2.json) defines the exact shape.
+Read the [Service manifest](/docs/services/manifest) for every field, [deployment modes](/docs/platform-deployments) for build choices, and [Compose](/docs/services/modes/compose) for multi-container projects. The [Service JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/app.v2.json) defines the exact shape.
 
 ## Datastores
 
@@ -58,7 +58,7 @@ environments:
     server: 192.0.2.10
 ```
 
-Read the [Datastore manifest](/docs/datastores/manifest), then choose an [engine guide](/docs/databases) for required secrets, storage, health checks, and recovery. The [Datastore JSON Schema](https://oss.avgeek.ltd/towbar/schemas/resource.v2.json) defines the exact shape. Use a [Service with an OCI image](/docs/services/modes/image) for images that are not supported datastore engines.
+Read the [Datastore manifest](/docs/datastores/manifest), then choose an [engine guide](/docs/databases) for required secrets, storage, health checks, and recovery. The [Datastore JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/resource.v2.json) defines the exact shape. Use a [Service with an OCI image](/docs/services/modes/image) for images that are not supported datastore engines.
 
 ## Secrets and environment overrides
 

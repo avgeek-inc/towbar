@@ -112,7 +112,7 @@ The optional [Scout Agent](/docs/scout) reports measurements to Towbar over HTTP
 
 CI runs package tests, disposable-host integration tests, Compose startup checks and vulnerability scans. Release publication builds AMD64/ARM64 images, records digests and attestations, verifies downloads, and tests a fresh installation before promotion.
 
-Read `tools/verification/README.md` for coverage and `.github/workflows/release-images.yml` for publication gates. The shared download Worker is maintained in [oss-releases](https://github.com/avgeek-oss/oss-releases); Towbar owns its artifact publication and validation.
+Read `tools/verification/README.md` for coverage and `.github/workflows/release-images.yml` for publication gates. Towbar publishes container images to GHCR and installers, schemas, checksums, and release metadata to GitHub Releases. The release stays draft until its installation checks pass.
 
 ## A practical reading order
 

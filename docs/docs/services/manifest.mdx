@@ -38,7 +38,7 @@ Register the example IP under [Servers](/docs/servers) and map `production` to a
 | `jobs`, `hooks`                                                   | Scheduled commands and deployment-stage commands.                                  | [Scheduled jobs](/docs/services/jobs), [deployment hooks](/docs/deployments#deployment-hooks) |
 | `rollout`, `buildServer`                                          | Replacement strategy and optional separate builder host.                           | [Deployment modes](/docs/platform-deployments)                                                |
 
-Put build settings under `deployment`. The exact accepted shapes and constraints are in the [service JSON Schema](https://oss.avgeek.ltd/towbar/schemas/app.v2.json). Repository sync also checks cross-workload conditions such as server registration and conflicting network aliases.
+Put build settings under `deployment`. The exact accepted shapes and constraints are in the [service JSON Schema](https://github.com/avgeek-oss/towbar/releases/latest/download/app.v2.json). Repository sync also checks cross-workload conditions such as server registration and conflicting network aliases.
 
 ## Common and environment values
 
