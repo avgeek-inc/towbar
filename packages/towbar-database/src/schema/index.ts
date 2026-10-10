@@ -2578,6 +2578,40 @@ export const monitoringAgents = pgTable(
   ],
 );
 
+export const serverObservations = pgTable("towbar_server_observations", {
+  serverId: uuid("server_id")
+    .primaryKey()
+    .references(() => servers.id, { onDelete: "cascade" }),
+  hardware:
+    jsonb("hardware").$type<import("@workspace/towbar-core").ServerHardware>(),
+  hardwareAt: timestamp("hardware_at", { withTimezone: true }),
+  instanceAt: timestamp("instance_at", { withTimezone: true }),
+  bootId: uuid("boot_id"),
+  bootObservedAt: timestamp("boot_observed_at", { withTimezone: true }),
+});
+
+export const serverEvents = pgTable(
+  "towbar_server_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => servers.id, { onDelete: "cascade" }),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    type: varchar("type", { length: 24 })
+      .$type<"host-restart" | "instance-change" | "capacity-change">()
+      .notNull(),
+    detail: text("detail").notNull(),
+  },
+  (table) => [
+    index("towbar_server_event_time").on(table.serverId, table.at),
+    check(
+      "towbar_server_event_type",
+      sql`${table.type} in ('host-restart','instance-change','capacity-change')`,
+    ),
+  ],
+);
+
 export const monitoringBatches = pgTable(
   "towbar_monitoring_batches",
   {

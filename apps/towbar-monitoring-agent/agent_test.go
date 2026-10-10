@@ -191,3 +191,41 @@ func TestRevocationClearsContentsWithoutRemovingStateDirectory(t *testing.T) {
 		t.Fatal("state directory must remain empty", entries, err)
 	}
 }
+
+func TestHostIdentitySurvivesCollectorRestartAndTracksEC2Resize(t *testing.T) {
+	proc, dmi := t.TempDir(), t.TempDir()
+	if err := os.MkdirAll(filepath.Join(proc, "sys/kernel/random"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	write := func(path, value string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(value), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bootID := "a1111111-1111-4111-8111-111111111111"
+	write(filepath.Join(proc, "sys/kernel/random/boot_id"), bootID)
+	write(filepath.Join(proc, "stat"), "btime 1791630000\n")
+	write(filepath.Join(dmi, "sys_vendor"), "Amazon EC2\n")
+	write(filepath.Join(dmi, "product_name"), "r8g.medium\n")
+	now := time.Unix(1791630120, 0)
+	c := &collector{proc: proc, dmi: dmi}
+	first := c.hostIdentity(now, map[string]float64{"uptimeSeconds": 120})
+	restarted := (&collector{proc: proc, dmi: dmi}).hostIdentity(now.Add(time.Minute), map[string]float64{"uptimeSeconds": 180})
+	if first == nil || restarted == nil || first.BootID != restarted.BootID || !first.BootStartedAt.Equal(restarted.BootStartedAt) {
+		t.Fatal("collector restart changed host identity")
+	}
+	write(filepath.Join(dmi, "product_name"), "r8g.large\n")
+	resized := c.hostIdentity(now, map[string]float64{"uptimeSeconds": 120})
+	if resized.Instance == nil || resized.Instance.Type != "r8g.large" {
+		t.Fatal("stale EC2 type")
+	}
+	write(filepath.Join(dmi, "sys_vendor"), "Other cloud")
+	if c.hostIdentity(now, map[string]float64{"uptimeSeconds": 120}).Instance != nil {
+		t.Fatal("generic product name claimed EC2")
+	}
+	write(filepath.Join(proc, "sys/kernel/random/boot_id"), "invalid")
+	if c.hostIdentity(now, map[string]float64{"uptimeSeconds": 120}) != nil {
+		t.Fatal("invalid boot identity accepted")
+	}
+}

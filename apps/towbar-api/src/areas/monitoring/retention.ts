@@ -4,6 +4,7 @@ import {
   monitoringAgents,
   monitoringBatches,
   monitoringSamples,
+  serverEvents,
 } from "@workspace/towbar-database/schema";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 
@@ -120,6 +121,11 @@ export async function maintainMonitoringMetrics(now = new Date()) {
       if (result.count < 10000) break;
     }
   }
+  await database.execute(sql`
+    with doomed as (select e.id from towbar_server_events e
+      left join towbar_monitoring_agents a on a.server_id=e.server_id
+      where e.at < ${now.toISOString()}::timestamptz - coalesce(a.retention_days,15)*interval '1 day' limit 10000)
+    delete from ${serverEvents} where id in (select id from doomed)`);
   await database
     .delete(monitoringBatches)
     .where(

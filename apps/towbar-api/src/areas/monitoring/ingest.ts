@@ -1,3 +1,4 @@
+import { observeServer } from "./server-observations.js";
 import { ingestAnalytics } from "../analytics/service.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
@@ -215,6 +216,19 @@ export async function ingestMonitoringSample(
         status: sql`case when ${monitoringAgents.status} in ('waiting','online') then 'online' else ${monitoringAgents.status} end`,
       })
       .where(eq(monitoringAgents.serverId, serverId));
+    const host = sample.entities.find((entity) => entity.id === "host")!;
+    await observeServer(transaction, serverId, {
+      at: new Date(sample.collectedAt),
+      host: sample.host,
+      hardware: {
+        instance: sample.host?.instance ?? null,
+        cpuCount:
+          host.metrics.cpuCores && Number.isInteger(host.metrics.cpuCores)
+            ? host.metrics.cpuCores
+            : null,
+        memoryBytes: host.metrics.memoryTotalBytes || null,
+      },
+    });
     await ingestAnalytics(transaction, serverId, sample);
     return { accepted: inserted.length, replayed: false };
   });

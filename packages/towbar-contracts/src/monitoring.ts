@@ -1,3 +1,4 @@
+import { cloudInstanceSchema } from "./server-hardware.js";
 import { analyticsCellSchema } from "./analytics.js";
 import { z } from "zod";
 
@@ -70,6 +71,14 @@ export const monitoringEntitySchema = z
 export const monitoringSampleSchema = z
   .object({
     id: z.string().regex(/^[a-f0-9]{32}$/u),
+    host: z
+      .object({
+        bootId: z.string().uuid(),
+        bootStartedAt: z.string().datetime(),
+        instance: cloudInstanceSchema.optional(),
+      })
+      .strict()
+      .optional(),
     analytics: z.array(analyticsCellSchema).max(512).optional(),
     analyticsGeoBuiltAt: z.string().datetime().optional(),
     analyticsListenerReady: z.boolean().optional(),
@@ -102,6 +111,16 @@ export const monitoringSampleSchema = z
       context.addIssue({
         code: "custom",
         message: "One host and unique container identities are required",
+      });
+    }
+    if (
+      sample.host &&
+      Date.parse(sample.host.bootStartedAt) >
+        Date.parse(sample.collectedAt) + 120_000
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Host boot time cannot follow collection time",
       });
     }
     for (const entity of sample.entities) {
@@ -275,7 +294,13 @@ export type MonitoringHistory = {
     id: string;
     at: string;
     state: string;
-    type: "deployment" | "restart";
+    type:
+      | "deployment"
+      | "restart"
+      | "host-restart"
+      | "instance-change"
+      | "capacity-change";
+    detail?: string;
   }>;
 };
 

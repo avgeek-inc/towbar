@@ -39,11 +39,12 @@ test("migration journal keeps notification destinations and failure subscription
     "0021_passkey_recovery.sql",
     "0022_notification_reads.sql",
     "0023_analytics_storage_samples.sql",
+    "0024_server_lifecycle_events.sql",
   ]);
   const journal = JSON.parse(
     await readFile(`${migrationsFolder}/meta/_journal.json`, "utf8"),
   );
-  assert.equal(journal.entries.length, 23);
+  assert.equal(journal.entries.length, 24);
   assert.equal(journal.entries[0].tag, "001_team_access_v2");
   assert.equal(journal.entries[1].tag, "0002_curvy_wasp");
   assert.equal(journal.entries[2].tag, "0003_sad_gabe_jones");
@@ -68,6 +69,7 @@ test("migration journal keeps notification destinations and failure subscription
   assert.equal(journal.entries[15].tag, "0016_incident_trigger_observation");
   assert.equal(journal.entries[16].tag, "0017_admin_key_permissions");
   assert.equal(journal.entries[17].tag, "0018_domain_claims");
+  assert.equal(journal.entries[23].tag, "0024_server_lifecycle_events");
   const failureSubscriptions = await readFile(
     `${migrationsFolder}/0011_notification_deployment_failures.sql`,
     "utf8",
@@ -214,7 +216,7 @@ test(
       });
       const [{ count }] =
         await client`select count(*)::int as count from drizzle.__drizzle_migrations`;
-      assert.equal(count, 23);
+      assert.equal(count, 24);
       const roles =
         await client`select enumlabel from pg_enum join pg_type on pg_type.oid = enumtypid where typname = 'towbar_workspace_role' order by enumsortorder`;
       assert.deepEqual(
@@ -247,6 +249,14 @@ test(
         ["towbar_database_storage_samples", "towbar_bytes"],
         ["towbar_database_storage_samples", "monitoring_bytes"],
         ["towbar_database_storage_samples", "analytics_bytes"],
+        ["towbar_server_observations", "hardware"],
+        ["towbar_server_observations", "hardware_at"],
+        ["towbar_server_observations", "instance_at"],
+        ["towbar_server_observations", "boot_id"],
+        ["towbar_server_observations", "boot_observed_at"],
+        ["towbar_server_events", "at"],
+        ["towbar_server_events", "type"],
+        ["towbar_server_events", "detail"],
       ])
         assert(
           columns.some(

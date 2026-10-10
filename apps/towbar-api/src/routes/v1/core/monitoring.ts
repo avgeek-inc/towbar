@@ -121,7 +121,7 @@ monitoringHistoryRoutes.get(
     summary: "Read server metrics history",
     query: monitoringQuerySchema,
     response:
-      "Server metrics by time, preserving sample counts and minimum/maximum values, plus deployment events.",
+      "Server metrics by time, preserving sample counts and minimum/maximum values, plus deployment, container restart, host restart, and hardware change events.",
     status: 200,
   }),
   async (context) =>
