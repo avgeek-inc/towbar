@@ -13,27 +13,49 @@ import { TypographyCode } from "@avgeek-oss/design-system/typography/typography"
 const formatDate = displayDateTime;
 
 type Event = MonitoringHistory["events"][number];
+const eventLabels = {
+  deployment: "Deployment",
+  restart: "Container restart",
+  "host-restart": "Host restart",
+  "instance-change": "Machine type changed",
+  "capacity-change": "Capacity changed",
+};
+const markerLabels = {
+  deployment: "D",
+  restart: "R",
+  "host-restart": "H",
+  "instance-change": "M",
+  "capacity-change": "C",
+};
+const markerOffsets = {
+  deployment: 9,
+  restart: 53,
+  "host-restart": 97,
+  "instance-change": 141,
+  "capacity-change": 141,
+};
+const statusLabel = (event: Event) =>
+  event.type === "deployment"
+    ? event.state
+    : event.type.endsWith("change")
+      ? "changed"
+      : "restarted";
 const columns: ResourceTableColumn<Event>[] = [
   {
     key: "event",
     header: "Event",
-    cell: (event) =>
-      event.type === "deployment" ? "Deployment" : "Container restart",
+    cell: (event) => eventLabels[event.type],
   },
   {
     key: "status",
     header: "Status",
-    cell: (event) =>
-      event.type === "deployment" ? (
-        <StatusBadge status={event.state} />
-      ) : (
-        <StatusBadge status="restarted" />
-      ),
+    cell: (event) => <StatusBadge status={statusLabel(event)} />,
   },
   {
     key: "reference",
-    header: "Reference",
-    cell: (event) => <TypographyCode>{event.id.slice(0, 8)}</TypographyCode>,
+    header: "Details",
+    cell: (event) =>
+      event.detail ?? <TypographyCode>{event.id.slice(0, 8)}</TypographyCode>,
   },
   {
     key: "time",
@@ -57,23 +79,23 @@ export const MonitoringEvents = memo(function MonitoringEvents({
   return (
     <section
       className="mt-4 grid min-w-0 gap-3"
-      aria-label="Deployment and restart events"
+      aria-label="Performance events"
     >
-      <h3 className="font-medium">Deployment and restart events</h3>
+      <h3 className="font-medium">Performance events</h3>
       <div className="overflow-x-auto">
         <ResourceTable
-          ariaLabel="Deployment and restart events"
+          ariaLabel="Performance events"
           columns={columns}
           items={visibleEvents}
           getRowKey={(event) => `${event.type}:${event.id}:${event.at}`}
           emptyTitle="No events in this range"
-          emptyDescription="Deployments and container restarts will appear here."
+          emptyDescription="Deployments, container restarts, host restarts, and hardware changes will appear here."
           tableClassName="min-w-[580px]"
         />
       </div>
       {events.length > pagination.pageSize ? (
         <Pagination
-          aria-label="Deployment and restart event pages"
+          aria-label="Performance event pages"
           page={pagination.page}
           size="sm"
           totalPages={pagination.totalPages ?? 1}
@@ -91,7 +113,11 @@ export const MonitoringEvents = memo(function MonitoringEvents({
 });
 
 export const monitoringEventColor = (type: Event["type"]) =>
-  type === "deployment" ? "var(--chart-accent)" : "var(--warning)";
+  type === "deployment"
+    ? "var(--chart-accent)"
+    : type.endsWith("change")
+      ? "var(--accent)"
+      : "var(--warning)";
 
 export function MonitoringEventMarker({
   event,
@@ -110,16 +136,15 @@ export function MonitoringEventMarker({
     onActiveChange?.(active);
   };
   if (viewBox?.x === undefined || viewBox.y === undefined) return null;
-  const offset = event.type === "deployment" ? 9 : 25;
-  const title =
-    event.type === "deployment" ? "Deployment" : "Container restart";
-  const label = `${title} ${event.id.slice(0, 8)} at ${date}`;
+  const offset = markerOffsets[event.type];
+  const title = eventLabels[event.type];
+  const label = `${title}${event.detail ? `: ${event.detail}` : ` ${event.id.slice(0, 8)}`} at ${date}`;
   return (
     <foreignObject
-      x={viewBox.x - 10}
-      y={viewBox.y + offset - 10}
-      width={20}
-      height={20}
+      x={viewBox.x - 22}
+      y={viewBox.y + offset - 22}
+      width={44}
+      height={44}
       className="monitoring-event-marker"
       style={{ overflow: "visible" }}
     >
@@ -130,18 +155,21 @@ export function MonitoringEventMarker({
           onMouseLeave={() => changeOpen(false)}
           onFocus={() => changeOpen(true)}
           onBlur={() => changeOpen(false)}
-          className="flex size-5 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           <span
             className="flex size-3.5 items-center justify-center rounded-full text-[9px] font-semibold text-warning-foreground"
             style={{
+              color: event.type.endsWith("change")
+                ? "var(--accent-foreground)"
+                : undefined,
               background:
                 event.type === "deployment"
                   ? "var(--chart-requested)"
                   : monitoringEventColor(event.type),
             }}
           >
-            {event.type === "deployment" ? "D" : "R"}
+            {markerLabels[event.type]}
           </span>
         </Tooltip.Trigger>
         <Tooltip.Content
@@ -151,11 +179,11 @@ export function MonitoringEventMarker({
         >
           <Tooltip.Arrow />
           <span className="grid gap-0.5">
-            <span className="font-medium">
-              {title} · {event.id.slice(0, 8)}
-            </span>
+            <span className="font-medium">{title}</span>
             <span>
-              {event.type === "deployment" ? event.state : "Restarted"} · {date}
+              {event.detail ??
+                (event.type === "deployment" ? event.state : "Restarted")}{" "}
+              · {date}
             </span>
           </span>
         </Tooltip.Content>

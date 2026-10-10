@@ -22,6 +22,7 @@ type counter struct {
 type collector struct {
 	tunnelPeers map[string][]string
 	proc        string
+	dmi         string
 	client      *http.Client
 	previous    map[string]counter
 }
@@ -30,7 +31,7 @@ func newCollector() *collector {
 	transport := &http.Transport{MaxConnsPerHost: 4, MaxIdleConnsPerHost: 4, DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "unix", "/var/run/docker.sock")
 	}}
-	return &collector{proc: "/proc", client: &http.Client{Transport: transport, Timeout: 4 * time.Second}, previous: map[string]counter{}}
+	return &collector{proc: "/proc", dmi: "/sys/class/dmi/id", client: &http.Client{Transport: transport, Timeout: 4 * time.Second}, previous: map[string]counter{}}
 }
 func number(s string) float64 { v, _ := strconv.ParseFloat(s, 64); return v }
 func (c *collector) read(file string) (string, error) {
@@ -190,6 +191,7 @@ func (c *collector) collect(ctx context.Context, now time.Time) Sample {
 		}
 	}
 	next["host"] = counter{raw, now}
+	sample.Host = c.hostIdentity(now, host.Metrics)
 	sample.Entities = append(sample.Entities, host)
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

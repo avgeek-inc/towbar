@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- Server lifecycle, credential state, preparation, and runtime summaries share one service boundary. */
+import { observeServerCheck } from "../monitoring/server-observations.js";
 import {
   getLatestServerPreparations,
   toPublicServer,
@@ -25,6 +26,7 @@ import {
   releases,
   serverChecks,
   serverDeployableOwnership,
+  serverObservations,
   servers,
   sshHostKeys,
 } from "@workspace/towbar-database/schema";
@@ -157,12 +159,21 @@ async function getServerHardware(serverIds: string[]) {
       desc(serverChecks.createdAt),
       desc(serverChecks.id),
     );
-  return new Map(
+  const observations = await getTowbarDatabase()
+    .select()
+    .from(serverObservations)
+    .where(inArray(serverObservations.serverId, serverIds));
+  const hardware = new Map(
     checks.map((check) => [
       check.serverId,
       serverHardwareFromCheck(check.result),
     ]),
   );
+  for (const observation of observations) {
+    if (observation.hardware)
+      hardware.set(observation.serverId, observation.hardware);
+  }
+  return hardware;
 }
 
 export async function listServerApps(serverId: string, workspaceId: string) {
@@ -542,6 +553,7 @@ export async function finishServerCheck(
       recovered: boolean;
     }> = [];
     if (input.status === "succeeded") {
+      await observeServerCheck(transaction, check);
       const runtime = parseRuntimeInspections(input.result.runtime);
       const deployables = await transaction
         .select({

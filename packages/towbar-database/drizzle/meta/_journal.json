@@ -162,6 +162,13 @@
       "when": 1791450000000,
       "tag": "0023_analytics_storage_samples",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791632870096,
+      "tag": "0024_server_lifecycle_events",
+      "breakpoints": true
     }
   ]
 }

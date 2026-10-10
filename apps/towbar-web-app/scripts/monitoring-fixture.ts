@@ -13,7 +13,7 @@ export function fixtureMonitoringAgent(enabled = true): MonitoringAgentStatus {
     status: enabled ? "online" : "disabled",
     desiredState: enabled ? "enabled" : "disabled",
     retentionDays: 15,
-    version: enabled ? "1.2.0" : null,
+    version: enabled ? "1.3.0" : null,
     lastCollectedAt: enabled ? new Date().toISOString() : null,
     lastReportAt: enabled ? new Date().toISOString() : null,
     diagnostics: enabled
@@ -114,6 +114,24 @@ export function fixtureMonitoringHistory(
             ).toISOString(),
             type: "deployment",
             state: "succeeded",
+          },
+          {
+            id: "71111111-1111-4111-8111-111111111111",
+            at: new Date(
+              start + Math.floor((intervals * 70) / 180) * step * 1000,
+            ).toISOString(),
+            type: "host-restart",
+            state: "restarted",
+            detail: "Host boot time reported by the kernel",
+          },
+          {
+            id: "81111111-1111-4111-8111-111111111111",
+            at: new Date(
+              start + Math.floor((intervals * 74) / 180) * step * 1000,
+            ).toISOString(),
+            type: "instance-change",
+            state: "changed",
+            detail: "r8g.medium → r8g.large",
           },
           {
             id,

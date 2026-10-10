@@ -1,12 +1,12 @@
 import { getDeploymentEvents } from "./deployment-events.js";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import {
   type MonitoringAggregates,
   type MonitoringQuery,
   type MonitoringSeries,
   resolveMonitoringWindow,
 } from "@workspace/towbar-core";
-import { apps } from "@workspace/towbar-database/schema";
+import { apps, serverEvents } from "@workspace/towbar-database/schema";
 import { badRequest, notFound } from "../../http/errors.js";
 import { getTowbarDatabase } from "../../infrastructure/database.js";
 import { getServer } from "../servers/service.js";
@@ -115,7 +115,26 @@ export async function getMonitoringHistory(
       lag((metrics->'restartCount'->>'max')::double precision) over(partition by entity_id order by bucket_at) previous
       from towbar_monitoring_samples where ${restartFilter})
     select entity_id id,bucket_at::text at from changes where restarts>previous order by bucket_at desc,id desc limit 201`);
+  const hostEvents = await database
+    .select()
+    .from(serverEvents)
+    .where(
+      and(
+        eq(serverEvents.serverId, serverId),
+        gte(serverEvents.at, start),
+        lt(serverEvents.at, end),
+      ),
+    )
+    .orderBy(desc(serverEvents.at), desc(serverEvents.id))
+    .limit(201);
   const combinedEvents = [
+    ...hostEvents.map((event) => ({
+      id: event.id,
+      at: event.at.toISOString(),
+      type: event.type,
+      state: event.type === "host-restart" ? "restarted" : "changed",
+      detail: event.detail,
+    })),
     ...events,
     ...restarts.map((row) => ({
       ...row,

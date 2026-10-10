@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const Version = "1.2.0"
+const Version = "1.3.0"
 const sampleInterval = 30 * time.Second
 const maxQueueBytes = 10 * 1024 * 1024
 const maxQueueAge = time.Hour
@@ -19,7 +19,17 @@ type Entity struct {
 	Health       string             `json:"health,omitempty"`
 	Metrics      map[string]float64 `json:"metrics"`
 }
+type HostIdentity struct {
+	BootID        string         `json:"bootId"`
+	BootStartedAt time.Time      `json:"bootStartedAt"`
+	Instance      *CloudInstance `json:"instance,omitempty"`
+}
+type CloudInstance struct {
+	Provider string `json:"provider"`
+	Type     string `json:"type"`
+}
 type Sample struct {
+	Host                   *HostIdentity               `json:"host,omitempty"`
 	TunnelPeers            map[string][]string         `json:"tunnelPeers,omitempty"`
 	AnalyticsServices      []AnalyticsServiceReadiness `json:"analyticsServices,omitempty"`
 	AnalyticsListenerReady bool                        `json:"analyticsListenerReady"`
