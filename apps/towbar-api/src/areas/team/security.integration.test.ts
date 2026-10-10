@@ -93,7 +93,6 @@ void test(
       const successfulSetup = competingSetup.find(
         (result) => result.status === "fulfilled",
       )!;
-      assert(successfulSetup.status === "fulfilled");
       const setup = successfulSetup.value;
       assert.equal(setup.status, 200);
       let adminHeaders = headersFor(setup);
