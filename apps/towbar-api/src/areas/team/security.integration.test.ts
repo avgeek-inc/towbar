@@ -98,10 +98,8 @@ void test(
       const admin = (await auth.findSession(adminHeaders))!.user;
       assert.equal(admin.workspaceRole, "admin");
       assert.equal(admin.emailVerified, true);
-      assert.deepEqual(
-        await database.select().from(schema.transactionalEmails),
-        [],
-      );
+      const emails = await database.select().from(schema.transactionalEmails);
+      assert.equal(emails.length, 0);
       await t.test(
         "raw enrollment and organization/key APIs cannot bypass the facade",
         async () => {

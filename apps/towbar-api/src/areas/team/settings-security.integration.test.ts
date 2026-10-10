@@ -164,6 +164,11 @@ void test(
           });
         },
       );
+      // Resend checks need an unverified account; the installation admin is verified.
+      await database
+        .update(schema.users)
+        .set({ emailVerified: false })
+        .where(eq(schema.users.id, admin.id));
       await t.test(
         "email verification is limited to five sends per day with a concurrent-safe one-minute cooldown",
         () =>
@@ -187,6 +192,10 @@ void test(
             memberEmail: "member@settings.test",
           }),
       );
+      await database
+        .update(schema.users)
+        .set({ emailVerified: true })
+        .where(eq(schema.users.id, admin.id));
       await t.test(
         "email changes are verified, expiring, replaceable and consumed once",
         async () => {
