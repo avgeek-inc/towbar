@@ -324,6 +324,9 @@ function DeployableInventoryTable({
             activeDeploymentState: activeDeploymentStates.get(item.id),
             archived: Boolean(item.archivedAt),
             healthStatus: item.runtimeState.healthStatus,
+            hasDeployment: deployments.some(
+              (deployment) => deployment.appId === item.id,
+            ),
             serverReady: item.serverReady,
           })}
         />

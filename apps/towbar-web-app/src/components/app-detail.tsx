@@ -1,4 +1,5 @@
 "use client";
+import { resolveInventoryStatus } from "@/lib/inventory-status";
 import { SourceEnvironmentManifest } from "./source-environment-manifest";
 import { ContainerRuntimeDetails } from "./container-runtime-details";
 import { ScoutAnalytics } from "./scout-analytics";
@@ -283,7 +284,14 @@ export function AppDetail() {
                   </Attributes.Item>
                   <Attributes.Item label="Health">
                     {item.serverReady ? (
-                      <StatusBadge status={item.runtimeState.healthStatus} />
+                      <StatusBadge
+                        status={resolveInventoryStatus({
+                          archived: Boolean(item.archivedAt),
+                          healthStatus: item.runtimeState.healthStatus,
+                          hasDeployment: Boolean(latestDeployment),
+                          serverReady: item.serverReady,
+                        })}
+                      />
                     ) : (
                       <StatusBadge status="not_checked" />
                     )}

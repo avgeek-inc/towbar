@@ -79,3 +79,19 @@ export function resourceImageBrand(
   const repository = normalizeImageRepository(image);
   return (repository ? byRepository.get(repository) : undefined) ?? fallback;
 }
+
+export function resourceImageDescription(
+  kind: ResourceType,
+  image: string,
+): string {
+  const brand = resourceImageBrand(kind, image);
+  if (!normalizeImageRepository(image)) return brand.label;
+  const named = image.split("@")[0]!;
+  const colon = named.lastIndexOf(":");
+  if (colon <= named.lastIndexOf("/")) return brand.label;
+  const tag = named
+    .slice(colon + 1)
+    .replace(/^(?:x86_64|aarch64|amd64|arm64)_/u, "");
+  const version = /^v?(\d+(?:\.\d+)*)(?:[-_]|$)/u.exec(tag)?.[1];
+  return version ? `${brand.label} ${version}` : brand.label;
+}

@@ -42,14 +42,18 @@ export function resolveInventoryStatus({
   activeDeploymentState,
   archived,
   healthStatus,
+  hasDeployment,
   serverReady,
 }: {
   activeDeploymentState?: DeploymentState;
   archived: boolean;
   healthStatus: RuntimeState["healthStatus"];
+  hasDeployment: boolean;
   serverReady: boolean;
 }) {
   if (archived) return "archived";
   if (!serverReady) return "server_setup_pending";
-  return activeDeploymentState ?? healthStatus;
+  if (activeDeploymentState) return activeDeploymentState;
+  if (!hasDeployment && healthStatus === "unknown") return "not_deployed";
+  return healthStatus;
 }

@@ -266,6 +266,7 @@ function statusTooltip(status: string, context?: "runtime") {
       trusted: "This identity has been explicitly trusted.",
       two_factor_disabled: "Two-factor authentication is not enabled.",
       unhealthy: "The latest health check failed.",
+      not_deployed: "This workload has not been deployed yet.",
       unknown:
         "Towbar does not have enough recent information to determine the state.",
       untrusted: "This identity has not been trusted yet.",
@@ -290,6 +291,7 @@ function statusTooltip(status: string, context?: "runtime") {
 export function formatStatus(status: string) {
   if (status === "none") return "No health check";
   if (status === "not_checked") return "Not checked";
+  if (status === "not_deployed") return "Not deployed";
   return status
     .split("_")
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
