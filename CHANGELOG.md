@@ -3,7 +3,12 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## [2.0.37] - 2026-10-10
+
+### Added
+
+- Show host restart and hardware change markers in server Performance charts.
+- Refresh server hardware and instance type metadata when Scout detects changes.
 
 ### Changed
 
