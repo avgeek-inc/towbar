@@ -269,11 +269,17 @@ function storageFixture(failure: Failure): BackupStorage {
   };
 }
 
-function sessionFixture(engine: Engine, failure: Failure) {
+function sessionFixture(
+  engine: Engine,
+  failure: Failure,
+  major: number = engineFixtures[engine].major,
+) {
   const commands: string[] = [];
+  const calls: { script: string; args: string[] }[] = [];
   const session = {
-    run(script: string) {
+    run(script: string, args: string[] = []) {
       commands.push(script);
+      calls.push({ script, args });
       if (script === restoreScripts.preflight) {
         if (failure === "incompatible") {
           return Promise.reject(new Error("engine mismatch"));
@@ -283,7 +289,7 @@ function sessionFixture(engine: Engine, failure: Failure) {
         }
         return Promise.resolve({
           stderr: "",
-          stdout: `towbar-${deployableId}-data\n10737418240\n${engineFixtures[engine].major}\n`,
+          stdout: `towbar-${deployableId}-data\n10737418240\n${major}\n`,
         });
       }
       if (script === restoreScripts.restoreCandidate && failure === "health") {
@@ -299,16 +305,17 @@ function sessionFixture(engine: Engine, failure: Failure) {
     },
     async upload() {},
   } as unknown as SshSession;
-  return { commands, session };
+  return { calls, commands, session };
 }
 
 async function runRestoreFixture(
   engine: Engine,
   failure: Failure,
   container: Partial<NormalizedResource["container"]> = {},
+  major: number = engineFixtures[engine].major,
 ) {
   const directory = await mkdtemp(path.join(tmpdir(), "towbar-restore-test-"));
-  const { commands, session } = sessionFixture(engine, failure);
+  const { calls, commands, session } = sessionFixture(engine, failure, major);
   const baseStorage = storageFixture(failure);
   const storage: BackupStorage = {
     ...baseStorage,
@@ -317,17 +324,23 @@ async function runRestoreFixture(
       return {
         ...metadata,
         engine,
-        engineMajorVersion: engineFixtures[engine].major,
+        engineMajorVersion: major,
         format: engineFixtures[engine].format,
       };
     },
   };
   try {
     const context = restoreContext(engine);
+    context.restoreBackup!.result.engineMajorVersion = major;
     context.deployable = {
       ...resourceFixture(engine),
       container: { ...resourceFixture(engine).container, ...container },
+      ...(engine === "postgres" && major === 18
+        ? { image: "postgres:18-alpine@sha256:fixture" }
+        : {}),
     };
+    if (context.currentRelease)
+      context.currentRelease.imageTag = context.deployable.image;
     const result = await executeManagedRestore({
       context,
       hooks: {},
@@ -337,15 +350,44 @@ async function runRestoreFixture(
       session,
       storage,
     });
-    return { commands, result };
+    return { calls, commands, result };
   } catch (error) {
-    return { commands, error };
+    return { calls, commands, error };
   } finally {
     await rm(directory, { force: true, recursive: true });
   }
 }
 
 void describe("managed database restore scripts", () => {
+  void it("restores PostgreSQL 18 and keeps the major-version compatibility gate", async () => {
+    const volumes = [{ name: "data", mountPath: "/var/lib/postgresql" }];
+    const execution = await runRestoreFixture(
+      "postgres",
+      null,
+      { volumes },
+      18,
+    );
+    assert.equal(execution.error, undefined);
+    assert.equal(execution.result?.validation?.engineMajorVersion, 18);
+    assert.ok(execution.commands.includes(restoreScripts.restoreCandidate));
+    const candidateArgs = execution.calls.find(
+      (call) => call.script === restoreScripts.restoreCandidate,
+    )?.args;
+    assert.equal(candidateArgs?.[3], "/var/lib/postgresql");
+    assert.equal(candidateArgs?.[5], "postgres:18-alpine@sha256:fixture");
+    const preflightArgs = execution.calls.find(
+      (call) => call.script === restoreScripts.preflight,
+    )?.args;
+    assert.equal(preflightArgs?.[5], "18");
+    const incompatible = await runRestoreFixture(
+      "postgres",
+      "incompatible",
+      { volumes },
+      18,
+    );
+    assert.match(String(incompatible.error), /engine mismatch/u);
+    assert.ok(!incompatible.commands.includes(restoreScripts.restoreCandidate));
+  });
   void it("rejects unsupported runtime configuration before changing a datastore", async () => {
     for (const container of [
       { configFiles: [{ source: "config/store", mountPath: "/etc/store" }] },

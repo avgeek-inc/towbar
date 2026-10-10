@@ -798,12 +798,18 @@ function validateManagedResourceImage(
   }
   const taggedReference = resource.image.split("@")[0]!;
   const tag = taggedReference.slice(taggedReference.lastIndexOf(":") + 1);
-  const match = /v?(\d+)(?:[.-]|$)/u.exec(tag);
-  const supported = managedResourceCompatibility[resource.type].majorVersion;
-  if (!match || Number(match[1]) !== supported) {
+  const match = (
+    resource.type === "postgres" ? /^v?(\d+)(?:[.-]|$)/u : /v?(\d+)(?:[.-]|$)/u
+  ).exec(tag);
+  const compatibility = managedResourceCompatibility[resource.type];
+  const supported: readonly number[] =
+    "supportedMajorVersions" in compatibility
+      ? compatibility.supportedMajorVersions
+      : [compatibility.majorVersion];
+  if (!match || !supported.includes(Number(match[1]))) {
     context.addIssue({
       code: "custom",
-      message: `${resource.type} images must declare supported major version ${supported} in the tag`,
+      message: `${resource.type} images must declare supported major version${supported.length > 1 ? "s" : ""} ${supported.join(", ")} in the tag`,
       path: ["image"],
     });
   }
@@ -1693,7 +1699,7 @@ function defaultResourceVolume(type: ResourceType, image: string) {
 
 function postgresImageMajorVersion(image: string) {
   const tag = image.split("@")[0]?.split(":").at(-1) ?? "";
-  const match = /^(\d+)/u.exec(tag);
+  const match = /^v?(\d+)/u.exec(tag);
   return match ? Number(match[1]) : 0;
 }
 

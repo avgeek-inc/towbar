@@ -18,6 +18,7 @@ export const managedResourceCompatibility = {
       "postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
     architectures: ["amd64", "arm64"],
     majorVersion: 17,
+    supportedMajorVersions: [17, 18],
     port: 5_432,
     volumePath: "/var/lib/postgresql/data",
     resources: { cpus: 1, memory: "1g" },
@@ -131,6 +132,7 @@ export const managedResourceCompatibility = {
     image: string;
     architectures: readonly ("amd64" | "arm64")[];
     majorVersion: number;
+    supportedMajorVersions?: readonly number[];
     port: number;
     volumePath: string;
     resources: { cpus: number; memory: string };

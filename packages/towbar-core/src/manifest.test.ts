@@ -211,6 +211,48 @@ void test("uses the supported PostgreSQL data directory for managed volumes", ()
   ]);
 });
 
+for (const [tag, mountPath] of [
+  ["17-alpine", "/var/lib/postgresql/data"],
+  ["18-alpine", "/var/lib/postgresql"],
+  ["18.6-alpine", "/var/lib/postgresql"],
+  ["v18-alpine", "/var/lib/postgresql"],
+] as const) {
+  void test(`normalizes immutable PostgreSQL ${tag} with its data layout`, () => {
+    const image = `postgres:${tag}@sha256:${"a".repeat(64)}`;
+    const parsed = parseResolvedManifest(
+      `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    image: ${image}\n    server: 203.0.113.10\n`,
+    ).manifest;
+    const database = parsed.resources?.[0];
+    assert.equal(database?.image, image);
+    assert.deepEqual(database?.container.volumes, [
+      { mountPath, name: "data" },
+    ]);
+    assert.equal(database?.container.port, 5_432);
+    assert.deepEqual(
+      database?.health.type === "command" ? database.health.command : undefined,
+      managedResourceCompatibility.postgres.healthCommand,
+    );
+  });
+}
+
+void test("rejects unsupported PostgreSQL majors and mutable images", () => {
+  for (const image of [
+    `postgres:16-alpine@sha256:${"a".repeat(64)}`,
+    `postgres:19-alpine@sha256:${"a".repeat(64)}`,
+    `postgres:latest@sha256:${"a".repeat(64)}`,
+    `postgres:custom18-alpine@sha256:${"a".repeat(64)}`,
+    "postgres:18-alpine",
+  ]) {
+    assert.throws(
+      () =>
+        parseResolvedManifest(
+          `${manifest}\nresources:\n  - id: database\n    name: Database\n    type: postgres\n    image: ${image}\n    server: 203.0.113.10\n`,
+        ),
+      ManifestValidationError,
+    );
+  }
+});
+
 void test("validates hourly-or-slower UTC backup cron schedules", () => {
   assert.doesNotThrow(() => validateBackupCron("0 * * * *"));
   assert.equal(
