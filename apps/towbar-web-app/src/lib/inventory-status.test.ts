@@ -72,6 +72,7 @@ void test("surfaces an active deployment instead of unknown inventory state", ()
       activeDeploymentState: "queued",
       archived: false,
       healthStatus: "unknown",
+      hasDeployment: false,
       serverReady: true,
     }),
     "queued",
@@ -84,6 +85,7 @@ void test("keeps server setup and archive states authoritative", () => {
       activeDeploymentState: "waiting_for_server",
       archived: false,
       healthStatus: "unknown",
+      hasDeployment: false,
       serverReady: false,
     }),
     "server_setup_pending",
@@ -93,8 +95,33 @@ void test("keeps server setup and archive states authoritative", () => {
       activeDeploymentState: "queued",
       archived: true,
       healthStatus: "unknown",
+      hasDeployment: false,
       serverReady: true,
     }),
     "archived",
+  );
+});
+
+void test("distinguishes an undeployed workload from unavailable health after deployment", () => {
+  const status = {
+    archived: false,
+    healthStatus: "unknown" as const,
+    serverReady: true,
+  };
+  assert.equal(
+    resolveInventoryStatus({ ...status, hasDeployment: false }),
+    "not_deployed",
+  );
+  assert.equal(
+    resolveInventoryStatus({ ...status, hasDeployment: true }),
+    "unknown",
+  );
+  assert.equal(
+    resolveInventoryStatus({
+      ...status,
+      healthStatus: "healthy",
+      hasDeployment: false,
+    }),
+    "healthy",
   );
 });

@@ -5,6 +5,7 @@ import catalog from "./resource-image-catalog.json";
 import {
   normalizeImageRepository,
   resourceImageBrand,
+  resourceImageDescription,
 } from "./resource-image-brand";
 
 void test("recognizes tagged, digested, and fully qualified Docker Hub identities", () => {
@@ -170,4 +171,39 @@ void test("every catalog entry has unique valid repositories and bundled artwork
       }
     }
   }
+});
+
+void test("describes datastore versions without platform suffixes or registry ports", () => {
+  const digest = "a".repeat(64);
+  assert.equal(
+    resourceImageDescription("postgres", `postgres:18-alpine@sha256:${digest}`),
+    "PostgreSQL 18",
+  );
+  assert.equal(
+    resourceImageDescription("postgres", "postgres:17.6-bookworm"),
+    "PostgreSQL 17.6",
+  );
+  assert.equal(resourceImageDescription("redis", "redis:7-alpine"), "Redis 7");
+  assert.equal(
+    resourceImageDescription("keydb", "eqalpha/keydb:x86_64_v6.3.4"),
+    "KeyDB 6.3.4",
+  );
+  assert.equal(
+    resourceImageDescription(
+      "clickhouse",
+      "clickhouse/clickhouse-server:24.12.2.29-alpine",
+    ),
+    "ClickHouse 24.12.2.29",
+  );
+  assert.equal(
+    resourceImageDescription(
+      "postgres",
+      `registry.example:5000/postgres@sha256:${digest}`,
+    ),
+    "PostgreSQL",
+  );
+  assert.equal(
+    resourceImageDescription("postgres", "postgres:latest"),
+    "PostgreSQL",
+  );
 });

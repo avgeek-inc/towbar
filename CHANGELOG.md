@@ -3,6 +3,13 @@
 All notable changes to Towbar are documented in this file. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.38] - 2026-10-10
+
+### Fixed
+
+- Show Not deployed for services and datastores without deployment history.
+- Include the configured datastore image version beside its engine name.
+
 ## [2.0.37] - 2026-10-10
 
 ### Added

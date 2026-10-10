@@ -9,7 +9,11 @@ import {
 import Image, { type ImageLoaderProps } from "next/image";
 import { useState } from "react";
 import bundledFavicons from "./service-favicon-catalog.json";
-import { resourceImageBrand, type ResourceBrand } from "./resource-image-brand";
+import {
+  resourceImageBrand,
+  resourceImageDescription,
+  type ResourceBrand,
+} from "./resource-image-brand";
 import {
   DashboardCircleIcon,
   HeartPulseIcon,
@@ -295,7 +299,9 @@ export function ResourceIdentity({
           exposed={Boolean(resource.config.domains?.primary)}
           health={healthStatus}
         />
-        <TableCellDescription>{type.label}</TableCellDescription>
+        <TableCellDescription>
+          {resourceImageDescription(resource.kind, resource.config.image)}
+        </TableCellDescription>
       </TableCellStack>
     </span>
   );

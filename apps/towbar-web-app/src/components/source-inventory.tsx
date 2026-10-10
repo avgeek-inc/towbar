@@ -37,6 +37,7 @@ import {
 
 function appColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
+  deployments: Deployment[],
   runtimeById: Map<string, RuntimeMetric>,
   serversByIp: Map<string, Server>,
 ): ResourceTableColumn<App>[] {
@@ -55,6 +56,9 @@ function appColumns(
             activeDeploymentState: activeDeploymentStates.get(app.id),
             archived: Boolean(app.archivedAt),
             healthStatus: app.runtimeState.healthStatus,
+            hasDeployment: deployments.some(
+              (deployment) => deployment.appId === app.id,
+            ),
             serverReady: app.serverReady,
           })}
         />
@@ -124,6 +128,7 @@ function appColumns(
 
 function resourceColumns(
   activeDeploymentStates: Map<string, DeploymentState>,
+  deployments: Deployment[],
   runtimeById: Map<string, RuntimeMetric>,
   serversByIp: Map<string, Server>,
 ): ResourceTableColumn<Resource>[] {
@@ -142,6 +147,9 @@ function resourceColumns(
             activeDeploymentState: activeDeploymentStates.get(resource.id),
             archived: Boolean(resource.archivedAt),
             healthStatus: resource.runtimeState.healthStatus,
+            hasDeployment: deployments.some(
+              (deployment) => deployment.appId === resource.id,
+            ),
             serverReady: resource.serverReady,
           })}
         />
@@ -227,7 +235,12 @@ export function SourceApps({
   return (
     <DeployableInventoryTable
       ariaLabel="Repository services"
-      columns={appColumns(activeDeploymentStates, runtimeById, serversByIp)}
+      columns={appColumns(
+        activeDeploymentStates,
+        deployments,
+        runtimeById,
+        serversByIp,
+      )}
       emptyDescription="A successful manifest sync imports this Repository's services."
       emptyTitle="No services in this Repository"
       getRowHref={(app) => `/services/${app.id}`}
@@ -262,6 +275,7 @@ export function SourceResources({
       ariaLabel="Repository datastores"
       columns={resourceColumns(
         activeDeploymentStates,
+        deployments,
         runtimeById,
         serversByIp,
       )}
